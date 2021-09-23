@@ -2,6 +2,7 @@ import os
 import dotenv
 import discord
 import json
+import time
 
 from typing import List, Optional, Dict, Tuple
 
@@ -15,9 +16,9 @@ class JsonDatabase(object):
         self.content = self.setup()
 
     def add(self, created_by: int, task: str, created_at: int) -> None:
-        if created_by not in self.content:
-            self.content.setdefault(created_by, [])
-        self.content[created_by].append(task)
+        if not self.content.get(str(created_by)):
+            self.content.setdefault(str(created_by), [])
+        self.content[str(created_by)].append(task)
         self.write_file(json.dumps(self.content))
 
     def setup(self) -> Dict:
@@ -40,11 +41,32 @@ class JsonDatabase(object):
 class CommandParser(object):
     def __init__(self, message: discord.Message):
         self.message = message
-        self.database = JsonDatabase("tasks")
+        self.database: Dict[str, List[str]] = JsonDatabase("tasks")
 
     def create_parser(self):
         command, parameters = self.__parse_message()
-        return self.message.channel.send("jeje")
+        if command == "create":
+            task = " ".join(parameters)
+            created_by = int(time.time())
+            self.database.add(self.message.author.id, task, created_by)
+            return self.message.channel.send(f"Created a task at <t:{created_by}>")
+        elif command == "list":
+            tasks: List[str] = self.get_task_list(self.message.author.id)
+            description = ""
+            print(tasks)
+            for index, element in enumerate(tasks):
+                description += f"**{element}**\n"
+
+            return self.message.channel.send(
+                embed=discord.Embed(title="Tasks", description=description)
+            )
+        return self.message.channel.send("ll")
+
+    def get_task_list(self, author_id: int) -> List[str]:
+        task_author_id = str(self.message.author.id)
+        if task_author_id not in self.database.content:
+            return []
+        return self.database.content.get(task_author_id)
 
     def __parse_message(self) -> Tuple[str, List[str]]:
         slices: List[str] = self.message.content.split(" ")
