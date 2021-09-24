@@ -19,7 +19,7 @@ pip install terminal-img
 The library is really simple to get started with. Here's is an example of how you display an image
 
 ```py
-from image import DraImage
+from image import DrawImage
 
 image = DrawImage("image.png")
 ```
