@@ -5,10 +5,13 @@ import shutil
 from PIL import Image
 from typing import Optional
 
-class DrawImage(object):
-    PIXEL = '\u2584'
 
-    def __init__(self, filename:str, size:Optional[tuple]=(24, 24), draw:bool=True):
+class DrawImage(object):
+    PIXEL = "\u2584"
+
+    def __init__(
+        self, filename: str, size: Optional[tuple] = (24, 24), draw: bool = True
+    ):
         self.__filename = filename
         self.size = None if size == None else tuple(size)
 
@@ -37,11 +40,15 @@ class DrawImage(object):
                 print("")
             print(self.__colored(r, g, b, self.PIXEL), end="")
 
-    def __colored(self:int, red:int, green:int, blue:int, text:str) -> str:
-        return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(red, green, blue, text)
+    def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
+        return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(
+            red, green, blue, text
+        )
 
     @staticmethod
-    def from_url(url:str, size:Optional[tuple]=(24, 24), draw:bool=True) -> DrawImage:
+    def from_url(
+        url: str, size: Optional[tuple] = (24, 24), draw: bool = True
+    ) -> DrawImage:
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
@@ -56,6 +63,3 @@ class DrawImage(object):
         with open(filename, "wb") as image_writer:
             shutil.copyfileobj(response.raw, image_writer)
         return DrawImage(filename, size=size, draw=draw)
-
-
-
