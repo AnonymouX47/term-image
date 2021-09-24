@@ -38,7 +38,10 @@ class DrawImage(object):
             r, g, b = character if len(character) == 3 else character[:-1]
             if index % width == 0:
                 print("")
-            print(self.__colored(r, g, b, self.PIXEL), end="")
+            print(
+                self.__colored(r, g, b, self.PIXEL),
+                end="\n" if index + 1 == len(pixel_values) else "",
+            )
 
     def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
         return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(
@@ -46,9 +49,7 @@ class DrawImage(object):
         )
 
     @staticmethod
-    def from_url(
-        url: str, size: Optional[tuple] = (24, 24), draw: bool = True
-    ) -> DrawImage:
+    def from_url(url: str, size: Optional[tuple] = (24, 24), draw: bool = True):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
