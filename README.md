@@ -3,8 +3,10 @@
 Display Images in your terminal with python
 
 <hr>
-<img src="https://i.imgur.com/O1zIgca.png">
+<!-- <img src="https://i.imgur.com/O1zIgca.png"> -->
+ <img src="https://user-images.githubusercontent.com/70764593/134728047-57e934ca-587c-4f4b-81f2-1df7dfe5f570.png" height="300">
 <hr>
+
 </div>
 
 ## Installation
