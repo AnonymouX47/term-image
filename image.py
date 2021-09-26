@@ -1,13 +1,13 @@
 import os
 import requests
-import shutil
+import time
 
-from PIL import Image
+from PIL import Image, GifImagePlugin
 from typing import Optional
 
 
 class DrawImage(object):
-    PIXEL = "\u2584"
+    PIXEL: str = "\u2584"
 
     def __init__(
         self, filename: str, size: Optional[tuple] = (24, 24), draw: bool = True
@@ -21,15 +21,32 @@ class DrawImage(object):
         if draw:
             self.draw_image()
 
-    def draw_image(self) -> None:
+    def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
+        frame_filename = os.path.join(
+            os.path.dirname(self.__filename),
+            f"{os.path.basename(self.__filename)}-frames",
+        )
+        for frame in range(0, image.n_frames):
+            image.seek(frame)
+            image.save(frame_filename + f"{frame}.png")
+            draw = DrawImage(frame_filename + f"{frame}.png", self.size)
+            draw.draw_image(True)
+
+    def draw_image(self, convert_to_rgb=False) -> None:
         """Print an image to the screen
 
         This function creates an Image objects, reads the colour
         of each pixel and print pixels with colours
         """
         image = Image.open(self.__filename, "r")
+        if convert_to_rgb:
+            image = image.convert("RGB")
         resized_images = image.resize(self.size) if self.size else image
         pixel_values = resized_images.getdata()
+
+        if isinstance(image, GifImagePlugin.GifImageFile):
+            self.__display_gif(image)
+            return
 
         width, height = resized_images.size
         for index, character in enumerate(pixel_values):
@@ -62,5 +79,5 @@ class DrawImage(object):
             os.mkdir(basedir)
         filename = os.path.join(basedir, os.path.basename(url))
         with open(filename, "wb") as image_writer:
-            shutil.copyfileobj(response.raw, image_writer)
+            image_writer.write(response.content)
         return DrawImage(filename, size=size, draw=draw)

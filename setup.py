@@ -9,7 +9,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-with open("README.md", "r") as fp:
+with open("README.md", "r", encoding="utf8") as fp:
     long_description = fp.read()
 
 setup(
@@ -21,6 +21,7 @@ setup(
     py_modules=["image"],
     description="Display images in the terminal",
     long_description=long_description,
+    long_description_content_type="text/markdown",
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.6",
