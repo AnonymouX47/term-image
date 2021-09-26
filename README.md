@@ -1,19 +1,28 @@
 <div align="center">
-<h1><b>Img</b></h1>
+<h1><b><code>Img</code></b></h1>
 Display Images in your terminal with python
 
-<hr>
-<!-- <img src="https://i.imgur.com/O1zIgca.png"> -->
- <img src="https://user-images.githubusercontent.com/70764593/134728047-57e934ca-587c-4f4b-81f2-1df7dfe5f570.png" height="300">
-<hr>
+<img src="https://i.imgur.com/O1zIgca.png" height=150>
+<br>
+<br>
+
+ <!-- <img src="https://cdn.discordapp.com/attachments/875983412639436850/891594483626573844/unknown.png" height="250"> -->
+
+<p align="center">
+    <img src="https://static.pepy.tech/badge/terminal-img">
+    <img src="https://badges.frapsoft.com/os/v1/open-source.svg?v=103">
+    <img src="https://img.shields.io/github/last-commit/pranavbaburaj/img">
+    <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20the%20terminal%20using%20python&url=https://github.com/pranavbaburaj/img&via=_pranavbaburaj&hashtags=developers,images,terminal"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"></a>
+  </p>
 
 </div>
 
 ## Installation
 
 The package can be installed via `pip`
+
 ```py
-pip install terminal-img  
+pip install terminal-img
 ```
 
 ## Quick Start
@@ -32,3 +41,16 @@ image = DrawImage("image.png")
 image = DrawImage.from_url("url")
 ```
 
+## Methods
+
+#### `image.DrawImage`
+
+- `filename`: The name of the file containing the image
+- `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
+- `draw`: Whether to draw on creating an instance or wait for the user to call the function
+
+#### `image.DrawImage.from_url`
+
+- `url` : The url of the image
+- `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
+- `draw`: Whether to draw on creating an instance or wait for the user to call the function
