@@ -18,7 +18,7 @@ setup(
     author="Pranav Baburaj",
     author_email="i.am.pranav.baburaj@gmail.com",
     url="https://github.com/pranavbaburaj/img",
-    py_modules=["image"],
+    py_modules=["image", "cli"],
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,4 +26,7 @@ setup(
     classifiers=classifiers,
     python_requires=">=3.6",
     install_requires=["pillow", "requests"],
+    entry_points = {
+        'console_scripts': ['img=cli:main'],
+    }
 )

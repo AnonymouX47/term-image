@@ -5,18 +5,33 @@ import platform
 import sys
 
 from PIL import Image, GifImagePlugin
-from typing import Optional
+from typing import Optional, Tuple
 from colr import Colr
-from urllib.parse import urlparse
+from urllib.parse import urlparse, ParseResult
 
 class DrawImage(object):
     PIXEL: str = "\u2584"
+
+    @staticmethod
+    def __validate_input(source:str, size:Optional[Tuple[int, int]], draw:bool, source_type:str=""):
+        if source_type == "url":
+            parsed_url:ParseResult = urlparse(source)
+            if len(list(filter(lambda element:len(element) != 0, [parsed_url.scheme, parsed_url.netloc]))) == 0:
+                raise ValueError(f"Invalid url:{source}")
+        assert isinstance(size, tuple) or size == None, "Invalid type for size"
+        for size_value in size:
+            assert isinstance(size_value, int), "size expected to be tuple of integers"
+
+        assert isinstance(draw, bool), f"draw expected to be bool, but got {type(draw).__name__()}"
+
 
     def __init__(
         self, filename: str, size: Optional[tuple] = (24, 24), draw: bool = True
     ):
         self.__filename = filename
         self.size = None if size == None else tuple(size)
+
+        DrawImage.__validate_input(self.__filename, self.size, draw, "file")
 
         if not os.path.isfile(self.__filename):
             raise FileNotFoundError(f"{self.__filename} not found")
@@ -79,6 +94,7 @@ class DrawImage(object):
         Write the raw response into an image file, create a new DraeImage object
         with the new file and return the object
         """
+        DrawImage.__validate_input(url, size, draw, "url")
         response = requests.get(url, stream=True)
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")

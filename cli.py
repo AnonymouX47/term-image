@@ -12,7 +12,7 @@ class ImageCLI(object):
         sys.exit() if is_fatal else None
 
     def parse_arguments(self):
-        command, parameters = "help", {}
+        command, parameters = "", {}
         for index, argument in enumerate(sys.argv[1:]):
             if index == 0:
                 command = argument
@@ -55,6 +55,6 @@ class ImageCLI(object):
         except Exception as exception:
             return None
 
-if __name__ == "__main__":
+def main():
     cli = ImageCLI()
     cli.display_image()
