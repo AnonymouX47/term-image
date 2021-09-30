@@ -7,8 +7,9 @@ __pycache__/
 *.so
 example.py
 tasks
-.gitignore
+.github
 # Distribution / packaging
+
 .Python
 build/
 develop-eggs/
