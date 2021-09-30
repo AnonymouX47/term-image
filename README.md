@@ -1,10 +1,9 @@
 <div align="center">
 <h1><b><code>Img</code></b></h1>
 Display Images in your terminal with python
-
-<img src="https://i.imgur.com/O1zIgca.png" height=150>
-<br>
-
+ 
+ <br>
+<img src="https://i.imgur.com/O1zIgca.png" height="150">
 
  <!-- <img src="https://cdn.discordapp.com/attachments/875983412639436850/891594483626573844/unknown.png" height="250"> -->
 
