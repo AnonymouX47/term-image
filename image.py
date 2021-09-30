@@ -1,6 +1,8 @@
 import os
 import requests
 import time
+import platform
+import sys
 
 from PIL import Image, GifImagePlugin
 from typing import Optional
@@ -31,6 +33,12 @@ class DrawImage(object):
             image.save(frame_filename + f"{frame}.png")
             draw = DrawImage(frame_filename + f"{frame}.png", self.size)
             draw.draw_image(True)
+            try:
+                time.sleep(0.1)
+            except KeyboardInterrupt:
+                return
+            sys.stdout.flush()
+        self.__display_gif(image)
 
     def draw_image(self, convert_to_rgb=False) -> None:
         """Print an image to the screen
@@ -61,7 +69,7 @@ class DrawImage(object):
             )
 
     def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
-        return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(
+        return "\033[38;2;{};{\};{}m{} \033[38;2;255;255;255m".format(
             red, green, blue, text
         )
 
