@@ -9,21 +9,35 @@ from typing import Optional, Tuple
 from colr import Colr
 from urllib.parse import urlparse, ParseResult
 
+
 class DrawImage(object):
     PIXEL: str = "\u2584"
 
     @staticmethod
-    def __validate_input(source:str, size:Optional[Tuple[int, int]], draw:bool, source_type:str=""):
+    def __validate_input(
+        source: str, size: Optional[Tuple[int, int]], draw: bool, source_type: str = ""
+    ):
         if source_type == "url":
-            parsed_url:ParseResult = urlparse(source)
-            if len(list(filter(lambda element:len(element) != 0, [parsed_url.scheme, parsed_url.netloc]))) == 0:
+            parsed_url: ParseResult = urlparse(source)
+            if (
+                len(
+                    list(
+                        filter(
+                            lambda element: len(element) != 0,
+                            [parsed_url.scheme, parsed_url.netloc],
+                        )
+                    )
+                )
+                == 0
+            ):
                 raise ValueError(f"Invalid url:{source}")
         assert isinstance(size, tuple) or size == None, "Invalid type for size"
         for size_value in size:
             assert isinstance(size_value, int), "size expected to be tuple of integers"
 
-        assert isinstance(draw, bool), f"draw expected to be bool, but got {type(draw).__name__()}"
-
+        assert isinstance(
+            draw, bool
+        ), f"draw expected to be bool, but got {type(draw).__name__()}"
 
     def __init__(
         self, filename: str, size: Optional[tuple] = (24, 24), draw: bool = True

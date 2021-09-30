@@ -26,7 +26,7 @@ setup(
     classifiers=classifiers,
     python_requires=">=3.6",
     install_requires=["pillow", "requests"],
-    entry_points = {
-        'console_scripts': ['img=cli:main'],
-    }
+    entry_points={
+        "console_scripts": ["img=cli:main"],
+    },
 )
