@@ -6,7 +6,8 @@ import sys
 
 from PIL import Image, GifImagePlugin
 from typing import Optional
-
+from colr import Colr
+from urllib.parse import urlparse
 
 class DrawImage(object):
     PIXEL: str = "\u2584"
@@ -69,9 +70,7 @@ class DrawImage(object):
             )
 
     def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
-        return "\033[38;2;{};{\};{}m{} \033[38;2;255;255;255m".format(
-            red, green, blue, text
-        )
+        return Colr().rgb(red, green, blue, text)
 
     @staticmethod
     def from_url(url: str, size: Optional[tuple] = (24, 24), draw: bool = True):
@@ -85,7 +84,7 @@ class DrawImage(object):
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
-        filename = os.path.join(basedir, os.path.basename(url))
+        filename = os.path.join(basedir, os.path.basename(urlparse(url).path))
         with open(filename, "wb") as image_writer:
             image_writer.write(response.content)
         return DrawImage(filename, size=size, draw=draw)
