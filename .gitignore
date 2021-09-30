@@ -7,7 +7,7 @@ __pycache__/
 *.so
 example.py
 tasks
-.github
+# .github
 # Distribution / packaging
 
 .Python
