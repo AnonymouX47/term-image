@@ -7,7 +7,7 @@ __pycache__/
 *.so
 example.py
 tasks
-
+.gitignore
 # Distribution / packaging
 .Python
 build/
