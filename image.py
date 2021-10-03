@@ -15,7 +15,7 @@ class DrawImage(object):
 
     @staticmethod
     def __validate_input(
-        source: str, size: Optional[Tuple[int, int]], draw: bool, source_type: str = ""
+        source: str, size: Optional[Tuple[int, int]], source_type: str = ""
     ):
         if source_type == "url":
             parsed_url: ParseResult = urlparse(source)
@@ -31,27 +31,18 @@ class DrawImage(object):
                 == 0
             ):
                 raise ValueError(f"Invalid url:{source}")
+        else:
+            if not os.path.isfile(source):
+                raise FileNotFoundError(f"{souce} not found")
         assert isinstance(size, tuple) or size == None, "Invalid type for size"
         for size_value in size:
             assert isinstance(size_value, int), "size expected to be tuple of integers"
 
-        assert isinstance(
-            draw, bool
-        ), f"draw expected to be bool, but got {type(draw).__name__()}"
-
-    def __init__(
-        self, filename: str, size: Optional[tuple] = (24, 24), draw: bool = True
-    ):
+    def __init__(self, filename: str, size: Optional[tuple] = (24, 24)):
         self.__filename = filename
         self.size = None if size == None else tuple(size)
 
-        DrawImage.__validate_input(self.__filename, self.size, draw, "file")
-
-        if not os.path.isfile(self.__filename):
-            raise FileNotFoundError(f"{self.__filename} not found")
-
-        if draw:
-            self.draw_image()
+        DrawImage.__validate_input(self.__filename, self.size, "file")
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
         frame_filename = os.path.join(
@@ -67,7 +58,6 @@ class DrawImage(object):
                 time.sleep(0.1)
             except KeyboardInterrupt:
                 return
-            sys.stdout.flush()
         self.__display_gif(image)
 
     def draw_image(self, convert_to_rgb=False) -> None:
@@ -102,13 +92,13 @@ class DrawImage(object):
         return Colr().rgb(red, green, blue, text)
 
     @staticmethod
-    def from_url(url: str, size: Optional[tuple] = (24, 24), draw: bool = True):
+    def from_url(url: str, size: Optional[tuple] = (24, 24)):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
         with the new file and return the object
         """
-        DrawImage.__validate_input(url, size, draw, "url")
+        DrawImage.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
@@ -117,4 +107,4 @@ class DrawImage(object):
         filename = os.path.join(basedir, os.path.basename(urlparse(url).path))
         with open(filename, "wb") as image_writer:
             image_writer.write(response.content)
-        return DrawImage(filename, size=size, draw=draw)
+        return DrawImage(filename, size=size)

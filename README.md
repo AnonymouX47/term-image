@@ -5,7 +5,6 @@ Display Images in your terminal with python
  <br>
 <img src="https://i.imgur.com/O1zIgca.png" height="150">
 
- <!-- <img src="https://cdn.discordapp.com/attachments/875983412639436850/891594483626573844/unknown.png" height="250"> -->
 
 <p align="center">
     <img src="https://static.pepy.tech/badge/terminal-img">
