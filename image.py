@@ -33,7 +33,7 @@ class DrawImage(object):
                 raise ValueError(f"Invalid url:{source}")
         else:
             if not os.path.isfile(source):
-                raise FileNotFoundError(f"{souce} not found")
+                raise FileNotFoundError(f"{source} not found")
         assert isinstance(size, tuple) or size == None, "Invalid type for size"
         for size_value in size:
             assert isinstance(size_value, int), "size expected to be tuple of integers"
