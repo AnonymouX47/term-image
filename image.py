@@ -53,22 +53,20 @@ class DrawImage(object):
             image.seek(frame)
             image.save(frame_filename + f"{frame}.png")
             draw = DrawImage(frame_filename + f"{frame}.png", self.size)
-            draw.draw_image(True)
+            draw.draw_image()
             try:
                 time.sleep(0.1)
             except KeyboardInterrupt:
                 return
         self.__display_gif(image)
 
-    def draw_image(self, convert_to_rgb=False) -> None:
+    def draw_image(self) -> None:
         """Print an image to the screen
 
         This function creates an Image objects, reads the colour
         of each pixel and print pixels with colours
         """
-        image = Image.open(self.__filename, "r")
-        if convert_to_rgb:
-            image = image.convert("RGB")
+        image = Image.open(self.__filename, "r").convert("RGB")
         resized_images = image.resize(self.size) if self.size else image
         pixel_values = resized_images.getdata()
 
