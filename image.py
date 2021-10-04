@@ -1,8 +1,6 @@
 import os
 import requests
 import time
-import platform
-import sys
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
