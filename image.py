@@ -19,24 +19,16 @@ class DrawImage(object):
     ):
         if source_type == "url":
             parsed_url: ParseResult = urlparse(source)
-            if (
-                len(
-                    list(
-                        filter(
-                            lambda element: len(element) != 0,
-                            [parsed_url.scheme, parsed_url.netloc],
-                        )
-                    )
-                )
-                == 0
-            ):
-                raise ValueError(f"Invalid url:{source}")
-        else:
-            if not os.path.isfile(source):
-                raise FileNotFoundError(f"{source} not found")
-        assert isinstance(size, tuple) or size == None, "Invalid type for size"
-        for size_value in size:
-            assert isinstance(size_value, int), "size expected to be tuple of integers"
+            if not any((parsed_url.scheme, parsed_url.netloc)):
+                raise ValueError(f"Invalid url: {source}")
+        elif not os.path.isfile(source):
+            raise FileNotFoundError(f"{source} not found")
+
+        if not (
+            size is None
+            or (isinstance(size, tuple) and all(isinstance(x, int) for x in size))
+        ):
+            raise TypeError("'size' is expected to be tuple of integers.")
 
     def __init__(self, filename: str, size: Optional[tuple] = (24, 24)):
         self.__filename = filename
