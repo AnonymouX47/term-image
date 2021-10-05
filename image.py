@@ -88,6 +88,8 @@ class DrawImage(object):
         """
         __class__.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
+        if response.status_code == 404:
+            raise FileNotFoundError(f"URL {url!r} does not exist.")
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
         if not os.path.isdir(basedir):
