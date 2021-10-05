@@ -84,9 +84,9 @@ class DrawImage(object):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
-        with the new file and return the object
+        with the new file and return the object.
         """
-        DrawImage.__validate_input(url, size, "url")
+        __class__.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
@@ -95,4 +95,5 @@ class DrawImage(object):
         filename = os.path.join(basedir, os.path.basename(urlparse(url).path))
         with open(filename, "wb") as image_writer:
             image_writer.write(response.content)
-        return DrawImage(filename, size=size)
+
+        return __class__(filename, size=size)
