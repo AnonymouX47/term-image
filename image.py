@@ -28,16 +28,16 @@ class DrawImage(object):
         ):
             raise TypeError("'size' is expected to be tuple of integers.")
 
-    def __init__(self, filename: str, size: Optional[Tuple[int, int]] = (24, 24)):
-        DrawImage.__validate_input(filename, size, "file")
+    def __init__(self, filepath: str, size: Optional[Tuple[int, int]] = (24, 24)):
+        DrawImage.__validate_input(filepath, size, "file")
 
-        self.__filename = filename
+        self.__filepath = filepath
         self.size = size
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
         frame_filename = os.path.join(
-            os.path.dirname(self.__filename),
-            f"{os.path.basename(self.__filename)}-frames",
+            os.path.dirname(self.__filepath),
+            f"{os.path.basename(self.__filepath)}-frames",
         )
         for frame in range(0, image.n_frames):
             image.seek(frame)
@@ -56,7 +56,7 @@ class DrawImage(object):
         This function creates an Image objects, reads the colour
         of each pixel and print pixels with colours
         """
-        image = Image.open(self.__filename, "r").convert("RGB")
+        image = Image.open(self.__filepath, "r").convert("RGB")
         resized_images = image.resize(self.size) if self.size else image
         pixel_values = resized_images.getdata()
 
@@ -94,8 +94,8 @@ class DrawImage(object):
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
-        filename = os.path.join(basedir, os.path.basename(urlparse(url).path))
-        with open(filename, "wb") as image_writer:
+        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        return __class__(filename, size=size)
+        return __class__(filepath, size=size)
