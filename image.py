@@ -28,11 +28,11 @@ class DrawImage(object):
         ):
             raise TypeError("'size' is expected to be tuple of integers.")
 
-    def __init__(self, filename: str, size: Optional[tuple] = (24, 24)):
-        self.__filename = filename
-        self.size = None if size == None else tuple(size)
+    def __init__(self, filename: str, size: Optional[Tuple[int, int]] = (24, 24)):
+        DrawImage.__validate_input(filename, size, "file")
 
-        DrawImage.__validate_input(self.__filename, self.size, "file")
+        self.__filename = filename
+        self.size = size
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
         frame_filename = os.path.join(
