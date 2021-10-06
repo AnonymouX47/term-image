@@ -50,31 +50,40 @@ class DrawImage(object):
                 return
         self.__display_gif(image)
 
-    def draw_image(self) -> None:
+    def draw_image(self):
         """Print an image to the screen
 
-        This function creates an Image objects, reads the colour
-        of each pixel and print pixels with colours
+        This function creates an Image object, reads the colour
+        of each pixel and prints the pixels with their colours
         """
-        image = Image.open(self.__filepath, "r").convert("RGB")
-        resized_images = image.resize(self.size) if self.size else image
-        pixel_values = resized_images.getdata()
+        image = Image.open(self.__filepath, "r")
 
         if isinstance(image, GifImagePlugin.GifImageFile):
             self.__display_gif(image)
             return
 
-        width, height = resized_images.size
-        for index, character in enumerate(pixel_values):
-            if not isinstance(character, (tuple, list)):
-                continue
-            r, g, b = character if len(character) == 3 else character[:-1]
-            if index % width == 0:
-                print("")
-            print(
-                self.__colored(r, g, b, self.PIXEL),
-                end="\n" if index + 1 == len(pixel_values) else "",
-            )
+        if self.size:
+            image = image.resize(self.size)
+        pixel_values = image.convert("RGB").getdata()
+        width, _ = image.size
+
+        # Characters for consecutive pixels of the same color, on the same row
+        # are color-coded once
+        n = 0
+        cluster_pixel = pixel_values[0]
+        for index, pixel in enumerate(pixel_values):
+            # Color-code and print characters when pixel color changes
+            # or at the end of a row of pixels
+            if pixel != cluster_pixel or index % width == 0:
+                print(
+                    self.__colored(*cluster_pixel, self.PIXEL * n),
+                    end="\n" * (not (index % width)),
+                )
+                n = 0
+                cluster_pixel = pixel
+            n += 1
+        # Last cluster
+        print(self.__colored(*cluster_pixel, self.PIXEL * n))
 
     def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
         return Colr().rgb(red, green, blue, text)
