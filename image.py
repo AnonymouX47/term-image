@@ -5,7 +5,6 @@ import time
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
-from colr import Colr
 from urllib.parse import urlparse, ParseResult
 
 
@@ -97,15 +96,15 @@ class DrawImage(object):
             except KeyboardInterrupt as e:
                 canceled = True
                 err = e
-
         # Last cluster
-        print(self.__colored(*cluster_pixel, self.PIXEL * n))
+        print(self.__colored(*cluster_pixel, self.PIXEL * n) + "\033[0m")
 
         if canceled:
             raise err
 
-    def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
-        return Colr().rgb(red, green, blue, text)
+    @staticmethod
+    def __colored(red: int, green: int, blue: int, text: str) -> str:
+        return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @staticmethod
     def from_url(url: str, size: Optional[tuple] = (24, 24)):
