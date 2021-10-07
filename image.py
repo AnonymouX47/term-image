@@ -1,5 +1,6 @@
 import os
 import requests
+import shutil
 import time
 
 from PIL import Image, GifImagePlugin
@@ -34,21 +35,26 @@ class DrawImage(object):
         self.__filepath = filepath
         self.size = size
 
-    def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
-        frame_filename = os.path.join(
-            os.path.dirname(self.__filepath),
-            f"{os.path.basename(self.__filepath)}-frames",
-        )
-        for frame in range(0, image.n_frames):
-            image.seek(frame)
-            image.save(frame_filename + f"{frame}.png")
-            draw = DrawImage(frame_filename + f"{frame}.png", self.size)
-            draw.draw_image()
-            try:
-                time.sleep(0.1)
-            except KeyboardInterrupt:
-                return
-        self.__display_gif(image)
+    def __display_gif(self, image: GifImagePlugin.GifImageFile):
+        frame_dir = f"{self.__filepath}-frames"
+        if not os.path.isdir(frame_dir):
+            os.mkdir(frame_dir)
+        try:
+            for frame in range(0, image.n_frames):
+                image.seek(frame)
+                image.save(os.path.join(frame_dir, f"{frame}.png"))
+            while True:
+                for frame in range(0, image.n_frames):
+                    DrawImage(
+                        os.path.join(frame_dir, f"{frame}.png"),
+                        self.size,
+                    ).draw_image()
+                    time.sleep(0.1)
+                    print(f"\033[{self.size[1]}A", end='')
+        except KeyboardInterrupt:
+            print("\033[0m")
+        finally:
+            shutil.rmtree(frame_dir)
 
     def draw_image(self):
         """Print an image to the screen
@@ -71,6 +77,8 @@ class DrawImage(object):
         # are color-coded once
         n = 0
         cluster_pixel = pixel_values[0]
+
+        print("\033[1A", end='')  # Compensate for "\n" printed when index == 0
         for index, pixel in enumerate(pixel_values):
             # Color-code and print characters when pixel color changes
             # or at the end of a row of pixels
