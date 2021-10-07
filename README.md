@@ -52,3 +52,5 @@ image = DrawImage.from_url("url")
 - `url` : The url of the image
 - `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
 - `draw`: Whether to draw on creating an instance or wait for the user to call the function
+
+Special thanks to @AnonymouX47 ❤
