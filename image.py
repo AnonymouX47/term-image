@@ -1,12 +1,10 @@
 import os
 import requests
+import shutil
 import time
-import platform
-import sys
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
-from colr import Colr
 from urllib.parse import urlparse, ParseResult
 
 
@@ -19,90 +17,112 @@ class DrawImage(object):
     ):
         if source_type == "url":
             parsed_url: ParseResult = urlparse(source)
-            if (
-                len(
-                    list(
-                        filter(
-                            lambda element: len(element) != 0,
-                            [parsed_url.scheme, parsed_url.netloc],
-                        )
-                    )
-                )
-                == 0
-            ):
-                raise ValueError(f"Invalid url:{source}")
-        else:
-            if not os.path.isfile(source):
-                raise FileNotFoundError(f"{source} not found")
-        assert isinstance(size, tuple) or size == None, "Invalid type for size"
-        for size_value in size:
-            assert isinstance(size_value, int), "size expected to be tuple of integers"
+            if not any((parsed_url.scheme, parsed_url.netloc)):
+                raise ValueError(f"Invalid url: {source}")
+        elif not os.path.isfile(source):
+            raise FileNotFoundError(f"{source} not found")
 
-    def __init__(self, filename: str, size: Optional[tuple] = (24, 24)):
-        self.__filename = filename
-        self.size = None if size == None else tuple(size)
+        if not (
+            size is None
+            or (isinstance(size, tuple) and all(isinstance(x, int) for x in size))
+        ):
+            raise TypeError("'size' is expected to be tuple of integers.")
 
-        DrawImage.__validate_input(self.__filename, self.size, "file")
+    def __init__(self, filepath: str, size: Optional[Tuple[int, int]] = (24, 24)):
+        DrawImage.__validate_input(filepath, size, "file")
 
-    def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
-        frame_filename = os.path.join(
-            os.path.dirname(self.__filename),
-            f"{os.path.basename(self.__filename)}-frames",
-        )
-        for frame in range(0, image.n_frames):
-            image.seek(frame)
-            image.save(frame_filename + f"{frame}.png")
-            draw = DrawImage(frame_filename + f"{frame}.png", self.size)
-            draw.draw_image()
-            try:
-                time.sleep(0.1)
-            except KeyboardInterrupt:
-                return
-        self.__display_gif(image)
+        self.__filepath = filepath
+        self.size = size
 
-    def draw_image(self) -> None:
+    def __display_gif(self, image: GifImagePlugin.GifImageFile):
+        frame_dir = f"{self.__filepath}-frames"
+        if not os.path.isdir(frame_dir):
+            os.mkdir(frame_dir)
+        try:
+            for frame in range(0, image.n_frames):
+                image.seek(frame)
+                image.save(os.path.join(frame_dir, f"{frame}.png"))
+            while True:
+                for frame in range(0, image.n_frames):
+                    DrawImage(
+                        os.path.join(frame_dir, f"{frame}.png"),
+                        self.size,
+                    ).draw_image()
+                    time.sleep(0.1)
+                    print(f"\033[{self.size[1]}A", end="")
+        except KeyboardInterrupt:
+            print("\033[0m")
+        finally:
+            shutil.rmtree(frame_dir)
+
+    def draw_image(self):
         """Print an image to the screen
 
-        This function creates an Image objects, reads the colour
-        of each pixel and print pixels with colours
+        This function creates an Image object, reads the colour
+        of each pixel and prints the pixels with their colours
         """
-        image = Image.open(self.__filename, "r").convert("RGB")
-        resized_images = image.resize(self.size) if self.size else image
-        pixel_values = resized_images.getdata()
+        image = Image.open(self.__filepath, "r")
 
         if isinstance(image, GifImagePlugin.GifImageFile):
             self.__display_gif(image)
             return
 
-        width, height = resized_images.size
-        for index, character in enumerate(pixel_values):
-            if not isinstance(character, (tuple, list)):
-                continue
-            r, g, b = character if len(character) == 3 else character[:-1]
-            if index % width == 0:
-                print("")
-            print(
-                self.__colored(r, g, b, self.PIXEL),
-                end="\n" if index + 1 == len(pixel_values) else "",
-            )
+        if self.size:
+            image = image.resize(self.size)
+        pixel_values = image.convert("RGB").getdata()
+        width, _ = image.size
 
-    def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
-        return Colr().rgb(red, green, blue, text)
+        # Characters for consecutive pixels of the same color, on the same row
+        # are color-coded once
+        n = 0
+        cluster_pixel = pixel_values[0]
+
+        print("\033[1A", end="")  # Compensate for "\n" printed when index == 0
+
+        canceled = False
+        for index, pixel in enumerate(pixel_values):
+            try:
+                # Color-code and print characters when pixel color changes
+                # or at the end of a row of pixels
+                if pixel != cluster_pixel or index % width == 0:
+                    print(
+                        self.__colored(*cluster_pixel, self.PIXEL * n),
+                        end="\n" * (not (index % width)),
+                    )
+                    n = 0
+                    cluster_pixel = pixel
+                n += 1
+            # Disallow truncation of the image
+            except KeyboardInterrupt as e:
+                canceled = True
+                err = e
+        # Last cluster
+        print(self.__colored(*cluster_pixel, self.PIXEL * n) + "\033[0m")
+
+        if canceled:
+            raise err
+
+    @staticmethod
+    def __colored(red: int, green: int, blue: int, text: str) -> str:
+        return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @staticmethod
     def from_url(url: str, size: Optional[tuple] = (24, 24)):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
-        with the new file and return the object
+        with the new file and return the object.
         """
-        DrawImage.__validate_input(url, size, "url")
+        __class__.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
+        if response.status_code == 404:
+            raise FileNotFoundError(f"URL {url!r} does not exist.")
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
-        filename = os.path.join(basedir, os.path.basename(urlparse(url).path))
-        with open(filename, "wb") as image_writer:
+        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
-        return DrawImage(filename, size=size)
+
+        return __class__(filepath, size=size)
