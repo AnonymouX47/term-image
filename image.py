@@ -50,7 +50,7 @@ class DrawImage(object):
                         self.size,
                     ).draw_image()
                     time.sleep(0.1)
-                    print(f"\033[{self.size[1]}A", end='')
+                    print(f"\033[{self.size[1]}A", end="")
         except KeyboardInterrupt:
             print("\033[0m")
         finally:
@@ -78,20 +78,31 @@ class DrawImage(object):
         n = 0
         cluster_pixel = pixel_values[0]
 
-        print("\033[1A", end='')  # Compensate for "\n" printed when index == 0
+        print("\033[1A", end="")  # Compensate for "\n" printed when index == 0
+
+        canceled = False
         for index, pixel in enumerate(pixel_values):
-            # Color-code and print characters when pixel color changes
-            # or at the end of a row of pixels
-            if pixel != cluster_pixel or index % width == 0:
-                print(
-                    self.__colored(*cluster_pixel, self.PIXEL * n),
-                    end="\n" * (not (index % width)),
-                )
-                n = 0
-                cluster_pixel = pixel
-            n += 1
+            try:
+                # Color-code and print characters when pixel color changes
+                # or at the end of a row of pixels
+                if pixel != cluster_pixel or index % width == 0:
+                    print(
+                        self.__colored(*cluster_pixel, self.PIXEL * n),
+                        end="\n" * (not (index % width)),
+                    )
+                    n = 0
+                    cluster_pixel = pixel
+                n += 1
+            # Disallow truncation of the image
+            except KeyboardInterrupt as e:
+                canceled = True
+                err = e
+
         # Last cluster
         print(self.__colored(*cluster_pixel, self.PIXEL * n))
+
+        if canceled:
+            raise err
 
     def __colored(self: int, red: int, green: int, blue: int, text: str) -> str:
         return Colr().rgb(red, green, blue, text)
