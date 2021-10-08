@@ -41,7 +41,9 @@ class ImageCLI(object):
                 f"Invalid size parameter: {parameters.get('size')}"
             )
         try:
-            DrawImage(filename, size).draw_image() if os.path.isfile(filename) else DrawImage.from_url(filename, size).draw_image()
+            DrawImage(filename, size).draw_image() if os.path.isfile(
+                filename
+            ) else DrawImage.from_url(filename, size).draw_image()
         except Exception as exception:
             self.create_error_message(exception.__str__())
 
@@ -57,4 +59,3 @@ class ImageCLI(object):
 def main():
     cli = ImageCLI()
     cli.display_image()
-

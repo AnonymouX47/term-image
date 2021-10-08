@@ -31,6 +31,7 @@ The library is really simple to get started with. Here's is an example of how yo
 from image import DrawImage
 
 image = DrawImage("image.png")
+image.draw_image()
 ```
 
 > You can also use a url if you dont have the file locally stored
@@ -45,12 +46,12 @@ image = DrawImage.from_url("url")
 
 - `filename`: The name of the file containing the image
 - `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
-- `draw`: Whether to draw on creating an instance or wait for the user to call the function
 
 #### `image.DrawImage.from_url`
 
 - `url` : The url of the image
 - `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
-- `draw`: Whether to draw on creating an instance or wait for the user to call the function
 
-Special thanks to @AnonymouX47 ❤
+
+
+Special thanks to [@AnonymouX47](https://github.com/AnonymouX47) ❤
