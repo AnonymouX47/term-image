@@ -30,7 +30,7 @@ The library is really simple to get started with. Here's is an example of how yo
 ```py
 from image import DrawImage
 
-image = DrawImage("image.png")
+image = DrawImage.from_file("image.png")
 image.draw_image()
 ```
 
@@ -38,11 +38,28 @@ image.draw_image()
 
 ```py
 image = DrawImage.from_url("url")
+image.draw_image()
+```
+
+> The library can also be used with PIL images
+```py
+from PIL import Image
+from image import DrawImage
+
+img = DrawImage(Image.open("img.png"))
+img.draw_image()
 ```
 
 ## Methods
 
+
 #### `image.DrawImage`
+
+- `image`: The PIL image
+- `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24
+
+
+#### `image.DrawImage.from_file`
 
 - `filename`: The name of the file containing the image
 - `size`(_`Optional[Tuple]`_) : The size of the image to be displayed. Default: 24, 24

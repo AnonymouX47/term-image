@@ -104,10 +104,9 @@ class DrawImage(object):
         return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @staticmethod
-    def from_file(filename:str, size:Optional[tuple] = (24, 24)):
+    def from_file(filename: str, size: Optional[tuple] = (24, 24)):
         __class__.__validate_input(filename, size, "file")
         return __class__(Image.open(filename), size)
-
 
     @staticmethod
     def from_url(url: str, size: Optional[tuple] = (24, 24)):
