@@ -1,7 +1,6 @@
 import io
 import os
 import requests
-import shutil
 import time
 
 from PIL import Image, GifImagePlugin
@@ -20,7 +19,7 @@ class DrawImage(object):
             parsed_url: ParseResult = urlparse(source)
             if not any((parsed_url.scheme, parsed_url.netloc)):
                 raise ValueError(f"Invalid url: {source}")
-        elif not os.path.isfile(source):
+        elif source_type == "file" and not os.path.isfile(source):
             raise FileNotFoundError(f"{source} not found")
 
         if not (
@@ -29,12 +28,18 @@ class DrawImage(object):
         ):
             raise TypeError("'size' is expected to be tuple of integers.")
 
-    def __init__(self, filepath: str, size: Optional[Tuple[int, int]] = (24, 24)):
-        DrawImage.__validate_input(filepath, size, "file")
+    def __init__(self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)):
+        if not isinstance(image, Image.Image):
+            raise TypeError(
+                "Expected a 'PIL.Image.Image' instance for 'image',"
+                f" got {type(image).__name__!r}."
+            )
 
-        self.__filepath = filepath
-        self.size = size
+        self.__validate_input("", size)
+
+        self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
+        self.size = size
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile):
         try:
@@ -58,7 +63,11 @@ class DrawImage(object):
         This function creates an Image object, reads the colour
         of each pixel and prints the pixels with their colours
         """
-        image = Image.open(self.__filepath, "r")
+        image = (
+            Image.open(self.__source)
+            if isinstance(self.__source, str)
+            else self.__source
+        )
 
         try:
             if isinstance(image, GifImagePlugin.GifImageFile):
@@ -110,7 +119,9 @@ class DrawImage(object):
             )
 
         cls.__validate_input(filepath, size, "file")
-        return cls(filepath, size)
+        new = cls(Image.new("P", (0, 0)), size)
+        new.__source = filepath
+        return new
 
     @classmethod
     def from_url(cls, url: str, size: Optional[tuple] = (24, 24)):
@@ -134,4 +145,6 @@ class DrawImage(object):
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        return cls(filepath, size=size)
+        new = cls(Image.new("P", (0, 0)), size)
+        new.__source = filepath
+        return new
