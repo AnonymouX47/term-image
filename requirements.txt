@@ -1,6 +1,5 @@
 black==21.9b0
 click==8.0.1
-Colr==0.9.1
 pathspec==0.9.0
 Pillow==8.3.2
 regex==2021.9.24

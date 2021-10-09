@@ -13,7 +13,7 @@ class ImageCLI(object):
         sys.exit() if is_fatal else None
 
     def parse_arguments(self):
-        command, parameters = "", {}
+        command, filename, parameters = "", {}
         for index, argument in enumerate(sys.argv[1:]):
             if index == 0:
                 command = argument
