@@ -104,6 +104,11 @@ class DrawImage(object):
     @classmethod
     def from_file(cls, filepath: str, size: Optional[tuple] = (24, 24)):
         """Create a `DrawImage` object from an image file"""
+        if not isinstance(filepath, str):
+            raise TypeError(
+                f"File path must be a string, got {type(filepath).__name__!r}."
+            )
+
         cls.__validate_input(filepath, size, "file")
         return cls(filepath, size)
 
@@ -114,6 +119,9 @@ class DrawImage(object):
         Write the raw response into an image file, create a new DraeImage object
         with the new file and return the object.
         """
+        if not isinstance(url, str):
+            raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
+
         cls.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
         if response.status_code == 404:
