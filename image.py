@@ -101,14 +101,20 @@ class DrawImage(object):
     def __colored(red: int, green: int, blue: int, text: str) -> str:
         return f"\033[38;2;{red};{green};{blue}m{text}"
 
-    @staticmethod
-    def from_url(url: str, size: Optional[tuple] = (24, 24)):
+    @classmethod
+    def from_file(cls, filepath: str, size: Optional[tuple] = (24, 24)):
+        """Create a `DrawImage` object from an image file"""
+        cls.__validate_input(filepath, size, "file")
+        return cls(filepath, size)
+
+    @classmethod
+    def from_url(cls, url: str, size: Optional[tuple] = (24, 24)):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
         with the new file and return the object.
         """
-        __class__.__validate_input(url, size, "url")
+        cls.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
         if response.status_code == 404:
             raise FileNotFoundError(f"URL {url!r} does not exist.")
@@ -120,4 +126,4 @@ class DrawImage(object):
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        return __class__(filepath, size=size)
+        return cls(filepath, size=size)
