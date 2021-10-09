@@ -5,28 +5,11 @@ import time
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
-from urllib.parse import urlparse, ParseResult
+from urllib.parse import urlparse
 
 
 class DrawImage(object):
     PIXEL: str = "\u2584"
-
-    @staticmethod
-    def __validate_input(
-        source: str, size: Optional[Tuple[int, int]], source_type: str = ""
-    ):
-        if source_type == "url":
-            parsed_url: ParseResult = urlparse(source)
-            if not any((parsed_url.scheme, parsed_url.netloc)):
-                raise ValueError(f"Invalid url: {source}")
-        elif source_type == "file" and not os.path.isfile(source):
-            raise FileNotFoundError(f"{source} not found")
-
-        if not (
-            size is None
-            or (isinstance(size, tuple) and all(isinstance(x, int) for x in size))
-        ):
-            raise TypeError("'size' is expected to be tuple of integers.")
 
     def __init__(self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)):
         if not isinstance(image, Image.Image):
@@ -35,7 +18,15 @@ class DrawImage(object):
                 f" got {type(image).__name__!r}."
             )
 
-        self.__validate_input("", size)
+        if not (
+            size is None
+            or (
+                isinstance(size, tuple)
+                and len(size) == 2
+                and all(isinstance(x, int) for x in size)
+            )
+        ):
+            raise TypeError("'size' is expected to be tuple of two integers.")
 
         self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
@@ -117,8 +108,9 @@ class DrawImage(object):
             raise TypeError(
                 f"File path must be a string, got {type(filepath).__name__!r}."
             )
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"{filepath!r} not found")
 
-        cls.__validate_input(filepath, size, "file")
         new = cls(Image.new("P", (0, 0)), size)
         new.__source = filepath
         return new
@@ -132,8 +124,10 @@ class DrawImage(object):
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
+        parsed_url = urlparse(url)
+        if not any((parsed_url.scheme, parsed_url.netloc)):
+            raise ValueError(f"Invalid url: {url!r}")
 
-        cls.__validate_input(url, size, "url")
         response = requests.get(url, stream=True)
         if response.status_code == 404:
             raise FileNotFoundError(f"URL {url!r} does not exist.")
