@@ -1,3 +1,4 @@
+import io
 import os
 import requests
 import shutil
@@ -33,6 +34,7 @@ class DrawImage(object):
 
         self.__filepath = filepath
         self.size = size
+        self.__buffer = io.StringIO()
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile):
         frame_dir = f"{self.__filepath}-frames"
@@ -63,10 +65,16 @@ class DrawImage(object):
         """
         image = Image.open(self.__filepath, "r")
 
-        if isinstance(image, GifImagePlugin.GifImageFile):
-            self.__display_gif(image)
-            return
+        try:
+            if isinstance(image, GifImagePlugin.GifImageFile):
+                self.__display_gif(image)
+            else:
+                print(self.__draw_image(image))
+        finally:
+            self.__buffer.seek(0)  # Reset buffer pointer
+            self.__buffer.truncate()  # Clear buffer
 
+    def __draw_image(self, image: Image.Image):
         if self.size:
             image = image.resize(self.size)
         pixel_values = image.convert("RGB").getdata()
@@ -77,30 +85,22 @@ class DrawImage(object):
         n = 0
         cluster_pixel = pixel_values[0]
 
-        print("\033[1A", end="")  # Compensate for "\n" printed when index == 0
-
-        canceled = False
+        buffer = self.__buffer  # Local variables have faster lookup times
         for index, pixel in enumerate(pixel_values):
-            try:
-                # Color-code and print characters when pixel color changes
-                # or at the end of a row of pixels
-                if pixel != cluster_pixel or index % width == 0:
-                    print(
-                        self.__colored(*cluster_pixel, self.PIXEL * n),
-                        end="\n" * (not (index % width)),
-                    )
-                    n = 0
-                    cluster_pixel = pixel
-                n += 1
-            # Disallow truncation of the image
-            except KeyboardInterrupt as e:
-                canceled = True
-                err = e
-        # Last cluster
-        print(self.__colored(*cluster_pixel, self.PIXEL * n) + "\033[0m")
+            # Color-code characters and write to buffer when pixel color changes
+            # or at the end of a row of pixels
+            if pixel != cluster_pixel or index % width == 0:
+                buffer.write(self.__colored(*cluster_pixel, self.PIXEL * n))
+                if index and index % width == 0:
+                    buffer.write("\n")
+                n = 0
+                cluster_pixel = pixel
+            n += 1
+        # Last cluster + color reset code.
+        buffer.write(self.__colored(*cluster_pixel, self.PIXEL * n) + "\033[0m")
 
-        if canceled:
-            raise err
+        buffer.seek(0)  # Reset buffer pointer
+        return buffer.getvalue()
 
     @staticmethod
     def __colored(red: int, green: int, blue: int, text: str) -> str:
