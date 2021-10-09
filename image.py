@@ -37,25 +37,20 @@ class DrawImage(object):
         self.__buffer = io.StringIO()
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile):
-        frame_dir = f"{self.__filepath}-frames"
-        if not os.path.isdir(frame_dir):
-            os.mkdir(frame_dir)
         try:
-            for frame in range(0, image.n_frames):
-                image.seek(frame)
-                image.save(os.path.join(frame_dir, f"{frame}.png"))
             while True:
                 for frame in range(0, image.n_frames):
-                    DrawImage(
-                        os.path.join(frame_dir, f"{frame}.png"),
-                        self.size,
-                    ).draw_image()
+                    image.seek(frame)
+                    print(self.__draw_image(image))
+                    self.__buffer.truncate()  # Clear buffer
                     time.sleep(0.1)
-                    print(f"\033[{self.size[1]}A", end="")
-        except KeyboardInterrupt:
-            print("\033[0m")
-        finally:
-            shutil.rmtree(frame_dir)
+                    # Move cursor up to the first line of the image
+                    print(f"\033[{image.size[1]}A", end="")
+        except KeyboardInterrupt as e:
+            # Move the cursor to line atfer the image and reset foreground color
+            # Prevents "overlayed" and wrongly colored output on the terminal
+            print(f"\033[{self.size[1]}B\033[0m")
+            raise e from None
 
     def draw_image(self):
         """Print an image to the screen
