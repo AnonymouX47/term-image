@@ -2,7 +2,6 @@ import os
 import requests
 import shutil
 import time
-import io
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
@@ -20,6 +19,8 @@ class DrawImage(object):
             parsed_url: ParseResult = urlparse(source)
             if not any((parsed_url.scheme, parsed_url.netloc)):
                 raise ValueError(f"Invalid url: {source}")
+        elif not os.path.isfile(source):
+            raise FileNotFoundError(f"{source} not found")
 
         if not (
             size is None
@@ -27,10 +28,10 @@ class DrawImage(object):
         ):
             raise TypeError("'size' is expected to be tuple of integers.")
 
-    def __init__(self, image: Image, size: Optional[Tuple[int, int]] = (24, 24)):
-        DrawImage.__validate_input(image, size, "file")
+    def __init__(self, filepath: str, size: Optional[Tuple[int, int]] = (24, 24)):
+        DrawImage.__validate_input(filepath, size, "file")
 
-        self.image = image
+        self.__filepath = filepath
         self.size = size
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile):
@@ -60,14 +61,16 @@ class DrawImage(object):
         This function creates an Image object, reads the colour
         of each pixel and prints the pixels with their colours
         """
-        if isinstance(self.image, GifImagePlugin.GifImageFile):
-            self.__display_gif(self.image)
+        image = Image.open(self.__filepath, "r")
+
+        if isinstance(image, GifImagePlugin.GifImageFile):
+            self.__display_gif(image)
             return
 
         if self.size:
-            self.image = self.image.resize(self.size)
-        pixel_values = self.image.convert("RGB").getdata()
-        width, _ = self.image.size
+            image = image.resize(self.size)
+        pixel_values = image.convert("RGB").getdata()
+        width, _ = image.size
 
         # Characters for consecutive pixels of the same color, on the same row
         # are color-coded once
@@ -104,11 +107,6 @@ class DrawImage(object):
         return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @staticmethod
-    def from_file(filename: str, size: Optional[tuple] = (24, 24)):
-        __class__.__validate_input(filename, size, "file")
-        return __class__(Image.open(filename), size)
-
-    @staticmethod
     def from_url(url: str, size: Optional[tuple] = (24, 24)):
         """Create a DrawImage object from an image url
 
@@ -120,11 +118,11 @@ class DrawImage(object):
         if response.status_code == 404:
             raise FileNotFoundError(f"URL {url!r} does not exist.")
 
-        # basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
-        # if not os.path.isdir(basedir):
-        #     os.mkdir(basedir)
-        # filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
-        # with open(filepath, "wb") as image_writer:
-        #     image_writer.write(response.content)
+        basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
+        if not os.path.isdir(basedir):
+            os.mkdir(basedir)
+        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        with open(filepath, "wb") as image_writer:
+            image_writer.write(response.content)
 
-        return __class__(Image.open(io.BytesIO(response.content)), size)
+        return __class__(filepath, size=size)
