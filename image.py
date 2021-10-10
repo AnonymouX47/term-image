@@ -93,7 +93,7 @@ class DrawImage(object):
         return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @classmethod
-    def from_file(cls, filepath: str, size: Optional[tuple] = (24, 24)):
+    def from_file(cls, filepath: str, size: Optional[tuple] = None):
         """Create a `DrawImage` object from an image file"""
         if not isinstance(filepath, str):
             raise TypeError(
@@ -107,7 +107,7 @@ class DrawImage(object):
         return new
 
     @classmethod
-    def from_url(cls, url: str, size: Optional[tuple] = (24, 24)):
+    def from_url(cls, url: str, size: Optional[tuple] = None):
         """Create a DrawImage object from an image url
 
         Write the raw response into an image file, create a new DraeImage object
