@@ -17,16 +17,7 @@ class DrawImage(object):
                 "Expected a 'PIL.Image.Image' instance for 'image',"
                 f" got {type(image).__name__!r}."
             )
-
-        if not (
-            size is None
-            or (
-                isinstance(size, tuple)
-                and len(size) == 2
-                and all(isinstance(x, int) for x in size)
-            )
-        ):
-            raise TypeError("'size' is expected to be tuple of two integers.")
+        self.__validate_size(size)
 
         self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
@@ -142,3 +133,16 @@ class DrawImage(object):
         new = cls(Image.new("P", (0, 0)), size)
         new.__source = filepath
         return new
+
+    @staticmethod
+    def __validate_size(size: Optional[Tuple[int, int]]) -> None:
+        """Check validity of an input for the size attribute"""
+        if not (
+            size is None
+            or (
+                isinstance(size, tuple)
+                and len(size) == 2
+                and all(isinstance(x, int) for x in size)
+            )
+        ):
+            raise TypeError("'size' is expected to be tuple of two integers.")
