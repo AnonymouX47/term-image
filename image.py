@@ -1,3 +1,7 @@
+"""The main img module"""
+
+from __future__ import annotations
+
 import io
 import os
 import requests
@@ -8,10 +12,22 @@ from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 
-class DrawImage(object):
+class DrawImage:
+    """Text-printable image
+
+    Args:
+        _image_ -> Image to be drawn.
+        _size_ -> The width and height to print the image with.
+
+    The _size_ determines the exact number of lines and character cells
+    that'll be used to print the image to the terminal.
+    """
     PIXEL: str = "\u2584"
 
-    def __init__(self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)):
+    def __init__(
+        self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)
+    ) -> None:
+        """See class description"""
         if not isinstance(image, Image.Image):
             raise TypeError(
                 "Expected a 'PIL.Image.Image' instance for 'image',"
@@ -23,7 +39,11 @@ class DrawImage(object):
         self.__buffer = io.StringIO()
         self.size = size
 
-    def __display_gif(self, image: GifImagePlugin.GifImageFile):
+    def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
+        """Print an animated GIF image on the terminal
+
+        This is done infinitely but can be canceled with `Ctrl-C`.
+        """
         try:
             while True:
                 for frame in range(0, image.n_frames):
@@ -39,12 +59,8 @@ class DrawImage(object):
             print(f"\033[{self.size[1]}B\033[0m")
             raise e from None
 
-    def draw_image(self):
-        """Print an image to the screen
-
-        This function creates an Image object, reads the colour
-        of each pixel and prints the pixels with their colours
-        """
+    def draw_image(self) -> None:
+        """Print an image to the terminal"""
         image = (
             Image.open(self.__source)
             if isinstance(self.__source, str)
@@ -60,7 +76,8 @@ class DrawImage(object):
             self.__buffer.seek(0)  # Reset buffer pointer
             self.__buffer.truncate()  # Clear buffer
 
-    def __draw_image(self, image: Image.Image):
+    def __draw_image(self, image: Image.Image) -> str:
+        """Convert entire image pixel data to a color-coded string"""
         if self.size:
             image = image.resize(self.size)
         pixel_values = image.convert("RGB").getdata()
@@ -90,11 +107,19 @@ class DrawImage(object):
 
     @staticmethod
     def __colored(red: int, green: int, blue: int, text: str) -> str:
+        """Prepend _text_ with ANSI 24-bit color code for the given RGB values"""
         return f"\033[38;2;{red};{green};{blue}m{text}"
 
     @classmethod
-    def from_file(cls, filepath: str, size: Optional[tuple] = None):
-        """Create a `DrawImage` object from an image file"""
+    def from_file(
+        cls, filepath: str, size: Optional[Tuple[int, int]] = None
+    ) -> DrawImage:
+        """Create a `DrawImage` object from an image file
+
+        Args:
+            _filepath_ -> Relative/Absolute path to an image file.
+            _size_ -> See class description.
+        """
         if not isinstance(filepath, str):
             raise TypeError(
                 f"File path must be a string, got {type(filepath).__name__!r}."
@@ -107,11 +132,12 @@ class DrawImage(object):
         return new
 
     @classmethod
-    def from_url(cls, url: str, size: Optional[tuple] = None):
-        """Create a DrawImage object from an image url
+    def from_url(cls, url: str, size: Optional[Tuple[int, int]] = None) -> DrawImage:
+        """Create a `DrawImage` object from an image url
 
-        Write the raw response into an image file, create a new DraeImage object
-        with the new file and return the object.
+        Args:
+            _url_ -> URL of an image file.
+            _size_ -> See class description.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
