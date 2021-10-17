@@ -6,6 +6,7 @@ import io
 import os
 import requests
 import time
+from itertools import islice, zip_longest
 
 from PIL import Image, GifImagePlugin
 from typing import Optional, Tuple
@@ -22,7 +23,7 @@ class DrawImage:
     The _size_ determines the exact number of lines and character cells
     that'll be used to print the image to the terminal.
     """
-    PIXEL: str = "\u2584"
+    PIXEL: str = "\u2580"  # upper-half block
 
     def __init__(
         self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)
@@ -77,38 +78,76 @@ class DrawImage:
             print("\033[0m")  # Reset color
 
     def __draw_image(self, image: Image.Image) -> str:
-        """Convert entire image pixel data to a color-coded string"""
+        """Convert entire image pixel data to a color-coded string
+
+        Two pixels per character using FG and BG colors.
+        """
         if self.size:
             image = image.resize(self.size)
-        pixel_values = image.convert("RGB").getdata()
-        width, _ = image.size
+        pixels = image.convert("RGB").getdata()
+        len_pixels = len(pixels)
+        width, height = image.size
 
-        # Characters for consecutive pixels of the same color, on the same row
-        # are color-coded once
-        n = 0
-        cluster_pixel = pixel_values[0]
+        row_pairs = (
+            (
+                zip_longest(  # Includes last row when height is odd
+                    islice(pixels, x, x + width),
+                    islice(pixels, x + width, x + width * 2),
+                    # The empty tuple is used to ensure the BG (lower pixel) color
+                    # is not set on the last line when height is odd
+                    fillvalue=(),
+                ),
+                # the final (x + width) will be out-of-range when height is odd
+                (pixels[x], pixels[x + width] if x + width < len_pixels else ()),
+            )
+            for x in range(0, len_pixels, width * 2)
+        )
 
-        buffer = self.__buffer  # Local variables have faster lookup times
-        for index, pixel in enumerate(pixel_values):
-            # Color-code characters and write to buffer when pixel color changes
-            # or at the end of a row of pixels
-            if pixel != cluster_pixel or index % width == 0:
-                buffer.write(self.__colored(*cluster_pixel, self.PIXEL * n))
-                if index and index % width == 0:
-                    buffer.write("\n")
-                n = 0
-                cluster_pixel = pixel
-            n += 1
-        # Last cluster + color reset code.
-        buffer.write(self.__colored(*cluster_pixel, self.PIXEL * n) + "\033[0m")
+        # Eliminate attribute resolution cost
+        PIXEL = self.PIXEL
+        buffer = self.__buffer
+        color = self.__color
 
+        row_no = 0
+        # Two rows of pixels per line
+        for row_pair, (cluster_fg, cluster_bg) in row_pairs:
+            row_no += 2
+            n = 0
+            for fg, bg in row_pair:  # upper pixel -> FG, lower pixel -> BG
+                # Color-code characters and write to buffer
+                # when upper and/or lower pixel color changes
+                if fg != cluster_fg or bg != cluster_bg:
+                    buffer.write(color(PIXEL * n, cluster_fg, cluster_bg))
+                    cluster_fg = fg
+                    cluster_bg = bg
+                    n = 0
+                n += 1
+
+            # Rest of the line
+            buffer.write(color(PIXEL * n, cluster_fg, cluster_bg))
+
+            # It's more efficient to write separate strings to the buffer separately
+            # than concatenate and write together.
+            if row_no < height:
+                buffer.write("\033[0m\n")
+
+        buffer.write("\033[0m")  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
+
         return buffer.getvalue()
 
     @staticmethod
-    def __colored(red: int, green: int, blue: int, text: str) -> str:
-        """Prepend _text_ with ANSI 24-bit color code for the given RGB values"""
-        return f"\033[38;2;{red};{green};{blue}m{text}"
+    def __color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
+        """Prepend _text_ with ANSI 24-bit color codes
+        for the given foreground and/or backgroung RGB values.
+
+        The color code is ommited for any of 'fg' or 'bg' that is empty.
+        """
+        return (
+            "\033[38;2;%d;%d;%dm" * bool(fg)
+            + "\033[48;2;%d;%d;%dm" * bool(bg)
+            + "%s"
+        ) % (*fg, *bg, text)
 
     @classmethod
     def from_file(
