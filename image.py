@@ -53,11 +53,10 @@ class DrawImage:
                     time.sleep(0.1)
                     # Move cursor up to the first line of the image
                     print(f"\033[{image.size[1]}A", end="")
-        except KeyboardInterrupt as e:
-            # Move the cursor to line atfer the image and reset foreground color
-            # Prevents "overlayed" and wrongly colored output on the terminal
-            print(f"\033[{self.size[1]}B\033[0m")
-            raise e from None
+        finally:
+            # Move the cursor to the line after the image
+            # Prevents "overlayed" output on the terminal
+            print(f"\033[{self.size[1]}B")
 
     def draw_image(self) -> None:
         """Print an image to the terminal"""
@@ -75,6 +74,7 @@ class DrawImage:
         finally:
             self.__buffer.seek(0)  # Reset buffer pointer
             self.__buffer.truncate()  # Clear buffer
+            print("\033[0m")  # Reset color
 
     def __draw_image(self, image: Image.Image) -> str:
         """Convert entire image pixel data to a color-coded string"""
