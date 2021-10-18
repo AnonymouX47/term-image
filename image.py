@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__all__ = ("DrawImage",)
+
 import io
 import os
 import requests
@@ -23,6 +25,7 @@ class DrawImage:
     The _size_ determines the exact number of lines and character cells
     that'll be used to print the image to the terminal.
     """
+
     PIXEL: str = "\u2580"  # upper-half block
 
     def __init__(
@@ -144,9 +147,7 @@ class DrawImage:
         The color code is ommited for any of 'fg' or 'bg' that is empty.
         """
         return (
-            "\033[38;2;%d;%d;%dm" * bool(fg)
-            + "\033[48;2;%d;%d;%dm" * bool(bg)
-            + "%s"
+            "\033[38;2;%d;%d;%dm" * bool(fg) + "\033[48;2;%d;%d;%dm" * bool(bg) + "%s"
         ) % (*fg, *bg, text)
 
     @classmethod
@@ -180,8 +181,7 @@ class DrawImage:
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
-        parsed_url = urlparse(url)
-        if not any((parsed_url.scheme, parsed_url.netloc)):
+        if not all(urlparse(url)[:3]):
             raise ValueError(f"Invalid url: {url!r}")
 
         response = requests.get(url, stream=True)
