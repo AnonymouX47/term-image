@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from PIL import Image, UnidentifiedImageError
 
-from image import DrawImage
+from .image import DrawImage
 
 
 # Exit Codes
