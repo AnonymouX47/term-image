@@ -19,8 +19,8 @@ class DrawImage:
     """Text-printable image
 
     Args:
-        _image_ -> Image to be drawn.
-        _size_ -> The width and height to print the image with.
+        - image: Image to be drawn.
+        - size: The width and height to print the image with.
 
     The _size_ determines the exact number of lines and character cells
     that'll be used to print the image to the terminal.
@@ -157,8 +157,8 @@ class DrawImage:
         """Create a `DrawImage` object from an image file
 
         Args:
-            _filepath_ -> Relative/Absolute path to an image file.
-            _size_ -> See class description.
+            - filepath: Relative/Absolute path to an image file.
+            - size: See class description.
         """
         if not isinstance(filepath, str):
             raise TypeError(
@@ -176,8 +176,8 @@ class DrawImage:
         """Create a `DrawImage` object from an image url
 
         Args:
-            _url_ -> URL of an image file.
-            _size_ -> See class description.
+            - url: URL of an image file.
+            - size: See class description.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")

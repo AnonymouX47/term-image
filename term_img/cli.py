@@ -20,6 +20,21 @@ NO_VALID_SOURCE = 1
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
+    """Scan _dir_ (and sub-directories, if '--recursive' is set)
+    and build the tree of directories [recursively] containing readable images.
+
+    Args:
+        - dir: Path to directory to be scanned.
+        - prev_dir: Path to set as working directory after scannning _dir_
+            (default:  parent directory of _dir_).
+
+    Returns:
+        - `None` if _dir_ contains no readable images [recursively].
+        - A dict representing the resulting directory tree, if _dir_ is "non-empty".
+
+    - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
+    - If '--empty' is set, directories not containing readable images are also included.
+    """
     os.chdir(dir)
     empty = True
     content = {}
@@ -49,6 +64,23 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 def scan_dir(
     dir: str, contents: dict, prev_dir: str = ".."
 ) -> Generator[Tuple[str, Union[DrawImage, Generator]]]:
+    """Scan _dir_ (and sub-directories, if '--recursive' is set) for readable images
+    using a directory tree of the form produced by `check_dir(dir)`.
+
+    Args:
+        - dir: Path to directory to be scanned.
+        - contents: Tree of directories containing readable images
+            (as produced by `check_dir(dir)`).
+        - prev_dir: Path to set as working directory after scannning _dir_
+            (default:  parent directory of _dir_).
+
+    Yields:
+        - A `DrawImage` instance for each image in _dir_.
+        - A similar generator for sub-directories (if '--recursive' is set).
+
+    - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
+    - If '--empty' is set, directories not containing readable images are also included.
+    """
     os.chdir(dir)
     for entry in os.listdir():
         if entry.startswith(".") and not show_hidden:
@@ -87,6 +119,19 @@ def display_images(
     *,
     top_level: bool = False,
 ) -> None:
+    """Display images in _dir_ (and sub-directories, if '--recursive' is set)
+    as yielded by `scan_dir(dir)`.
+
+    Args:
+        - dir: Path to directory containing images.
+        - images: An iterator yielding the images in _dir_ and/or similar iterators
+            for sub-directories of _dir_.
+        - contents: Tree of directories containing readable images
+            (as produced by `check_dir(dir)`).
+        - prev_dir: Path to set as working directory after displaying images in _dir_
+            (default:  parent directory of _dir_).
+        - top_level: Specifies if _dir_ is the top level (For internal use only).
+    """
     global depth
     images = sorted(images, key=itemgetter(0))
     os.chdir(dir)
@@ -121,6 +166,7 @@ def display_images(
 
 
 def main():
+    """CLI execution entry-point"""
     global recursive, show_empty_dir, show_hidden
 
     parser = argparse.ArgumentParser(
