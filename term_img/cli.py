@@ -230,23 +230,24 @@ NOTES:
 
     for source in args.sources:
         if all(urlparse(source)[:3]):  # Is valid URL
-            images.append(
-                (os.path.basename(source), DrawImage.from_url(source, args.size)),
-            )
+            try:
+                images.append(
+                    (os.path.basename(source), DrawImage.from_url(source, args.size)),
+                )
+            except UnidentifiedImageError as e:
+                print(e)
         elif os.path.isfile(source):
             try:
-                Image.open(source)
-            except UnidentifiedImageError:
-                print(f"{source} could not be identified")
-            except OSError as e:
-                print(f"{source} could not be read: {e}")
-            else:
                 images.append(
                     (
                         os.path.relpath(source),
-                        DrawImage.from_file(os.path.realpath(source)),
+                        DrawImage.from_file(os.path.relpath(source)),
                     )
                 )
+            except UnidentifiedImageError as e:
+                print(e)
+            except OSError as e:
+                print(f"{source!r} could not be read: {e}")
         elif os.path.isdir(source):
             result = check_dir(source, os.getcwd())
             if result is not None:

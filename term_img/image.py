@@ -10,7 +10,7 @@ import requests
 import time
 from itertools import islice, zip_longest
 
-from PIL import Image, GifImagePlugin
+from PIL import Image, GifImagePlugin, UnidentifiedImageError
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -164,8 +164,12 @@ class DrawImage:
             raise TypeError(
                 f"File path must be a string, got {type(filepath).__name__!r}."
             )
-        if not os.path.isfile(filepath):
-            raise FileNotFoundError(f"{filepath!r} not found")
+
+        # Intentionally propagates `UnidentifiedImageError` since the message is OK.
+        try:
+            Image.open(filepath)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
         new = cls(Image.new("P", (0, 0)), size)
         new.__source = filepath
@@ -187,10 +191,16 @@ class DrawImage:
         response = requests.get(url, stream=True)
         if response.status_code == 404:
             raise FileNotFoundError(f"URL {url!r} does not exist.")
+        try:
+            Image.open(io.BytesIO(response.content))
+        except UnidentifiedImageError as e:
+            e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
+            raise e from None
 
         basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
+
         filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
