@@ -13,6 +13,8 @@ from PIL import Image, GifImagePlugin, UnidentifiedImageError
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
+from .errors import URLNotFoundError
+
 
 class DrawImage:
     """Text-printable image
@@ -113,9 +115,10 @@ class DrawImage:
         if not all(urlparse(url)[:3]):
             raise ValueError(f"Invalid url: {url!r}")
 
+        # Propagates connection-related errors.
         response = requests.get(url, stream=True)
         if response.status_code == 404:
-            raise FileNotFoundError(f"URL {url!r} does not exist.")
+            raise URLNotFoundError(f"URL {url!r} does not exist.")
         try:
             Image.open(io.BytesIO(response.content))
         except UnidentifiedImageError as e:

@@ -9,8 +9,10 @@ from operator import itemgetter
 from typing import Generator, Iterator, Optional, Tuple, Union
 from urllib.parse import urlparse
 
+import requests
 from PIL import Image, UnidentifiedImageError
 
+from .errors import URLNotFoundError
 from .image import DrawImage
 
 
@@ -225,6 +227,11 @@ NOTES:
                 images.append(
                     (os.path.basename(source), DrawImage.from_url(source, args.size)),
                 )
+            # Also handles `ConnectionTimeout`
+            except requests.exceptions.ConnectionError:
+                print(f"Unable to get {source!r}")
+            except URLNotFoundError as e:
+                print(e)
             except UnidentifiedImageError as e:
                 print(e)
         elif os.path.isfile(source):
