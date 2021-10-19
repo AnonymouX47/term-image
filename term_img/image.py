@@ -27,6 +27,8 @@ class DrawImage:
 
     PIXEL: str = "\u2580"  # upper-half block
 
+    # Special Methods
+
     def __init__(
         self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)
     ) -> None:
@@ -41,6 +43,98 @@ class DrawImage:
         self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
         self.size = size
+
+    # Public Methods
+
+    def draw_image(self) -> None:
+        """Print an image to the terminal"""
+        image = (
+            Image.open(self.__source)
+            if isinstance(self.__source, str)
+            else self.__source
+        )
+
+        try:
+            if isinstance(image, GifImagePlugin.GifImageFile):
+                self.__display_gif(image)
+            else:
+                print(self.__draw_image(image))
+        finally:
+            self.__buffer.seek(0)  # Reset buffer pointer
+            self.__buffer.truncate()  # Clear buffer
+            print("\033[0m")  # Reset color
+
+    @classmethod
+    def from_file(
+        cls, filepath: str, size: Optional[Tuple[int, int]] = None
+    ) -> DrawImage:
+        """Create a `DrawImage` object from an image file
+
+        Args:
+            - filepath: Relative/Absolute path to an image file.
+            - size: See class description.
+        """
+        if not isinstance(filepath, str):
+            raise TypeError(
+                f"File path must be a string, got {type(filepath).__name__!r}."
+            )
+
+        # Intentionally propagates `UnidentifiedImageError` since the message is OK.
+        try:
+            Image.open(filepath)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"No such file: {filepath!r}") from None
+
+        new = cls(Image.new("P", (0, 0)), size)
+        new.__source = filepath
+        return new
+
+    @classmethod
+    def from_url(cls, url: str, size: Optional[Tuple[int, int]] = None) -> DrawImage:
+        """Create a `DrawImage` object from an image url
+
+        Args:
+            - url: URL of an image file.
+            - size: See class description.
+        """
+        if not isinstance(url, str):
+            raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
+        if not all(urlparse(url)[:3]):
+            raise ValueError(f"Invalid url: {url!r}")
+
+        response = requests.get(url, stream=True)
+        if response.status_code == 404:
+            raise FileNotFoundError(f"URL {url!r} does not exist.")
+        try:
+            Image.open(io.BytesIO(response.content))
+        except UnidentifiedImageError as e:
+            e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
+            raise e from None
+
+        basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
+        if not os.path.isdir(basedir):
+            os.mkdir(basedir)
+
+        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        with open(filepath, "wb") as image_writer:
+            image_writer.write(response.content)
+
+        new = cls(Image.new("P", (0, 0)), size)
+        new.__source = filepath
+        return new
+
+    # Private Methods
+
+    @staticmethod
+    def __color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
+        """Prepend _text_ with ANSI 24-bit color codes
+        for the given foreground and/or backgroung RGB values.
+
+        The color code is ommited for any of 'fg' or 'bg' that is empty.
+        """
+        return (
+            "\033[38;2;%d;%d;%dm" * bool(fg) + "\033[48;2;%d;%d;%dm" * bool(bg) + "%s"
+        ) % (*fg, *bg, text)
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
         """Print an animated GIF image on the terminal
@@ -61,24 +155,6 @@ class DrawImage:
             # Move the cursor to the line after the image
             # Prevents "overlayed" output on the terminal
             print("\033[%dB" % height)
-
-    def draw_image(self) -> None:
-        """Print an image to the terminal"""
-        image = (
-            Image.open(self.__source)
-            if isinstance(self.__source, str)
-            else self.__source
-        )
-
-        try:
-            if isinstance(image, GifImagePlugin.GifImageFile):
-                self.__display_gif(image)
-            else:
-                print(self.__draw_image(image))
-        finally:
-            self.__buffer.seek(0)  # Reset buffer pointer
-            self.__buffer.truncate()  # Clear buffer
-            print("\033[0m")  # Reset color
 
     def __draw_image(self, image: Image.Image) -> str:
         """Convert entire image pixel data to a color-coded string
@@ -153,76 +229,6 @@ class DrawImage:
         buffer.seek(0)  # Reset buffer pointer
 
         return buffer.getvalue()
-
-    @staticmethod
-    def __color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
-        """Prepend _text_ with ANSI 24-bit color codes
-        for the given foreground and/or backgroung RGB values.
-
-        The color code is ommited for any of 'fg' or 'bg' that is empty.
-        """
-        return (
-            "\033[38;2;%d;%d;%dm" * bool(fg) + "\033[48;2;%d;%d;%dm" * bool(bg) + "%s"
-        ) % (*fg, *bg, text)
-
-    @classmethod
-    def from_file(
-        cls, filepath: str, size: Optional[Tuple[int, int]] = None
-    ) -> DrawImage:
-        """Create a `DrawImage` object from an image file
-
-        Args:
-            - filepath: Relative/Absolute path to an image file.
-            - size: See class description.
-        """
-        if not isinstance(filepath, str):
-            raise TypeError(
-                f"File path must be a string, got {type(filepath).__name__!r}."
-            )
-
-        # Intentionally propagates `UnidentifiedImageError` since the message is OK.
-        try:
-            Image.open(filepath)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"No such file: {filepath!r}") from None
-
-        new = cls(Image.new("P", (0, 0)), size)
-        new.__source = filepath
-        return new
-
-    @classmethod
-    def from_url(cls, url: str, size: Optional[Tuple[int, int]] = None) -> DrawImage:
-        """Create a `DrawImage` object from an image url
-
-        Args:
-            - url: URL of an image file.
-            - size: See class description.
-        """
-        if not isinstance(url, str):
-            raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
-        if not all(urlparse(url)[:3]):
-            raise ValueError(f"Invalid url: {url!r}")
-
-        response = requests.get(url, stream=True)
-        if response.status_code == 404:
-            raise FileNotFoundError(f"URL {url!r} does not exist.")
-        try:
-            Image.open(io.BytesIO(response.content))
-        except UnidentifiedImageError as e:
-            e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
-            raise e from None
-
-        basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
-        if not os.path.isdir(basedir):
-            os.mkdir(basedir)
-
-        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
-        with open(filepath, "wb") as image_writer:
-            image_writer.write(response.content)
-
-        new = cls(Image.new("P", (0, 0)), size)
-        new.__source = filepath
-        return new
 
     @staticmethod
     def __validate_size(size: Optional[Tuple[int, int]]) -> None:
