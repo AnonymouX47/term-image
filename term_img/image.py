@@ -44,6 +44,17 @@ class DrawImage:
         self.__buffer = io.StringIO()
         self.size = size
 
+    def __repr__(self):
+        return f"<DrawImage(source={self.__source!r}, size={self.size})>"
+
+    def __str__(self):
+        # Only the first frame for GIFs
+        return self.__draw_image(
+            Image.open(self.__source)
+            if isinstance(self.__source, str)
+            else self.__source
+        )
+
     # Public Methods
 
     def draw_image(self) -> None:
