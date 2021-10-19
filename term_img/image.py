@@ -46,10 +46,22 @@ class DrawImage:
         self.__buffer = io.StringIO()
         self.size = size
 
-    def __repr__(self):
-        return f"<DrawImage(source={self.__source!r}, size={self.size})>"
+    def __del__(self) -> None:
+        self.__buffer.close()
+        if hasattr(self, f"_{__class__.__name__}__url"):
+            os.remove(self.__source)
 
-    def __str__(self):
+    def __repr__(self) -> str:
+        return ("<DrawImage(source={!r}, size={})>").format(
+            (
+                self.__url
+                if hasattr(self, f"_{__class__.__name__}__url")
+                else self.__source
+            ),
+            self.size,
+        )
+
+    def __str__(self) -> str:
         # Only the first frame for GIFs
         return self.__draw_image(
             Image.open(self.__source)
@@ -92,7 +104,8 @@ class DrawImage:
                 f"File path must be a string, got {type(filepath).__name__!r}."
             )
 
-        # Intentionally propagates `UnidentifiedImageError` since the message is OK.
+        # Intentionally propagates `UnidentifiedImageError` and `IsADirectoryError`
+        # since the messages are OK.
         try:
             Image.open(filepath)
         except FileNotFoundError:
@@ -125,7 +138,7 @@ class DrawImage:
             e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
             raise e from None
 
-        basedir = os.path.join(os.path.expanduser("~"), ".terminal_image")
+        basedir = os.path.join(os.path.expanduser("~"), ".term_img")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
 
@@ -135,6 +148,7 @@ class DrawImage:
 
         new = cls(Image.new("P", (0, 0)), size)
         new.__source = filepath
+        new.__url = url
         return new
 
     # Private Methods
