@@ -8,7 +8,6 @@ import io
 import os
 import requests
 import time
-from itertools import islice, zip_longest
 
 from PIL import Image, GifImagePlugin, UnidentifiedImageError
 from typing import Optional, Tuple
@@ -48,6 +47,7 @@ class DrawImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
+        height = image.size[1]
         try:
             while True:
                 for frame in range(0, image.n_frames):
@@ -56,11 +56,11 @@ class DrawImage:
                     self.__buffer.truncate()  # Clear buffer
                     time.sleep(0.1)
                     # Move cursor up to the first line of the image
-                    print(f"\033[{image.size[1]}A", end="")
+                    print("\033[%dA" % height, end="")
         finally:
             # Move the cursor to the line after the image
             # Prevents "overlayed" output on the terminal
-            print(f"\033[{self.size[1]}B")
+            print("\033[%dB" % height)
 
     def draw_image(self) -> None:
         """Print an image to the terminal"""
@@ -85,31 +85,36 @@ class DrawImage:
 
         Two pixels per character using FG and BG colors.
         """
-        if self.size:
-            image = image.resize(self.size)
-        pixels = image.convert("RGB").getdata()
-        len_pixels = len(pixels)
-        width, height = image.size
-
-        row_pairs = (
-            (
-                zip_longest(  # Includes last row when height is odd
-                    islice(pixels, x, x + width),
-                    islice(pixels, x + width, x + width * 2),
-                    # The empty tuple is used to ensure the BG (lower pixel) color
-                    # is not set on the last line when height is odd
-                    fillvalue=(),
-                ),
-                # the final (x + width) will be out-of-range when height is odd
-                (pixels[x], pixels[x + width] if x + width < len_pixels else ()),
-            )
-            for x in range(0, len_pixels, width * 2)
-        )
+        # NOTE:
+        # It's more efficient to write separate strings to the buffer separately
+        # than concatenate and write together.
 
         # Eliminate attribute resolution cost
         PIXEL = self.PIXEL
         buffer = self.__buffer
-        color = self.__color
+        buf_write = buffer.write
+
+        def update_buffer():
+            buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
+            buf_write("\033[48;2;%d;%d;%dm" % cluster_bg)
+            buf_write(PIXEL * n)
+
+        if self.size:
+            image = image.resize(self.size)
+        pixels = tuple(image.convert("RGB").getdata())
+        width, height = image.size
+        if height % 2:
+            # Starting index of the last row (when height is odd)
+            mark = width * (height // 2) * 2
+            pixels, last_row = pixels[:mark], pixels[mark:]
+
+        row_pairs = (
+            (
+                zip(pixels[x : x + width], pixels[x + width : x + width * 2]),
+                (pixels[x], pixels[x + width]),
+            )
+            for x in range(0, len(pixels), width * 2)
+        )
 
         row_no = 0
         # Two rows of pixels per line
@@ -120,21 +125,31 @@ class DrawImage:
                 # Color-code characters and write to buffer
                 # when upper and/or lower pixel color changes
                 if fg != cluster_fg or bg != cluster_bg:
-                    buffer.write(color(PIXEL * n, cluster_fg, cluster_bg))
+                    update_buffer()
                     cluster_fg = fg
                     cluster_bg = bg
                     n = 0
                 n += 1
-
             # Rest of the line
-            buffer.write(color(PIXEL * n, cluster_fg, cluster_bg))
+            update_buffer()
+            if row_no < height:  # Excludes the last line
+                buf_write("\033[0m\n")
 
-            # It's more efficient to write separate strings to the buffer separately
-            # than concatenate and write together.
-            if row_no < height:
-                buffer.write("\033[0m\n")
+        if height % 2:
+            cluster_fg = last_row[0]
+            n = 0
+            for fg in last_row:
+                if fg != cluster_fg:
+                    buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
+                    buf_write(PIXEL * n)
+                    cluster_fg = fg
+                    n = 0
+                n += 1
+            # Last cluster
+            buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
+            buf_write(PIXEL * n)
 
-        buffer.write("\033[0m")  # Reset color after last line
+        buf_write("\033[0m")  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
 
         return buffer.getvalue()
