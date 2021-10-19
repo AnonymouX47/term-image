@@ -33,7 +33,6 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
         - A dict representing the resulting directory tree, if _dir_ is "non-empty".
 
     - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
-    - If '--empty' is set, directories not containing readable images are also included.
     """
     os.chdir(dir)
     empty = True
@@ -54,7 +53,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                 result = check_dir(entry, os.getcwd())
             else:
                 result = check_dir(entry)
-            if result is not None or show_empty_dir:
+            if result is not None:
                 content[entry + os.sep] = result
 
     os.chdir(prev_dir)
@@ -79,7 +78,6 @@ def scan_dir(
         - A similar generator for sub-directories (if '--recursive' is set).
 
     - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
-    - If '--empty' is set, directories not containing readable images are also included.
     """
     os.chdir(dir)
     for entry in os.listdir():
@@ -95,7 +93,7 @@ def scan_dir(
                 print(f"{os.path.realpath(entry)!r} could not be read: {e}")
             else:
                 yield entry, DrawImage.from_file(entry)
-        elif recursive and (show_empty_dir or entry + os.sep in contents):
+        elif recursive and entry + os.sep in contents:
             if os.path.islink(entry):
                 # Return to the link's parent rather than the linked directory's parent
                 yield (
@@ -167,7 +165,7 @@ def display_images(
 
 def main():
     """CLI execution entry-point"""
-    global recursive, show_empty_dir, show_hidden
+    global recursive, show_hidden
 
     parser = argparse.ArgumentParser(
         prog="img",
@@ -185,12 +183,6 @@ NOTES:
         allow_abbrev=False,  # Allow clustering of short options in 3.7
     )
 
-    parser.add_argument(
-        "-e",
-        "--empty",
-        action="store_true",
-        help="Include directories not containing images (Used with -r)",
-    )
     parser.add_argument(
         "-a",
         "--all",
@@ -221,7 +213,6 @@ NOTES:
     args = parser.parse_args()
     recursive = args.recursive
     show_hidden = args.all
-    show_empty_dir = args.empty
     if args.size:
         args.size = tuple(args.size)
 
