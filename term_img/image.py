@@ -18,6 +18,11 @@ from urllib.parse import urlparse
 from .errors import InvalidSize, URLNotFoundError
 
 
+FG_FMT: str = "\033[38;2;%d;%d;%dm"
+BG_FMT: str = "\033[48;2;%d;%d;%dm"
+PIXEL: str = "\u2580"  # upper-half block element
+
+
 class DrawImage:
     """Text-printable image
 
@@ -32,8 +37,6 @@ class DrawImage:
         - If neither is given or `None`, the size is automatically determined
           when the image is to be rendered, such that it can fit within the terminal.
     """
-
-    PIXEL: str = "\u2580"  # upper-half block
 
     # Special Methods
 
@@ -212,9 +215,7 @@ class DrawImage:
 
         The color code is ommited for any of 'fg' or 'bg' that is empty.
         """
-        return (
-            "\033[38;2;%d;%d;%dm" * bool(fg) + "\033[48;2;%d;%d;%dm" * bool(bg) + "%s"
-        ) % (*fg, *bg, text)
+        return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
     def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
         """Print an animated GIF image on the terminal
@@ -246,13 +247,12 @@ class DrawImage:
         # than concatenate and write together.
 
         # Eliminate attribute resolution cost
-        PIXEL = self.PIXEL
         buffer = self.__buffer
         buf_write = buffer.write
 
         def update_buffer():
-            buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
-            buf_write("\033[48;2;%d;%d;%dm" % cluster_bg)
+            buf_write(FG_FMT % cluster_fg)
+            buf_write(BG_FMT % cluster_bg)
             buf_write(PIXEL * n)
 
         image = image.resize(self.__size)
@@ -295,13 +295,13 @@ class DrawImage:
             n = 0
             for fg in last_row:
                 if fg != cluster_fg:
-                    buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
+                    buf_write(FG_FMT % cluster_fg)
                     buf_write(PIXEL * n)
                     cluster_fg = fg
                     n = 0
                 n += 1
             # Last cluster
-            buf_write("\033[38;2;%d;%d;%dm" % cluster_fg)
+            buf_write(FG_FMT % cluster_fg)
             buf_write(PIXEL * n)
 
         buf_write("\033[0m")  # Reset color after last line
