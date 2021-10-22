@@ -8,23 +8,29 @@ import io
 import os
 import requests
 import time
+from operator import truediv
+from shutil import get_terminal_size
 
 from PIL import Image, GifImagePlugin, UnidentifiedImageError
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
-from .errors import URLNotFoundError
+from .errors import InvalidSize, URLNotFoundError
 
 
 class DrawImage:
     """Text-printable image
 
     Args:
-        - image: Image to be drawn.
-        - size: The width and height to print the image with.
+        - image: Image to be rendered.
+        - width: The width to render the image with.
+        - height: The height to render the image with.
 
-    The _size_ determines the exact number of lines and character cells
-    that'll be used to print the image to the terminal.
+    NOTE:
+        - _width_ is the exact number of columns that'll be used on the terminal.
+        - _height_ is **2 times** the number of lines that'll be used on the terminal.
+        - If neither is given or `None`, the size is automatically determined
+          when the image is to be rendered, such that it can fit within the terminal.
     """
 
     PIXEL: str = "\u2580"  # upper-half block
@@ -32,7 +38,11 @@ class DrawImage:
     # Special Methods
 
     def __init__(
-        self, image: Image.Image, size: Optional[Tuple[int, int]] = (24, 24)
+        self,
+        image: Image.Image,
+        *,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
     ) -> None:
         """See class description"""
         if not isinstance(image, Image.Image):
@@ -40,11 +50,14 @@ class DrawImage:
                 "Expected a 'PIL.Image.Image' instance for 'image',"
                 f" got {type(image).__name__!r}."
             )
-        self.__validate_size(size)
 
         self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
-        self.size = size
+        self.__size = (
+            None
+            if width is None is height
+            else self.__valid_size(width, height)
+        )
 
     def __del__(self) -> None:
         self.__buffer.close()
@@ -58,7 +71,7 @@ class DrawImage:
                 if hasattr(self, f"_{__class__.__name__}__url")
                 else self.__source
             ),
-            self.size,
+            self.__size,
         )
 
     def __str__(self) -> str:
@@ -69,10 +82,37 @@ class DrawImage:
             else self.__source
         )
 
+    # Properties
+
+    width = property(lambda self: self.__size[0], doc="Width of rendered the image")
+    height = property(lambda self: self.__size[1], doc="Height of rendered the image")
+    size = property(lambda self: self.__size, doc="Image render size")
+
+    @width.setter
+    def width(self, width: int) -> None:
+        self.__size = self.__valid_size(width, None)
+
+    @height.setter
+    def height(self, height: int) -> None:
+        self.__size = self.__valid_size(None, height)
+
     # Public Methods
 
     def draw_image(self) -> None:
         """Print an image to the terminal"""
+        if not self.__size:  # Size is unset
+            self.__size = self.__valid_size(None, None)
+            reset_size = True
+        else:
+            width, height = self.__size
+            columns, lines = get_terminal_size()
+            # A 3-line allowance for the extra blank line and maybe the shell prompt
+            if width > columns or height > (lines - 3) * 2:
+                raise InvalidSize(
+                    "Seems the terminal has been resized since the render size was set"
+                )
+            reset_size = False
+
         image = (
             Image.open(self.__source)
             if isinstance(self.__source, str)
@@ -88,16 +128,22 @@ class DrawImage:
             self.__buffer.seek(0)  # Reset buffer pointer
             self.__buffer.truncate()  # Clear buffer
             print("\033[0m")  # Reset color
+            if reset_size:
+                self.__size = None
 
     @classmethod
     def from_file(
-        cls, filepath: str, size: Optional[Tuple[int, int]] = None
+        cls,
+        filepath: str,
+        *,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
     ) -> DrawImage:
         """Create a `DrawImage` object from an image file
 
         Args:
             - filepath: Relative/Absolute path to an image file.
-            - size: See class description.
+            - See the class description for others.
         """
         if not isinstance(filepath, str):
             raise TypeError(
@@ -111,17 +157,23 @@ class DrawImage:
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
-        new = cls(Image.new("P", (0, 0)), size)
+        new = cls(Image.open(filepath), width=width, height=height)
         new.__source = filepath
         return new
 
     @classmethod
-    def from_url(cls, url: str, size: Optional[Tuple[int, int]] = None) -> DrawImage:
+    def from_url(
+        cls,
+        url: str,
+        *,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+    ) -> DrawImage:
         """Create a `DrawImage` object from an image url
 
         Args:
             - url: URL of an image file.
-            - size: See class description.
+            - See the class description for others.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
@@ -146,7 +198,7 @@ class DrawImage:
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        new = cls(Image.new("P", (0, 0)), size)
+        new = cls(Image.open(filepath), width=width, height=height)
         new.__source = filepath
         new.__url = url
         return new
@@ -203,10 +255,9 @@ class DrawImage:
             buf_write("\033[48;2;%d;%d;%dm" % cluster_bg)
             buf_write(PIXEL * n)
 
-        if self.size:
-            image = image.resize(self.size)
+        image = image.resize(self.__size)
         pixels = tuple(image.convert("RGB").getdata())
-        width, height = image.size
+        width, height = self.__size
         if height % 2:
             # Starting index of the last row (when height is odd)
             mark = width * (height // 2) * 2
@@ -258,15 +309,48 @@ class DrawImage:
 
         return buffer.getvalue()
 
-    @staticmethod
-    def __validate_size(size: Optional[Tuple[int, int]]) -> None:
-        """Check validity of an input for the size attribute"""
-        if not (
-            size is None
-            or (
-                isinstance(size, tuple)
-                and len(size) == 2
-                and all(isinstance(x, int) for x in size)
+    def __valid_size(
+        self,
+        width: Optional[int],
+        height: Optional[int],
+    ) -> Tuple[int, int]:
+        """Generate complete size from given height or width and
+        check if the resulting render size is valid
+
+        Returns: Valid size tuple
+        """
+        if width is not None is not height:
+            raise ValueError("Cannot specify both width and height")
+        if not all(x is None or isinstance(x, int) and x > 0 for x in (width, height)):
+            raise ValueError(
+                "width or height must be None or a positive integer, got: "
+                f"{width= }, {height= }"
             )
-        ):
-            raise TypeError("'size' is expected to be tuple of two integers.")
+
+        ori_width, ori_height = (
+            Image.open(self.__source)
+            if isinstance(self.__source, str)
+            else self.__source
+        ).size
+
+        columns, lines = get_terminal_size()
+        # A 3-line allowance for the extra blank line and maybe the shell prompt
+        # Two pixel rows per line
+        rows = (lines - 3) * 2
+
+        if width is None is height:
+            return tuple(
+                round(x * min(map(truediv, (columns, rows), (ori_width, ori_height))))
+                for x in (ori_width, ori_height)
+            )
+        elif width is None:
+            width = round((height / ori_height) * ori_width)
+        elif height is None:
+            height = round((width / ori_width) * ori_height)
+
+        if width > columns or height > rows:
+            raise InvalidSize(
+                "The given render size is larger than the current terminal size"
+            )
+
+        return (width, height)
