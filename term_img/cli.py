@@ -12,13 +12,14 @@ from urllib.parse import urlparse
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .errors import URLNotFoundError
+from .errors import InvalidSize, URLNotFoundError
 from .image import DrawImage
 
 
 # Exit Codes
 SUCCESS = 0
 NO_VALID_SOURCE = 1
+INVALID_SIZE = 2
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
@@ -179,12 +180,19 @@ from options/flags, to avoid ambiguity.
 For example, `$ img [options] -- -image.jpg`
 
 NOTES:
-  1. The displayed image uses H/2 lines and W columns.
-  2. Supports all image formats supported by PIL.Image.open().
+  1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
+  2. Only one of the dimensions can be specified.
+  3. Supports all image formats supported by PIL.Image.open().
 """,
+        add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
     )
 
+    parser.add_argument(
+        "--help",
+        action="help",
+        help="show this help message and exit",
+    )
     parser.add_argument(
         "-a",
         "--all",
@@ -198,12 +206,22 @@ NOTES:
         help="Scan for local images recursively",
     )
     parser.add_argument(
-        "-s",
-        "--size",
-        nargs=2,
-        metavar=("<W>", "<H>"),
+        "-w",
+        "--width",
         type=int,
-        help="Resolution (Width and Height respectively) of the output, in pixels",
+        help=(
+            "Width of the image to be rendered "
+            "(Ignored for multiple valid sources) [1][2]"
+        ),
+    )
+    parser.add_argument(
+        "-h",
+        "--height",
+        type=int,
+        help=(
+            "Height of the image to be rendered "
+            "(Ignored for multiple valid sources) [1][2]"
+        ),
     )
     parser.add_argument(
         "sources",
@@ -215,8 +233,6 @@ NOTES:
     args = parser.parse_args()
     recursive = args.recursive
     show_hidden = args.all
-    if args.size:
-        args.size = tuple(args.size)
 
     images = []
     contents = {}
@@ -225,7 +241,7 @@ NOTES:
         if all(urlparse(source)[:3]):  # Is valid URL
             try:
                 images.append(
-                    (os.path.basename(source), DrawImage.from_url(source, args.size)),
+                    (os.path.basename(source), DrawImage.from_url(source)),
                 )
             # Also handles `ConnectionTimeout`
             except requests.exceptions.ConnectionError:
@@ -262,7 +278,17 @@ NOTES:
     if len(images) == 1 and isinstance(images[0][1], DrawImage):
         # Single image argument
         image = images[0][1]
-        image.size = args.size
+        try:
+            if args.width is not None:
+                image.width = args.width
+            if args.height is not None:
+                if image.size:  # width was also set
+                    print("Only one of the dimensions can be specified.")
+                    return INVALID_SIZE
+                image.height = args.height
+        except (ValueError) as e:
+            print(e)
+            return INVALID_SIZE
         image.draw_image()
     else:
         display_images(".", iter(images), contents, top_level=True)
