@@ -9,6 +9,7 @@ import os
 import requests
 import time
 from operator import truediv
+from random import randint
 from shutil import get_terminal_size
 
 from PIL import Image, GifImagePlugin, UnidentifiedImageError
@@ -64,7 +65,11 @@ class DrawImage:
 
     def __del__(self) -> None:
         self.__buffer.close()
-        if hasattr(self, f"_{__class__.__name__}__url"):
+        if (
+            hasattr(self, f"_{__class__.__name__}__url")
+            and os.path.exists(self.__source)
+            # The file might not exist for whatever reason.
+        ):
             os.remove(self.__source)
 
     def __repr__(self) -> str:
@@ -208,6 +213,8 @@ class DrawImage:
             os.mkdir(basedir)
 
         filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        while os.path.exists(filepath):
+            filepath += str(randint(0, 9))
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
