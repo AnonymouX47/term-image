@@ -87,8 +87,22 @@ class DrawImage:
 
     # Properties
 
-    width = property(lambda self: self.__size[0], doc="Width of rendered the image")
-    height = property(lambda self: self.__size[1], doc="Height of rendered the image")
+    width = property(
+        lambda self: self.__size[0],
+        doc="""
+        Width of the rendered image
+
+        Setting this affects the height proportionally to keep the image in scale
+        """,
+    )
+    height = property(
+        lambda self: self.__size[1],
+        doc="""
+        Height of the rendered image
+
+        Setting this affects the width proportionally to keep the image in scale
+        """,
+    )
     size = property(lambda self: self.__size, doc="Image render size")
 
     @width.setter
@@ -138,9 +152,7 @@ class DrawImage:
     def from_file(
         cls,
         filepath: str,
-        *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        **size,
     ) -> DrawImage:
         """Create a `DrawImage` object from an image file
 
@@ -160,7 +172,7 @@ class DrawImage:
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
-        new = cls(Image.open(filepath), width=width, height=height)
+        new = cls(Image.open(filepath), **size)
         new.__source = filepath
         return new
 
@@ -168,9 +180,7 @@ class DrawImage:
     def from_url(
         cls,
         url: str,
-        *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        **size,
     ) -> DrawImage:
         """Create a `DrawImage` object from an image url
 
@@ -201,7 +211,7 @@ class DrawImage:
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        new = cls(Image.open(filepath), width=width, height=height)
+        new = cls(Image.open(filepath), **size)
         new.__source = filepath
         new.__url = url
         return new
