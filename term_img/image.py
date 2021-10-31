@@ -364,7 +364,7 @@ class DrawImage:
         if not all(x is None or isinstance(x, int) and x > 0 for x in (width, height)):
             raise ValueError(
                 "width or height must be None or a positive integer, got: "
-                f"{width= }, {height= }"
+                f"width={width}, height={height}"
             )
 
         ori_width, ori_height = (
