@@ -1,4 +1,4 @@
-"""The main img module"""
+"""The main term-img module"""
 
 from __future__ import annotations
 
