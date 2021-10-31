@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .errors import InvalidSize, URLNotFoundError
+from .exceptions import URLNotFoundError
 from .image import DrawImage
 
 
@@ -286,7 +286,9 @@ NOTES:
                     print("Only one of the dimensions can be specified.")
                     return INVALID_SIZE
                 image.height = args.height
-        except (ValueError) as e:
+        # Handles `ValueError` and `.exceptions.InvalidSize`
+        # raised by `DrawImage.__valid_size()`
+        except ValueError as e:
             print(e)
             return INVALID_SIZE
         image.draw_image()
