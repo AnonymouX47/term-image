@@ -21,7 +21,8 @@ Now that you have created a development environment, you can contribute your cod
 
 ## Style
 - Maximum line length is 88 characters.
-- Always run the `check` script for linting and formatting checks before commiting changes.
+- Endeavour to run the `check` script for linting and formatting checks before commiting changes.
+  - Note that this doesn't confer compatibility across multiple Python versions, final checks will be done automatically when you push the changes.
 - Always format your code by running `black .` from the repository root.
 - Please try as much as possible to follow formats already used in the project e.g for docstrings, etc...
 - Any questions or suggestions about these can asked or given in the [discussions](https://github.com/AnonymouX47/term-img/discussions) tab.

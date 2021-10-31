@@ -1,0 +1,5 @@
+#!/bin/sh
+flake8 --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics setup.py term_img/
+echo ""
+black --diff --color setup.py term_img/
+
