@@ -16,7 +16,7 @@ from PIL import Image, GifImagePlugin, UnidentifiedImageError
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
-from .errors import InvalidSize, URLNotFoundError
+from .exceptions import InvalidSize, URLNotFoundError
 
 
 FG_FMT: str = "\033[38;2;%d;%d;%dm"
@@ -58,9 +58,7 @@ class DrawImage:
         self.__source = image.convert("RGB")
         self.__buffer = io.StringIO()
         self.__size = (
-            None
-            if width is None is height
-            else self.__valid_size(width, height)
+            None if width is None is height else self.__valid_size(width, height)
         )
 
     def __del__(self) -> None:
@@ -121,7 +119,12 @@ class DrawImage:
     # Public Methods
 
     def draw_image(self) -> None:
-        """Print an image to the terminal"""
+        """Print an image to the terminal
+
+        Raises:
+            - .exceptions.InvalidSize: if the terminal has been resized in such a way
+            that it can no longer fit the previously set image render size.
+        """
         if not self.__size:  # Size is unset
             self.__size = self.__valid_size(None, None)
             reset_size = True
@@ -164,6 +167,12 @@ class DrawImage:
         Args:
             - filepath: Relative/Absolute path to an image file.
             - See the class description for others.
+
+        Raises:
+            - TypeError: if _filepath_ is not a string.
+            - FileNotFoundError: if the given path does not exist.
+            - Propagates `UnidentifiedImageError` and `IsADirectoryError`
+            from PIL.Image.open()
         """
         if not isinstance(filepath, str):
             raise TypeError(
@@ -192,6 +201,13 @@ class DrawImage:
         Args:
             - url: URL of an image file.
             - See the class description for others.
+
+        Raises:
+            - TypeError: if _url_ is not a string.
+            - ValueError: if the given URL is invalid.
+            - .exceptions.URLNotFoundError: if the URL does not exist.
+            - Propagates connection-related errors from `requests.get()`.
+            - Propagates `UnidentifiedImageError` from `PIL.Image.open()`.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
@@ -331,10 +347,17 @@ class DrawImage:
         width: Optional[int],
         height: Optional[int],
     ) -> Tuple[int, int]:
-        """Generate complete size from given height or width and
+        """Generate size tuple from given height or width and
         check if the resulting render size is valid
 
         Returns: Valid size tuple
+
+        Raises:
+            - ValueError: if
+                - both width and height are specified, or
+                - the specified dimension is non-positive.
+            - .exceptions.InvalidSize: if the resulting size will not fit properly
+            into the terminal.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
