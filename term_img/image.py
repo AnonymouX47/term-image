@@ -82,11 +82,24 @@ class DrawImage:
 
     def __str__(self) -> str:
         # Only the first frame for GIFs
-        return self.__draw_image(
-            Image.open(self.__source)
-            if isinstance(self.__source, str)
-            else self.__source
-        )
+        reset_size = False
+        if not self.__size:  # Size is unset
+            self.__size = self.__valid_size(None, None)
+            reset_size = True
+
+        try:
+            txt = self.__draw_image(
+                Image.open(self.__source)
+                if isinstance(self.__source, str)
+                else self.__source
+            )
+        finally:
+            self.__buffer.seek(0)  # Reset buffer pointer
+            self.__buffer.truncate()  # Clear buffer
+            if reset_size:
+                self.__size = None
+
+        return txt
 
     # Properties
 
