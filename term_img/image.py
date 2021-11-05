@@ -8,6 +8,7 @@ import io
 import os
 import requests
 import time
+from math import ceil
 from operator import truediv
 from random import randint
 from shutil import get_terminal_size
@@ -117,6 +118,9 @@ class DrawImage:
         Height of the rendered image
 
         Setting this affects the width proportionally to keep the image in scale
+
+        The image is actually rendered using half this number of lines
+        (keeps the image in proper scale on most terminals)
         """,
     )
     size = property(lambda self: self.__size, doc="Image render size")
@@ -268,7 +272,7 @@ class DrawImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
-        height = image.size[1]
+        height = ceil(self.__size[1] / 2)
         try:
             while True:
                 for frame in range(0, image.n_frames):
