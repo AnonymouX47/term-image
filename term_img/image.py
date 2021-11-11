@@ -56,7 +56,7 @@ class DrawImage:
                 f" got {type(image).__name__!r}."
             )
 
-        self.__source = image.convert("RGB")
+        self.__source = image
         self.__buffer = io.StringIO()
         self.__size = (
             None if width is None is height else self.__valid_size(width, height)
