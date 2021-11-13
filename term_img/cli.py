@@ -54,7 +54,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                 Image.open(entry)
                 if empty:
                     empty = False
-            except OSError:
+            except Exception:
                 pass
         elif recursive:
             if os.path.islink(entry):
@@ -101,8 +101,11 @@ def scan_dir(
             except UnidentifiedImageError:
                 # Reporting will apply to every non-image file :(
                 pass
-            except OSError as e:
-                print(f"{os.path.realpath(entry)!r} could not be read: {e}")
+            except Exception as e:
+                print(
+                    f"{os.path.realpath(entry)!r} could not be read: "
+                    f"{type(e).__name__}: {e}"
+                )
             else:
                 yield entry, DrawImage.from_file(entry)
         elif recursive and entry in contents:
