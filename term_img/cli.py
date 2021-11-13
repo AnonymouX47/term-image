@@ -160,11 +160,13 @@ def display_images(
         - top_level: Specifies if _dir_ is the top level (For internal use only).
     """
     global depth
-    images = sorted(images, key=itemgetter(0))
+    images = sorted(
+        images,
+        key=lambda x: x[0].upper() if isinstance(x[1], DrawImage) else x[0].lower(),
+    )
     os.chdir(dir)
     depth += 1
 
-    # print(f"{entries= }\n")
     if not top_level:
         print("|  " * depth + "..")
     for entry, value in images:
