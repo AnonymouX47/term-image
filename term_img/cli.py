@@ -37,13 +37,19 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
     - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
     """
-    os.chdir(dir)
+    try:
+        os.chdir(dir)
+    except OSError:
+        print(f"Could not access {dir}/")
+        return None
     empty = True
     content = {}
     for entry in os.listdir():
         if entry.startswith(".") and not show_hidden:
             continue
         if os.path.isfile(entry):
+            if not empty:
+                continue
             try:
                 Image.open(entry)
                 if empty:
@@ -53,11 +59,14 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
         elif recursive:
             if os.path.islink(entry):
                 # Return to the link's parent rather than the linked directory's parent
-                result = check_dir(entry, os.getcwd())
+                # Eliminate broken symlinks
+                result = (
+                    check_dir(entry, os.getcwd()) if os.path.exists(entry) else None
+                )
             else:
                 result = check_dir(entry)
             if result is not None:
-                content[entry + os.sep] = result
+                content[entry] = result
 
     os.chdir(prev_dir)
     return None if empty and not content else content
@@ -96,15 +105,15 @@ def scan_dir(
                 print(f"{os.path.realpath(entry)!r} could not be read: {e}")
             else:
                 yield entry, DrawImage.from_file(entry)
-        elif recursive and entry + os.sep in contents:
-            if os.path.islink(entry):
+        elif recursive and entry in contents:
+            if os.path.islink(entry):  # check_dir() already eliminates broken symlinks
                 # Return to the link's parent rather than the linked directory's parent
                 yield (
-                    entry + os.sep,
-                    scan_dir(entry, contents[entry + os.sep], os.getcwd()),
+                    entry,
+                    scan_dir(entry, contents[entry], os.getcwd()),
                 )
             else:
-                yield entry + os.sep, scan_dir(entry, contents[entry + os.sep])
+                yield entry, scan_dir(entry, contents[entry])
 
     os.chdir(prev_dir)
 
@@ -145,9 +154,8 @@ def display_images(
         if isinstance(value, DrawImage):  # Image file
             print("|  " * depth + entry)
         else:  # Directory
-            print("|  " * (depth - 1) + "|--" + f"{entry}:")
-            if not value.gi_frame:
-                print(f"Back into {entry!r}")
+            print("|  " * (depth - 1) + "|--" + f"{entry}/:")
+            if not value.gi_frame:  # The directory has been visited earlier
                 if top_level or os.path.islink(entry):
                     # Return to Top-Level Directory, OR
                     # Return to the link's parent rather than the linked directory's
@@ -155,7 +163,7 @@ def display_images(
                     value = scan_dir(entry, contents[entry], os.getcwd())
                 else:
                     value = scan_dir(entry, contents[entry])
-            if top_level or os.path.islink(entry):
+            if top_level or os.path.islink(entry):  # broken symlinks already eliminated
                 # Return to Top-Level Directory, OR
                 # Return to the link's parent rather than the linked directory's parent
                 display_images(entry, value, contents[entry], os.getcwd())
@@ -265,7 +273,7 @@ NOTES:
         elif os.path.isdir(source):
             result = check_dir(source, os.getcwd())
             if result is not None:
-                source = os.path.relpath(source) + os.sep
+                source = os.path.relpath(source)
                 contents[source] = result
                 images.append((source, scan_dir(source, result, os.getcwd())))
         else:
