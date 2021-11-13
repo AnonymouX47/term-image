@@ -40,7 +40,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     try:
         os.chdir(dir)
     except OSError:
-        print(f"Could not access {dir}/")
+        print(f"Could not access {os.abspath(dir)}/")
         return None
     empty = True
     content = {}
@@ -57,14 +57,28 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
             except Exception:
                 pass
         elif recursive:
-            if os.path.islink(entry):
-                # Return to the link's parent rather than the linked directory's parent
-                # Eliminate broken symlinks
-                result = (
-                    check_dir(entry, os.getcwd()) if os.path.exists(entry) else None
-                )
-            else:
-                result = check_dir(entry)
+            try:
+                if os.path.islink(entry):
+                    # Eliminate broken and cyclic symlinks
+                    # Return to the link's parent rather than the linked directory's
+                    # parent
+                    result = (
+                        check_dir(entry, os.getcwd())
+                        if (
+                            os.path.exists(entry)
+                            and not os.getcwd().startswith(os.path.realpath(entry))
+                        )
+                        else None
+                    )
+                else:
+                    result = check_dir(entry)
+            except RecursionError:
+                print(f"Too deep: {os.getcwd()!r}")
+                # Don't bother checking anything else in the current directory
+                # Could possibly mark the directory as empty even though it contains
+                # image files but at the same time, could be very costly when
+                # there are many subdirectories
+                break  
             if result is not None:
                 content[entry] = result
 
