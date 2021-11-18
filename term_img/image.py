@@ -378,11 +378,14 @@ class DrawImage:
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
-        if not all(x is None or isinstance(x, int) and x > 0 for x in (width, height)):
-            raise ValueError(
-                "width or height must be None or a positive integer, got: "
-                f"width={width}, height={height}"
-            )
+        for argname, x in zip(("width", "height"), (width, height)):
+            if not (x is None or isinstance(x, int)):
+                raise TypeError(
+                    f"{argname} must be an integer "
+                    f"(got {argname} of type {type(x).__name__!r})"
+                )
+            if None is not x <= 0:
+                raise ValueError(f"{argname} must be positive (got: {x})")
 
         ori_width, ori_height = (
             Image.open(self.__source)
@@ -407,7 +410,7 @@ class DrawImage:
 
         if width > columns or height > rows:
             raise InvalidSize(
-                "The given render size is larger than the current terminal size"
+                "The resulting render size will not fit into the terminal"
             )
 
         return (width, height)
