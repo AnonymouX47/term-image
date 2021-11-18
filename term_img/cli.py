@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from operator import itemgetter
 from typing import Generator, Iterator, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -78,7 +77,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                 # Could possibly mark the directory as empty even though it contains
                 # image files but at the same time, could be very costly when
                 # there are many subdirectories
-                break  
+                break
             if result is not None:
                 content[entry] = result
 
@@ -173,7 +172,7 @@ def display_images(
         if isinstance(value, DrawImage):  # Image file
             print("|  " * depth + entry)
         else:  # Directory
-            print("|  " * (depth - 1) + "|--" + f"{entry}/:")
+            print("|  " * (depth - 1) + "|--" * (not top_level) + f"{entry}/:")
             if not value.gi_frame:  # The directory has been visited earlier
                 if top_level or os.path.islink(entry):
                     # Return to Top-Level Directory, OR
