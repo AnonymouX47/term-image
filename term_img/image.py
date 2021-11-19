@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ("DrawImage",)
+__all__ = ("TermImage",)
 
 import io
 import os
@@ -25,7 +25,7 @@ BG_FMT: str = "\033[48;2;%d;%d;%dm"
 PIXEL: str = "\u2580"  # upper-half block element
 
 
-class DrawImage:
+class TermImage:
     """Text-printable image
 
     Args:
@@ -72,7 +72,8 @@ class DrawImage:
             os.remove(self.__source)
 
     def __repr__(self) -> str:
-        return ("<DrawImage(source={!r}, size={})>").format(
+        return "<{}(source={!r}, size={})>".format(
+            type(self).__name__,
             (
                 self.__url
                 if hasattr(self, f"_{__class__.__name__}__url")
@@ -178,8 +179,8 @@ class DrawImage:
         cls,
         filepath: str,
         **size,
-    ) -> DrawImage:
-        """Create a `DrawImage` object from an image file
+    ) -> TermImage:
+        """Create a `TermImage` object from an image file
 
         Args:
             - filepath: Relative/Absolute path to an image file.
@@ -212,8 +213,8 @@ class DrawImage:
         cls,
         url: str,
         **size,
-    ) -> DrawImage:
-        """Create a `DrawImage` object from an image url
+    ) -> TermImage:
+        """Create a `TermImage` object from an image url
 
         Args:
             - url: URL of an image file.

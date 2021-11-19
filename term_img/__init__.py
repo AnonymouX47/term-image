@@ -1,5 +1,5 @@
 """term-img Package Top-Level"""
 
-__all__ = ("DrawImage",)
+__all__ = ("TermImage",)
 
-from .image import DrawImage
+from .image import TermImage

@@ -12,7 +12,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .exceptions import URLNotFoundError
-from .image import DrawImage
+from .image import TermImage
 
 
 # Exit Codes
@@ -87,7 +87,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 def scan_dir(
     dir: str, contents: dict, prev_dir: str = ".."
-) -> Generator[Tuple[str, Union[DrawImage, Generator]]]:
+) -> Generator[Tuple[str, Union[TermImage, Generator]]]:
     """Scan _dir_ (and sub-directories, if '--recursive' is set) for readable images
     using a directory tree of the form produced by `check_dir(dir)`.
 
@@ -99,7 +99,7 @@ def scan_dir(
             (default:  parent directory of _dir_).
 
     Yields:
-        - A `DrawImage` instance for each image in _dir_.
+        - A `TermImage` instance for each image in _dir_.
         - A similar generator for sub-directories (if '--recursive' is set).
 
     - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
@@ -120,7 +120,7 @@ def scan_dir(
                     f"{type(e).__name__}: {e}"
                 )
             else:
-                yield entry, DrawImage.from_file(entry)
+                yield entry, TermImage.from_file(entry)
         elif recursive and entry in contents:
             if os.path.islink(entry):  # check_dir() already eliminates broken symlinks
                 # Return to the link's parent rather than the linked directory's parent
@@ -139,7 +139,7 @@ depth = -1
 
 def display_images(
     dir: str,
-    images: Iterator[Tuple[str, Union[DrawImage, Iterator]]],
+    images: Iterator[Tuple[str, Union[TermImage, Iterator]]],
     contents: dict,
     prev_dir: str = "..",
     *,
@@ -161,7 +161,7 @@ def display_images(
     global depth
     images = sorted(
         images,
-        key=lambda x: x[0].upper() if isinstance(x[1], DrawImage) else x[0].lower(),
+        key=lambda x: x[0].upper() if isinstance(x[1], TermImage) else x[0].lower(),
     )
     os.chdir(dir)
     depth += 1
@@ -169,7 +169,7 @@ def display_images(
     if not top_level:
         print("|  " * depth + "..")
     for entry, value in images:
-        if isinstance(value, DrawImage):  # Image file
+        if isinstance(value, TermImage):  # Image file
             print("|  " * depth + entry)
         else:  # Directory
             print("|  " * (depth - 1) + "|--" * (not top_level) + f"{entry}/:")
@@ -267,7 +267,7 @@ NOTES:
         if all(urlparse(source)[:3]):  # Is valid URL
             try:
                 images.append(
-                    (os.path.basename(source), DrawImage.from_url(source)),
+                    (os.path.basename(source), TermImage.from_url(source)),
                 )
             # Also handles `ConnectionTimeout`
             except requests.exceptions.ConnectionError:
@@ -281,7 +281,7 @@ NOTES:
                 images.append(
                     (
                         os.path.relpath(source),
-                        DrawImage.from_file(os.path.relpath(source)),
+                        TermImage.from_file(os.path.relpath(source)),
                     )
                 )
             except UnidentifiedImageError as e:
@@ -301,7 +301,7 @@ NOTES:
         print("No valid source!")
         return NO_VALID_SOURCE
 
-    if len(images) == 1 and isinstance(images[0][1], DrawImage):
+    if len(images) == 1 and isinstance(images[0][1], TermImage):
         # Single image argument
         image = images[0][1]
         try:
@@ -313,7 +313,7 @@ NOTES:
                     return INVALID_SIZE
                 image.height = args.height
         # Handles `ValueError` and `.exceptions.InvalidSize`
-        # raised by `DrawImage.__valid_size()`
+        # raised by `TermImage.__valid_size()`
         except ValueError as e:
             print(e)
             return INVALID_SIZE
