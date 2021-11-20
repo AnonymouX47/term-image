@@ -15,7 +15,22 @@ def load_config() -> None:
             config = json.load(f)
         version = config["version"]
         keys = config["keys"]
-        update_context("Navigation", nav, keys.pop("navigation"))
+        nav_update = keys.pop("navigation")
+
+        if len({v[0] for v in nav_update.values()}) == len(nav):
+            # Update context navigation keys.
+            # Done before updating 'nav' since it uses default keys for identification.
+            # Done before updating other contexts to prevent modifying user-customized
+            # actions using keys that are among the default navigation keys.
+            navi = {v[0]: k for k, v in nav.items()}
+            for context, keyset in context_keys.items():
+                for action, details in keyset.items():
+                    if details[0] in navi:
+                        details[:2] = nav_update[navi[details[0]]]
+
+            update_context("navigation", nav, nav_update)
+        else:
+            print("Too many or conflicting navigation keys; Using defaults")
 
         for context, keyset in keys.items():
             if context not in context_keys:
@@ -30,11 +45,11 @@ def store_config() -> None:
     stored_keys = {"navigation": nav}
 
     # Remove help and navigation keys from contexts
-    directional = {x[0] for x in nav.values()}
+    navi = {v[0] for v in nav.values()}
     for context, keyset in context_keys.items():
         keys = {}
         for action, (key, icon, _) in keyset.items():
-            if key not in directional:
+            if key not in navi:
                 keys[action] = [key, icon]
         # Exclude contexts with navigation-only controls
         if keys:
