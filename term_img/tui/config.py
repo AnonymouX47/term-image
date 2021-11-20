@@ -11,6 +11,7 @@ import urwid
 
 
 def load_config() -> None:
+    """Load user config from disk"""
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
@@ -42,6 +43,7 @@ def load_config() -> None:
 
 
 def store_config() -> None:
+    """Write current config to disk"""
     stored_keys = {"navigation": nav}
 
     # Remove help and navigation keys from contexts
@@ -62,7 +64,7 @@ def store_config() -> None:
 def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:
     """Update _keyset_ for context _name_ with _update_"""
 
-    def use_default_key():
+    def use_default_key() -> None:
         default = keyset[action][0]
         if key == default or default in assigned:
             print(
