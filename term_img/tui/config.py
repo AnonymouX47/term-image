@@ -9,6 +9,8 @@ from typing import Dict
 
 import urwid
 
+from ..exit_codes import CONFIG_ERROR
+
 
 def load_config() -> None:
     """Load user config from disk"""
@@ -133,8 +135,6 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
         if k == key:
             return action
 
-
-CONFIG_ERROR = 3
 
 user_dir = os.path.expanduser("~/.term_img")
 if os.path.exists(user_dir):

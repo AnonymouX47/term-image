@@ -12,13 +12,8 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .exceptions import URLNotFoundError
+from .exit_codes import INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
-
-
-# Exit Codes
-SUCCESS = 0
-NO_VALID_SOURCE = 1
-INVALID_SIZE = 2
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
