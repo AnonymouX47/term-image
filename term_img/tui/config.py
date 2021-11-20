@@ -67,11 +67,26 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
         default = keyset[action][0]
         if key == default or default in assigned:
             print(
-                f"Failed to fallback to default key {default!r} for action {action!r} "
-                f"in context {name!r}; "
-                f"previously assigned to action {action_with_key(default, keyset)!r}."
+                f"...Failed to fallback to default key {default!r} "
+                f"for action {action!r} in context {name!r}, ..."
             )
+            if default in _global:
+                print(
+                    f"...already assigned to global action "
+                    f"{action_with_key(default, context_keys['global'])!r}."
+                )
+            elif default in navi:
+                print(
+                    f"...already assigned to navigation action "
+                    f"{action_with_key(default, nav)!r}."
+                )
+            elif default in assigned:
+                print(
+                    f"...already assigned to action "
+                    f"{action_with_key(default, keyset)!r} in the same context."
+                )
             sys.exit(CONFIG_ERROR)
+
         assigned.add(key)
         print(
             f"...Using default key {keyset[action][0]!r} for action {action!r} "
