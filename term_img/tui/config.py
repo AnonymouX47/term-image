@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from typing import Dict
 
 import urwid
@@ -60,24 +61,75 @@ def store_config() -> None:
 
 
 def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:
-    for action, (key, icon) in update.items():
-        if action in keyset:
-            if key in _valid_keys:
-                keyset[action][:2] = [key, icon]
-            else:
-                print(
-                    f"Invalid key {key!r} for action {action!r}, "
-                    f"using default {keyset[action][0]!r}."
-                )
-        else:
-            print(f"Action {action!r} not available in context {name!r}.")
+    """Update _keyset_ for context _name_ with _update_"""
 
+    def use_default_key():
+        default = keyset[action][0]
+        if key == default or default in assigned:
+            print(
+                f"Failed to fallback to default key {default!r} for action {action!r} "
+                f"in context {name!r}; "
+                f"previously assigned to action {action_with_key(default, keyset)!r}."
+            )
+            sys.exit(CONFIG_ERROR)
+        assigned.add(key)
+        print(
+            f"...Using default key {keyset[action][0]!r} for action {action!r} "
+            f"in context {name!r}."
+        )
+
+    _global = (
+        {v[0] for v in context_keys["global"].values()}
+        if name != "global"
+        else set()
+    )
+    navi = (
+        set()
+        if name == "navigation"
+        else {v[0] for v in nav.values()}
+    )
+    assigned = set()
+
+    for action, (key, icon) in update.items():
+        if action not in keyset:
+            print(f"Action {action!r} not available in context {name!r}.")
+            continue
+        if key not in _valid_keys:
+            print(f"Invalid key {key!r}; Trying default...")
+            use_default_key()
+            continue
+
+        if key in _global:
+            print(f"{key!r} already assigned to a global action; Trying default...")
+            use_default_key()
+        elif key in navi:
+            print(f"{key!r} already assigned to a navigation action; Trying default...")
+            use_default_key()
+        elif key in assigned:
+            print(
+                f"{key!r} already assigned to action {action_with_key(key, keyset)!r} "
+                f"in the same context; Trying default..."
+            )
+            use_default_key()
+        else:
+            assigned.add(key)
+            keyset[action][:2] = [key, icon]
+
+def action_with_key(key: str, keyset: Dict[str, list]) -> str:
+    """Return _action_ in _keyset_ having key _key_"""
+    # The way it's used internally, it'll always return an action.
+    for action, (k, *_) in keyset.items():
+        if k == key:
+            return action
+
+
+CONFIG_ERROR = 3
 
 user_dir = os.path.expanduser("~/.term_img")
 if os.path.exists(user_dir):
     if not os.path.isdir(user_dir):
         print("Please rename or remove the file {user_dir!r}.")
-        raise SystemExit
+        sys.exit(CONFIG_ERROR)
 else:
     os.mkdir(user_dir)
 
