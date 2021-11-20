@@ -14,7 +14,6 @@ def load_config() -> None:
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
-        version = config["version"]
         keys = config["keys"]
         nav_update = keys.pop("navigation")
 
@@ -94,15 +93,9 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
         )
 
     _global = (
-        {v[0] for v in context_keys["global"].values()}
-        if name != "global"
-        else set()
+        {v[0] for v in context_keys["global"].values()} if name != "global" else set()
     )
-    navi = (
-        set()
-        if name == "navigation"
-        else {v[0] for v in nav.values()}
-    )
+    navi = set() if name == "navigation" else {v[0] for v in nav.values()}
     assigned = set()
 
     for action, (key, icon) in update.items():
@@ -130,6 +123,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             assigned.add(key)
             keyset[action][:2] = [key, icon]
 
+
 def action_with_key(key: str, keyset: Dict[str, list]) -> str:
     """Return _action_ in _keyset_ having key _key_"""
     # The way it's used internally, it'll always return an action.
@@ -154,7 +148,7 @@ _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(),
 _valid_keys.difference_update({f"shift f{n}" for n in range(1, 13)}.union({None}))
 
 # For users and documentation
-valid_keys = sorted(_valid_keys, key=lambda s: chr(127+len(s)) + s)
+valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 
 # Defaults
 nav = {

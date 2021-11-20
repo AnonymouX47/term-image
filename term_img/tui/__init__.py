@@ -1,1 +1,1 @@
-from . import config
+"""Term-Img's Terminal User Interface"""
