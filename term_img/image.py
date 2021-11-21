@@ -59,7 +59,7 @@ class TermImage:
         self.__source = image
         self.__buffer = io.StringIO()
         self.__size = (
-            None if width is None is height else self.__valid_size(width, height)
+            None if width is None is height else self._valid_size(width, height)
         )
 
     def __del__(self) -> None:
@@ -86,7 +86,7 @@ class TermImage:
         # Only the first frame for GIFs
         reset_size = False
         if not self.__size:  # Size is unset
-            self.__size = self.__valid_size(None, None)
+            self.__size = self._valid_size(None, None)
             reset_size = True
 
         try:
@@ -128,11 +128,11 @@ class TermImage:
 
     @width.setter
     def width(self, width: int) -> None:
-        self.__size = self.__valid_size(width, None)
+        self.__size = self._valid_size(width, None)
 
     @height.setter
     def height(self, height: int) -> None:
-        self.__size = self.__valid_size(None, height)
+        self.__size = self._valid_size(None, height)
 
     # Public Methods
 
@@ -144,7 +144,7 @@ class TermImage:
             that it can no longer fit the previously set image render size.
         """
         if not self.__size:  # Size is unset
-            self.__size = self.__valid_size(None, None)
+            self.__size = self._valid_size(None, None)
             reset_size = True
         else:
             width, height = self.__size
@@ -360,22 +360,28 @@ class TermImage:
 
         return buffer.getvalue()
 
-    def __valid_size(
+    def _valid_size(
         self,
         width: Optional[int],
         height: Optional[int],
+        *,
+        maxsize: Optional[Tuple[int, int]] = None,
+        ignore_oversize: bool = False,
     ) -> Tuple[int, int]:
         """Generate size tuple from given height or width and
         check if the resulting render size is valid
 
-        Returns: Valid size tuple
+        Returns: Valid size tuple.
 
         Raises:
             - ValueError: if
                 - both width and height are specified, or
                 - the specified dimension is non-positive.
             - .exceptions.InvalidSize: if the resulting size will not fit properly
-            into the terminal.
+            into the terminal or _maxsize_.
+
+        If _ignore_oversize_ is True, the validity of the resulting render size
+        is not checked.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
@@ -394,10 +400,12 @@ class TermImage:
             else self.__source
         ).size
 
-        columns, lines = get_terminal_size()
+        columns, lines = maxsize or get_terminal_size()
         # A 3-line allowance for the extra blank line and maybe the shell prompt
         # Two pixel rows per line
-        rows = (lines - 3) * 2
+        if not maxsize:
+            lines -= 3
+        rows = (lines) * 2
 
         if width is None is height:
             return tuple(
@@ -409,7 +417,7 @@ class TermImage:
         elif height is None:
             height = round((width / ori_width) * ori_height)
 
-        if width > columns or height > rows:
+        if not ignore_oversize and (width > columns or height > rows):
             raise InvalidSize(
                 "The resulting render size will not fit into the terminal"
             )
