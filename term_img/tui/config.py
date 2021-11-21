@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import os
 import sys
@@ -44,13 +45,13 @@ def load_config() -> None:
         print(f"Error loading user config: {e}\nUsing default config.")
 
 
-def store_config() -> None:
+def store_config(*, default: bool = False) -> None:
     """Write current config to disk"""
-    stored_keys = {"navigation": nav}
+    stored_keys = {"navigation": (_nav if default else nav)}
 
     # Remove help and navigation keys from contexts
-    navi = {v[0] for v in nav.values()}
-    for context, keyset in context_keys.items():
+    navi = {v[0] for v in (_nav if default else nav).values()}
+    for context, keyset in (_context_keys if default else context_keys).items():
         keys = {}
         for action, (key, icon, _) in keyset.items():
             if key not in navi:
@@ -153,7 +154,7 @@ _valid_keys.difference_update({f"shift f{n}" for n in range(1, 13)}.union({None}
 valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 
 # Defaults
-nav = {
+_nav = {
     "Left": ["left", "\u2190"],
     "Up": ["up", "\u2191"],
     "Right": ["right", "\u2192"],
@@ -161,10 +162,12 @@ nav = {
 }
 
 # {<context>: {<action>: [<key>, <icon>, <help>], ...}, ...}
-context_keys = {
+_context_keys = {
     "global": {
+        "Config": ["C", "C", "Open configuration menu"],
         "Help": ["f1", "F1", "Show this help menu"],
         "Quit": ["q", "q", "Exit Term-Img"],
+        "Key Bar": [".", ".", "Expand/Collapse key bar"],
     },
     "menu": {
         "Next": ["down", "\u2193", "Move to the previous item on the list"],
@@ -186,7 +189,12 @@ context_keys = {
 }
 # End of Defaults
 
+nav = deepcopy(_nav)
+context_keys = deepcopy(_context_keys)
+
 if os.path.isfile(f"{user_dir}/config.json"):
     load_config()
 else:
     store_config()
+
+expand_key = context_keys["global"].pop("Key Bar")
