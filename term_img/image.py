@@ -56,20 +56,20 @@ class TermImage:
                 f" got {type(image).__name__!r}."
             )
 
-        self.__source = image
-        self.__buffer = io.StringIO()
-        self.__size = (
+        self._source = image
+        self._buffer = io.StringIO()
+        self._size = (
             None if width is None is height else self._valid_size(width, height)
         )
 
     def __del__(self) -> None:
-        self.__buffer.close()
+        self._buffer.close()
         if (
             hasattr(self, f"_{__class__.__name__}__url")
-            and os.path.exists(self.__source)
+            and os.path.exists(self._source)
             # The file might not exist for whatever reason.
         ):
-            os.remove(self.__source)
+            os.remove(self._source)
 
     def __repr__(self) -> str:
         return "<{}(source={!r}, size={})>".format(
@@ -77,36 +77,36 @@ class TermImage:
             (
                 self.__url
                 if hasattr(self, f"_{__class__.__name__}__url")
-                else self.__source
+                else self._source
             ),
-            self.__size,
+            self._size,
         )
 
     def __str__(self) -> str:
         # Only the first frame for GIFs
         reset_size = False
-        if not self.__size:  # Size is unset
-            self.__size = self._valid_size(None, None)
+        if not self._size:  # Size is unset
+            self._size = self._valid_size(None, None)
             reset_size = True
 
         try:
             txt = self.__draw_image(
-                Image.open(self.__source)
-                if isinstance(self.__source, str)
-                else self.__source
+                Image.open(self._source)
+                if isinstance(self._source, str)
+                else self._source
             )
         finally:
-            self.__buffer.seek(0)  # Reset buffer pointer
-            self.__buffer.truncate()  # Clear buffer
+            self._buffer.seek(0)  # Reset buffer pointer
+            self._buffer.truncate()  # Clear buffer
             if reset_size:
-                self.__size = None
+                self._size = None
 
         return txt
 
     # Properties
 
     width = property(
-        lambda self: self.__size[0],
+        lambda self: self._size[0],
         doc="""
         Width of the rendered image
 
@@ -114,7 +114,7 @@ class TermImage:
         """,
     )
     height = property(
-        lambda self: self.__size[1],
+        lambda self: self._size[1],
         doc="""
         Height of the rendered image
 
@@ -124,15 +124,15 @@ class TermImage:
         (keeps the image in proper scale on most terminals)
         """,
     )
-    size = property(lambda self: self.__size, doc="Image render size")
+    size = property(lambda self: self._size, doc="Image render size")
 
     @width.setter
     def width(self, width: int) -> None:
-        self.__size = self._valid_size(width, None)
+        self._size = self._valid_size(width, None)
 
     @height.setter
     def height(self, height: int) -> None:
-        self.__size = self._valid_size(None, height)
+        self._size = self._valid_size(None, height)
 
     # Public Methods
 
@@ -143,11 +143,11 @@ class TermImage:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
             that it can no longer fit the previously set image render size.
         """
-        if not self.__size:  # Size is unset
-            self.__size = self._valid_size(None, None)
+        if not self._size:  # Size is unset
+            self._size = self._valid_size(None, None)
             reset_size = True
         else:
-            width, height = self.__size
+            width, height = self._size
             columns, lines = get_terminal_size()
             # A 3-line allowance for the extra blank line and maybe the shell prompt
             if width > columns or height > (lines - 3) * 2:
@@ -157,9 +157,7 @@ class TermImage:
             reset_size = False
 
         image = (
-            Image.open(self.__source)
-            if isinstance(self.__source, str)
-            else self.__source
+            Image.open(self._source) if isinstance(self._source, str) else self._source
         )
 
         try:
@@ -168,11 +166,11 @@ class TermImage:
             else:
                 print(self.__draw_image(image))
         finally:
-            self.__buffer.seek(0)  # Reset buffer pointer
-            self.__buffer.truncate()  # Clear buffer
+            self._buffer.seek(0)  # Reset buffer pointer
+            self._buffer.truncate()  # Clear buffer
             print("\033[0m")  # Reset color
             if reset_size:
-                self.__size = None
+                self._size = None
 
     @classmethod
     def from_file(
@@ -205,7 +203,7 @@ class TermImage:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
         new = cls(Image.open(filepath), **size)
-        new.__source = filepath
+        new._source = filepath
         return new
 
     @classmethod
@@ -253,7 +251,7 @@ class TermImage:
             image_writer.write(response.content)
 
         new = cls(Image.open(filepath), **size)
-        new.__source = filepath
+        new._source = filepath
         new.__url = url
         return new
 
@@ -273,13 +271,13 @@ class TermImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
-        height = ceil(self.__size[1] / 2)
+        height = ceil(self._size[1] / 2)
         try:
             while True:
                 for frame in range(0, image.n_frames):
                     image.seek(frame)
                     print(self.__draw_image(image))
-                    self.__buffer.truncate()  # Clear buffer
+                    self._buffer.truncate()  # Clear buffer
                     time.sleep(0.1)
                     # Move cursor up to the first line of the image
                     print("\033[%dA" % height, end="")
@@ -298,7 +296,7 @@ class TermImage:
         # than concatenate and write together.
 
         # Eliminate attribute resolution cost
-        buffer = self.__buffer
+        buffer = self._buffer
         buf_write = buffer.write
 
         def update_buffer():
@@ -306,9 +304,9 @@ class TermImage:
             buf_write(BG_FMT % cluster_bg)
             buf_write(PIXEL * n)
 
-        image = image.resize(self.__size)
+        image = image.resize(self._size)
         pixels = tuple(image.convert("RGB").getdata())
-        width, height = self.__size
+        width, height = self._size
         if height % 2:
             # Starting index of the last row (when height is odd)
             mark = width * (height // 2) * 2
@@ -395,9 +393,7 @@ class TermImage:
                 raise ValueError(f"{argname} must be positive (got: {x})")
 
         ori_width, ori_height = (
-            Image.open(self.__source)
-            if isinstance(self.__source, str)
-            else self.__source
+            Image.open(self._source) if isinstance(self._source, str) else self._source
         ).size
 
         columns, lines = maxsize or get_terminal_size()

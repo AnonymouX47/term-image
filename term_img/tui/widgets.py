@@ -77,14 +77,14 @@ class Image(urwid.Widget):
     _selectable = True
 
     def __init__(self, image: TermImage):
-        self.__image = image
+        self._image = image
 
     def keypress(self, size, key):
         return key
 
     def rows(self, size, focus=False):
         # Incompetent implementation due to the lack of maxrows
-        size = self.__image._valid_size(
+        size = self._image._valid_size(
             size[0],
             None,
             maxsize=get_terminal_size(),
@@ -94,16 +94,16 @@ class Image(urwid.Widget):
         return rows
 
     def render(self, size, focus=False):
-        image = self.__image
+        image = self._image
         if len(size) == 1:
-            size = self.__image._valid_size(
+            size = image._valid_size(
                 None,
                 None,
                 maxsize=(size[0], get_terminal_size()[1]),
             )
             size = (size[0], ceil(size[1] / 2))
         image._size = image._valid_size(None, None, maxsize=size)
-        return ImageCanvas(str(image).encode().split(b"\n"), size, image.size)
+        return ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
 
 
 class ImageCanvas(urwid.Canvas):
