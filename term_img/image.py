@@ -203,7 +203,7 @@ class TermImage:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
         new = cls(Image.open(filepath), **size)
-        new._source = filepath
+        new._source = os.path.realpath(filepath)
         return new
 
     @classmethod

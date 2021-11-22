@@ -7,13 +7,14 @@ import os
 from typing import Optional
 from urllib.parse import urlparse
 
+import PIL
 import requests
-from PIL import Image, UnidentifiedImageError
 
 from .exceptions import URLNotFoundError
 from .exit_codes import INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
 from .tui.main import scan_dir
+from .tui.widgets import Image
 from . import tui
 
 
@@ -46,7 +47,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
             if not empty:
                 continue
             try:
-                Image.open(entry)
+                PIL.Image.open(entry)
                 if empty:
                     empty = False
             except Exception:
@@ -156,24 +157,24 @@ NOTES:
         if all(urlparse(source)[:3]):  # Is valid URL
             try:
                 images.append(
-                    (os.path.basename(source), TermImage.from_url(source)),
+                    (os.path.basename(source), Image(TermImage.from_url(source))),
                 )
             # Also handles `ConnectionTimeout`
             except requests.exceptions.ConnectionError:
                 print(f"Unable to get {source!r}")
             except URLNotFoundError as e:
                 print(e)
-            except UnidentifiedImageError as e:
+            except PIL.UnidentifiedImageError as e:
                 print(e)
         elif os.path.isfile(source):
             try:
                 images.append(
                     (
-                        os.path.relpath(source),
-                        TermImage.from_file(os.path.relpath(source)),
+                        os.path.basename(source),
+                        Image(TermImage.from_file(os.path.relpath(source))),
                     )
                 )
-            except UnidentifiedImageError as e:
+            except PIL.UnidentifiedImageError as e:
                 print(e)
             except OSError as e:
                 print(f"{source!r} could not be read: {e}")

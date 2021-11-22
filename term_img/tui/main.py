@@ -3,24 +3,36 @@
 from __future__ import annotations
 
 import os
-from typing import Generator, Iterator, Tuple, Union
+from typing import Generator, Iterable, Iterator, Tuple, Union
 
+import PIL
 import urwid
-from PIL import Image, UnidentifiedImageError
 
 from .keys import keys
-from .widgets import info_bar, image_box, main, menu, view, viewer
+from .widgets import (
+    info_bar,
+    Image,
+    image_box,
+    image_grid,
+    image_grid_box,
+    LineSquare,
+    main,
+    menu,
+    MenuEntry,
+    view,
+    viewer,
+)
 from ..image import TermImage
 
 
 def display_images(
     dir: str,
-    images: Iterator[Tuple[str, Union[TermImage, Iterator]]],
+    items: Iterator[Tuple[str, Union[Image, Iterator]]],
     contents: dict,
     prev_dir: str = "..",
     *,
     top_level: bool = False,
-) -> None:
+) -> Generator[None, int, None]:
     """Display images in _dir_ (and sub-directories, if '--recursive' is set)
     as yielded by `scan_dir(dir)`.
 
@@ -34,36 +46,60 @@ def display_images(
             (default:  parent directory of _dir_).
         - top_level: Specifies if _dir_ is the top level (For internal use only).
     """
-    global depth
-    images = sorted(
-        images,
-        key=lambda x: x[0].upper() if isinstance(x[1], TermImage) else x[0].lower(),
-    )
-    os.chdir(dir)
-    depth += 1
+    global depth, menu_list
 
-    if not top_level:
-        print("|  " * depth + "..")
-    for entry, value in images:
-        if isinstance(value, TermImage):  # Image file
-            print("|  " * depth + entry)
-        else:  # Directory
-            print("|  " * (depth - 1) + "|--" * (not top_level) + f"{entry}/:")
-            if not value.gi_frame:  # The directory has been visited earlier
-                if top_level or os.path.islink(entry):
-                    # Return to Top-Level Directory, OR
-                    # Return to the link's parent rather than the linked directory's
-                    # parent
-                    value = scan_dir(entry, contents[entry], os.getcwd())
-                else:
-                    value = scan_dir(entry, contents[entry])
-            if top_level or os.path.islink(entry):  # broken symlinks already eliminated
-                # Return to Top-Level Directory, OR
-                # Return to the link's parent rather than the linked directory's parent
-                display_images(entry, value, contents[entry], os.getcwd())
-            else:
-                display_images(entry, value, contents[entry])
-    depth -= 1
+    items = sorted(
+        items,
+        key=lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower(),
+    )
+    menu_list = items
+    _update_menu(items, top_level)
+    pos = 0
+
+    os.chdir(dir)
+    # depth += 1
+
+    while True:
+        if pos == -1:  # Cursor on top menu item ("..")
+            if not top_level:
+                break
+            image_box._w.contents[1][0].contents[1] = (
+                urwid.SolidFill(" "),
+                ("weight", 1, False),
+            )
+            image_box.set_title("Image")
+            view.original_widget = image_box
+        else:
+            entry, value = items[pos]
+            if isinstance(value, Image):  # Image file
+                image_box._w.contents[1][0].contents[1] = (value, ("weight", 1, False))
+                image_box.set_title(entry)
+                view.original_widget = image_box
+            else:  # Directory
+                image_grid.contents[:] = [
+                    (
+                        urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
+                        image_grid.options(),
+                    )
+                    for _, val in scan_dir(
+                        entry,
+                        contents[entry],
+                        # Return to Top-Level Directory, OR
+                        # Return to the link's parent rather than the linked directory's
+                        # parent
+                        os.getcwd() if top_level or os.path.islink(entry) else "..",
+                    )
+                    if isinstance(val, Image)  # Exclude directories from the grid
+                ]
+                image_grid_box.set_title(f"{os.path.realpath(entry)}/")
+                image_grid_box.base_widget.focus_position = 0
+                image_grid_box.base_widget.render((1, 1))  # Force a re-render
+                view.original_widget = image_grid_box
+
+        pos = (yield) - 1
+        info_bar.original_widget.set_text(f"pos={pos} {info_bar.original_widget.text}")
+
+    # depth -= 1
     if not top_level:
         os.chdir(prev_dir)
 
@@ -95,7 +131,7 @@ def _process_input(key):
 
 def scan_dir(
     dir: str, contents: dict, prev_dir: str = ".."
-) -> Generator[Tuple[str, Union[TermImage, Generator]], None, None]:
+) -> Generator[Tuple[str, Union[Image, Generator]], None, None]:
     """Scan _dir_ (and sub-directories, if '--recursive' is set) for readable images
     using a directory tree of the form produced by `check_dir(dir)`.
 
@@ -107,7 +143,7 @@ def scan_dir(
             (default:  parent directory of _dir_).
 
     Yields:
-        - A `TermImage` instance for each image in _dir_.
+        - A `term_img.widgets.Image` instance for each image in _dir_.
         - A similar generator for sub-directories (if '--recursive' is set).
 
     - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
@@ -118,8 +154,8 @@ def scan_dir(
             continue
         if os.path.isfile(entry):
             try:
-                Image.open(entry)
-            except UnidentifiedImageError:
+                PIL.Image.open(entry)
+            except PIL.UnidentifiedImageError:
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception as e:
@@ -128,7 +164,7 @@ def scan_dir(
                     f"{type(e).__name__}: {e}"
                 )
             else:
-                yield entry, TermImage.from_file(entry)
+                yield entry, Image(TermImage.from_file(entry))
         elif recursive and entry in contents:
             if os.path.islink(entry):  # check_dir() already eliminates broken symlinks
                 # Return to the link's parent rather than the linked directory's parent
@@ -145,6 +181,26 @@ def scan_dir(
 def set_context(new_context):
     global context
     context = new_context
+
+
+def _update_menu(
+    items: Iterable[Tuple[str, Union[Image, Iterator]]],
+    top_level: bool = False,
+    pos: int = 0,
+) -> None:
+    menu.body[:] = [
+        urwid.Text(("inactive", ".."))
+        if top_level
+        else urwid.AttrMap(MenuEntry(".."), "default", "focused entry")
+    ] + [
+        urwid.AttrMap(
+            MenuEntry(entry, "left", "clip"),
+            "default",
+            "focused entry",
+        )
+        for entry, _ in items
+    ]
+    menu.focus_position = pos + 1
 
 
 class MyLoop(urwid.MainLoop):
@@ -166,6 +222,7 @@ menu_list = []
 
 palette = [
     ("default", "", "", "", "#ffffff", "#000000"),
+    ("inactive", "", "", "", "#7f7f7f", ""),
     ("white on black", "", "", "", "#ffffff", "#000000"),
     ("black on white", "", "", "", "#000000", "#ffffff"),
     ("mine", "", "", "", "#ff00ff", "#ffff00"),

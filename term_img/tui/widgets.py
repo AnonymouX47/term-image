@@ -189,13 +189,19 @@ class MenuEntry(urwid.Text):
         return key
 
 
+class MenuListBox(urwid.ListBox):
+    def keypress(self, size, key):
+        ret = super().keypress(size, key)
+        return key if any(key == v[0] for v in nav.values()) else ret
+
+
 class NoSwitchColumns(urwid.Columns):
     _command_map = urwid.ListBox._command_map.copy()
     for key in (nav["Left"][0], nav["Right"][0]):
         _command_map._command.pop(key)
 
 
-menu = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
     [urwid.SolidFill(" ")],
     30,
