@@ -144,7 +144,7 @@ def maximize():
     ("image-grid", "Switch Pane"),
 )
 def switch_pane():
-    if main.context != "menu":
+    if main._context != "menu":
         main.set_context("menu")
         viewer.focus_position = 0
     elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'

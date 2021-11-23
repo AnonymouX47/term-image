@@ -112,13 +112,13 @@ def _process_input(key):
         keys["global"][key]()
         found = True
     else:
-        found = keys[context].get(key, lambda: False)() is None
+        found = keys[_context].get(key, lambda: False)() is None
 
     if key[0] == "mouse press":  # strings also support subscription
         # change context if the pane in focus changed.
-        if context in {"image", "image-grid"} and viewer.focus_position == 0:
+        if _context in {"image", "image-grid"} and viewer.focus_position == 0:
             set_context("menu")
-        elif context == "menu":
+        elif _context == "menu":
             if viewer.focus_position == 1:
                 set_context(
                     "image" if view.original_widget is image_box else "image-grid"
@@ -178,9 +178,13 @@ def scan_dir(
     os.chdir(prev_dir)
 
 
+def get_context():
+    return _context
+
+
 def set_context(new_context):
-    global context
-    context = new_context
+    global _context
+    _context = new_context
 
 
 def _update_menu(
@@ -216,7 +220,7 @@ class MyLoop(urwid.MainLoop):
         return super().process_input(keys)
 
 
-context = "menu"
+_context = "menu"
 depth = -1
 menu_list = []
 
