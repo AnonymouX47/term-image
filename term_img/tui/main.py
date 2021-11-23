@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from os.path import isfile, islink, realpath
+from os.path import basename, isfile, islink, realpath
 from typing import Generator, Iterable, Iterator, Tuple, Union
 
 import PIL
@@ -51,7 +51,15 @@ def display_images(
 
     items = sorted(
         items,
-        key=lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower(),
+        key=(
+            lambda x: (
+                basename(x[0]).upper()
+                if isinstance(x[1], Image)
+                else basename(x[0]).lower()
+            )
+            if top_level
+            else (lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower())
+        ),
     )
     menu_list = items
     _update_menu(items, top_level)
@@ -201,11 +209,15 @@ def _update_menu(
         else urwid.AttrMap(MenuEntry(".."), "default", "focused entry")
     ] + [
         urwid.AttrMap(
-            MenuEntry(entry, "left", "clip"),
+            MenuEntry(
+                basename(entry) + "/" * isinstance(value, Generator),
+                "left",
+                "clip",
+            ),
             "default",
             "focused entry",
         )
-        for entry, _ in items
+        for entry, value in items
     ]
     menu.focus_position = pos + 1
 
