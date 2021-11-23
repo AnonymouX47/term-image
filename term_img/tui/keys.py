@@ -22,6 +22,27 @@ from .widgets import (
 from . import main
 
 
+def _display_context_keys(context):
+    actions = (*context_keys[context].items(), *context_keys["global"].items())
+    # The underscores and blocks (U+2588) are to prevent wrapping amidst keys
+    key_bar.original_widget.set_text(
+        [
+            [
+                ("keys", f"{action.replace(' ', '_')}"),
+                ("keys block", "\u2588"),
+                ("keys", f"[{icon}]"),
+                " ",
+            ]
+            for action, (_, icon, _) in actions[:-1]
+        ]
+        + [
+            ("keys", f"{actions[-1][0].replace(' ', '_')}"),
+            ("keys block", "\u2588"),
+            ("keys", f"[{actions[-1][1][1]}]"),
+        ]
+    )
+
+
 def _register_key(*args: Tuple[str, str]) -> FunctionType:
     """Decorate a function to register it to some context actions
 

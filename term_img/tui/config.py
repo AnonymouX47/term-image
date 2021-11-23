@@ -170,8 +170,8 @@ _context_keys = {
         "Key Bar": [".", ".", "Expand/Collapse key bar"],
     },
     "menu": {
-        "Next": ["down", "\u2193", "Move to the previous item on the list"],
         "Prev": ["up", "\u2191", "Move to the next item on the list"],
+        "Next": ["down", "\u2193", "Move to the previous item on the list"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
     },
     "image": {

@@ -8,7 +8,7 @@ from typing import Generator, Iterable, Iterator, Tuple, Union
 import PIL
 import urwid
 
-from .keys import keys
+from .keys import _display_context_keys, keys
 from .widgets import (
     info_bar,
     Image,
@@ -186,6 +186,7 @@ def get_context():
 def set_context(new_context):
     global _context
     _context = new_context
+    _display_context_keys(new_context)
 
 
 def _update_menu(
@@ -221,7 +222,7 @@ class MyLoop(urwid.MainLoop):
         return super().process_input(keys)
 
 
-_context = "menu"
+set_context("menu")
 depth = -1
 menu_list = []
 
@@ -236,6 +237,8 @@ palette = [
     ("focused box", "", "", "", "#ffffff", ""),
     ("green fg", "", "", "", "#00ff00", ""),
     ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
+    ("keys", "", "", "", "#ffffff", "#5588ff"),
+    ("keys block", "", "", "", "#5588ff", ""),
 ]
 
 loop = MyLoop(main, palette, unhandled_input=_process_input)
