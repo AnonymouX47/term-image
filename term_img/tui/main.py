@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from os.path import isfile, islink, realpath
 from typing import Generator, Iterable, Iterator, Tuple, Union
 
 import PIL
@@ -87,11 +88,11 @@ def display_images(
                         # Return to Top-Level Directory, OR
                         # Return to the link's parent rather than the linked directory's
                         # parent
-                        os.getcwd() if top_level or os.path.islink(entry) else "..",
+                        os.getcwd() if top_level or islink(entry) else "..",
                     )
                     if isinstance(val, Image)  # Exclude directories from the grid
                 ]
-                image_grid_box.set_title(f"{os.path.realpath(entry)}/")
+                image_grid_box.set_title(f"{realpath(entry)}/")
                 image_grid_box.base_widget.focus_position = 0
                 image_grid_box.base_widget.render((1, 1))  # Force a re-render
                 view.original_widget = image_grid_box
@@ -153,7 +154,7 @@ def scan_dir(
     for entry in os.listdir():
         if entry.startswith(".") and not show_hidden:
             continue
-        if os.path.isfile(entry):
+        if isfile(entry):
             try:
                 PIL.Image.open(entry)
             except PIL.UnidentifiedImageError:
@@ -161,13 +162,13 @@ def scan_dir(
                 pass
             except Exception as e:
                 print(
-                    f"{os.path.realpath(entry)!r} could not be read: "
+                    f"{realpath(entry)!r} could not be read: "
                     f"{type(e).__name__}: {e}"
                 )
             else:
                 yield entry, Image(TermImage.from_file(entry))
         elif recursive and entry in contents:
-            if os.path.islink(entry):  # check_dir() already eliminates broken symlinks
+            if islink(entry):  # check_dir() already eliminates broken symlinks
                 # Return to the link's parent rather than the linked directory's parent
                 yield (
                     entry,
