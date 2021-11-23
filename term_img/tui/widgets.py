@@ -201,15 +201,17 @@ class NoSwitchColumns(urwid.Columns):
         _command_map._command.pop(key)
 
 
+_placeholder = urwid.SolidFill(" ")
+_placeholder._selectable = True  # Prevents _image_box_ from being un-selectable
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
-    [urwid.SolidFill(" ")],
+    [_placeholder],
     30,
     2,
     1,
     "left",
 )
-image_box = urwid.LineBox(urwid.SolidFill(" "), "Image", "left")
+image_box = urwid.LineBox(_placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
 view = urwid.AttrMap(
     image_box,

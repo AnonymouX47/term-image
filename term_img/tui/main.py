@@ -118,6 +118,7 @@ def _process_input(key):
         # change context if the pane in focus changed.
         if _context in {"image", "image-grid"} and viewer.focus_position == 0:
             set_context("menu")
+            displayer.send(menu.focus_position)
         elif _context == "menu":
             if viewer.focus_position == 1:
                 set_context(
