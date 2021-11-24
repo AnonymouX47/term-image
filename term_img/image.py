@@ -58,6 +58,7 @@ class TermImage:
 
         self._source = image
         self._buffer = io.StringIO()
+        self._original_size = image.size
         self._size = (
             None if width is None is height else self._valid_size(width, height)
         )
@@ -113,6 +114,7 @@ class TermImage:
         Setting this affects the height proportionally to keep the image in scale
         """,
     )
+
     height = property(
         lambda self: self._size[1],
         doc="""
@@ -124,7 +126,25 @@ class TermImage:
         (keeps the image in proper scale on most terminals)
         """,
     )
+
+    original_size = property(
+        lambda self: self._original_size, doc="Original image size"
+    )
+
     size = property(lambda self: self._size, doc="Image render size")
+
+    source = property(
+        lambda self: (
+            self.__url
+            if hasattr(self, f"_{__class__.__name__}__url")
+            else self._source
+        ),
+        doc="""
+        Source from which the instance was initialized
+
+        Can be a PIL image, file path or URL.
+        """,
+    )
 
     @width.setter
     def width(self, width: int) -> None:
