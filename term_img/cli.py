@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import warnings
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -17,6 +18,9 @@ from .tui.config import max_pixels
 from .tui.main import scan_dir
 from .tui.widgets import Image
 from . import tui
+
+# Printing to STDERR messes up output, especially with the TUI
+warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
