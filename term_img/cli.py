@@ -155,6 +155,7 @@ NOTES:
 
     for source in args.sources:
         if all(urlparse(source)[:3]):  # Is valid URL
+            print(f"Getting image from {source!r}...", end=" ", flush=True)
             try:
                 images.append(
                     (os.path.basename(source), Image(TermImage.from_url(source))),
@@ -166,6 +167,8 @@ NOTES:
                 print(e)
             except PIL.UnidentifiedImageError as e:
                 print(e)
+            else:
+                print("Done!")
         elif os.path.isfile(source):
             try:
                 images.append(
@@ -179,8 +182,9 @@ NOTES:
             except OSError as e:
                 print(f"{source!r} could not be read: {e}")
         elif os.path.isdir(source):
-            print(f"Checking directory {source!r}...")
+            print(f"Checking directory {source!r}...", end=" ", flush=True)
             result = check_dir(source, os.getcwd())
+            print("Done!")
             if result is not None:
                 source = os.path.relpath(source)
                 contents[source] = result
@@ -192,9 +196,9 @@ NOTES:
         print("No valid source!")
         return NO_VALID_SOURCE
 
-    if len(images) == 1 and isinstance(images[0][1], TermImage):
+    if len(images) == 1 and isinstance(images[0][1], Image):
         # Single image argument
-        image = images[0][1]
+        image = images[0][1]._image
         try:
             if args.width is not None:
                 image.width = args.width

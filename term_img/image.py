@@ -128,9 +128,7 @@ class TermImage:
 
     source = property(
         lambda self: (
-            self.__url
-            if hasattr(self, f"_{__class__.__name__}__url")
-            else self._source
+            self.__url if hasattr(self, f"_{__class__.__name__}__url") else self._source
         ),
         doc="""
         Source from which the instance was initialized
