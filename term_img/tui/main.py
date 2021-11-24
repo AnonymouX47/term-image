@@ -105,7 +105,10 @@ def display_images(
                 image_grid_box.base_widget.render((1, 1))  # Force a re-render
                 view.original_widget = image_grid_box
 
+        prev_pos = pos
         pos = (yield) - 1
+        while pos == prev_pos:
+            pos = (yield) - 1
         info_bar.original_widget.set_text(f"pos={pos} {info_bar.original_widget.text}")
 
     # depth -= 1
