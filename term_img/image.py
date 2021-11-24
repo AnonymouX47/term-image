@@ -91,7 +91,7 @@ class TermImage:
             reset_size = True
 
         try:
-            txt = self.__draw_image(
+            return self.__draw_image(
                 Image.open(self._source)
                 if isinstance(self._source, str)
                 else self._source
@@ -102,18 +102,7 @@ class TermImage:
             if reset_size:
                 self._size = None
 
-        return txt
-
     # Properties
-
-    width = property(
-        lambda self: self._size[0],
-        doc="""
-        Width of the rendered image
-
-        Setting this affects the height proportionally to keep the image in scale
-        """,
-    )
 
     height = property(
         lambda self: self._size[1],
@@ -126,6 +115,10 @@ class TermImage:
         (keeps the image in proper scale on most terminals)
         """,
     )
+
+    @height.setter
+    def height(self, height: int) -> None:
+        self._size = self._valid_size(None, height)
 
     original_size = property(
         lambda self: self._original_size, doc="Original image size"
@@ -146,13 +139,18 @@ class TermImage:
         """,
     )
 
+    width = property(
+        lambda self: self._size[0],
+        doc="""
+        Width of the rendered image
+
+        Setting this affects the height proportionally to keep the image in scale
+        """,
+    )
+
     @width.setter
     def width(self, width: int) -> None:
         self._size = self._valid_size(width, None)
-
-    @height.setter
-    def height(self, height: int) -> None:
-        self._size = self._valid_size(None, height)
 
     # Public Methods
 
@@ -412,9 +410,7 @@ class TermImage:
             if None is not x <= 0:
                 raise ValueError(f"{argname} must be positive (got: {x})")
 
-        ori_width, ori_height = (
-            Image.open(self._source) if isinstance(self._source, str) else self._source
-        ).size
+        ori_width, ori_height = self._original_size
 
         columns, lines = maxsize or get_terminal_size()
         # A 3-line allowance for the extra blank line and maybe the shell prompt
