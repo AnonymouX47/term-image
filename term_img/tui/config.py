@@ -15,6 +15,8 @@ from ..exit_codes import CONFIG_ERROR
 
 def load_config() -> None:
     """Load user config from disk"""
+    global max_pixels
+
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
@@ -23,6 +25,7 @@ def load_config() -> None:
         return
 
     try:
+        max_pixels = config["max pixels"]
         keys = config["keys"]
         nav_update = keys.pop("navigation")
     except KeyError as e:
@@ -73,6 +76,7 @@ def store_config(*, default: bool = False) -> None:
         json.dump(
             {
                 "version": version,
+                "max pixels": (_max_pixels if default else max_pixels),
                 "keys": stored_keys,
             },
             f,
@@ -170,6 +174,7 @@ _valid_keys.difference_update({f"shift f{n}" for n in range(1, 13)}.union({None}
 valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 
 # Defaults
+_max_pixels = 2 ** 22  # 2048x2048
 _nav = {
     "Left": ["left", "\u2190"],
     "Up": ["up", "\u2191"],
@@ -205,6 +210,7 @@ _context_keys = {
 }
 # End of Defaults
 
+max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 

@@ -263,5 +263,6 @@ loop.screen.set_terminal_properties(2 ** 24)
 
 # Placeholders; Set from `..tui.init()`
 displayer = None
+max_pixels = None
 recursive = None
 show_hidden = None

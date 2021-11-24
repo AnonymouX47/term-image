@@ -1,12 +1,13 @@
 """Custom widget definitions and UI components assembly"""
 
 from math import ceil
-from operator import floordiv, sub
+from operator import floordiv, mul, sub
 from shutil import get_terminal_size
 
 import urwid
 
 from .config import expand_key, _nav, nav
+from . import main as tui_main
 from ..image import TermImage
 
 
@@ -75,6 +76,7 @@ class GridListBox(urwid.ListBox):
 class Image(urwid.Widget):
     _sizing = frozenset(["box"])
     _selectable = True
+    _placeholder = urwid.SolidFill(".")
 
     def __init__(self, image: TermImage):
         self._image = image
@@ -95,6 +97,8 @@ class Image(urwid.Widget):
 
     def render(self, size, focus=False):
         image = self._image
+        if mul(*image._original_size) > tui_main.max_pixels:
+            return self._placeholder.render(size, focus)
         if len(size) == 1:
             size = image._valid_size(
                 None,

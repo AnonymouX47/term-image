@@ -13,6 +13,7 @@ import requests
 from .exceptions import URLNotFoundError
 from .exit_codes import INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
+from .tui.config import max_pixels
 from .tui.main import scan_dir
 from .tui.widgets import Image
 from . import tui
@@ -98,7 +99,10 @@ For example, `$ img [options] -- -image.jpg`
 NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
   2. Only one of the dimensions can be specified.
-  3. Supports all image formats supported by PIL.Image.open().
+  3. Any image having more pixels than the specified maximum will be replaced
+     with a placeholder when displayed but can still be viewed externally.
+     Note that increasing this will have adverse effects on performance.
+  4. Supports all image formats supported by PIL.Image.open().
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -138,6 +142,12 @@ NOTES:
             "Height of the image to be rendered "
             "(Ignored for multiple valid sources) [1][2]"
         ),
+    )
+    parser.add_argument(
+        "--max-pixels",
+        type=int,
+        default=max_pixels,
+        help="Maximum amount of pixels in images to be displayed (default=4194304) [3]",
     )
     parser.add_argument(
         "sources",

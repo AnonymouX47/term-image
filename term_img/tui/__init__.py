@@ -15,6 +15,7 @@ def init(
     contents: dict,
 ) -> None:
     """Initializes the TUI"""
+    main.max_pixels = args.max_pixels
     main.recursive = args.recursive
     main.show_hidden = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
