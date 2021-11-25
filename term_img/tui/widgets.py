@@ -18,16 +18,6 @@ for action, (key, _) in _nav.items():
 urwid.Widget._command_map._command = _command
 
 
-@classmethod
-def store(cls, wcls, canvas):
-    if not issubclass(wcls, Image):
-        _store(cls, wcls, canvas)
-
-
-_store = urwid.CanvasCache.store.__func__
-urwid.CanvasCache.store = store
-
-
 class GridListBox(urwid.ListBox):
     def __init__(self, grid):
         self.__grid = grid
@@ -88,6 +78,7 @@ class Image(urwid.Widget):
     _selectable = True
     _placeholder = urwid.SolidFill(".")
     _forced_render = False
+    no_cache = ["render", "rows"]
 
     def __init__(self, image: TermImage):
         self._image = image
@@ -124,6 +115,8 @@ class Image(urwid.Widget):
 
 
 class ImageCanvas(urwid.Canvas):
+    cacheable = False
+
     def __init__(self, lines, size, image_size):
         super().__init__()
         self.size = size
@@ -170,6 +163,8 @@ class ImageCanvas(urwid.Canvas):
 
 
 class LineSquare(urwid.LineBox):
+    no_cache = ["render", "rows"]
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
 
@@ -195,6 +190,8 @@ class LineSquare(urwid.LineBox):
 # To prevent `Image.rows()` from being called,
 # in order to get the correct no of rows for a `<LinesSquare <Image>>` widget
 class LineSquareMiddleColumns(urwid.Columns):
+    no_cache = ["render", "rows"]
+
     def rows(self, size, focus=False):
         return ceil(size[0] / 2) - 2
 
