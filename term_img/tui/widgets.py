@@ -18,6 +18,16 @@ for action, (key, _) in _nav.items():
 urwid.Widget._command_map._command = _command
 
 
+@classmethod
+def store(cls, wcls, canvas):
+    if not issubclass(wcls, Image):
+        _store(cls, wcls, canvas)
+
+
+_store = urwid.CanvasCache.store.__func__
+urwid.CanvasCache.store = store
+
+
 class GridListBox(urwid.ListBox):
     def __init__(self, grid):
         self.__grid = grid
