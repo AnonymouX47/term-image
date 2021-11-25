@@ -78,6 +78,7 @@ class Image(urwid.Widget):
     _selectable = True
     _placeholder = urwid.SolidFill(".")
     _forced_render = False
+    _last_canv = (None, None)
     no_cache = ["render", "rows"]
 
     def __init__(self, image: TermImage):
@@ -98,11 +99,16 @@ class Image(urwid.Widget):
         return rows
 
     def render(self, size, focus=False):
+        if self._last_canv[0] == (self, size):
+            return self._last_canv[1]
+
         image = self._image
+
         if not self._forced_render and mul(*image._original_size) > tui_main.max_pixels:
             return self._placeholder.render(size, focus)
         if self._forced_render:
             del self._forced_render
+
         if len(size) == 1:
             size = image._valid_size(
                 None,
@@ -111,7 +117,10 @@ class Image(urwid.Widget):
             )
             size = (size[0], ceil(size[1] / 2))
         image._size = image._valid_size(None, None, maxsize=size)
-        return ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+        canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+
+        __class__._last_canv = ((self, size), canv)
+        return canv
 
 
 class ImageCanvas(urwid.Canvas):
