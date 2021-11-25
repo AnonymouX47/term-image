@@ -132,6 +132,20 @@ def menu_nav():
     main.displayer.send(menu.focus_position)
 
 
+# image
+@_register_key(("image", "Maximize"))
+def maximize():
+    main.set_context("full-image")
+    main_widget.contents[0] = (view, ("weight", 1))
+
+
+# full-image
+@_register_key(("full-image", "Restore"))
+def restore():
+    main.set_context("image")
+    main_widget.contents[0] = (pile, ("weight", 1))
+
+
 # image, full-image
 @_register_key(("image", "Prev"), ("full-image", "Prev"))
 def prev_image():
@@ -152,10 +166,11 @@ def next_image():
         main.displayer.send(menu.focus_position)
 
 
-@_register_key(("image", "Maximize"))
-def maximize():
-    main.set_context("full-image")
-    main_widget.contents[0] = (view, ("weight", 1))
+@_register_key(("image", "Force Render"), ("full-image", "Force Render"))
+def force_render():
+    # Will re-render immediately after processing input, since caching has been disabled
+    # for `Image` widgets.
+    main.menu_list[menu.focus_position - 1][1]._forced_render = True
 
 
 # menu, image, image-grid
@@ -171,13 +186,6 @@ def switch_pane():
     elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'
         main.set_context("image" if view.original_widget is image_box else "image-grid")
         viewer.focus_position = 1
-
-
-# full-image
-@_register_key(("full-image", "Restore"))
-def restore():
-    main.set_context("image")
-    main_widget.contents[0] = (pile, ("weight", 1))
 
 
 key_bar_is_collapsed = True

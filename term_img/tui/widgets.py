@@ -87,6 +87,7 @@ class Image(urwid.Widget):
     _sizing = frozenset(["box"])
     _selectable = True
     _placeholder = urwid.SolidFill(".")
+    _forced_render = False
 
     def __init__(self, image: TermImage):
         self._image = image
@@ -107,8 +108,10 @@ class Image(urwid.Widget):
 
     def render(self, size, focus=False):
         image = self._image
-        if mul(*image._original_size) > tui_main.max_pixels:
+        if not self._forced_render and mul(*image._original_size) > tui_main.max_pixels:
             return self._placeholder.render(size, focus)
+        if self._forced_render:
+            del self._forced_render
         if len(size) == 1:
             size = image._valid_size(
                 None,

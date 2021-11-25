@@ -104,7 +104,8 @@ NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
   2. Only one of the dimensions can be specified.
   3. Any image having more pixels than the specified maximum will be replaced
-     with a placeholder when displayed but can still be viewed externally.
+     with a placeholder when displayed but can still be forced to display
+     or viewed externally.
      Note that increasing this will have adverse effects on performance.
   4. Supports all image formats supported by PIL.Image.open().
 """,

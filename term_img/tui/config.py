@@ -198,6 +198,11 @@ _context_keys = {
     "image": {
         "Prev": ["left", "\u2190", "Move to the previous image"],
         "Next": ["right", "\u2192", "Move to the next image"],
+        "Force Render": [
+            "F",
+            "F",
+            "Force an image, with more pixels than the set maximum, to be displayed",
+        ],
         "Maximize": ["f", "f", "Maximize image view"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
     },
@@ -206,6 +211,11 @@ _context_keys = {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
         "Prev": ["left", "\u2190", "Move to the previous image"],
         "Next": ["right", "\u2192", "Move to the next image"],
+        "Force Render": [
+            "F",
+            "F",
+            "Force an image, with more pixels than the set maximum, to be displayed",
+        ],
     },
 }
 # End of Defaults
