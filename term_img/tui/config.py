@@ -179,6 +179,10 @@ _nav = {
     "Up": ["up", "\u2191"],
     "Right": ["right", "\u2192"],
     "Down": ["down", "\u2193"],
+    "Page Up": ["page up", "PgUp"],
+    "Page Down": ["page down", "PgDn"],
+    "Home": ["home", "Home"],
+    "End": ["end", "End"],
 }
 
 # {<context>: {<action>: [<key>, <icon>, <help>], ...}, ...}
@@ -193,6 +197,10 @@ _context_keys = {
         "Prev": ["up", "\u2191", "Move to the next item on the list"],
         "Next": ["down", "\u2193", "Move to the previous item on the list"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
+        "Page Up": ["page up", "PgUp", "Jump up one page"],
+        "Page Down": ["page down", "PgDn", "Jump down one page"],
+        "Top": ["home", "Home", "Jump to the top of the list"],
+        "Bottom": ["end", "End", "Jump to the bottom of the list"],
     },
     "image": {
         "Prev": ["left", "\u2190", "Move to the previous image"],
@@ -205,7 +213,17 @@ _context_keys = {
         "Maximize": ["f", "f", "Maximize image view"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
     },
-    "image-grid": {"Switch Pane": ["tab", "\u21b9", "Switch to list pane"]},
+    "image-grid": {
+        "Up": ["up", "\u2191", "Move cursor up"],
+        "Down": ["down", "\u2193", "Move cursor down"],
+        "Left": ["left", "\u2190", "Move cursor left"],
+        "Right": ["right", "\u2192", "Move cursor right"],
+        "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
+        "Page Up": ["page up", "PgUp", "Jump up one page"],
+        "Page Down": ["page down", "PgDn", "Jump down one page"],
+        "Top": ["home", "Home", "Jump to the top of the grid"],
+        "Bottom": ["end", "End", "Jump to the bottom of the grid"],
+    },
     "full-image": {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
         "Prev": ["left", "\u2190", "Move to the previous image"],

@@ -127,7 +127,14 @@ keys["global"].update({expand_key[0]: expand_collapse_keys, "resized": resize})
 
 
 # menu
-@_register_key(("menu", "Prev"), ("menu", "Next"))
+@_register_key(
+    ("menu", "Prev"),
+    ("menu", "Next"),
+    ("menu", "Page Up"),
+    ("menu", "Page Down"),
+    ("menu", "Top"),
+    ("menu", "Bottom"),
+)
 def menu_nav():
     main.displayer.send(menu.focus_position)
 
