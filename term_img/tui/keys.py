@@ -41,6 +41,7 @@ def _display_context_keys(context):
             ("keys", f"[{actions[-1][1][1]}]"),
         ]
     )
+    resize()
 
 
 def _register_key(*args: Tuple[str, str]) -> FunctionType:
