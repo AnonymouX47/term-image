@@ -29,18 +29,14 @@ def load_config() -> None:
         keys = config["keys"]
         nav_update = keys.pop("navigation")
     except KeyError as e:
-        print(f"Error loading user config: {e} not found.\nUsing default config.")
-        nav.update(_nav)
-        context_keys.update(_context_keys)
+        print(f"Error loading user config: {e!r} not found.\nUsing default config.")
         return
 
-    if len({v[0] for v in nav_update.values()}) == len(nav):
+    if len({v[0] for v in nav_update.values()}) == len(nav) == len(nav_update):
         # Update context navigation keys.
-        # Done before updating 'nav' since it uses the keys for identification.
-        # of context navigation actions
-        # Done before updating other contexts to prevent modifying user-customized
+        # Done before updating other context keys to prevent modifying user-customized
         # actions using keys that are among the default navigation keys.
-        navi = {v[0]: k for k, v in nav.items()}
+        navi = {v[0]: k for k, v in _nav.items()}
         for context, keyset in context_keys.items():
             for action, details in keyset.items():
                 if details[0] in navi:
@@ -48,7 +44,10 @@ def load_config() -> None:
 
         update_context("navigation", nav, nav_update)
     else:
-        print("Too many or conflicting navigation keys; Using defaults")
+        print(
+            "Too many navigation actions or conflicting navigation keys; "
+            "Using defaults."
+        )
 
     for context, keyset in keys.items():
         if context not in context_keys:
@@ -89,7 +88,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
 
     def use_default_key() -> None:
         default = keyset[action][0]
-        if key == default or default in assigned:
+        if key == default or default in assigned | navi | _global:
             print(
                 f"...Failed to fallback to default key {default!r} "
                 f"for action {action!r} in context {name!r}, ..."
@@ -113,7 +112,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
 
         assigned.add(key)
         print(
-            f"...Using default key {keyset[action][0]!r} for action {action!r} "
+            f"...Using default key {default!r} for action {action!r} "
             f"in context {name!r}."
         )
 
