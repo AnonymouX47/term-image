@@ -106,9 +106,9 @@ def display_images(
                 view.original_widget = image_grid_box
 
         prev_pos = pos
-        pos = (yield) - 1
+        pos = yield
         while pos == prev_pos:
-            pos = (yield) - 1
+            pos = yield
         info_bar.original_widget.set_text(f"pos={pos} {info_bar.original_widget.text}")
 
     # depth -= 1
@@ -130,14 +130,14 @@ def _process_input(key):
         # change context if the pane in focus changed.
         if _context in {"image", "image-grid"} and viewer.focus_position == 0:
             set_context("menu")
-            displayer.send(menu.focus_position)
+            displayer.send(menu.focus_position - 1)
         elif _context == "menu":
             if viewer.focus_position == 1:
                 set_context(
                     "image" if view.original_widget is image_box else "image-grid"
                 )
             else:  # Update image view
-                displayer.send(menu.focus_position)
+                displayer.send(menu.focus_position - 1)
 
     return bool(found)
 

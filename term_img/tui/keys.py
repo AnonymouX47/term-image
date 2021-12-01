@@ -137,7 +137,7 @@ keys["global"].update({expand_key[0]: expand_collapse_keys, "resized": resize})
     ("menu", "Bottom"),
 )
 def menu_nav():
-    main.displayer.send(menu.focus_position)
+    main.displayer.send(menu.focus_position - 1)
 
 
 # image
@@ -159,7 +159,7 @@ def restore():
 def prev_image():
     if menu.focus_position > 1:
         menu.focus_position -= 1
-        main.displayer.send(menu.focus_position)
+        main.displayer.send(menu.focus_position - 1)
 
 
 @_register_key(("image", "Next"), ("full-image", "Next"))
@@ -171,7 +171,7 @@ def next_image():
         and isinstance(main.menu_list[menu.focus_position][1], Image)
     ):
         menu.focus_position += 1
-        main.displayer.send(menu.focus_position)
+        main.displayer.send(menu.focus_position - 1)
 
 
 @_register_key(("image", "Force Render"), ("full-image", "Force Render"))
