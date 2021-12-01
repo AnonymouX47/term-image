@@ -2,3 +2,4 @@ Pillow
 requests
 black
 flake8
+urwid

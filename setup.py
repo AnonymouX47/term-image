@@ -25,8 +25,8 @@ setup(
     packages=["term_img"],
     license="MIT",
     classifiers=classifiers,
-    python_requires=">=3.6",
-    install_requires=["pillow", "requests"],
+    python_requires=">=3.7",
+    install_requires=["pillow", "requests", "urwid"],
     entry_points={
         "console_scripts": ["term-img=term_img.cli:main"],
     },
