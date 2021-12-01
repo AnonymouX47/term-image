@@ -1,7 +1,7 @@
 """Definitions of key functions"""
 
 from shutil import get_terminal_size
-from types import FunctionType
+from types import FunctionType, GeneratorType
 from typing import Tuple
 
 import urwid
@@ -64,9 +64,9 @@ def _register_key(*args: Tuple[str, str]) -> FunctionType:
 
     for context, action in args:
         if context not in context_keys:
-            raise ValueError("Unknown context {context!r}")
-        if context not in context_keys:
-            raise ValueError("No action {action!r} in context {context!r}")
+            raise ValueError(f"Unknown context {context!r}")
+        if action not in context_keys[context]:
+            raise ValueError(f"No action {action!r} in context {context!r}")
 
     return register
 
@@ -140,6 +140,17 @@ def menu_nav():
     main.displayer.send(menu.focus_position - 1)
 
 
+@_register_key(("menu", "Open"))
+def open():
+    if menu.focus_position == 0 or isinstance(
+        main.menu_list[menu.focus_position - 1][1], GeneratorType
+    ):
+        main.displayer.send(-2)
+    else:
+        main.set_context("full-image")
+        main_widget.contents[0] = (view, ("weight", 1))
+
+
 # image
 @_register_key(("image", "Maximize"))
 def maximize():
@@ -150,7 +161,7 @@ def maximize():
 # full-image
 @_register_key(("full-image", "Restore"))
 def restore():
-    main.set_context("image")
+    main.set_context(main._prev_context)
     main_widget.contents[0] = (pile, ("weight", 1))
 
 

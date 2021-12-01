@@ -194,8 +194,9 @@ _context_keys = {
         "Key Bar": [".", ".", "Expand/Collapse key bar"],
     },
     "menu": {
-        "Prev": ["up", "\u2191", "Move to the next item on the list"],
-        "Next": ["down", "\u2193", "Move to the previous item on the list"],
+        "Open": ["enter", "\u23ce", "Open the selected item"],
+        "Prev": ["up", "\u2191", "Select the next item on the list"],
+        "Next": ["down", "\u2193", "Select the previous item on the list"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
         "Page Down": ["page down", "PgDn", "Jump down one page"],

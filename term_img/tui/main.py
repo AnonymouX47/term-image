@@ -20,6 +20,7 @@ from .widgets import (
     main,
     menu,
     MenuEntry,
+    _placeholder,
     view,
     viewer,
 )
@@ -47,21 +48,22 @@ def display_images(
             (default:  parent directory of _dir_).
         - top_level: Specifies if _dir_ is the top level (For internal use only).
     """
-    global depth, menu_list
+    # global depth
 
     items = sorted(
         items,
         key=(
-            lambda x: (
-                basename(x[0]).upper()
-                if isinstance(x[1], Image)
-                else basename(x[0]).lower()
+            (
+                lambda x: (
+                    basename(x[0]).upper()
+                    if isinstance(x[1], Image)
+                    else basename(x[0]).lower()
+                )
             )
             if top_level
             else (lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower())
         ),
     )
-    menu_list = items
     _update_menu(items, top_level)
     pos = 0
 
@@ -70,14 +72,41 @@ def display_images(
 
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
-            if not top_level:
-                break
             image_box._w.contents[1][0].contents[1] = (
-                urwid.SolidFill(" "),
+                _placeholder,
                 ("weight", 1, False),
             )
             image_box.set_title("Image")
             view.original_widget = image_box
+
+        elif pos == -2:  # Go into or out of a directory
+            if prev_pos == -1 and not top_level:  # noqa: F821
+                break
+
+            if not value.gi_frame:  # noqa: F821
+                # The directory has been visited earlier
+                value = scan_dir(
+                    entry,  # noqa: F821
+                    contents[entry],  # noqa: F821
+                    # Return to Top-Level Directory, OR
+                    # Return to the link's parent rather than the linked directory's
+                    # parent
+                    os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
+                )
+            yield from display_images(
+                entry,  # noqa: F821
+                value,  # noqa: F821
+                contents[entry],  # noqa: F821
+                # Return to Top-Level Directory, OR
+                # Return to the link's parent rather than the linked directory's parent
+                os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
+            )
+
+            # Restore menu and image view for the previous directory and menu item
+            _update_menu(items, top_level, prev_pos)  # noqa: F821
+            pos = prev_pos  # noqa: F821
+            continue  # Skips `yield`
+
         else:
             entry, value = items[pos]
             if isinstance(value, Image):  # Image file
@@ -114,6 +143,14 @@ def display_images(
     # depth -= 1
     if not top_level:
         os.chdir(prev_dir)
+
+
+def get_context():
+    return _context
+
+
+def get_prev_context():
+    return _prev_context
 
 
 def _process_input(key):
@@ -191,12 +228,9 @@ def scan_dir(
     os.chdir(prev_dir)
 
 
-def get_context():
-    return _context
-
-
 def set_context(new_context):
-    global _context
+    global _context, _prev_context
+    _prev_context = _context
     _context = new_context
     _display_context_keys(new_context)
 
@@ -206,6 +240,9 @@ def _update_menu(
     top_level: bool = False,
     pos: int = 0,
 ) -> None:
+    global menu_list
+    menu_list = items
+
     menu.body[:] = [
         urwid.Text(("inactive", ".."))
         if top_level
@@ -238,6 +275,7 @@ class MyLoop(urwid.MainLoop):
         return super().process_input(keys)
 
 
+_context = "menu"  # To avoid a NameError the first time set_context() is called.
 set_context("menu")
 depth = -1
 menu_list = []
