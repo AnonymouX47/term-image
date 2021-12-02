@@ -197,6 +197,7 @@ _context_keys = {
         "Open": ["enter", "\u23ce", "Open the selected item"],
         "Prev": ["up", "\u2191", "Select the next item on the list"],
         "Next": ["down", "\u2193", "Select the previous item on the list"],
+        "Back": ["backspace", "\u27f5 ", "Return to the previous directory"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
         "Page Down": ["page down", "PgDn", "Jump down one page"],

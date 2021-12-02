@@ -107,6 +107,15 @@ def display_images(
             pos = prev_pos  # noqa: F821
             continue  # Skip `yield`
 
+        elif pos == -3:  # Implements "menu::Back" action
+            if not top_level:  # noqa: F821
+                break
+            # Since the execution context is not exited, ensure pos
+            # (and indirectly, prev_pos) always corresponds to a valid menu position.
+            # By implication, this prevents an `IndexError` when coming out of
+            # a directory that was entered from a context where prev_pos < -1
+            pos = prev_pos  # noqa: F821
+
         else:
             entry, value = items[pos]
             if isinstance(value, Image):

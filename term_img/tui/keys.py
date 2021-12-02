@@ -151,6 +151,11 @@ def open():
         main_widget.contents[0] = (view, ("weight", 1))
 
 
+@_register_key(("menu", "Back"))
+def back():
+    main.displayer.send(-3)
+
+
 # image
 @_register_key(("image", "Maximize"))
 def maximize():
