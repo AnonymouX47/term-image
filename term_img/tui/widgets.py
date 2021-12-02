@@ -29,11 +29,11 @@ class GridListBox(urwid.ListBox):
         return self.__grid.rows(size[:1], focus)
 
     def render(self, size, focus=False):
-        # 0, if size[0] < cell_width
+        # 0, if maxcol < cell_width (maxcol = size[0])
         ncell = sum(
             map(
                 floordiv,
-                # No of whole (cell_width + h_sep), columns left after last sep
+                # No of whole (cell_width + h_sep), columns left after last h_sep
                 divmod(size[0], self.__grid.cell_width + self.__grid.h_sep),
                 # if one cell_width can fit into the remaining space
                 (1, self.__grid.cell_width),
@@ -41,7 +41,7 @@ class GridListBox(urwid.ListBox):
         )
 
         if (
-            not (ncell or self.__prev_ncell)  # Previously and currently < cell_width
+            not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
             or ncell != self.__prev_ncell
         ):
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
@@ -81,10 +81,13 @@ class GridListBox(urwid.ListBox):
 class Image(urwid.Widget):
     _sizing = frozenset(["box"])
     _selectable = True
+    no_cache = ["render", "rows"]
+
     _placeholder = urwid.SolidFill(".")
     _forced_render = False
+
     _last_canv = (None, None)
-    no_cache = ["render", "rows"]
+    _grid_cache = {}
 
     def __init__(self, image: TermImage):
         self._image = image
@@ -104,7 +107,13 @@ class Image(urwid.Widget):
         return rows
 
     def render(self, size, focus=False):
-        if self._last_canv[0] == (self, size):
+        if view.original_widget is image_grid_box:
+            canv = self._grid_cache.get(self)
+            # Grid render cell width adjusts when _maxcol_ < _cell_width_
+            # `+2` cos `LineSquare` subtracts the columns for surrounding lines
+            if canv and size[0] + 2 == image_grid.cell_width:
+                return canv
+        elif self._last_canv[0] == hash((self._image._source, size)):
             return self._last_canv[1]
 
         image = self._image
@@ -122,9 +131,16 @@ class Image(urwid.Widget):
             )
             size = (size[0], ceil(size[1] / 2))
         image._size = image._valid_size(None, None, maxsize=size)
-        canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
 
-        __class__._last_canv = ((self, size), canv)
+        canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+        if view.original_widget is image_grid_box:
+            # Grid render cell width adjusts when _maxcols_ < _cell_width_
+            # `+2` cos `LineSquare` subtracts the columns for surrounding lines
+            if size[0] + 2 == image_grid.cell_width:
+                __class__._grid_cache[self] = canv
+        else:
+            __class__._last_canv = (hash((self._image._source, size)), canv)
+
         return canv
 
 

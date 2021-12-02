@@ -105,11 +105,11 @@ def display_images(
             # Restore menu and image view for the previous directory and menu item
             _update_menu(items, top_level, prev_pos)  # noqa: F821
             pos = prev_pos  # noqa: F821
-            continue  # Skips `yield`
+            continue  # Skip `yield`
 
         else:
             entry, value = items[pos]
-            if isinstance(value, Image):  # Image file
+            if isinstance(value, Image):
                 image_box._w.contents[1][0].contents[1] = (value, ("weight", 1, False))
                 image_box.set_title(entry)
                 view.original_widget = image_box
@@ -133,6 +133,7 @@ def display_images(
                 image_grid_box.base_widget.focus_position = 0
                 image_grid_box.base_widget.render((1, 1))  # Force a re-render
                 view.original_widget = image_grid_box
+                Image._grid_cache.clear()
 
         prev_pos = pos
         pos = yield
@@ -230,6 +231,7 @@ def scan_dir(
 
 def set_context(new_context):
     global _context, _prev_context
+
     _prev_context = _context
     _context = new_context
     _display_context_keys(new_context)
@@ -281,7 +283,7 @@ depth = -1
 menu_list = []
 
 palette = [
-    ("default", "", "", "", "#ffffff", "#000000"),
+    ("default", "", "", "", "#ffffff", ""),
     ("inactive", "", "", "", "#7f7f7f", ""),
     ("white on black", "", "", "", "#ffffff", "#000000"),
     ("black on white", "", "", "", "#000000", "#ffffff"),
