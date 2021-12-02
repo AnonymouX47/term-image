@@ -72,6 +72,12 @@ def display_images(
 
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
+            if top_level:  # noqa: F821
+                # Ensure ".." is not selectable at top level
+                # Possible when `Home` action is invoked
+                pos = 0
+                menu.focus_position = 1
+                continue
             image_box._w.contents[1][0].contents[1] = (
                 _placeholder,
                 ("weight", 1, False),
@@ -79,8 +85,9 @@ def display_images(
             image_box.set_title("Image")
             view.original_widget = image_box
 
-        elif pos == -2:  # Go into or out of a directory
-            if prev_pos == -1 and not top_level:  # noqa: F821
+        elif pos == -2:  # Implements "menu::Open" action
+            if prev_pos == -1:  # noqa: F821
+                # prev_pos can never be -1 at top level; See `pos == -1` branch above
                 break
 
             if not value.gi_frame:  # noqa: F821
@@ -93,6 +100,7 @@ def display_images(
                     # parent
                     os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
                 )
+
             yield from display_images(
                 entry,  # noqa: F821
                 value,  # noqa: F821
