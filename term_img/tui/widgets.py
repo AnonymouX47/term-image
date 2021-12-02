@@ -46,12 +46,13 @@ class GridListBox(urwid.ListBox):
         ):
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
-            if ncell and self.__prev_ncell:
+            # If the grid is empty, then the `GridListBox` only contains a `Divider`
+            if ncell and self.__prev_ncell and self.__grid.contents:
                 col_focus_position = self.focus.focus_position
 
             self.body[:] = self.__grid_contents(size[:1])
 
-            if ncell and self.__prev_ncell:  # Same as above
+            if ncell and self.__prev_ncell and self.__grid.contents:  # Same as above
                 self.focus.focus_position = min(
                     len(self.focus.contents) - 1, col_focus_position
                 )
@@ -60,6 +61,10 @@ class GridListBox(urwid.ListBox):
         return super().render(size, focus)
 
     def __grid_contents(self, size):
+        # The display widget is a `Divider` when the grid is empty
+        if not self.__grid.contents:
+            return [self.__grid.get_display_widget(size)]
+
         contents = [
             content[0] if isinstance(content[0], urwid.Divider)
             # `.original_widget` gets rid of an unnecessary padding
