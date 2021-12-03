@@ -13,6 +13,14 @@ import urwid
 from ..exit_codes import CONFIG_ERROR
 
 
+def action_with_key(key: str, keyset: Dict[str, list]) -> str:
+    """Return _action_ in _keyset_ having key _key_"""
+    # The way it's used internally, it'll always return an action.
+    for action, (k, *_) in keyset.items():
+        if k == key:
+            return action
+
+
 def load_config() -> None:
     """Load user config from disk"""
     global max_pixels
@@ -21,7 +29,8 @@ def load_config() -> None:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
     except json.JSONDecodeError:
-        print("Error loading user config.\nUsing default config.")
+        print("Error loading user config... Using defaults.")
+        update_context_nav_keys(context_keys, nav, nav)
         return
 
     try:
@@ -29,25 +38,17 @@ def load_config() -> None:
         keys = config["keys"]
         nav_update = keys.pop("navigation")
     except KeyError as e:
-        print(f"Error loading user config: {e!r} not found.\nUsing default config.")
+        print(f"Error loading user config: {e} not found... Using defaults.")
+        update_context_nav_keys(context_keys, nav, nav)
         return
 
-    if len({v[0] for v in nav_update.values()}) == len(nav) == len(nav_update):
-        # Update context navigation keys.
-        # Done before updating other context keys to prevent modifying user-customized
-        # actions using keys that are among the default navigation keys.
-        navi = {v[0]: k for k, v in _nav.items()}
-        for context, keyset in context_keys.items():
-            for action, details in keyset.items():
-                if details[0] in navi:
-                    details[:2] = nav_update[navi[details[0]]]
+    prev_nav = deepcopy(nav)  # used for identification.
+    # Resolves all issues with _nav_update_ in the process
+    update_context("navigation", nav, nav_update)
 
-        update_context("navigation", nav, nav_update)
-    else:
-        print(
-            "Too many navigation actions or conflicting navigation keys; "
-            "Using defaults."
-        )
+    # Done before updating other context keys to prevent modifying user-customized
+    # actions using keys that are among the default navigation keys.
+    update_context_nav_keys(context_keys, prev_nav, nav)
 
     for context, keyset in keys.items():
         if context not in context_keys:
@@ -148,12 +149,19 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             keyset[action][:2] = [key, icon]
 
 
-def action_with_key(key: str, keyset: Dict[str, list]) -> str:
-    """Return _action_ in _keyset_ having key _key_"""
-    # The way it's used internally, it'll always return an action.
-    for action, (k, *_) in keyset.items():
-        if k == key:
-            return action
+def update_context_nav_keys(
+    context_keys: dict[str, dict[str, list]],
+    nav: dict[str, list],
+    nav_update: dict[str, list],
+):
+    """Update keys and icons of navigation actions in all contexts in _context_keys_
+    using _nav_ to identify navigation actions and _nav_update_ to update
+    """
+    navi = {v[0]: k for k, v in nav.items()}
+    for context, keyset in context_keys.items():
+        for action, details in keyset.items():
+            if details[0] in navi:
+                details[:2] = nav_update[navi[details[0]]]
 
 
 user_dir = os.path.expanduser("~/.term_img")
@@ -175,10 +183,10 @@ valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 # Defaults
 _max_pixels = 2 ** 22  # 2048x2048
 _nav = {
-    "Left": ["left", "\u2190"],
-    "Up": ["up", "\u2191"],
-    "Right": ["right", "\u2192"],
-    "Down": ["down", "\u2193"],
+    "Left": ["left", "\u25c0"],
+    "Up": ["up", "\u25b2"],
+    "Right": ["right", "\u25b6"],
+    "Down": ["down", "\u25bc"],
     "Page Up": ["page up", "PgUp"],
     "Page Down": ["page down", "PgDn"],
     "Home": ["home", "Home"],
@@ -195,8 +203,8 @@ _context_keys = {
     },
     "menu": {
         "Open": ["enter", "\u23ce", "Open the selected item"],
-        "Prev": ["up", "\u2191", "Select the next item on the list"],
-        "Next": ["down", "\u2193", "Select the previous item on the list"],
+        "Prev": ["up", "", "Select the next item on the list"],
+        "Next": ["down", "", "Select the previous item on the list"],
         "Back": ["backspace", "\u27f5 ", "Return to the previous directory"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
@@ -205,8 +213,8 @@ _context_keys = {
         "Bottom": ["end", "End", "Jump to the bottom of the list"],
     },
     "image": {
-        "Prev": ["left", "\u2190", "Move to the previous image"],
-        "Next": ["right", "\u2192", "Move to the next image"],
+        "Prev": ["left", "", "Move to the previous image"],
+        "Next": ["right", "", "Move to the next image"],
         "Force Render": [
             "F",
             "F",
@@ -216,10 +224,10 @@ _context_keys = {
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
     },
     "image-grid": {
-        "Up": ["up", "\u2191", "Move cursor up"],
-        "Down": ["down", "\u2193", "Move cursor down"],
-        "Left": ["left", "\u2190", "Move cursor left"],
-        "Right": ["right", "\u2192", "Move cursor right"],
+        "Up": ["up", "", "Move cursor up"],
+        "Down": ["down", "", "Move cursor down"],
+        "Left": ["left", "", "Move cursor left"],
+        "Right": ["right", "", "Move cursor right"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
         "Page Down": ["page down", "PgDn", "Jump down one page"],
@@ -228,8 +236,8 @@ _context_keys = {
     },
     "full-image": {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
-        "Prev": ["left", "\u2190", "Move to the previous image"],
-        "Next": ["right", "\u2192", "Move to the next image"],
+        "Prev": ["left", "", "Move to the previous image"],
+        "Next": ["right", "", "Move to the next image"],
         "Force Render": [
             "F",
             "F",
@@ -246,6 +254,7 @@ context_keys = deepcopy(_context_keys)
 if os.path.isfile(f"{user_dir}/config.json"):
     load_config()
 else:
+    update_context_nav_keys(context_keys, nav, nav)
     store_config(default=True)
 
 expand_key = context_keys["global"].pop("Key Bar")
