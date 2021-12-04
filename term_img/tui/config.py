@@ -35,16 +35,25 @@ def load_config() -> None:
 
     try:
         max_pixels = config["max pixels"]
+    except KeyError:
+        print(f"User-config: 'max pixels' not found... Using default.")
+
+    try:
         keys = config["keys"]
-        nav_update = keys.pop("navigation")
-    except KeyError as e:
-        print(f"Error loading user config: {e} not found... Using defaults.")
+    except KeyError:
+        print(f"User-config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return
 
     prev_nav = deepcopy(nav)  # used for identification.
-    # Resolves all issues with _nav_update_ in the process
-    update_context("navigation", nav, nav_update)
+    try:
+        nav_update = keys.pop("navigation")
+    except KeyError:
+        print(f"User-config: Navigation keys config not found... Using defaults.")
+        nav_update = deepcopy(nav)
+    else:
+        # Resolves all issues with _nav_update_ in the process
+        update_context("navigation", nav, nav_update)
 
     # Done before updating other context keys to prevent modifying user-customized
     # actions using keys that are among the default navigation keys.
@@ -123,7 +132,19 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
     navi = set() if name == "navigation" else {v[0] for v in nav.values()}
     assigned = set()
 
-    for action, (key, icon) in update.items():
+    for action, details in update.items():
+        if not (
+            isinstance(details, list)
+            and len(details) == 2
+            and all(isinstance(x, str) for x in details)
+        ):
+            print(
+                f"The details of action {action!r} in context {name!r} "
+                "is in an incorrect format... Using the default."
+            )
+            continue
+
+        key, icon = details
         if action not in keyset:
             print(f"Action {action!r} not available in context {name!r}.")
             continue
