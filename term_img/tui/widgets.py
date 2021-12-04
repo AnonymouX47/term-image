@@ -11,11 +11,12 @@ from . import main as tui_main
 from ..image import TermImage
 
 
-_command = urwid.Widget._command_map._command_defaults.copy()
+command = urwid.Widget._command_map._command_defaults.copy()
 for action, (key, _) in _nav.items():
-    val = _command.pop(key)
-    _command[nav[action][0]] = val
-urwid.Widget._command_map._command = _command
+    val = command.pop(key)
+    command[nav[action][0]] = val
+urwid.Widget._command_map._command = command
+del command
 
 
 class GridListBox(urwid.ListBox):

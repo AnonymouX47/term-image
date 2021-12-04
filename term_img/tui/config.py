@@ -36,12 +36,12 @@ def load_config() -> None:
     try:
         max_pixels = config["max pixels"]
     except KeyError:
-        print(f"User-config: 'max pixels' not found... Using default.")
+        print("User-config: 'max pixels' not found... Using default.")
 
     try:
         keys = config["keys"]
     except KeyError:
-        print(f"User-config: Key config not found... Using defaults.")
+        print("User-config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return
 
@@ -49,8 +49,7 @@ def load_config() -> None:
     try:
         nav_update = keys.pop("navigation")
     except KeyError:
-        print(f"User-config: Navigation keys config not found... Using defaults.")
-        nav_update = deepcopy(nav)
+        print("User-config: Navigation keys config not found... Using defaults.")
     else:
         # Resolves all issues with _nav_update_ in the process
         update_context("navigation", nav, nav_update)
