@@ -115,6 +115,8 @@ class Image(urwid.Widget):
             if canv and size[0] + 2 == image_grid.cell_width:
                 return canv
         elif self._last_canv[0] == hash((self._image._source, size)):
+            if self._forced_render:
+                del self._forced_render
             return self._last_canv[1]
 
         image = self._image
