@@ -6,7 +6,7 @@ from shutil import get_terminal_size
 
 import urwid
 
-from .config import expand_key, _nav, nav
+from .config import cell_width, expand_key, _nav, nav
 from . import main as tui_main
 from ..image import TermImage
 
@@ -23,6 +23,7 @@ class GridListBox(urwid.ListBox):
     def __init__(self, grid):
         self.__grid = grid
         self.__prev_ncell = 1
+        self.__prev_cell_width = grid.cell_width
 
         return super().__init__(self.__grid_contents((grid.cell_width,)))
 
@@ -44,7 +45,9 @@ class GridListBox(urwid.ListBox):
         if (
             not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
             or ncell != self.__prev_ncell
+            or self.__prev_cell_width != self.__grid.cell_width
         ):
+            self.__prev_cell_width = self.__grid.cell_width
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
@@ -253,7 +256,7 @@ _placeholder._selectable = True  # Prevents _image_box_ from being un-selectable
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
     [_placeholder],
-    30,
+    cell_width,
     2,
     1,
     "left",

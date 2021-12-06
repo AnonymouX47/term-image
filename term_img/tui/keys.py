@@ -11,6 +11,7 @@ from .widgets import (
     bottom_bar,
     Image,
     image_box,
+    image_grid,
     key_bar,
     main as main_widget,
     menu,
@@ -161,6 +162,21 @@ def back():
 def maximize():
     main.set_context("full-image")
     main_widget.contents[0] = (view, ("weight", 1))
+
+
+# image-grid
+@_register_key(("image-grid", "Size+"))
+def cell_width_inc():
+    if image_grid.cell_width < 50:
+        image_grid.cell_width += 2
+        Image._grid_cache.clear()
+
+
+@_register_key(("image-grid", "Size-"))
+def cell_width_dec():
+    if image_grid.cell_width > 30:
+        image_grid.cell_width -= 2
+        Image._grid_cache.clear()
 
 
 # full-image

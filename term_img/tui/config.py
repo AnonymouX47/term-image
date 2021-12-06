@@ -23,8 +23,6 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
 
 def load_config() -> None:
     """Load user config from disk"""
-    global max_pixels
-
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
@@ -33,10 +31,11 @@ def load_config() -> None:
         update_context_nav_keys(context_keys, nav, nav)
         return
 
-    try:
-        max_pixels = config["max pixels"]
-    except KeyError:
-        print("User-config: 'max pixels' not found... Using default.")
+    for name in ("cell width", "max pixels"):
+        try:
+            globals()[name.replace(" ", "_")] = config[name]
+        except KeyError:
+            print(f"User-config: {name!r} not found... Using default.")
 
     try:
         keys = config["keys"]
@@ -85,6 +84,7 @@ def store_config(*, default: bool = False) -> None:
             {
                 "version": version,
                 "max pixels": (_max_pixels if default else max_pixels),
+                "cell width": (_cell_width if default else cell_width),
                 "keys": stored_keys,
             },
             f,
@@ -198,9 +198,11 @@ _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(),
 _valid_keys.difference_update({f"shift f{n}" for n in range(1, 13)}.union({None}))
 
 # For users and documentation
+# Grouped by length and sorted lexicographically
 valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 
 # Defaults
+_cell_width = 30
 _max_pixels = 2 ** 22  # 2048x2048
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -249,6 +251,8 @@ _context_keys = {
         "Left": ["left", "", "Move cursor left"],
         "Right": ["right", "", "Move cursor right"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
+        "Size-": ["-", "-", "Decrease grid cell size"],
+        "Size+": ["+", "+", "Increase grid cell size"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
         "Page Down": ["page down", "PgDn", "Jump down one page"],
         "Top": ["home", "Home", "Jump to the top of the grid"],
@@ -267,6 +271,7 @@ _context_keys = {
 }
 # End of Defaults
 
+cell_width = _cell_width
 max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
