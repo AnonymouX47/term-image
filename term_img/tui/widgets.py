@@ -111,7 +111,10 @@ class Image(urwid.Widget):
         return rows
 
     def render(self, size, focus=False):
-        if view.original_widget is image_grid_box:
+        if (
+            view.original_widget is image_grid_box
+            and tui_main.get_context() != "full-grid-image"
+        ):
             canv = self._grid_cache.get(self)
             # Grid render cell width adjusts when _maxcol_ < _cell_width_
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
@@ -139,7 +142,10 @@ class Image(urwid.Widget):
         image._size = image._valid_size(None, None, maxsize=size)
 
         canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
-        if view.original_widget is image_grid_box:
+        if (
+            view.original_widget is image_grid_box
+            and tui_main.get_context() != "full-grid-image"
+        ):
             # Grid render cell width adjusts when _maxcols_ < _cell_width_
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             if size[0] + 2 == image_grid.cell_width:

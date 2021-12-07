@@ -242,10 +242,11 @@ _context_keys = {
             "F",
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
-        "Maximize": ["f", "f", "Maximize image view"],
+        "Maximize": ["f", "f", "Maximize the current image"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
     },
     "image-grid": {
+        "Open": ["enter", "\u23ce", "Maximize the selected image"],
         "Up": ["up", "", "Move cursor up"],
         "Down": ["down", "", "Move cursor down"],
         "Left": ["left", "", "Move cursor left"],
@@ -262,6 +263,14 @@ _context_keys = {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
         "Prev": ["left", "", "Move to the previous image"],
         "Next": ["right", "", "Move to the next image"],
+        "Force Render": [
+            "F",
+            "F",
+            "Force an image, with more pixels than the set maximum, to be displayed",
+        ],
+    },
+    "full-grid-image": {
+        "Back": ["esc", "\u238b", "Back to grid view"],
         "Force Render": [
             "F",
             "F",

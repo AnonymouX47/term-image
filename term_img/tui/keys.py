@@ -12,6 +12,7 @@ from .widgets import (
     Image,
     image_box,
     image_grid,
+    image_grid_box,
     key_bar,
     main as main_widget,
     menu,
@@ -172,6 +173,23 @@ def cell_width_inc():
         Image._grid_cache.clear()
 
 
+@_register_key(("image-grid", "Open"))
+def maximize_cell():
+    main.set_context("full-grid-image")
+    cell = image_grid_box.base_widget.focus
+    cell = (
+        cell.focus.original_widget
+        if isinstance(cell, urwid.Columns)  # maxcol >= cell_width
+        else cell.original_widget
+    )
+
+    image_box._w.contents[1][0].contents[1] = (
+        cell._w.contents[1][0].contents[1][0],
+        ("weight", 1, True),
+    )
+    main_widget.contents[0] = (image_box, ("weight", 1))
+
+
 @_register_key(("image-grid", "Size-"))
 def cell_width_dec():
     if image_grid.cell_width > 30:
@@ -179,8 +197,16 @@ def cell_width_dec():
         Image._grid_cache.clear()
 
 
-# full-image
-@_register_key(("full-image", "Restore"))
+# full-grid-image
+@_register_key(("full-grid-image", "Force Render"))
+def force_render_maximized_cell():
+    # Will re-render immediately after processing input, since caching has been disabled
+    # for `Image` widgets.
+    image_box._w.contents[1][0].contents[1][0]._forced_render = True
+
+
+# full-image, full-grid-image
+@_register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
 def restore():
     main.set_context(main._prev_context)
     main_widget.contents[0] = (pile, ("weight", 1))
