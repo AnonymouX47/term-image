@@ -1,6 +1,6 @@
 ## How to setup a development environment
 ### Requirements
-- [Python >= 3.6](https://www.python.org/)
+- [Python >= 3.7](https://www.python.org/)
 - [Pip](https://pip.pypa.io/en/stable/installation/)
 - (Optional but recommended) A virtual environment
 
