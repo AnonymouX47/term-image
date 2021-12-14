@@ -316,9 +316,12 @@ class TermImage:
         buf_write = buffer.write
 
         def update_buffer():
-            buf_write(FG_FMT % cluster_fg)
             buf_write(BG_FMT % cluster_bg)
-            buf_write(PIXEL * n)
+            if cluster_fg == cluster_bg:
+                buf_write(" " * n)
+            else:
+                buf_write(FG_FMT % cluster_fg)
+                buf_write(PIXEL * n)
 
         image = image.resize(self._size)
         pixels = tuple(image.convert("RGB").getdata())
