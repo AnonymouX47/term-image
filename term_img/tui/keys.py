@@ -1,5 +1,6 @@
 """Definitions of key functions"""
 
+from os.path import basename
 from shutil import get_terminal_size
 from types import FunctionType, GeneratorType
 from typing import Tuple
@@ -176,17 +177,15 @@ def cell_width_inc():
 @_register_key(("image-grid", "Open"))
 def maximize_cell():
     main.set_context("full-grid-image")
-    cell = image_grid_box.base_widget.focus
-    cell = (
-        cell.focus.original_widget
-        if isinstance(cell, urwid.Columns)  # maxcol >= cell_width
-        else cell.original_widget
-    )
+    row = image_grid_box.base_widget.focus
+    image = (
+        row.focus
+        if isinstance(row, urwid.Columns)  # when maxcol >= cell_width
+        else row
+    ).original_widget.original_widget  # The Image is in a LineSquare in an AttrMap
 
-    image_box._w.contents[1][0].contents[1] = (
-        cell._w.contents[1][0].contents[1][0],
-        ("weight", 1, True),
-    )
+    image_box._w.contents[1][0].contents[1] = (image, ("weight", 1, True))
+    image_box.set_title(basename(image._image._source))
     main_widget.contents[0] = (image_box, ("weight", 1))
 
 
