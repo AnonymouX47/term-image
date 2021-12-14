@@ -119,6 +119,7 @@ NOTES:
         "CLI-only Options",
         "These options apply only when there is just one valid image source",
     )
+    size_options = cli_options.add_mutually_exclusive_group()
     tui_options = parser.add_argument_group(
         "TUI-only Options",
         """These options apply only when there is at least one valid directory source \
@@ -134,25 +135,19 @@ or multiple valid sources
     )
 
     # CLI-only
-    cli_only.add_argument(
+    size_options.add_argument(
         "-w",
         "--width",
         type=int,
         metavar="N",
-        help=(
-            "Width of the image to be rendered "
-            "(Ignored for multiple valid sources) [1][2]"
-        ),
+        help="Width of the image to be rendered [1][2]",
     )
-    cli_only.add_argument(
+    size_options.add_argument(
         "-h",
         "--height",
         type=int,
         metavar="N",
-        help=(
-            "Height of the image to be rendered "
-            "(Ignored for multiple valid sources) [1][2]"
-        ),
+        help="Height of the image to be rendered [1][2]",
     )
 
     # TUI-only
@@ -240,10 +235,7 @@ or multiple valid sources
         try:
             if args.width is not None:
                 image.width = args.width
-            if args.height is not None:
-                if image.size:  # width was also set
-                    print("Only one of the dimensions can be specified.")
-                    return INVALID_SIZE
+            elif args.height is not None:
                 image.height = args.height
         # Handles `ValueError` and `.exceptions.InvalidSize`
         # raised by `TermImage.__valid_size()`
