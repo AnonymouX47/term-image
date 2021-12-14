@@ -64,7 +64,12 @@ class TermImage:
         )
 
     def __del__(self) -> None:
-        self._buffer.close()
+        try:
+            self._buffer.close()
+        except AttributeError:
+            # When an exception is raised during instance creation or initialization.
+            pass
+
         if (
             hasattr(self, f"_{__class__.__name__}__url")
             and os.path.exists(self._source)
