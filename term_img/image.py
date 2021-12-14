@@ -256,7 +256,7 @@ class TermImage:
             e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
             raise e from None
 
-        basedir = os.path.join(os.path.expanduser("~"), ".term_img")
+        basedir = os.path.join(os.path.expanduser("~"), ".term_img", "temp")
         if not os.path.isdir(basedir):
             os.mkdir(basedir)
 
