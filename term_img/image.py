@@ -13,7 +13,7 @@ from operator import truediv
 from random import randint
 from shutil import get_terminal_size
 
-from PIL import Image, GifImagePlugin, UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -56,6 +56,7 @@ class TermImage:
                 f" got {type(image).__name__!r}."
             )
 
+        self._is_animated = hasattr(image, "is_animated") and image.is_animated
         self._source = image
         self._buffer = io.StringIO()
         self._original_size = image.size
@@ -108,6 +109,11 @@ class TermImage:
                 self._size = None
 
     # Properties
+
+    is_animated = property(
+        lambda self: self._is_animated,
+        doc="True if the image is animated. Otherwise, False.",
+    )
 
     height = property(
         lambda self: self._size[1],
@@ -182,8 +188,8 @@ class TermImage:
         )
 
         try:
-            if isinstance(image, GifImagePlugin.GifImageFile):
-                self.__display_gif(image)
+            if self._is_animated:
+                self.__display_animated(image)
             else:
                 print(self.__draw_image(image), end="", flush=True)
         finally:
@@ -287,7 +293,7 @@ class TermImage:
         """
         return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
-    def __display_gif(self, image: GifImagePlugin.GifImageFile) -> None:
+    def __display_animated(self, image: Image.Image) -> None:
         """Print an animated GIF image on the terminal
 
         This is done infinitely but can be canceled with `Ctrl-C`.
