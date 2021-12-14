@@ -165,8 +165,8 @@ class TermImage:
         else:
             width, height = self._size
             columns, lines = get_terminal_size()
-            # A 3-line allowance for the extra blank line and maybe the shell prompt
-            if width > columns or height > (lines - 3) * 2:
+            # A 2-line allowance for the shell prompt
+            if width > columns or height > (lines - 2) * 2:
                 raise InvalidSize(
                     "Seems the terminal has been resized since the render size was set"
                 )
@@ -180,11 +180,11 @@ class TermImage:
             if isinstance(image, GifImagePlugin.GifImageFile):
                 self.__display_gif(image)
             else:
-                print(self.__draw_image(image))
+                print(self.__draw_image(image), end="", flush=True)
         finally:
             self._buffer.seek(0)  # Reset buffer pointer
             self._buffer.truncate()  # Clear buffer
-            print("\033[0m")  # Reset color
+            print("\033[0m")  # Always reset color
             if reset_size:
                 self._size = None
 
@@ -300,7 +300,7 @@ class TermImage:
         finally:
             # Move the cursor to the line after the image
             # Prevents "overlayed" output on the terminal
-            print("\033[%dB" % height)
+            print("\033[%dB" % height, end="", flush=True)
 
     def __draw_image(self, image: Image.Image) -> str:
         """Convert entire image pixel data to a color-coded string
@@ -411,10 +411,9 @@ class TermImage:
         ori_width, ori_height = self._original_size
 
         columns, lines = maxsize or get_terminal_size()
-        # A 3-line allowance for the extra blank line and maybe the shell prompt
-        # Two pixel rows per line
         if not maxsize:
-            lines -= 3
+            lines -= 2  # A 2-line allowance for the shell prompt
+        # Two pixel rows per line
         rows = (lines) * 2
 
         if width is None is height:
