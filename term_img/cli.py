@@ -92,13 +92,14 @@ def main():
     global recursive, show_hidden
 
     parser = argparse.ArgumentParser(
-        prog="img",
+        prog="term-img",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Display images in a terminal",
-        epilog="""\
+        epilog=""" \
+
 '--' should be used to separate positional arguments that begin with an '-' \
 from options/flags, to avoid ambiguity.
-For example, `$ img [options] -- -image.jpg`
+For example, `$ term-img [options] -- -image.jpg --image.png`
 
 NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
@@ -113,47 +114,69 @@ NOTES:
         allow_abbrev=False,  # Allow clustering of short options in 3.7
     )
 
-    parser.add_argument(
+    general = parser.add_argument_group("General Options")
+    cli_options = parser.add_argument_group(
+        "CLI-only Options",
+        "These options apply only when there is just one valid image source",
+    )
+    tui_options = parser.add_argument_group(
+        "TUI-only Options",
+        """These options apply only when there is at least one valid directory source \
+or multiple valid sources
+""",
+    )
+
+    # General
+    general.add_argument(
         "--help",
         action="help",
         help="show this help message and exit",
     )
-    parser.add_argument(
-        "-a",
-        "--all",
-        action="store_true",
-        help="Inlcude hidden file and directories",
-    )
-    parser.add_argument(
-        "-r",
-        "--recursive",
-        action="store_true",
-        help="Scan for local images recursively",
-    )
-    parser.add_argument(
+
+    # CLI-only
+    cli_only.add_argument(
         "-w",
         "--width",
         type=int,
+        metavar="N",
         help=(
             "Width of the image to be rendered "
             "(Ignored for multiple valid sources) [1][2]"
         ),
     )
-    parser.add_argument(
+    cli_only.add_argument(
         "-h",
         "--height",
         type=int,
+        metavar="N",
         help=(
             "Height of the image to be rendered "
             "(Ignored for multiple valid sources) [1][2]"
         ),
     )
-    parser.add_argument(
+
+    # TUI-only
+    tui_options.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Inlcude hidden file and directories",
+    )
+    tui_options.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Scan for local images recursively",
+    )
+    tui_options.add_argument(
         "--max-pixels",
         type=int,
+        metavar="N",
         default=max_pixels,
         help="Maximum amount of pixels in images to be displayed (default=4194304) [3]",
     )
+
+    # Positional
     parser.add_argument(
         "sources",
         nargs="+",
