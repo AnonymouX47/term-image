@@ -14,13 +14,6 @@ import requests
 from .exceptions import URLNotFoundError
 from .exit_codes import INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
-from .tui.config import max_pixels
-from .tui.main import scan_dir
-from .tui.widgets import Image
-from . import tui
-
-# Printing to STDERR messes up output, especially with the TUI
-warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
@@ -89,6 +82,16 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 def main():
     """CLI execution entry-point"""
+    # Ensure user-config is loaded only when the package is executed as a module,
+    # from the CLI
+    from .tui.config import max_pixels
+    from .tui.main import scan_dir
+    from .tui.widgets import Image
+    from . import tui
+
+    # Printing to STDERR messes up output, especially with the TUI
+    warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
+
     global recursive, show_hidden
 
     parser = argparse.ArgumentParser(
