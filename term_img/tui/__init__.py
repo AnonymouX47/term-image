@@ -15,9 +15,18 @@ def init(
     contents: dict,
 ) -> None:
     """Initializes the TUI"""
+    global launched
+
+    launched = True
     main.max_pixels = args.max_pixels
     main.recursive = args.recursive
     main.show_hidden = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
     next(main.displayer)
-    main.loop.run()
+    try:
+        main.loop.run()
+    finally:
+        launched = False
+
+
+launched = False
