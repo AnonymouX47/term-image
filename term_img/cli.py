@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import warnings
 from typing import Optional
@@ -106,11 +107,11 @@ For example, `$ term-img [options] -- -image.jpg --image.png`
 
 NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
-  2. Only one of the dimensions can be specified.
-  3. Any image having more pixels than the specified maximum will be replaced
+  2. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.
      Note that increasing this will have adverse effects on performance.
+  3. Any event with a level lower than the specified one is not reported.
   4. Supports all image formats supported by PIL.Image.open().
 """,
         add_help=False,  # '-h' is used for HEIGHT
@@ -129,6 +130,11 @@ NOTES:
 or multiple valid sources
 """,
     )
+    log_options = parser.add_argument_group(
+        "Logging Options",
+        "NOTE: These are all mutually exclusive",
+    )
+    log_options = log_options.add_mutually_exclusive_group()
 
     # General
     general.add_argument(
@@ -143,14 +149,14 @@ or multiple valid sources
         "--width",
         type=int,
         metavar="N",
-        help="Width of the image to be rendered [1][2]",
+        help="Width of the image to be rendered [1]",
     )
     size_options.add_argument(
         "-h",
         "--height",
         type=int,
         metavar="N",
-        help="Height of the image to be rendered [1][2]",
+        help="Height of the image to be rendered [1]",
     )
 
     # TUI-only
@@ -171,7 +177,30 @@ or multiple valid sources
         type=int,
         metavar="N",
         default=max_pixels,
-        help="Maximum amount of pixels in images to be displayed (default=4194304) [3]",
+        help="Maximum amount of pixels in images to be displayed (default=4194304) [2]",
+    )
+
+    # Logging
+    log_options.add_argument(
+        "--log-level",
+        metavar="LEVEL",
+        default=logging.WARNING,
+        help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [3]",
+    )
+    log_options.add_argument(
+        "--verbose",
+        action="store_true",
+        help="More detailed event reporting. Also implies --log-level=INFO",
+    )
+    log_options.add_argument(
+        "--verbose-log",
+        action="store_true",
+        help="Like --verbose but only applies to the log file",
+    )
+    log_options.add_argument(
+        "--debug",
+        action="store_true",
+        help="Implies --log-level=DEBUG with verbosity",
     )
 
     # Positional
