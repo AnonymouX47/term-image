@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 from typing import Iterable, Iterator, Tuple, Union
 
 from . import main
@@ -15,7 +16,12 @@ def init(
     contents: dict,
 ) -> None:
     """Initializes the TUI"""
+    from ..logging import log
+
     global launched
+
+    logger = logging.getLogger(__name__)
+    log("Launching TUI", logger, logging.INFO, direct=False)
 
     launched = True
     main.max_pixels = args.max_pixels
@@ -25,6 +31,7 @@ def init(
     next(main.displayer)
     try:
         main.loop.run()
+        log("Exited TUI normally", logger, logging.INFO, direct=False)
     finally:
         launched = False
 

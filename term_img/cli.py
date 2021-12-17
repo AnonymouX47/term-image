@@ -220,25 +220,31 @@ or multiple valid sources
     init_log(
         getattr(logging, args.log_level), args.debug, args.verbose, args.verbose_log
     )
+
     images = []
     contents = {}
 
     for source in args.sources:
         if all(urlparse(source)[:3]):  # Is valid URL
-            print(f"Getting image from {source!r}...", end=" ", flush=True)
+            log(
+                f"Getting image from {source!r}...",
+                logger,
+                logging.INFO,
+                verbose=True,
+            )
             try:
                 images.append(
                     (os.path.basename(source), Image(TermImage.from_url(source))),
                 )
             # Also handles `ConnectionTimeout`
             except requests.exceptions.ConnectionError:
-                print(f"Unable to get {source!r}")
+                log(f"Unable to get {source!r}", logger, logging.ERROR)
             except URLNotFoundError as e:
-                print(e)
+                log(str(e), logger, logging.ERROR)
             except PIL.UnidentifiedImageError as e:
-                print(e)
+                log(str(e), logger, logging.ERROR)
             else:
-                print("Done!")
+                log("... Done!", logger, logging.INFO, verbose=True)
         elif os.path.isfile(source):
             try:
                 images.append(
@@ -248,26 +254,44 @@ or multiple valid sources
                     )
                 )
             except PIL.UnidentifiedImageError as e:
-                print(e)
+                log(str(e), logger, logging.ERROR)
             except OSError as e:
-                print(f"{source!r} could not be read: {e}")
+                log(
+                    f"({e}) {source!r} could not be read",
+                    logger,
+                    logging.ERROR,
+                )
         elif os.path.isdir(source):
-            print(f"Checking directory {source!r}...", end=" ", flush=True)
+            log(
+                f"Checking directory {source!r}...",
+                logger,
+                logging.INFO,
+                verbose=True,
+            )
             result = check_dir(source, os.getcwd())
-            print("Done!")
+            log("... Done!", logger, logging.INFO, verbose=True)
             if result is not None:
                 source = os.path.relpath(source)
                 contents[source] = result
                 images.append((source, scan_dir(source, result, os.getcwd())))
         else:
-            print(f"{source!r} is invalid or does not exist")
+            log(
+                f"{source!r} is invalid or does not exist",
+                logger,
+                logging.ERROR,
+            )
 
     if not images:
-        print("No valid source!")
+        log("No valid source!", logger, logging.INFO)
         return NO_VALID_SOURCE
 
     if len(images) == 1 and isinstance(images[0][1], Image):
-        # Single image argument
+        log(
+            "Single image source; Printing directly to console",
+            logger,
+            logging.INFO,
+            direct=False,
+        )
         image = images[0][1]._image
         try:
             if args.width is not None:
@@ -277,10 +301,16 @@ or multiple valid sources
         # Handles `ValueError` and `.exceptions.InvalidSize`
         # raised by `TermImage.__valid_size()`
         except ValueError as e:
-            print(e)
+            log(str(e), logger, logging.CRITICAL)
             return INVALID_SIZE
         image.draw_image()
     else:
         tui.init(args, images, contents)
 
     return SUCCESS
+
+
+logger = logging.getLogger(__name__)
+
+# Set from within `main()`
+args = None
