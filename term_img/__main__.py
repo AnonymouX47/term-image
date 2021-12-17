@@ -1,19 +1,31 @@
 """Support for command-line execution using `python -m term-img`"""
 
+import logging
 import sys
 
-from .cli import main
-from .exit_codes import FAILURE, INTERRUPTED
+from .exit_codes import codes, FAILURE, INTERRUPTED
+from . import cli
 
 if __name__ == "__main__":
+    from .logging import log
+
+    logger = logging.getLogger("term_img")
     try:
-        sys.exit(main())
+        exit_code = cli.main()
     except KeyboardInterrupt:
-        if "--debug" in sys.argv:
+        log("Session interrupted", logger, logging.INFO)
+        if cli.args.debug:
             raise
         sys.exit(INTERRUPTED)
-    except (Exception, OSError) as e:
-        if "--debug" in sys.argv:
+    except Exception as e:
+        log(
+            f"Session not ended successfully: ({type(e).__name__}) {e}",
+            logger,
+            logging.CRITICAL,
+        )
+        if cli.args.debug:
             raise
-        print(f"ERROR ({type(e).__name__}): {e}")
         sys.exit(FAILURE)
+    else:
+        logger.info(f"Session ended with return-code {exit_code} ({codes[exit_code]})")
+        sys.exit(exit_code)

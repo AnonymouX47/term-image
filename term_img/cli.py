@@ -88,12 +88,13 @@ def main():
     from .tui.config import max_pixels
     from .tui.main import scan_dir
     from .tui.widgets import Image
+    from .logging import init_log, log
     from . import tui
 
     # Printing to STDERR messes up output, especially with the TUI
     warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
 
-    global recursive, show_hidden
+    global args, recursive, show_hidden
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -215,6 +216,7 @@ or multiple valid sources
     recursive = args.recursive
     show_hidden = args.all
 
+    init_log(args.log_level, args.debug, args.verbose, args.verbose_log)
     images = []
     contents = {}
 
