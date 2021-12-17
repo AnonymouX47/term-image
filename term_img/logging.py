@@ -45,7 +45,9 @@ def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool =
         level=level,
     )
 
-    logger = logging.getLogger("term_img")
+    # Can't use "term_img", since the logger's level is changed in `__main__.py`.
+    # Otherwise, it would affect children of "term_img".
+    logger = logging.getLogger("term-img")
     logger.setLevel(logging.INFO)
     logger.info("Starting a new session")
     logger.info(f"Logging level set to {logging.getLevelName(level)}")

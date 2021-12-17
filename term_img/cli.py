@@ -185,7 +185,8 @@ or multiple valid sources
     log_options.add_argument(
         "--log-level",
         metavar="LEVEL",
-        default=logging.WARNING,
+        choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
+        default="WARNING",
         help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [3]",
     )
     log_options.add_argument(
@@ -216,7 +217,9 @@ or multiple valid sources
     recursive = args.recursive
     show_hidden = args.all
 
-    init_log(args.log_level, args.debug, args.verbose, args.verbose_log)
+    init_log(
+        getattr(logging, args.log_level), args.debug, args.verbose, args.verbose_log
+    )
     images = []
     contents = {}
 

@@ -9,7 +9,10 @@ from . import cli
 if __name__ == "__main__":
     from .logging import log
 
-    logger = logging.getLogger("term_img")
+    # Can't use "term_img", since the logger's level is changed.
+    # Otherwise, it would affect children of "term_img".
+    logger = logging.getLogger("term-img")
+
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
