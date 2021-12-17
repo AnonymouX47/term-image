@@ -13,7 +13,7 @@ from . import tui
 
 def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool = False):
     """Initialize application event logging"""
-    global VERBOSE, VERBOSE_LOG
+    global DEBUG, VERBOSE, VERBOSE_LOG
 
     VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
 
@@ -24,7 +24,7 @@ def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool =
     )
     handler.addFilter(_filter)
 
-    debug = debug or level == logging.DEBUG
+    DEBUG = debug = debug or level == logging.DEBUG
     if debug:
         level = logging.DEBUG
     elif VERBOSE or VERBOSE_LOG:
@@ -61,20 +61,42 @@ def log(
     direct: bool = True,
     file: bool = True,
     verbose: bool = False,
+    exc: Optional[Exception] = None,
 ):
     """Report events to various destinations"""
 
     if verbose:
         if VERBOSE:
-            logger.log(level, msg, stacklevel=2)
+            (
+                log_exception(msg, exc, logger)
+                if exc
+                else logger.log(level, msg, stacklevel=2)
+            )
             (info_bar.set_text if tui.launched else print)(msg)
         elif VERBOSE_LOG:
-            logger.log(level, msg, stacklevel=2)
+            (
+                log_exception(msg, exc, logger)
+                if exc
+                else logger.log(level, msg, stacklevel=2)
+            )
     else:
         if file:
-            logger.log(level, msg, stacklevel=2)
+            (
+                log_exception(msg, exc, logger)
+                if exc
+                else logger.log(level, msg, stacklevel=2)
+            )
         if direct:
             (info_bar.original_widget.set_text if tui.launched else print)(msg)
+
+
+def log_exception(msg: str, exc: Exception, logger: logging.Logger) -> None:
+    if DEBUG:
+        logger.exception(f"{msg} due to:", stacklevel=4)
+    elif VERBOSE or VERBOSE_LOG:
+        logger.error(f"{msg} due to: ({type(exc).__name__}) {exc}", stacklevel=4)
+    else:
+        logger.error(msg, stacklevel=4)
 
 
 @dataclass
@@ -91,5 +113,6 @@ class Filter:
 _filter = Filter(["PIL"])
 
 # Set from within `init_log()`
+DEBUG = None
 VERBOSE = None
 VERBOSE_LOG = None
