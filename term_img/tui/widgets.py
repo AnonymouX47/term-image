@@ -55,6 +55,8 @@ class GridListBox(urwid.ListBox):
                 col_focus_position = self.focus.focus_position
 
             self.body[:] = self.__grid_contents(size[:1])
+            # Ensure focus-position is not out-of-bounds
+            self.focus_position = min(len(self.body) - 1, self.focus_position)
 
             if ncell and self.__prev_ncell and self.__grid.contents:  # Same as above
                 self.focus.focus_position = min(
@@ -87,6 +89,7 @@ class Image(urwid.Widget):
     _selectable = True
     no_cache = ["render", "rows"]
 
+    _faulty_image = urwid.SolidFill("?")
     _placeholder = urwid.SolidFill(".")
     _forced_render = False
 
@@ -141,7 +144,11 @@ class Image(urwid.Widget):
             size = (size[0], ceil(size[1] / 2))
         image._size = image._valid_size(None, None, maxsize=size)
 
-        canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+        try:
+            canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+        except Exception:
+            canv = self._faulty_image.render(size, focus)
+
         if (
             view.original_widget is image_grid_box
             and tui_main.get_context() != "full-grid-image"
