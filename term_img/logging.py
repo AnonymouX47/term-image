@@ -17,14 +17,6 @@ def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool =
 
     VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
 
-    levels = {
-        logging.DEBUG: "DEBUG",
-        logging.INFO: "INFO",
-        logging.WARNING: "WARNING",
-        logging.ERROR: "ERROR",
-        logging.CRITICAL: "CRITICAL",
-    }
-
     handler = RotatingFileHandler(
         os.path.join(user_dir, "term_img.log"),
         maxBytes=2 ** 20,  # 1 MiB
@@ -56,7 +48,7 @@ def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool =
     logger = logging.getLogger("term_img")
     logger.setLevel(logging.INFO)
     logger.info("Starting a new session")
-    logger.info(f"Logging level set to {levels[level]}")
+    logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
 
 def log(
