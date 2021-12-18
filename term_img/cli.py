@@ -121,25 +121,9 @@ NOTES:
         allow_abbrev=False,  # Allow clustering of short options in 3.7
     )
 
-    general = parser.add_argument_group("General Options")
-    cli_options = parser.add_argument_group(
-        "CLI-only Options",
-        "These options apply only when there is just one valid image source",
-    )
-    size_options = cli_options.add_mutually_exclusive_group()
-    tui_options = parser.add_argument_group(
-        "TUI-only Options",
-        """These options apply only when there is at least one valid directory source \
-or multiple valid sources
-""",
-    )
-    log_options = parser.add_argument_group(
-        "Logging Options",
-        "NOTE: These are all mutually exclusive",
-    )
-    log_options = log_options.add_mutually_exclusive_group()
-
     # General
+    general = parser.add_argument_group("General Options")
+
     general.add_argument(
         "--help",
         action="help",
@@ -147,6 +131,12 @@ or multiple valid sources
     )
 
     # CLI-only
+    cli_options = parser.add_argument_group(
+        "CLI-only Options",
+        "These options apply only when there is just one valid image source",
+    )
+    size_options = cli_options.add_mutually_exclusive_group()
+
     size_options.add_argument(
         "-w",
         "--width",
@@ -163,6 +153,13 @@ or multiple valid sources
     )
 
     # TUI-only
+    tui_options = parser.add_argument_group(
+        "TUI-only Options",
+        """These options apply only when there is at least one valid directory source \
+or multiple valid sources
+""",
+    )
+
     tui_options.add_argument(
         "-a",
         "--all",
@@ -184,6 +181,12 @@ or multiple valid sources
     )
 
     # Logging
+    log_options = parser.add_argument_group(
+        "Logging Options",
+        "NOTE: These are all mutually exclusive",
+    )
+    log_options = log_options.add_mutually_exclusive_group()
+
     log_options.add_argument(
         "--log-level",
         metavar="LEVEL",
