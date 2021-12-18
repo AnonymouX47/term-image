@@ -34,8 +34,8 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     """
     try:
         os.chdir(dir)
-    except OSError:
-        print(f"Could not access {os.abspath(dir)}/")
+    except OSError as e:
+        log(f"Could not access {os.abspath(dir)}/", logger, exc=e)
         return None
     empty = True
     content = {}
@@ -68,7 +68,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                 else:
                     result = check_dir(entry)
             except RecursionError:
-                print(f"Too deep: {os.getcwd()!r}")
+                log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
                 # Don't bother checking anything else in the current directory
                 # Could possibly mark the directory as empty even though it contains
                 # image files but at the same time, could be very costly when
@@ -83,6 +83,8 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 def main():
     """CLI execution entry-point"""
+    global args, log, recursive, show_hidden
+
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
     from .tui.config import max_pixels
@@ -93,8 +95,6 @@ def main():
 
     # Printing to STDERR messes up output, especially with the TUI
     warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
-
-    global args, recursive, show_hidden
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -311,3 +311,4 @@ logger = logging.getLogger(__name__)
 
 # Set from within `main()`
 args = None
+log = None

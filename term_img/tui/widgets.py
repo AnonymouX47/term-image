@@ -1,5 +1,6 @@
 """Custom widget definitions and UI components assembly"""
 
+import logging as _logging
 from math import ceil
 from operator import floordiv, mul, sub
 from shutil import get_terminal_size
@@ -9,6 +10,7 @@ import urwid
 from .config import cell_width, expand_key, _nav, nav
 from . import main as tui_main
 from ..image import TermImage
+from .. import logging
 
 
 command = urwid.Widget._command_map._command_defaults.copy()
@@ -146,7 +148,15 @@ class Image(urwid.Widget):
 
         try:
             canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
-        except Exception:
+        except Exception as e:
+            logging.log(
+                "Some image(s) could not be loaded! Check the logs.",
+                level=_logging.ERROR,
+                file=False,
+            )
+            logging.log(
+                f"{image._source!r} could not be loaded", logger, direct=False, exc=e
+            )
             canv = self._faulty_image.render(size, focus)
 
         if (
@@ -263,6 +273,8 @@ class NoSwitchColumns(urwid.Columns):
     for key in (nav["Left"][0], nav["Right"][0]):
         _command_map._command.pop(key)
 
+
+logger = _logging.getLogger(__name__)
 
 _placeholder = urwid.SolidFill(" ")
 _placeholder._selectable = True  # Prevents _image_box_ from being un-selectable

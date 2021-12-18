@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging as _logging
 import os
 from os.path import basename, isfile, islink, realpath
 from typing import Generator, Iterable, Iterator, Tuple, Union
@@ -25,6 +26,7 @@ from .widgets import (
     viewer,
 )
 from ..image import TermImage
+from .. import logging
 
 
 def display_images(
@@ -101,6 +103,7 @@ def display_images(
                     os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
                 )
 
+            logger.debug(f"Going into {realpath(entry)}/")  # noqa: F821
             yield from display_images(
                 entry,  # noqa: F821
                 value,  # noqa: F821
@@ -156,10 +159,14 @@ def display_images(
         pos = yield
         while pos == prev_pos:
             pos = yield
-        info_bar.original_widget.set_text(f"pos={pos} {info_bar.original_widget.text}")
+        if logging.DEBUG:
+            info_bar.original_widget.set_text(
+                f"pos={pos} {info_bar.original_widget.text}"
+            )
 
     # depth -= 1
     if not top_level:
+        logger.debug(f"Going back to {realpath(prev_dir)}/")
         os.chdir(prev_dir)
 
 
@@ -172,7 +179,8 @@ def get_prev_context():
 
 
 def _process_input(key):
-    info_bar.original_widget.set_text(f"{key!r} {info_bar.original_widget.text}")
+    if logging.DEBUG:
+        info_bar.original_widget.set_text(f"{key!r} {info_bar.original_widget.text}")
 
     found = False
     if key in keys["global"]:
@@ -227,14 +235,21 @@ def scan_dir(
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception as e:
-                print(
-                    f"{realpath(entry)!r} could not be read: "
-                    f"{type(e).__name__}: {e}"
+                logging.log(
+                    "Some file(s) could not be read! Check the logs.",
+                    level=_logging.ERROR,
+                    file=False,
+                )
+                logging.log(
+                    f"{realpath(entry)!r} could not be read",
+                    logger,
+                    direct=False,
+                    exc=e,
                 )
             else:
                 yield entry, Image(TermImage.from_file(entry))
         elif recursive and entry in contents:
-            if islink(entry):  # check_dir() already eliminates broken symlinks
+            if islink(entry):  # check_dir() already eliminates bad symlinks
                 # Return to the link's parent rather than the linked directory's parent
                 yield (
                     entry,
@@ -314,6 +329,8 @@ palette = [
     ("keys block", "", "", "", "#5588ff", ""),
     ("error", "", "", "", "", "#ff0000"),
 ]
+
+logger = _logging.getLogger(__name__)
 
 loop = MyLoop(main, palette, unhandled_input=_process_input)
 loop.screen.clear()
