@@ -1,14 +1,12 @@
 """Event logging"""
 
 import logging
-import os
 import sys
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
 
 from .tui.main import loop
-from .tui.config import user_dir
 from .tui.widgets import info_bar
 from . import tui
 
@@ -17,19 +15,24 @@ def clear_notifications(loop, data):
     info_bar.set_text("")
 
 
-def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool = False):
+def init_log(
+    logfile: str,
+    level: int,
+    debug: bool,
+    verbose: bool = False,
+    verbose_log: bool = False,
+):
     """Initialize application event logging"""
     global DEBUG, VERBOSE, VERBOSE_LOG
 
-    VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
-
     handler = RotatingFileHandler(
-        os.path.join(user_dir, "term_img.log"),
+        logfile,
         maxBytes=2 ** 20,  # 1 MiB
         backupCount=1,
     )
     handler.addFilter(_filter)
 
+    VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
     DEBUG = debug = debug or level == logging.DEBUG
     if debug:
         level = logging.DEBUG

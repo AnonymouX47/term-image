@@ -230,7 +230,11 @@ or multiple valid sources
     show_hidden = args.all
 
     init_log(
-        getattr(logging, args.log_level), args.debug, args.verbose, args.verbose_log
+        args.log,
+        getattr(logging, args.log_level),
+        args.debug,
+        args.verbose,
+        args.verbose_log,
     )
 
     images = []
