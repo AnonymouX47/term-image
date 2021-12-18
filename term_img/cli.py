@@ -36,12 +36,24 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
         os.chdir(dir)
     except OSError:
         log_exception(
-            f"Could not access {os.path.abspath(dir)!r}/", logger, direct=True
+            f"Could not access '{os.path.abspath(dir)}/'", logger, direct=True
         )
-        return None
+        return
+
+    # Some directories can be changed to but cannot be listed
+    try:
+        entries = os.listdir()
+    except OSError:
+        log_exception(
+            f"Could not get the contents of '{os.path.abspath(dir)}/'",
+            logger,
+            direct=True,
+        )
+        return os.chdir(prev_dir)
+
     empty = True
     content = {}
-    for entry in os.listdir():
+    for entry in entries:
         if entry.startswith(".") and not show_hidden:
             continue
         if os.path.isfile(entry):
