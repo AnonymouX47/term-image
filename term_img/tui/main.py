@@ -160,8 +160,8 @@ def display_images(
         while pos == prev_pos:
             pos = yield
         if logging.DEBUG:
-            info_bar.original_widget.set_text(
-                f"pos={pos} {info_bar.original_widget.text}"
+            info_bar.set_text(
+                f"pos={pos} {info_bar.text}"
             )
 
     # depth -= 1
@@ -180,7 +180,7 @@ def get_prev_context():
 
 def _process_input(key):
     if logging.DEBUG:
-        info_bar.original_widget.set_text(f"{key!r} {info_bar.original_widget.text}")
+        info_bar.set_text(f"{key!r} {info_bar.text}")
 
     found = False
     if key in keys["global"]:

@@ -69,7 +69,7 @@ def log(
         if VERBOSE:
             logger.log(level, msg, stacklevel=2)
             (
-                info_bar.original_widget.set_text(
+                info_bar.set_text(
                     ("error", msg) if level == logging.ERROR else msg
                 )
                 if tui.launched
@@ -82,7 +82,7 @@ def log(
             logger.log(level, msg, stacklevel=2)
         if direct:
             (
-                info_bar.original_widget.set_text(
+                info_bar.set_text(
                     ("error", msg) if level == logging.ERROR else msg
                 )
                 if tui.launched
@@ -106,7 +106,7 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
 
     if direct:
         (
-            info_bar.original_widget.set_text(("error", msg))
+            info_bar.set_text(("error", msg))
             if tui.launched
             else print(f"\033[31m{msg}\033[0m")
         )
