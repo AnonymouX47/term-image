@@ -80,7 +80,9 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                         else None
                     )
                 else:
-                    result = check_dir(entry)
+                    # The check is only to filter inaccessible files and disallow them
+                    # from being reported as directories within the recursive call
+                    result = check_dir(entry) if os.path.isdir(entry) else None
             except RecursionError:
                 log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
                 # Don't bother checking anything else in the current directory
