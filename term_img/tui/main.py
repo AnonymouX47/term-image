@@ -312,6 +312,7 @@ palette = [
     ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
     ("keys", "", "", "", "#ffffff", "#5588ff"),
     ("keys block", "", "", "", "#5588ff", ""),
+    ("error", "", "", "", "", "#ff0000"),
 ]
 
 loop = MyLoop(main, palette, unhandled_input=_process_input)

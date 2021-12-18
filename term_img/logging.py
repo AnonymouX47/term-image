@@ -56,7 +56,7 @@ def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool =
 def log(
     msg: str,
     logger: Optional[logging.Logger] = None,
-    level: Optional[int] = None,
+    level: int = logging.INFO,
     *,
     direct: bool = True,
     file: bool = True,
@@ -72,7 +72,13 @@ def log(
                 if exc
                 else logger.log(level, msg, stacklevel=2)
             )
-            (info_bar.set_text if tui.launched else print)(msg)
+            (
+                info_bar.original_widget.set_text(
+                    ("error", msg) if level == logging.ERROR else msg
+                )
+                if tui.launched
+                else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
+            )
         elif VERBOSE_LOG:
             (
                 log_exception(msg, exc, logger)
@@ -87,7 +93,13 @@ def log(
                 else logger.log(level, msg, stacklevel=2)
             )
         if direct:
-            (info_bar.original_widget.set_text if tui.launched else print)(msg)
+            (
+                info_bar.original_widget.set_text(
+                    ("error", msg) if level == logging.ERROR else msg
+                )
+                if tui.launched
+                else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
+            )
 
 
 def log_exception(msg: str, exc: Exception, logger: logging.Logger) -> None:

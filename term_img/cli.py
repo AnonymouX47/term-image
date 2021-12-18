@@ -229,7 +229,6 @@ or multiple valid sources
             log(
                 f"Getting image from {source!r}...",
                 logger,
-                logging.INFO,
                 verbose=True,
             )
             try:
@@ -244,7 +243,7 @@ or multiple valid sources
             except PIL.UnidentifiedImageError as e:
                 log(str(e), logger, logging.ERROR)
             else:
-                log("... Done!", logger, logging.INFO, verbose=True)
+                log("... Done!", logger, verbose=True)
         elif os.path.isfile(source):
             try:
                 images.append(
@@ -265,11 +264,10 @@ or multiple valid sources
             log(
                 f"Checking directory {source!r}...",
                 logger,
-                logging.INFO,
                 verbose=True,
             )
             result = check_dir(source, os.getcwd())
-            log("... Done!", logger, logging.INFO, verbose=True)
+            log("... Done!", logger, verbose=True)
             if result is not None:
                 source = os.path.relpath(source)
                 contents[source] = result
@@ -282,14 +280,13 @@ or multiple valid sources
             )
 
     if not images:
-        log("No valid source!", logger, logging.INFO)
+        log("No valid source!", logger)
         return NO_VALID_SOURCE
 
     if len(images) == 1 and isinstance(images[0][1], Image):
         log(
             "Single image source; Printing directly to console",
             logger,
-            logging.INFO,
             direct=False,
         )
         image = images[0][1]._image

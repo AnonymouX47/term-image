@@ -16,7 +16,7 @@ if __name__ == "__main__":
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
-        log("Session interrupted", logger, logging.INFO)
+        log("Session interrupted", logger, logging.CRITICAL)
         if cli.args.debug:
             raise
         sys.exit(INTERRUPTED)

@@ -21,7 +21,7 @@ def init(
     global launched
 
     logger = logging.getLogger(__name__)
-    log("Launching TUI", logger, logging.INFO, direct=False)
+    log("Launching TUI", logger, direct=False)
 
     launched = True
     main.max_pixels = args.max_pixels
@@ -31,7 +31,7 @@ def init(
     next(main.displayer)
     try:
         main.loop.run()
-        log("Exited TUI normally", logger, logging.INFO, direct=False)
+        log("Exited TUI normally", logger, direct=False)
     finally:
         launched = False
 
