@@ -35,7 +35,9 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     try:
         os.chdir(dir)
     except OSError:
-        log_exception(f"Could not access {os.path.abspath(dir)!r}/", logger, direct=True)
+        log_exception(
+            f"Could not access {os.path.abspath(dir)!r}/", logger, direct=True
+        )
         return None
     empty = True
     content = {}

@@ -160,9 +160,7 @@ def display_images(
         while pos == prev_pos:
             pos = yield
         if logging.DEBUG:
-            info_bar.set_text(
-                f"pos={pos} {info_bar.text}"
-            )
+            info_bar.set_text(f"pos={pos} {info_bar.text}")
 
     # depth -= 1
     if not top_level:
@@ -235,10 +233,9 @@ def scan_dir(
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception:
-                logging.log(
+                logging.notify(
                     "Some file(s) could not be read! Check the logs.",
-                    level=_logging.ERROR,
-                    file=False,
+                    error=True,
                 )
                 logging.log_exception(f"{realpath(entry)!r} could not be read", logger)
             else:

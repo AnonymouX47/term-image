@@ -7,9 +7,14 @@ from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
 
+from .tui.main import loop
 from .tui.config import user_dir
 from .tui.widgets import info_bar
 from . import tui
+
+
+def clear_notifications(loop, data):
+    info_bar.set_text("")
 
 
 def init_log(level: int, debug: bool, verbose: bool = False, verbose_log: bool = False):
@@ -69,9 +74,7 @@ def log(
         if VERBOSE:
             logger.log(level, msg, stacklevel=2)
             (
-                info_bar.set_text(
-                    ("error", msg) if level == logging.ERROR else msg
-                )
+                info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
                 if tui.launched
                 else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
             )
@@ -82,9 +85,7 @@ def log(
             logger.log(level, msg, stacklevel=2)
         if direct:
             (
-                info_bar.set_text(
-                    ("error", msg) if level == logging.ERROR else msg
-                )
+                info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
                 if tui.launched
                 else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
             )
@@ -92,7 +93,7 @@ def log(
 
 def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
     """Report an error with the exception reponsible
-    
+
     NOTE: Should be called from within an exception handler
     i.e from (also possibly in a nested context) within an except or finally clause.
     """
@@ -112,6 +113,18 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
         )
 
 
+def notify(
+    msg: str, *, verbose: bool = False, error: bool = False, tui: bool = True
+) -> None:
+    """Display a message in the TUI's info-bar or the console"""
+    global _last_alarm
+
+    log(("error", msg) if error else msg, file=False, verbose=verbose)
+    if tui:
+        loop.remove_alarm(_last_alarm)
+        _last_alarm = loop.set_alarm_in(5, clear_notifications)
+
+
 @dataclass
 class Filter:
     disallowed: List[str]
@@ -124,6 +137,7 @@ class Filter:
 
 
 _filter = Filter(["PIL"])
+_last_alarm = None
 
 # Set from within `init_log()`
 DEBUG = None
