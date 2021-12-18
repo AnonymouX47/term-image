@@ -116,14 +116,12 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
         )
 
 
-def notify(
-    msg: str, *, verbose: bool = False, error: bool = False, tui: bool = True
-) -> None:
+def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
     """Display a message in the TUI's info-bar or the console"""
     global _last_alarm
 
     log(("error", msg) if error else msg, file=False, verbose=verbose)
-    if tui:
+    if tui.launched:
         loop.remove_alarm(_last_alarm)
         _last_alarm = loop.set_alarm_in(5, clear_notifications)
 
