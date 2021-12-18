@@ -34,8 +34,8 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     """
     try:
         os.chdir(dir)
-    except OSError as e:
-        log(f"Could not access {os.abspath(dir)}/", logger, exc=e)
+    except OSError:
+        log_exception(f"Could not access {os.path.abspath(dir)!r}/", logger, direct=True)
         return None
     empty = True
     content = {}
@@ -83,14 +83,14 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 def main():
     """CLI execution entry-point"""
-    global args, log, recursive, show_hidden
+    global args, log, log_exception, recursive, show_hidden
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
     from .tui.config import max_pixels
     from .tui.main import scan_dir
     from .tui.widgets import Image
-    from .logging import init_log, log
+    from .logging import init_log, log, log_exception
     from . import tui
 
     # Printing to STDERR messes up output, especially with the TUI
@@ -312,3 +312,4 @@ logger = logging.getLogger(__name__)
 # Set from within `main()`
 args = None
 log = None
+log_exception = None

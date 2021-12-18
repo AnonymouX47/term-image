@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
@@ -61,17 +62,12 @@ def log(
     direct: bool = True,
     file: bool = True,
     verbose: bool = False,
-    exc: Optional[Exception] = None,
 ):
     """Report events to various destinations"""
 
     if verbose:
         if VERBOSE:
-            (
-                log_exception(msg, exc, logger)
-                if exc
-                else logger.log(level, msg, stacklevel=2)
-            )
+            logger.log(level, msg, stacklevel=2)
             (
                 info_bar.original_widget.set_text(
                     ("error", msg) if level == logging.ERROR else msg
@@ -80,18 +76,10 @@ def log(
                 else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
             )
         elif VERBOSE_LOG:
-            (
-                log_exception(msg, exc, logger)
-                if exc
-                else logger.log(level, msg, stacklevel=2)
-            )
+            logger.log(level, msg, stacklevel=2)
     else:
         if file:
-            (
-                log_exception(msg, exc, logger)
-                if exc
-                else logger.log(level, msg, stacklevel=2)
-            )
+            logger.log(level, msg, stacklevel=2)
         if direct:
             (
                 info_bar.original_widget.set_text(
@@ -102,13 +90,26 @@ def log(
             )
 
 
-def log_exception(msg: str, exc: Exception, logger: logging.Logger) -> None:
+def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
+    """Report an error with the exception reponsible
+    
+    NOTE: Should be called from within an exception handler
+    i.e from (also possibly in a nested context) within an except or finally clause.
+    """
     if DEBUG:
-        logger.exception(f"{msg} due to:", stacklevel=4)
+        logger.exception(f"{msg} due to:", stacklevel=3)
     elif VERBOSE or VERBOSE_LOG:
-        logger.error(f"{msg} due to: ({type(exc).__name__}) {exc}", stacklevel=4)
+        exc_type, exc, _ = sys.exc_info()
+        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", stacklevel=3)
     else:
-        logger.error(msg, stacklevel=4)
+        logger.error(msg, stacklevel=3)
+
+    if direct:
+        (
+            info_bar.original_widget.set_text(("error", msg))
+            if tui.launched
+            else print(f"\033[31m{msg}\033[0m")
+        )
 
 
 @dataclass

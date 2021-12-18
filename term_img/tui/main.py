@@ -234,18 +234,13 @@ def scan_dir(
             except PIL.UnidentifiedImageError:
                 # Reporting will apply to every non-image file :(
                 pass
-            except Exception as e:
+            except Exception:
                 logging.log(
                     "Some file(s) could not be read! Check the logs.",
                     level=_logging.ERROR,
                     file=False,
                 )
-                logging.log(
-                    f"{realpath(entry)!r} could not be read",
-                    logger,
-                    direct=False,
-                    exc=e,
-                )
+                logging.log_exception(f"{realpath(entry)!r} could not be read", logger)
             else:
                 yield entry, Image(TermImage.from_file(entry))
         elif recursive and entry in contents:

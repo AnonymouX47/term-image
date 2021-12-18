@@ -148,15 +148,13 @@ class Image(urwid.Widget):
 
         try:
             canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
-        except Exception as e:
+        except Exception:
             logging.log(
                 "Some image(s) could not be loaded! Check the logs.",
                 level=_logging.ERROR,
                 file=False,
             )
-            logging.log(
-                f"{image._source!r} could not be loaded", logger, direct=False, exc=e
-            )
+            logging.log_exception(f"{image._source!r} could not be loaded", logger)
             canv = self._faulty_image.render(size, focus)
 
         if (
