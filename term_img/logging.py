@@ -108,7 +108,7 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
     else:
         logger.error(msg, stacklevel=3)
 
-    if direct:
+    if VERBOSE and direct:
         (
             info_bar.set_text(("error", msg))
             if tui.launched
