@@ -89,7 +89,7 @@ def main():
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
-    from .tui.config import max_pixels
+    from .tui.config import max_pixels, user_dir
     from .tui.main import scan_dir
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
@@ -181,12 +181,18 @@ or multiple valid sources
     )
 
     # Logging
-    log_options = parser.add_argument_group(
+    log_options_ = parser.add_argument_group(
         "Logging Options",
         "NOTE: These are all mutually exclusive",
     )
-    log_options = log_options.add_mutually_exclusive_group()
+    log_options = log_options_.add_mutually_exclusive_group()
 
+    log_options_.add_argument(
+        "-l",
+        "--log",
+        default=os.path.join(user_dir, "term_img.log"),
+        help="Specify a file to write logs to instead of the default",
+    )
     log_options.add_argument(
         "--log-level",
         metavar="LEVEL",
@@ -195,6 +201,7 @@ or multiple valid sources
         help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [3]",
     )
     log_options.add_argument(
+        "-v",
         "--verbose",
         action="store_true",
         help="More detailed event reporting. Also implies --log-level=INFO",
