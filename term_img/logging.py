@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import warnings
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
@@ -54,10 +55,6 @@ def init_log(
         level=level,
     )
 
-    # Can't use "term_img", since the logger's level is changed in `__main__.py`.
-    # Otherwise, it would affect children of "term_img".
-    logger = logging.getLogger("term-img")
-    logger.setLevel(logging.INFO)
     logger.info("Starting a new session")
     logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
@@ -116,6 +113,10 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
         )
 
 
+def log_warning(msg, catg, fname, lineno, f=None, line=None) -> None:
+    logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
+
+
 def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
     """Display a message in the TUI's info-bar or the console"""
     global _last_alarm
@@ -139,6 +140,13 @@ class Filter:
 
 _filter = Filter(["PIL"])
 _last_alarm = None
+
+# Writing to STDERR messes up output, especially with the TUI
+warnings.showwarning = log_warning
+
+# Can't use "term_img", since the logger's level is changed in `.__main__`.
+# Otherwise, it would affect children of "term_img".
+logger = logging.getLogger("term-img")
 
 # Set from within `init_log()`
 DEBUG = None

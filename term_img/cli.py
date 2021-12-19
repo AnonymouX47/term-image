@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import warnings
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -108,9 +107,6 @@ def main():
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
     from . import tui
-
-    # Printing to STDERR messes up output, especially with the TUI
-    warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
 
     parser = argparse.ArgumentParser(
         prog="term-img",

@@ -12,6 +12,7 @@ if __name__ == "__main__":
     # Can't use "term_img", since the logger's level is changed.
     # Otherwise, it would affect children of "term_img".
     logger = _logging.getLogger("term-img")
+    logger.setLevel(_logging.INFO)
 
     try:
         exit_code = cli.main()
