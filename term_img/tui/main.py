@@ -18,7 +18,6 @@ from .widgets import (
     image_grid,
     image_grid_box,
     LineSquare,
-    main,
     menu,
     MenuEntry,
     _placeholder,
@@ -288,7 +287,7 @@ def _update_menu(
     menu.focus_position = pos + 1
 
 
-class MyLoop(urwid.MainLoop):
+class MainLoop(urwid.MainLoop):
     def start(self):
         # Properly set expand key visbility at initialization
         self.unhandled_input("resized")
@@ -324,12 +323,9 @@ palette = [
 
 logger = _logging.getLogger(__name__)
 
-loop = MyLoop(main, palette, unhandled_input=_process_input)
-loop.screen.clear()
-loop.screen.set_terminal_properties(2 ** 24)
-
 # Placeholders; Set from `..tui.init()`
 displayer = None
+loop = None
 max_pixels = None
 recursive = None
 show_hidden = None

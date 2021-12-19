@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
 
-from .tui.main import loop
 from .tui.widgets import info_bar
+from .tui import main
 from . import tui
 
 
@@ -123,8 +123,8 @@ def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
 
     log(("error", msg) if error else msg, file=False, verbose=verbose)
     if tui.launched:
-        loop.remove_alarm(_last_alarm)
-        _last_alarm = loop.set_alarm_in(5, clear_notifications)
+        main.loop.remove_alarm(_last_alarm)
+        _last_alarm = main.loop.set_alarm_in(5, clear_notifications)
 
 
 @dataclass
