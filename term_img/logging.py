@@ -5,7 +5,7 @@ import sys
 import warnings
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
-from typing import List, Optional
+from typing import Set, Optional
 
 from .tui.widgets import info_bar
 from .tui import main
@@ -121,6 +121,7 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
 
 def log_warning(msg, catg, fname, lineno, f=None, line=None) -> None:
     logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
+    notify("Please view the logs for some warning(s).")
 
 
 def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
@@ -135,16 +136,19 @@ def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
 
 @dataclass
 class Filter:
-    disallowed: List[str]
+    disallowed: Set[str]
 
     def filter(self, record: logging.LogRecord):
-        return not any(record.name.startswith(name) for name in self.disallowed)
+        return record.name.partition(".")[0] not in self.disallowed
 
     def add(self, name: str):
-        self.disallowed.append(name)
+        self.disallowed.add(name)
+
+    def remove(self, name: str):
+        self.disallowed.remove(name)
 
 
-_filter = Filter(["PIL"])
+_filter = Filter({"PIL", "urllib3"})
 _last_alarm = None
 
 # Writing to STDERR messes up output, especially with the TUI
