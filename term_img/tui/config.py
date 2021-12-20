@@ -72,9 +72,9 @@ def store_config(*, default: bool = False) -> None:
     navi = {v[0] for v in (_nav if default else nav).values()}
     for context, keyset in (_context_keys if default else context_keys).items():
         keys = {}
-        for action, (key, icon, _) in keyset.items():
+        for action, (key, symbol, _) in keyset.items():
             if key not in navi:
-                keys[action] = [key, icon]
+                keys[action] = [key, symbol]
         # Exclude contexts with navigation-only controls
         if keys:
             stored_keys[context] = keys
@@ -143,7 +143,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             )
             continue
 
-        key, icon = details
+        key, symbol = details
         if action not in keyset:
             print(f"Action {action!r} not available in context {name!r}.")
             continue
@@ -166,7 +166,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             use_default_key()
         else:
             assigned.add(key)
-            keyset[action][:2] = [key, icon]
+            keyset[action][:2] = [key, symbol]
 
 
 def update_context_nav_keys(
@@ -174,7 +174,7 @@ def update_context_nav_keys(
     nav: dict[str, list],
     nav_update: dict[str, list],
 ):
-    """Update keys and icons of navigation actions in all contexts in _context_keys_
+    """Update keys and symbols of navigation actions in all contexts in _context_keys_
     using _nav_ to identify navigation actions and _nav_update_ to update
     """
     navi = {v[0]: k for k, v in nav.items()}
@@ -215,7 +215,7 @@ _nav = {
     "End": ["end", "End"],
 }
 
-# {<context>: {<action>: [<key>, <icon>, <help>], ...}, ...}
+# {<context>: {<action>: [<key>, <symbol>, <help>], ...}, ...}
 _context_keys = {
     "global": {
         "Config": ["C", "C", "Open configuration menu"],

@@ -33,10 +33,10 @@ def _display_context_keys(context):
             [
                 ("keys", f"{action.replace(' ', '_')}"),
                 ("keys block", "\u2588"),
-                ("keys", f"[{icon}]"),
+                ("keys", f"[{symbol}]"),
                 " ",
             ]
-            for action, (_, icon, _) in actions[:-1]
+            for action, (_, symbol, _) in actions[:-1]
         ]
         + [
             ("keys", f"{actions[-1][0].replace(' ', '_')}"),
