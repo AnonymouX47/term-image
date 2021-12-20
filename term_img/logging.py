@@ -44,7 +44,7 @@ def init_log(
         "({process}) "
         + "({asctime}) " * debug
         + "[{levelname}] {name}: "
-        + "{funcName}: " * debug
+        + "{funcName}: " * (debug and stacklevel_is_available)
         + "{message}"
     )
     logging.basicConfig(
@@ -58,6 +58,11 @@ def init_log(
     logger.info("Starting a new session")
     logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
+    if debug and not stacklevel_is_available:
+        warnings.warn(
+            "Please upgrade to Python 3.8 or later to get more detailed logs."
+        )
+
 
 def log(
     msg: str,
@@ -69,26 +74,25 @@ def log(
     verbose: bool = False,
 ):
     """Report events to various destinations"""
+    kwargs = {"stacklevel": 2} if stacklevel_is_available else {}
 
     if verbose:
         if VERBOSE:
-            logger.log(level, msg, stacklevel=2)
-            (
+            logger.log(level, msg, **kwargs)
+            if tui.launched:
                 info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
-                if tui.launched
-                else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
-            )
+            else:
+                print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
         elif VERBOSE_LOG:
-            logger.log(level, msg, stacklevel=2)
+            logger.log(level, msg, **kwargs)
     else:
         if file:
-            logger.log(level, msg, stacklevel=2)
+            logger.log(level, msg, **kwargs)
         if direct:
-            (
+            if tui.launched:
                 info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
-                if tui.launched
-                else print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
-            )
+            else:
+                print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
 
 
 def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
@@ -97,13 +101,15 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
     NOTE: Should be called from within an exception handler
     i.e from (also possibly in a nested context) within an except or finally clause.
     """
+    kwargs = {"stacklevel": 3} if stacklevel_is_available else {}
+
     if DEBUG:
-        logger.exception(f"{msg} due to:", stacklevel=3)
+        logger.exception(f"{msg} due to:", **kwargs)
     elif VERBOSE or VERBOSE_LOG:
         exc_type, exc, _ = sys.exc_info()
-        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", stacklevel=3)
+        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", **kwargs)
     else:
-        logger.error(msg, stacklevel=3)
+        logger.error(msg, **kwargs)
 
     if VERBOSE and direct:
         (
@@ -147,6 +153,9 @@ warnings.showwarning = log_warning
 # Can't use "term_img", since the logger's level is changed in `.__main__`.
 # Otherwise, it would affect children of "term_img".
 logger = logging.getLogger("term-img")
+
+# the _stacklevel_ parameter was added in Python 3.8
+stacklevel_is_available = sys.version_info[:3] >= (3, 8, 0)
 
 # Set from within `init_log()`
 DEBUG = None
