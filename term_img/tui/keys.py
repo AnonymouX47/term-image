@@ -148,7 +148,7 @@ def open():
     if menu.focus_position == 0 or isinstance(
         main.menu_list[menu.focus_position - 1][1], GeneratorType
     ):
-        main.displayer.send(-2)
+        main.displayer.send(main.OPEN)
     else:
         main.set_context("full-image")
         main_widget.contents[0] = (view, ("weight", 1))
@@ -156,7 +156,7 @@ def open():
 
 @_register_key(("menu", "Back"))
 def back():
-    main.displayer.send(-3)
+    main.displayer.send(main.BACK)
 
 
 # image
@@ -245,7 +245,7 @@ def force_render():
     ("image-grid", "Switch Pane"),
 )
 def switch_pane():
-    if main._context != "menu":
+    if main.get_context() != "menu":
         main.set_context("menu")
         viewer.focus_position = 0
     elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'

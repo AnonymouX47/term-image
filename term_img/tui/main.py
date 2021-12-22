@@ -87,9 +87,10 @@ def display_images(
             image_box.set_title("Image")
             view.original_widget = image_box
 
-        elif pos == -2:  # Implements "menu::Open" action
+        elif pos == OPEN:  # Implements "menu::Open" action
             if prev_pos == -1:  # noqa: F821
-                # prev_pos can never be -1 at top level; See `pos == -1` branch above
+                # prev_pos can never be -1 at top level (See `pos == -1` branch above),
+                # so the program can't be broken.
                 break
 
             if not value.gi_frame:  # noqa: F821
@@ -118,7 +119,7 @@ def display_images(
             pos = prev_pos  # noqa: F821
             continue  # Skip `yield`
 
-        elif pos == -3:  # Implements "menu::Back" action
+        elif pos == BACK:  # Implements "menu::Back" action
             if not top_level:  # noqa: F821
                 break
             # Since the execution context is not exited, ensure pos
@@ -328,6 +329,10 @@ palette = [
 ]
 
 logger = _logging.getLogger(__name__)
+
+# Constants for `display_images()`
+OPEN = -2
+BACK = -3
 
 # Placeholders; Set from `..tui.init()`
 displayer = None
