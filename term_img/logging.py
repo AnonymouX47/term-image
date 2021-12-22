@@ -7,13 +7,7 @@ from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import Set, Optional
 
-from .tui.widgets import info_bar
-from .tui import main
-from . import tui
-
-
-def clear_notifications(loop, data):
-    info_bar.set_text("")
+from . import notify
 
 
 def init_log(
@@ -79,20 +73,14 @@ def log(
     if verbose:
         if VERBOSE:
             logger.log(level, msg, **kwargs)
-            if tui.launched:
-                info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
-            else:
-                print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
+            notify.notify(msg, level=getattr(notify, logging.getLevelName(level)))
         elif VERBOSE_LOG:
             logger.log(level, msg, **kwargs)
     else:
         if file:
             logger.log(level, msg, **kwargs)
         if direct:
-            if tui.launched:
-                info_bar.set_text(("error", msg) if level == logging.ERROR else msg)
-            else:
-                print(f"\033[31m{msg}\033[0m" if level >= logging.ERROR else msg)
+            notify.notify(msg, level=getattr(notify, logging.getLevelName(level)))
 
 
 def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
@@ -112,26 +100,15 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
         logger.error(msg, **kwargs)
 
     if VERBOSE and direct:
-        (
-            info_bar.set_text(("error", msg))
-            if tui.launched
-            else print(f"\033[31m{msg}\033[0m")
-        )
+        notify.notify(msg, level=notify.ERROR)
 
 
 def log_warning(msg, catg, fname, lineno, f=None, line=None) -> None:
     logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
-    notify("Please view the logs for some warning(s).")
-
-
-def notify(msg: str, *, verbose: bool = False, error: bool = False) -> None:
-    """Display a message in the TUI's info-bar or the console"""
-    global _last_alarm
-
-    log(("error", msg) if error else msg, file=False, verbose=verbose)
-    if tui.launched:
-        main.loop.remove_alarm(_last_alarm)
-        _last_alarm = main.loop.set_alarm_in(5, clear_notifications)
+    notify.notify(
+        "Please view the logs for some warning(s).",
+        level=notify.WARNING,
+    )
 
 
 @dataclass
@@ -149,7 +126,6 @@ class Filter:
 
 
 _filter = Filter({"PIL", "urllib3"})
-_last_alarm = None
 
 # Writing to STDERR messes up output, especially with the TUI
 warnings.showwarning = log_warning

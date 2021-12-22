@@ -26,6 +26,7 @@ from .widgets import (
 )
 from ..image import TermImage
 from .. import logging
+from .. import notify
 
 
 def display_images(
@@ -219,9 +220,10 @@ def scan_dir(
         - A `term_img.widgets.Image` instance for each image in _dir_.
         - A similar generator for sub-directories (if '--recursive' is set).
 
-    - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
+    - If '--all' is set, hidden (.*) images and subdirectories are considered.
     """
     os.chdir(dir)
+    errors = 0
     for entry in os.listdir():
         if entry.startswith(".") and not show_hidden:
             continue
@@ -232,11 +234,8 @@ def scan_dir(
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception:
-                logging.notify(
-                    "Some file(s) could not be read! Check the logs.",
-                    error=True,
-                )
                 logging.log_exception(f"{realpath(entry)!r} could not be read", logger)
+                errors += 1
             else:
                 yield entry, Image(TermImage.from_file(entry))
         elif recursive and entry in contents:
@@ -250,6 +249,11 @@ def scan_dir(
                 yield entry, scan_dir(entry, contents[entry])
 
     os.chdir(prev_dir)
+    if errors:
+        notify.notify(
+            f"{errors} file(s) could not be read in {realpath(dir)!r}! Check the logs.",
+            level=notify.ERROR,
+        )
 
 
 def set_context(new_context):
@@ -319,6 +323,8 @@ palette = [
     ("keys", "", "", "", "#ffffff", "#5588ff"),
     ("keys block", "", "", "", "#5588ff", ""),
     ("error", "", "", "", "", "#ff0000"),
+    ("warning", "", "", "", "#ff0000", ""),
+    ("input", "", "", "", "standout", ""),
 ]
 
 logger = _logging.getLogger(__name__)

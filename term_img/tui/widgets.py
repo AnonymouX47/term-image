@@ -149,11 +149,14 @@ class Image(urwid.Widget):
         try:
             canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
         except Exception:
-            logging.notify(
-                "Some image(s) could not be loaded! Check the logs.",
-                error=True,
+            logging.log_exception(
+                f"{image._source!r} could not be loaded",
+                logger,
+                direct=(
+                    view.original_widget is image_box
+                    or tui_main.get_context() == "full-grid-image"
+                ),
             )
-            logging.log_exception(f"{image._source!r} could not be loaded", logger)
             canv = self._faulty_image.render(size, focus)
 
         if (
@@ -307,7 +310,8 @@ banner = urwid.LineBox(
         "red on green",
     ),
 )
-pile = urwid.Pile([(4, banner), viewer], 1)
+notifications = urwid.Pile([])
+pile = urwid.Pile([(4, banner), viewer, (2, notifications)], 1)
 
 info_bar = urwid.Text("")
 key_bar = urwid.Filler(urwid.Text([[("mine", "cool"), " "]] * 19 + [("mine", "cool")]))

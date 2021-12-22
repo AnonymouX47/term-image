@@ -44,7 +44,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
         entries = os.listdir()
     except OSError:
         log_exception(
-            f"Could not get the contents of '{os.path.abspath(dir)}/'",
+            f"Could not get the contents of '{os.path.abspath('.')}/'",
             logger,
             direct=True,
         )
