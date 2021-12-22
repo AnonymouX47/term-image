@@ -318,4 +318,4 @@ key_bar = urwid.Filler(urwid.Text([[("mine", "cool"), " "]] * 19 + [("mine", "co
 expand = urwid.Filler(urwid.Text(f"\u25B2 [{expand_key[0]}]", align="right"), "middle")
 bottom_bar = urwid.Columns([key_bar, (5, expand)], 2)
 
-main = urwid.Pile([pile, (1, urwid.Filler(info_bar)), (1, bottom_bar)], 0)
+main = urwid.Pile([pile, (1, bottom_bar)], 0)

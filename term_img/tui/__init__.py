@@ -6,9 +6,12 @@ import argparse
 import logging
 from typing import Iterable, Iterator, Tuple, Union
 
+import urwid
+
 from .main import MainLoop, palette, _process_input
-from .widgets import Image, main as main_widget
+from .widgets import Image, info_bar, main as main_widget
 from . import main
+from .. import cli
 
 
 def init(
@@ -20,6 +23,11 @@ def init(
     from ..logging import log
 
     global launched
+
+    if cli.args.debug:
+        main_widget.contents.insert(
+            -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
+        )
 
     loop = MainLoop(main_widget, palette, unhandled_input=_process_input)
     loop.screen.clear()
