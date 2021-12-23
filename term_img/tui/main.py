@@ -173,8 +173,9 @@ def get_context():
     return _context
 
 
-def get_prev_context():
-    return _prev_context
+def get_prev_context(n=1):
+    """Return the nth previous context (1 <= n <= 3)"""
+    return _prev_contexts[n - 1]
 
 
 def _process_input(key):
@@ -258,11 +259,26 @@ def scan_dir(
 
 
 def set_context(new_context):
-    global _context, _prev_context
+    global _context
 
-    _prev_context = _context
+    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    _prev_contexts[1:] = _prev_contexts[:2]  # Right-shift older contexts
+    _prev_contexts[0] = _context
     _context = new_context
     _display_context_keys(new_context)
+    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+
+
+def set_prev_context(n=1):
+    """Set the nth previous context as the current context (1 <= n <= 3)"""
+    global _context
+
+    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    _context = _prev_contexts[n - 1]
+    _display_context_keys(_context)
+    _prev_contexts[:n] = []
+    _prev_contexts.extend(["menu"] * n)
+    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
 def _update_menu(
@@ -305,6 +321,7 @@ class MainLoop(urwid.MainLoop):
         return super().process_input(keys)
 
 
+_prev_contexts = ["menu"] * 3
 _context = "menu"  # To avoid a NameError the first time set_context() is called.
 set_context("menu")
 depth = -1

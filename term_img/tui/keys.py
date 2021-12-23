@@ -207,7 +207,7 @@ def force_render_maximized_cell():
 # full-image, full-grid-image
 @_register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
 def restore():
-    main.set_context(main._prev_context)
+    main.set_prev_context()
     main_widget.contents[0] = (pile, ("weight", 1))
 
 
