@@ -277,6 +277,10 @@ _context_keys = {
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
     },
+    "confirmation": {
+        "Confirm": ["enter", "\u23ce", ""],
+        "Cancel": ["esc", "\u238b", ""],
+    },
 }
 # End of Defaults
 

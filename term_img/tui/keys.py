@@ -10,6 +10,8 @@ import urwid
 from .config import context_keys, expand_key
 from .widgets import (
     bottom_bar,
+    confirmation,
+    confirmation_overlay,
     Image,
     image_box,
     image_grid,
@@ -19,6 +21,7 @@ from .widgets import (
     menu,
     expand,
     pile,
+    _placeholder,
     view,
     viewer,
 )
@@ -74,6 +77,48 @@ def _register_key(*args: Tuple[str, str]) -> FunctionType:
     return register
 
 
+def set_confirmation(
+    msg: str,
+    bottom_widget: urwid.widget,
+    confirm: FunctionType,
+    cancel: FunctionType,
+    confirm_args: tuple = (),
+    cancel_args: tuple = (),
+) -> None:
+    """Setup a confirmation dialog
+
+    Args:
+      - msg: The message to be displayed in the dialog.
+      - bottom_widget: The widget on which the confirmation dialog will be overlayed.
+      - confirm: A function to be called for the "Confirm" action of the
+        confirmation context.
+      - cancel: A function to be called for the "Cancel" action of the
+        confirmation context.
+      - confirm_args: Optional positional arguments to be passed to _confirm_.
+      - cancel_args: Optional positional arguments to be passed to _cancel_.
+
+    This function must be called by any context action using the confirmation dialog.
+    """
+    global _confirm, _cancel, _prev_view_widget
+
+    _confirm = (confirm, confirm_args)
+    _cancel = (cancel, cancel_args)
+    confirmation.set_text(msg)
+    main.set_context("confirmation")
+
+    # `Image` widgets don't support overlay.
+    # Always reset by or "confirmation::Cancel"
+    # but _confirm()_ must reset `view.original_widget` on it's own.
+    _prev_view_widget = view.original_widget
+    view.original_widget = urwid.LineBox(
+        _placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
+    )
+
+    confirmation_overlay.bottom_w = bottom_widget
+    main_widget.contents[0] = (confirmation_overlay, ("weight", 1))
+
+
+_confirm = _cancel = _prev_view_widget = None  # To be set by `set_confirmation()`
 keys = {context: {} for context in context_keys}
 
 
@@ -251,6 +296,21 @@ def switch_pane():
     elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'
         main.set_context("image" if view.original_widget is image_box else "image-grid")
         viewer.focus_position = 1
+
+
+# confirmation
+@_register_key(("confirmation", "Confirm"))
+def confirm():
+    # `_confirm()` must [re]set `view.original_widget`
+    _confirm[0](*_confirm[1])
+    main.set_prev_context()
+
+
+@_register_key(("confirmation", "Cancel"))
+def cancel():
+    _cancel[0](*_cancel[1])
+    view.original_widget = _prev_view_widget
+    main.set_prev_context()
 
 
 key_bar_is_collapsed = True

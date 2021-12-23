@@ -319,3 +319,15 @@ expand = urwid.Filler(urwid.Text(f"\u25B2 [{expand_key[0]}]", align="right"), "m
 bottom_bar = urwid.Columns([key_bar, (5, expand)], 2)
 
 main = urwid.Pile([pile, (1, bottom_bar)], 0)
+
+confirmation = urwid.Text("", "center")
+confirmation_overlay = urwid.Overlay(
+    urwid.LineBox(urwid.Filler(confirmation)),
+    _placeholder,
+    "center",
+    ("relative", 25),
+    "middle",
+    ("relative", 25),
+    50,
+    3,
+)
