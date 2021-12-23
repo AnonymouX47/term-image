@@ -11,7 +11,7 @@ from typing import Generator, Iterable, Iterator, Tuple, Union
 import PIL
 import urwid
 
-from .keys import _display_context_keys, keys
+from .keys import display_context_keys, keys, no_globals
 from .widgets import (
     info_bar,
     Image,
@@ -209,22 +209,21 @@ def get_prev_context(n=1):
     return _prev_contexts[n - 1]
 
 
-def _process_input(key):
+def _process_input(key: str) -> bool:
     if logging.DEBUG:
         info_bar.set_text(f"{key!r} {info_bar.text}")
 
     found = False
     if key in keys["global"]:
-        keys["global"][key]()
-        found = True
-    else:
-        found = keys[_context].get(key, lambda: False)() is None
-
-    if key[0] == "mouse press":  # strings also support subscription
+        if _context not in no_globals:
+            keys["global"][key]()
+            found = True
+    elif key[0] == "mouse press":  # strings also support subscription
         # change context if the pane in focus changed.
         if _context in {"image", "image-grid"} and viewer.focus_position == 0:
             set_context("menu")
             displayer.send(menu.focus_position - 1)
+            found = True
         elif _context == "menu":
             if viewer.focus_position == 1:
                 set_context(
@@ -232,6 +231,9 @@ def _process_input(key):
                 )
             else:  # Update image view
                 displayer.send(menu.focus_position - 1)
+            found = True
+    else:
+        found = keys[_context].get(key, lambda: False)() is None
 
     return bool(found)
 
@@ -296,7 +298,7 @@ def set_context(new_context):
     _prev_contexts[1:] = _prev_contexts[:2]  # Right-shift older contexts
     _prev_contexts[0] = _context
     _context = new_context
-    _display_context_keys(new_context)
+    display_context_keys(new_context)
     info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
@@ -306,7 +308,7 @@ def set_prev_context(n=1):
 
     info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
     _context = _prev_contexts[n - 1]
-    _display_context_keys(_context)
+    display_context_keys(_context)
     _prev_contexts[:n] = []
     _prev_contexts.extend(["menu"] * n)
     info_bar.set_text(f"{_prev_contexts} {info_bar.text}")

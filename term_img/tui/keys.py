@@ -32,8 +32,12 @@ from . import main
 from .. import logging
 
 
-def _display_context_keys(context):
-    actions = (*context_keys[context].items(), *context_keys["global"].items())
+def display_context_keys(context):
+def display_context_keys(context: str) -> None:
+    actions = (
+        *context_keys[context].items(),
+        *(() if context in no_globals else context_keys["global"].items()),
+    )
     # The underscores and blocks (U+2588) are to prevent wrapping amidst keys
     key_bar.original_widget.set_text(
         [
@@ -124,7 +128,6 @@ def set_confirmation(
     main_widget.contents[0] = (confirmation_overlay, ("weight", 1))
 
 
-_confirm = _cancel = _prev_view_widget = None  # To be set by `set_confirmation()`
 keys = {context: {} for context in context_keys}
 
 
@@ -377,3 +380,5 @@ def cancel():
 logger = _logging.getLogger(__name__)
 key_bar_is_collapsed = True
 expand_key_is_shown = True
+no_globals = {"confirmation", "full-grid-image"}
+_confirm = _cancel = _prev_view_widget = None  # To be set by `set_confirmation()`
