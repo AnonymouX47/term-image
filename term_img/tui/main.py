@@ -216,7 +216,9 @@ def _process_input(key: str) -> bool:
     found = False
     if key in keys["global"]:
         if _context not in no_globals:
-            keys["global"][key]()
+            func, state = keys["global"][key]
+            if state:
+                func()
             found = True
     elif key[0] == "mouse press":  # strings also support subscription
         # change context if the pane in focus changed.
@@ -233,7 +235,10 @@ def _process_input(key: str) -> bool:
                 displayer.send(menu.focus_position - 1)
             found = True
     else:
-        found = keys[_context].get(key, lambda: False)() is None
+        func, state = keys[_context].get(key, (None, None))
+        if state:
+            func()
+        found = state is not None
 
     return bool(found)
 
@@ -371,8 +376,9 @@ palette = [
     ("focused box", "", "", "", "#ffffff", ""),
     ("green fg", "", "", "", "#00ff00", ""),
     ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
-    ("keys", "", "", "", "#ffffff", "#5588ff"),
-    ("keys block", "", "", "", "#5588ff", ""),
+    ("key", "", "", "", "#ffffff", "#5588ff"),
+    ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
+    ("key block", "", "", "", "#5588ff", ""),
     ("error", "", "", "", "bold", "#ff0000"),
     ("warning", "", "", "", "#ff0000, bold", ""),
     ("input", "", "", "", "standout", ""),

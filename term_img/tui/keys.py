@@ -31,28 +31,61 @@ from .widgets import (
 from . import main
 from .. import logging
 
+# Action Status Modification
 
-def display_context_keys(context):
+
+def disable_actions(context: str, *actions: str):
+    keyset = context_keys[context]
+    for action in actions:
+        keyset[action][4] = False
+        keys[context][keyset[action][0]][1] = False
+        display_context_keys(context)
+
+
+def enable_actions(context: str, *actions: str):
+    keyset = context_keys[context]
+    for action in actions:
+        keyset[action][4] = True
+        keys[context][keyset[action][0]][1] = True
+        display_context_keys(context)
+
+
+def hide_actions(context: str, *actions: str):
+    keyset = context_keys[context]
+    for action in actions:
+        keyset[action][3] = False
+        display_context_keys(context)
+    disable_actions(context, *actions)
+
+
+def show_actions(context: str, *actions: str):
+    keyset = context_keys[context]
+    for action in actions:
+        keyset[action][3] = True
+        display_context_keys(context)
+    enable_actions(context, *actions)
+
+
+# Main
+
+
 def display_context_keys(context: str) -> None:
     actions = (
         *context_keys[context].items(),
         *(() if context in no_globals else context_keys["global"].items()),
     )
+
     # The underscores and blocks (U+2588) are to prevent wrapping amidst keys
     key_bar.original_widget.set_text(
         [
             [
-                ("keys", f"{action.replace(' ', '_')}"),
-                ("keys block", "\u2588"),
-                ("keys", f"[{symbol}]"),
+                ("key" if enabled else "disabled key", f"{action.replace(' ', '_')}"),
+                ("key block", "\u2588"),
+                ("key" if enabled else "disabled key", f"[{symbol}]"),
                 " ",
             ]
-            for action, (_, symbol, _) in actions[:-1]
-        ]
-        + [
-            ("keys", f"{actions[-1][0].replace(' ', '_')}"),
-            ("keys block", "\u2588"),
-            ("keys", f"[{actions[-1][1][1]}]"),
+            for action, (_, symbol, _, visible, enabled) in actions
+            if visible
         ]
     )
     resize()
@@ -74,7 +107,8 @@ def _register_key(*args: Tuple[str, str]) -> FunctionType:
         recieved by the call to `register_key()` that returns it
         """
         for context, action in args:
-            keys[context][context_keys[context][action][0]] = func
+            # All actions are enabled by default
+            keys[context][context_keys[context][action][0]] = [func, True]
 
         return func
 
@@ -128,6 +162,9 @@ def set_confirmation(
     main_widget.contents[0] = (confirmation_overlay, ("weight", 1))
 
 
+# Context Actions
+
+# {<context>: [<func>, <state>], ...}
 keys = {context: {} for context in context_keys}
 
 
@@ -181,7 +218,9 @@ def key_bar_rows():
     return key_bar.original_widget.rows((cols,))
 
 
-keys["global"].update({expand_key[0]: expand_collapse_keys, "resized": resize})
+keys["global"].update(
+    {expand_key[0]: [expand_collapse_keys, True], "resized": [resize, True]}
+)
 
 
 # menu

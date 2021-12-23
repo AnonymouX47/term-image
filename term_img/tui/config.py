@@ -23,12 +23,19 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
 
 def load_config() -> None:
     """Load user config from disk"""
+
+    def _set_action_status() -> None:
+        for keyset in context_keys.values():
+            for action in keyset.values():
+                action[3:] = (True, True)  # Default: "shown", "enabled"
+
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
     except json.JSONDecodeError:
         print("Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
+        _set_action_status()
         return
 
     for name in ("cell width", "max pixels"):
@@ -42,6 +49,7 @@ def load_config() -> None:
     except KeyError:
         print("User-config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
+        _set_action_status()
         return
 
     prev_nav = deepcopy(nav)  # used for identification.
@@ -63,6 +71,8 @@ def load_config() -> None:
             continue
         update_context(context, context_keys[context], keyset)
 
+    _set_action_status()
+
 
 def store_config(*, default: bool = False) -> None:
     """Write current config to disk"""
@@ -72,7 +82,7 @@ def store_config(*, default: bool = False) -> None:
     navi = {v[0] for v in (_nav if default else nav).values()}
     for context, keyset in (_context_keys if default else context_keys).items():
         keys = {}
-        for action, (key, symbol, _) in keyset.items():
+        for action, (key, symbol, *_) in keyset.items():
             if key not in navi:
                 keys[action] = [key, symbol]
         # Exclude contexts with navigation-only controls
@@ -166,7 +176,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             use_default_key()
         else:
             assigned.add(key)
-            keyset[action][:2] = [key, symbol]
+            keyset[action][:2] = (key, symbol)
 
 
 def update_context_nav_keys(
@@ -215,7 +225,8 @@ _nav = {
     "End": ["end", "End"],
 }
 
-# {<context>: {<action>: [<key>, <symbol>, <help>], ...}, ...}
+# {<context>: {<action>: [<key>, <symbol>, <help>, <visibility>, <state>], ...}, ...}
+# <visibility> and <state> are added later in `load_config()`.
 _context_keys = {
     "global": {
         "Config": ["C", "C", "Open configuration menu"],
