@@ -68,6 +68,8 @@ def display_images(
         ),
     )
     _update_menu(items, top_level)
+
+    entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0
 
     os.chdir(dir)
@@ -75,7 +77,7 @@ def display_images(
 
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
-            if top_level:  # noqa: F821
+            if top_level:
                 if items:
                     # Ensure ".." is not selectable at top level
                     # Possible when `Home` action is invoked
@@ -95,62 +97,62 @@ def display_images(
             view.original_widget = image_box
 
         elif pos == OPEN:  # Implements "menu::Open" action (for non-image entries)
-            if prev_pos == -1:  # noqa: F821
+            if prev_pos == -1:
                 # prev_pos can never be -1 at top level (See `pos == -1` branch above),
                 # so the program can't be broken.
                 break
 
-            if not value.gi_frame:  # noqa: F821
+            if not value.gi_frame:
                 # The directory has been visited earlier
                 value = scan_dir(
-                    entry,  # noqa: F821
-                    contents[entry],  # noqa: F821
+                    entry,
+                    contents[entry],
                     # Return to Top-Level Directory, OR
                     # Return to the link's parent rather than the linked directory's
                     # parent
-                    os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
+                    os.getcwd() if top_level or islink(entry) else "..",
                 )
 
-            logger.debug(f"Going into {realpath(entry)}/")  # noqa: F821
+            logger.debug(f"Going into {realpath(entry)}/")
             empty = yield from display_images(
-                entry,  # noqa: F821
-                value,  # noqa: F821
-                contents[entry],  # noqa: F821
+                entry,
+                value,
+                contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
-                os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
+                os.getcwd() if top_level or islink(entry) else "..",
             )
 
             if empty:  # All entries in the exited directory have been deleted
-                del items[prev_pos]  # noqa: F821
-                del contents[entry]  # noqa: F821
-                pos = min(prev_pos, len(items) - 1)  # noqa: F821
+                del items[prev_pos]
+                del contents[entry]
+                pos = min(prev_pos, len(items) - 1)
                 # Restore the menu and view pane for the previous (this) directory,
                 # while removing the empty directory entry.
-                _update_menu(items, top_level, pos)  # noqa: F821
+                _update_menu(items, top_level, pos)
 
                 logger.debug(f"Removed empty directory entry '{entry}/' from the menu")
                 notify.notify(f"Removed empty directory entry '{entry}/' from the menu")
             else:
                 # Restore the menu and view pane for the previous (this) directory
-                _update_menu(items, top_level, prev_pos)  # noqa: F821
-                pos = prev_pos  # noqa: F821
+                _update_menu(items, top_level, prev_pos)
+                pos = prev_pos
 
             continue  # Skip `yield`
 
         elif pos == BACK:  # Implements "menu::Back" action
-            if not top_level:  # noqa: F821
+            if not top_level:
                 break
             # Since the execution context is not exited at top-level, ensure pos
             # (and indirectly, prev_pos) always corresponds to a valid menu position.
             # By implication, this prevents an `IndexError` or rendering the wrong image
             # when coming out of a directory that was entered when prev_pos < -1.
-            pos = prev_pos  # noqa: F821
+            pos = prev_pos
 
         elif pos == DELETE:
-            del items[prev_pos]  # noqa: F821
-            pos = min(prev_pos, len(items) - 1)  # noqa: F821
-            _update_menu(items, top_level, pos)  # noqa: F821
+            del items[prev_pos]
+            pos = min(prev_pos, len(items) - 1)
+            _update_menu(items, top_level, pos)
             yield  # Displaying next image immediately will mess up confirmation overlay
             info_bar.set_text(f"delete_pos={pos} {info_bar.text}")
             continue
