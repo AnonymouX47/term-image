@@ -228,6 +228,7 @@ _context_keys = {
         "Prev": ["up", "", "Select the next item on the list"],
         "Next": ["down", "", "Select the previous item on the list"],
         "Back": ["backspace", "\u27f5 ", "Return to the previous directory"],
+        "Delete": ["d", "d", "Delete selected image"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
         "Page Up": ["page up", "PgUp", "Jump up one page"],
         "Page Down": ["page down", "PgDn", "Jump down one page"],
@@ -243,6 +244,7 @@ _context_keys = {
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
         "Maximize": ["f", "f", "Maximize the current image"],
+        "Delete": ["d", "d", "Delete current image"],
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
     },
     "image-grid": {
@@ -268,6 +270,7 @@ _context_keys = {
             "F",
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
+        "Delete": ["d", "d", "Delete current image"],
     },
     "full-grid-image": {
         "Back": ["esc", "\u238b", "Back to grid view"],

@@ -1,7 +1,10 @@
 """Definitions of key functions"""
 
-from os.path import basename
+import logging as _logging
+import os
+from os.path import abspath, basename
 from shutil import get_terminal_size
+from time import sleep
 from types import FunctionType, GeneratorType
 from typing import Tuple
 
@@ -26,6 +29,7 @@ from .widgets import (
     viewer,
 )
 from . import main
+from .. import logging
 
 
 def _display_context_keys(context):
@@ -67,6 +71,8 @@ def _register_key(*args: Tuple[str, str]) -> FunctionType:
         """
         for context, action in args:
             keys[context][context_keys[context][action][0]] = func
+
+        return func
 
     for context, action in args:
         if context not in context_keys:
@@ -283,6 +289,61 @@ def force_render():
     main.menu_list[menu.focus_position - 1][1]._forced_render = True
 
 
+# menu, image, full-image
+@_register_key(
+    ("menu", "Delete"),
+    ("image", "Delete"),
+    ("full-image", "Delete"),
+)
+def delete():
+    entry = main.menu_list[menu.focus_position - 1][0]
+    set_confirmation(
+        ("warning", "Permanently delete this image?"),
+        view if main.get_context() == "full-image" else pile,
+        _confirm_delete,
+        _cancel_delete,
+        (entry,),
+    )
+
+
+def _confirm_delete(entry):
+    try:
+        os.remove(entry)
+    except OSError:
+        successful = False
+        logging.log_exception(f"Unable to delete {abspath(entry)}", logger)
+        confirmation.set_text(("warning", "Unable to delete! Check the logs for info."))
+    else:
+        successful = True
+        main.displayer.send(main.DELETE)
+        confirmation.set_text(f"Successfully deleted {abspath(entry)}")
+        confirmation.set_text(("green fg", "Successfully deleted!"))
+    main.loop.draw_screen()
+    sleep(1)
+
+    if successful:
+        if not main.menu_list or isinstance(
+            main.menu_list[menu.focus_position - 1][1], GeneratorType
+        ):  # All menu entries have been deleted OR selected menu item is a directory
+            main_widget.contents[0] = (pile, ("weight", 1))
+            viewer.focus_position = 0
+            # "confirmation:Confirm" calls `set_prev_context()`
+            main._prev_contexts[0] = "menu"
+        else:
+            _cancel_delete()
+        next(main.displayer)  # Display next image
+    else:
+        view.original_widget = _prev_view_widget
+        _cancel_delete()
+
+
+def _cancel_delete():
+    main_widget.contents[0] = (
+        view if main.get_prev_context() == "full-image" else pile,
+        ("weight", 1),
+    )
+
+
 # menu, image, image-grid
 @_register_key(
     ("menu", "Switch Pane"),
@@ -313,5 +374,6 @@ def cancel():
     main.set_prev_context()
 
 
+logger = _logging.getLogger(__name__)
 key_bar_is_collapsed = True
 expand_key_is_shown = True

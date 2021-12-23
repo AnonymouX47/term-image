@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging as _logging
 import os
 from os.path import basename, isfile, islink, realpath
+from time import sleep
 from typing import Generator, Iterable, Iterator, Tuple, Union
 
 import PIL
@@ -36,7 +37,7 @@ def display_images(
     prev_dir: str = "..",
     *,
     top_level: bool = False,
-) -> Generator[None, int, None]:
+) -> Generator[None, int, bool]:
     """Display images in _dir_ (and sub-directories, if '--recursive' is set)
     as yielded by `scan_dir(dir)`.
 
@@ -75,11 +76,17 @@ def display_images(
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
             if top_level:  # noqa: F821
-                # Ensure ".." is not selectable at top level
-                # Possible when `Home` action is invoked
-                pos = 0
-                menu.focus_position = 1
-                continue
+                if items:
+                    # Ensure ".." is not selectable at top level
+                    # Possible when `Home` action is invoked
+                    pos = 0
+                    menu.focus_position = 1
+                    continue
+                else:
+                    logging.log("All entries have been removed! Exiting...", logger)
+                    loop.draw_screen()
+                    sleep(4)
+                    raise urwid.ExitMainLoop
             image_box._w.contents[1][0].contents[1] = (
                 _placeholder,
                 ("weight", 1, False),
@@ -87,7 +94,7 @@ def display_images(
             image_box.set_title("Image")
             view.original_widget = image_box
 
-        elif pos == OPEN:  # Implements "menu::Open" action
+        elif pos == OPEN:  # Implements "menu::Open" action (for non-image entries)
             if prev_pos == -1:  # noqa: F821
                 # prev_pos can never be -1 at top level (See `pos == -1` branch above),
                 # so the program can't be broken.
@@ -105,28 +112,48 @@ def display_images(
                 )
 
             logger.debug(f"Going into {realpath(entry)}/")  # noqa: F821
-            yield from display_images(
+            empty = yield from display_images(
                 entry,  # noqa: F821
                 value,  # noqa: F821
                 contents[entry],  # noqa: F821
                 # Return to Top-Level Directory, OR
-                # Return to the link's parent rather than the linked directory's parent
+                # to the link's parent instead of the linked directory's parent
                 os.getcwd() if top_level or islink(entry) else "..",  # noqa: F821
             )
 
-            # Restore menu and image view for the previous directory and menu item
-            _update_menu(items, top_level, prev_pos)  # noqa: F821
-            pos = prev_pos  # noqa: F821
+            if empty:  # All entries in the exited directory have been deleted
+                del items[prev_pos]  # noqa: F821
+                del contents[entry]  # noqa: F821
+                pos = min(prev_pos, len(items) - 1)  # noqa: F821
+                # Restore the menu and view pane for the previous (this) directory,
+                # while removing the empty directory entry.
+                _update_menu(items, top_level, pos)  # noqa: F821
+
+                logger.debug(f"Removed empty directory entry '{entry}/' from the menu")
+                notify.notify(f"Removed empty directory entry '{entry}/' from the menu")
+            else:
+                # Restore the menu and view pane for the previous (this) directory
+                _update_menu(items, top_level, prev_pos)  # noqa: F821
+                pos = prev_pos  # noqa: F821
+
             continue  # Skip `yield`
 
         elif pos == BACK:  # Implements "menu::Back" action
             if not top_level:  # noqa: F821
                 break
-            # Since the execution context is not exited, ensure pos
+            # Since the execution context is not exited at top-level, ensure pos
             # (and indirectly, prev_pos) always corresponds to a valid menu position.
-            # By implication, this prevents an `IndexError` when coming out of
-            # a directory that was entered from a context where prev_pos < -1
+            # By implication, this prevents an `IndexError` or rendering the wrong image
+            # when coming out of a directory that was entered when prev_pos < -1.
             pos = prev_pos  # noqa: F821
+
+        elif pos == DELETE:
+            del items[prev_pos]  # noqa: F821
+            pos = min(prev_pos, len(items) - 1)  # noqa: F821
+            _update_menu(items, top_level, pos)  # noqa: F821
+            yield  # Displaying next image immediately will mess up confirmation overlay
+            info_bar.set_text(f"delete_pos={pos} {info_bar.text}")
+            continue
 
         else:
             entry, value = items[pos]
@@ -167,6 +194,8 @@ def display_images(
     if not top_level:
         logger.debug(f"Going back to {realpath(prev_dir)}/")
         os.chdir(prev_dir)
+
+    return not len(items)
 
 
 def get_context():
@@ -340,8 +369,8 @@ palette = [
     ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
     ("keys", "", "", "", "#ffffff", "#5588ff"),
     ("keys block", "", "", "", "#5588ff", ""),
-    ("error", "", "", "", "", "#ff0000"),
-    ("warning", "", "", "", "#ff0000", ""),
+    ("error", "", "", "", "bold", "#ff0000"),
+    ("warning", "", "", "", "#ff0000, bold", ""),
     ("input", "", "", "", "standout", ""),
 ]
 
@@ -350,6 +379,7 @@ logger = _logging.getLogger(__name__)
 # Constants for `display_images()`
 OPEN = -2
 BACK = -3
+DELETE = -4
 
 # Placeholders; Set from `..tui.init()`
 displayer = None

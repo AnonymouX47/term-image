@@ -273,10 +273,7 @@ or multiple valid sources
         elif os.path.isfile(source):
             try:
                 images.append(
-                    (
-                        os.path.basename(source),
-                        Image(TermImage.from_file(os.path.relpath(source))),
-                    )
+                    (source, Image(TermImage.from_file(os.path.relpath(source))))
                 )
             except PIL.UnidentifiedImageError as e:
                 log(str(e), logger, logging.ERROR)
