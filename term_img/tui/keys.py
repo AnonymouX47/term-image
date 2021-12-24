@@ -318,7 +318,7 @@ def cell_width_dec():
 def force_render_maximized_cell():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
-    image_box._w.contents[1][0].contents[1][0]._forced_render = True
+    image_box._w.contents[1][0].contents[1][0]._force_render = True
 
 
 # full-image, full-grid-image

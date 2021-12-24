@@ -8,6 +8,7 @@ from shutil import get_terminal_size
 import urwid
 
 from .config import cell_width, expand_key, _nav, nav
+from . import keys
 from . import main as tui_main
 from ..image import TermImage
 from .. import logging
@@ -93,7 +94,8 @@ class Image(urwid.Widget):
 
     _faulty_image = urwid.SolidFill("?")
     _placeholder = urwid.SolidFill(".")
-    _forced_render = False
+    _force_render = False
+    _force_render_contexts = {"image", "full-image", "full-grid-image"}
 
     _last_canv = (None, None)
     _grid_cache = {}
@@ -116,26 +118,33 @@ class Image(urwid.Widget):
         return rows
 
     def render(self, size, focus=False):
+        context = tui_main.get_context()
+
         if (
             view.original_widget is image_grid_box
             and tui_main.get_context() != "full-grid-image"
         ):
             canv = self._grid_cache.get(self)
-            # Grid render cell width adjusts when _maxcol_ < _cell_width_
-            # `+2` cos `LineSquare` subtracts the columns for surrounding lines
+            # Grid render cell-width adjusts when _maxcol_ < _cell_width_.
+            # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
             if canv and size[0] + 2 == image_grid.cell_width:
                 return canv
         elif self._last_canv[0] == hash((self._image._source, size)):
-            if self._forced_render:
-                del self._forced_render
+            if context in self._force_render_contexts:
+                keys.disable_actions(context, "Force Render")
             return self._last_canv[1]
 
         image = self._image
 
-        if not self._forced_render and mul(*image._original_size) > tui_main.max_pixels:
-            return self._placeholder.render(size, focus)
-        if self._forced_render:
-            del self._forced_render
+        if mul(*image._original_size) > tui_main.max_pixels:
+            if self._force_render:
+                del self._force_render
+            else:
+                if context in self._force_render_contexts:
+                    keys.enable_actions(context, "Force Render")
+                return self._placeholder.render(size, focus)
+        if context in self._force_render_contexts:
+            keys.disable_actions(context, "Force Render")
 
         if len(size) == 1:
             size = image._valid_size(
