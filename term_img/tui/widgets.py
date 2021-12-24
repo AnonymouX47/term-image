@@ -274,10 +274,16 @@ class NoSwitchColumns(urwid.Columns):
         _command_map._command.pop(key)
 
 
+class PlaceHolder(urwid.SolidFill):
+    _selectable = True  # Prevents _image_box_ from being completely un-selectable
+
+    def keypress(self, size, key):
+        return key
+
+
 logger = _logging.getLogger(__name__)
 
-_placeholder = urwid.SolidFill(" ")
-_placeholder._selectable = True  # Prevents _image_box_ from being un-selectable
+_placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
     [_placeholder],
