@@ -217,8 +217,7 @@ def _process_input(key: str) -> bool:
     if key in keys["global"]:
         if _context not in no_globals:
             func, state = keys["global"][key]
-            if state:
-                func()
+            func() if state else print("\a", end="", flush=True)
             found = True
     elif key[0] == "mouse press":  # strings also support subscription
         # change context if the pane in focus changed.
@@ -238,6 +237,8 @@ def _process_input(key: str) -> bool:
         func, state = keys[_context].get(key, (None, None))
         if state:
             func()
+        elif state is False:
+            print("\a", end="", flush=True)
         found = state is not None
 
     return bool(found)
@@ -324,8 +325,8 @@ def _update_menu(
     top_level: bool = False,
     pos: int = 0,
 ) -> None:
-    global menu_list
-    menu_list = items
+    global menu_list, at_top_level
+    menu_list, at_top_level = items, top_level
 
     menu.body[:] = [
         urwid.Text(("inactive", ".."))
@@ -346,50 +347,22 @@ def _update_menu(
     menu.focus_position = pos + 1
 
 
-class MainLoop(urwid.MainLoop):
-    def start(self):
-        # Properly set expand key visbility at initialization
-        self.unhandled_input("resized")
-        return super().start()
+logger = _logging.getLogger(__name__)
 
-    def process_input(self, keys):
-        if "window resize" in keys:
-            # Adjust bottom bar upon window resize
-            keys.append("resized")
-        return super().process_input(keys)
-
-
+# For Context Management
 _prev_contexts = ["menu"] * 3
 _context = "menu"  # To avoid a NameError the first time set_context() is called.
 set_context("menu")
-depth = -1
-menu_list = []
-
-palette = [
-    ("default", "", "", "", "#ffffff", ""),
-    ("inactive", "", "", "", "#7f7f7f", ""),
-    ("white on black", "", "", "", "#ffffff", "#000000"),
-    ("black on white", "", "", "", "#000000", "#ffffff"),
-    ("mine", "", "", "", "#ff00ff", "#ffff00"),
-    ("focused entry", "", "", "", "standout", ""),
-    ("unfocused box", "", "", "", "#7f7f7f", ""),
-    ("focused box", "", "", "", "#ffffff", ""),
-    ("green fg", "", "", "", "#00ff00", ""),
-    ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
-    ("key", "", "", "", "#ffffff", "#5588ff"),
-    ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
-    ("key block", "", "", "", "#5588ff", ""),
-    ("error", "", "", "", "bold", "#ff0000"),
-    ("warning", "", "", "", "#ff0000, bold", ""),
-    ("input", "", "", "", "standout", ""),
-]
-
-logger = _logging.getLogger(__name__)
 
 # Constants for `display_images()`
 OPEN = -2
 BACK = -3
 DELETE = -4
+
+# Set by `_update_menu()`
+# depth = -1
+menu_list = None
+at_top_level = None
 
 # Placeholders; Set from `..tui.init()`
 displayer = None

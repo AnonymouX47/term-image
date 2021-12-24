@@ -8,7 +8,7 @@ from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
 
-from .main import MainLoop, palette, _process_input
+from .main import _process_input
 from .widgets import Image, info_bar, main as main_widget
 from . import main
 from .. import cli
@@ -43,12 +43,44 @@ def init(
     log("Launching TUI", logger, direct=False)
     launched = True
 
-    next(main.displayer)
     try:
+        next(main.displayer)
         main.loop.run()
         log("Exited TUI normally", logger, direct=False)
     finally:
         launched = False
 
 
+class MainLoop(urwid.MainLoop):
+    def start(self):
+        # Properly set expand key visbility at initialization
+        self.unhandled_input("resized")
+        return super().start()
+
+    def process_input(self, keys):
+        if "window resize" in keys:
+            # Adjust bottom bar upon window resize
+            keys.append("resized")
+        return super().process_input(keys)
+
+
 launched = False
+
+palette = [
+    ("default", "", "", "", "#ffffff", ""),
+    ("inactive", "", "", "", "#7f7f7f", ""),
+    ("white on black", "", "", "", "#ffffff", "#000000"),
+    ("black on white", "", "", "", "#000000", "#ffffff"),
+    ("mine", "", "", "", "#ff00ff", "#ffff00"),
+    ("focused entry", "", "", "", "standout", ""),
+    ("unfocused box", "", "", "", "#7f7f7f", ""),
+    ("focused box", "", "", "", "#ffffff", ""),
+    ("green fg", "", "", "", "#00ff00", ""),
+    ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
+    ("key", "", "", "", "#ffffff", "#5588ff"),
+    ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
+    ("key block", "", "", "", "#5588ff", ""),
+    ("error", "", "", "", "bold", "#ff0000"),
+    ("warning", "", "", "", "#ff0000, bold", ""),
+    ("input", "", "", "", "standout", ""),
+]
