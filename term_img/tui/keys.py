@@ -174,6 +174,7 @@ def quit():
     raise urwid.ExitMainLoop()
 
 
+@_register_key(("global", "Key Bar"))
 def expand_collapse_keys():
     global key_bar_is_collapsed
 
@@ -200,8 +201,7 @@ def resize():
         if rows == 1:
             bottom_bar.contents.pop()
             expand_key_is_shown = False
-    else:
-        if rows > 1:
+    elif rows > 1:
             bottom_bar.contents.append((expand, ("given", 5, False)))
             expand_key_is_shown = True
 
@@ -218,9 +218,7 @@ def key_bar_rows():
     return key_bar.original_widget.rows((cols,))
 
 
-keys["global"].update(
-    {expand_key[0]: [expand_collapse_keys, True], "resized": [resize, True]}
-)
+keys["global"].update({"resized": [resize, True]})
 
 
 # menu

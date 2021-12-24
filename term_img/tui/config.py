@@ -309,4 +309,5 @@ else:
     update_context_nav_keys(context_keys, nav, nav)
     store_config(default=True)
 
-expand_key = context_keys["global"].pop("Key Bar")
+expand_key = context_keys["global"]["Key Bar"]
+expand_key[3] = False  # Hidden
