@@ -16,6 +16,7 @@ from .keys import (
     keys,
     menu_nav,
     no_globals,
+    set_image_view_actions,
     set_menu_actions,
 )
 from .widgets import (
@@ -234,9 +235,14 @@ def _process_input(key: str) -> bool:
             found = True
         elif _context == "menu":
             if viewer.focus_position == 1:
-                set_context(
-                    "image" if view.original_widget is image_box else "image-grid"
-                )
+                if menu.focus_position == 0:
+                    # Set focus back to the menu if top item is selected
+                    viewer.focus_position = 0
+                else:
+                    set_context(
+                        "image" if view.original_widget is image_box else "image-grid"
+                    )
+                    set_image_view_actions()
             else:  # Update image view
                 menu_nav()
             found = True

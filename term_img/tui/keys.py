@@ -267,6 +267,7 @@ def open():
     else:
         main.set_context("full-image")
         main_widget.contents[0] = (view, ("weight", 1))
+        set_image_view_actions()
 
 
 @_register_key(("menu", "Back"))
@@ -279,6 +280,7 @@ def back():
 def maximize():
     main.set_context("full-image")
     main_widget.contents[0] = (view, ("weight", 1))
+    set_image_view_actions()
 
 
 # image-grid
@@ -326,6 +328,8 @@ def restore():
     main_widget.contents[0] = (pile, ("weight", 1))
     if main.get_context() == "menu":
         set_menu_actions()
+    elif main.get_context() == "image":
+        set_image_view_actions()
 
 
 # image, full-image
@@ -334,25 +338,45 @@ def prev_image():
     if menu.focus_position > 1:
         menu.focus_position -= 1
         main.displayer.send(menu.focus_position - 1)
+    set_image_view_actions()
 
 
 @_register_key(("image", "Next"), ("full-image", "Next"))
 def next_image():
-    # `menu_list` is one item less than `menu` (at it's beginning)
+    # `menu_list` is one item less than `menu` (at it's beginning), hence no `len - 1`
     if (
         menu.focus_position < len(main.menu_list)
         # Don't scroll through directory items in image views
-        and isinstance(main.menu_list[menu.focus_position][1], Image)
+        and isinstance(main.menu_list[menu.focus_position][1], Image)  # Next item
     ):
         menu.focus_position += 1
         main.displayer.send(menu.focus_position - 1)
+
+    set_image_view_actions()
 
 
 @_register_key(("image", "Force Render"), ("full-image", "Force Render"))
 def force_render():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
-    main.menu_list[menu.focus_position - 1][1]._forced_render = True
+    main.menu_list[menu.focus_position - 1][1]._force_render = True
+
+
+def set_image_view_actions():
+    context = main.get_context()
+    if menu.focus_position > 1:
+        enable_actions(context, "Prev")
+        if (
+            menu.focus_position == len(main.menu_list)  # Last item
+            # Next item is a directory
+            or isinstance(main.menu_list[menu.focus_position][1], GeneratorType)
+        ):
+            disable_actions(context, "Next")
+        else:
+            enable_actions(context, "Next")
+    else:
+        disable_actions(context, "Prev")
+        enable_actions(context, "Next")
 
 
 # menu, image, full-image
@@ -420,10 +444,14 @@ def switch_pane():
     if main.get_context() != "menu":
         main.set_context("menu")
         viewer.focus_position = 0
-    elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'
-        main.set_context("image" if view.original_widget is image_box else "image-grid")
         set_menu_actions()
+    else:
         viewer.focus_position = 1
+        if view.original_widget is image_box:
+            main.set_context("image")
+            set_image_view_actions()
+        else:
+            main.set_context("image-grid")
 
 
 # confirmation
