@@ -202,8 +202,8 @@ def resize():
             bottom_bar.contents.pop()
             expand_key_is_shown = False
     elif rows > 1:
-            bottom_bar.contents.append((expand, ("given", 5, False)))
-            expand_key_is_shown = True
+        bottom_bar.contents.append((expand, ("given", 5, False)))
+        expand_key_is_shown = True
 
     if not key_bar_is_collapsed:
         main_widget.contents[-1] = (
@@ -231,7 +231,31 @@ keys["global"].update({"resized": [resize, True]})
     ("menu", "Bottom"),
 )
 def menu_nav():
+    set_menu_actions()
     main.displayer.send(menu.focus_position - 1)
+
+
+def set_menu_actions():
+    pos = menu.focus_position - 1
+    if pos == -1:
+        disable_actions("menu", "Switch Pane", "Delete", "Prev")
+    elif isinstance(main.menu_list[pos][1], GeneratorType):
+        disable_actions("menu", "Delete")
+        enable_actions("menu", "Switch Pane", "Prev")
+    else:
+        enable_actions("menu", "Switch Pane", "Delete", "Prev")
+
+    if main.at_top_level:
+        if pos == 0:
+            disable_actions("menu", "Prev")
+        disable_actions("menu", "Back")
+    else:
+        enable_actions("menu", "Back")
+
+    if pos == len(main.menu_list) - 1:
+        disable_actions("menu", "Next")
+    else:
+        enable_actions("menu", "Next")
 
 
 @_register_key(("menu", "Open"))
@@ -300,6 +324,8 @@ def force_render_maximized_cell():
 def restore():
     main.set_prev_context()
     main_widget.contents[0] = (pile, ("weight", 1))
+    if main.get_context() == "menu":
+        set_menu_actions()
 
 
 # image, full-image
@@ -396,6 +422,7 @@ def switch_pane():
         viewer.focus_position = 0
     elif menu.focus_position > 0:  # Do not switch to view pane when on '..' or 'Top'
         main.set_context("image" if view.original_widget is image_box else "image-grid")
+        set_menu_actions()
         viewer.focus_position = 1
 
 

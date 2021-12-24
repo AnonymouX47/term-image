@@ -11,7 +11,13 @@ from typing import Generator, Iterable, Iterator, Tuple, Union
 import PIL
 import urwid
 
-from .keys import display_context_keys, keys, no_globals
+from .keys import (
+    display_context_keys,
+    keys,
+    menu_nav,
+    no_globals,
+    set_menu_actions,
+)
 from .widgets import (
     info_bar,
     Image,
@@ -219,11 +225,12 @@ def _process_input(key: str) -> bool:
             func, state = keys["global"][key]
             func() if state else print("\a", end="", flush=True)
             found = True
+
     elif key[0] == "mouse press":  # strings also support subscription
         # change context if the pane in focus changed.
         if _context in {"image", "image-grid"} and viewer.focus_position == 0:
             set_context("menu")
-            displayer.send(menu.focus_position - 1)
+            menu_nav()
             found = True
         elif _context == "menu":
             if viewer.focus_position == 1:
@@ -231,8 +238,9 @@ def _process_input(key: str) -> bool:
                     "image" if view.original_widget is image_box else "image-grid"
                 )
             else:  # Update image view
-                displayer.send(menu.focus_position - 1)
+                menu_nav()
             found = True
+
     else:
         func, state = keys[_context].get(key, (None, None))
         if state:
@@ -345,6 +353,7 @@ def _update_menu(
         for entry, value in items
     ]
     menu.focus_position = pos + 1
+    set_menu_actions()
 
 
 logger = _logging.getLogger(__name__)
