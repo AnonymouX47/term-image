@@ -231,8 +231,9 @@ keys["global"].update({"resized": [resize, True]})
     ("menu", "Bottom"),
 )
 def menu_nav():
-    set_menu_actions()
     main.displayer.send(menu.focus_position - 1)
+    if not main.at_top_level or main.at_top_level and main.menu_list:
+        set_menu_actions()
 
 
 def set_menu_actions():
@@ -412,16 +413,18 @@ def _confirm_delete(entry):
     sleep(1)
 
     if successful:
+        next(main.displayer)  # Render next image view
         if not main.menu_list or isinstance(
             main.menu_list[menu.focus_position - 1][1], GeneratorType
         ):  # All menu entries have been deleted OR selected menu item is a directory
             main_widget.contents[0] = (pile, ("weight", 1))
             viewer.focus_position = 0
             # "confirmation:Confirm" calls `set_prev_context()`
-            main._prev_contexts[0] = "menu"
+            main._prev_contexts[0] = (
+                "global" if main.at_top_level and not main.menu_list else "menu"
+            )
         else:
             _cancel_delete()
-        next(main.displayer)  # Display next image
     else:
         view.original_widget = _prev_view_widget
         _cancel_delete()

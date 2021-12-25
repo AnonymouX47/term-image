@@ -315,7 +315,7 @@ def set_context(new_context):
     _prev_contexts[0] = _context
     _context = new_context
     display_context_keys(new_context)
-    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    info_bar.set_text(f"{new_context!r} {_prev_contexts} {info_bar.text}")
 
 
 def set_prev_context(n=1):
