@@ -365,20 +365,20 @@ def force_render():
     main.menu_list[menu.focus_position - 1][1]._force_render = True
 
 
-def set_image_view_actions():
-    context = main.get_context()
+def set_image_view_actions(context: str = None):
+    context = context or main.get_context()
     if menu.focus_position > 1:
         enable_actions(context, "Prev")
-        if (
-            menu.focus_position == len(main.menu_list)  # Last item
-            # Next item is a directory
-            or isinstance(main.menu_list[menu.focus_position][1], GeneratorType)
-        ):
-            disable_actions(context, "Next")
-        else:
-            enable_actions(context, "Next")
     else:
         disable_actions(context, "Prev")
+
+    if (
+        menu.focus_position == len(main.menu_list)  # Last item
+        # Next item is a directory
+        or isinstance(main.menu_list[menu.focus_position][1], GeneratorType)
+    ):
+        disable_actions(context, "Next")
+    else:
         enable_actions(context, "Next")
 
 
@@ -437,6 +437,8 @@ def _cancel_delete():
         view if main.get_prev_context() == "full-image" else pile,
         ("weight", 1),
     )
+    if main.get_prev_context() in {"image", "full-image"}:
+        set_image_view_actions(main.get_prev_context())
 
 
 # menu, image, image-grid

@@ -236,10 +236,11 @@ def _process_input(key: str) -> bool:
                     # Set focus back to the menu if "menu::Switch Pane" is disabled
                     viewer.focus_position = 0
                 else:
-                    set_context(
-                        "image" if view.original_widget is image_box else "image-grid"
-                    )
-                    set_image_view_actions()
+                    if view.original_widget is image_box:
+                        set_context("image")
+                        set_image_view_actions()
+                    else:
+                        set_context("image-grid")
             else:  # Update image view
                 menu_nav()
             found = True
