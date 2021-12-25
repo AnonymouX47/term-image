@@ -337,7 +337,20 @@ main = urwid.Pile([pile, (1, bottom_bar)], 0)
 
 confirmation = urwid.Text("", "center")
 confirmation_overlay = urwid.Overlay(
-    urwid.LineBox(urwid.Filler(confirmation)),
+    urwid.LineBox(
+        urwid.Filler(confirmation),
+        "",
+        "center",
+        None,
+        "\u2554",
+        "\u2550",
+        "\u2551",
+        "\u2557",
+        "\u255a",
+        "\u2551",
+        "\u2550",
+        "\u255d",
+    ),
     _placeholder,
     "center",
     ("relative", 25),
