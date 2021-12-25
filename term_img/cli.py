@@ -120,12 +120,14 @@ For example, `$ term-img [options] -- -image.jpg --image.png`
 
 NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
-  2. Any image having more pixels than the specified maximum will be replaced
+  2. The size is multiplied by the scale on each axis respectively before the image
+     is rendered.
+  3. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.
      Note that increasing this will have adverse effects on performance.
-  3. Any event with a level lower than the specified one is not reported.
-  4. Supports all image formats supported by PIL.Image.open().
+  4. Any event with a level lower than the specified one is not reported.
+  5. Supports all image formats supported by PIL.Image.open().
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -161,6 +163,22 @@ NOTES:
         metavar="N",
         help="Height of the image to be rendered [1]",
     )
+    cli_options.add_argument(
+        "-x",
+        "--scale-x",
+        type=float,
+        metavar="N",
+        default=1.0,
+        help="x-axis scale of the image to be rendered [2]",
+    )
+    cli_options.add_argument(
+        "-y",
+        "--scale-y",
+        type=float,
+        metavar="N",
+        default=1.0,
+        help="y-axis scale of the image to be rendered [2]",
+    )
 
     # TUI-only
     tui_options = parser.add_argument_group(
@@ -187,7 +205,7 @@ or multiple valid sources
         type=int,
         metavar="N",
         default=max_pixels,
-        help="Maximum amount of pixels in images to be displayed (default=4194304) [2]",
+        help="Maximum amount of pixels in images to be displayed (default=4194304) [3]",
     )
 
     # Logging
@@ -208,7 +226,7 @@ or multiple valid sources
         metavar="LEVEL",
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
         default="WARNING",
-        help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [3]",
+        help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [4]",
     )
     log_options.add_argument(
         "-v",
@@ -318,8 +336,10 @@ or multiple valid sources
                 image.width = args.width
             elif args.height is not None:
                 image.height = args.height
+            image.scale_x = args.scale_x
+            image.scale_y = args.scale_y
         # Handles `ValueError` and `.exceptions.InvalidSize`
-        # raised by `TermImage.__valid_size()`
+        # raised by `TermImage.__valid_size()` or scale setter methods.
         except ValueError as e:
             log(str(e), logger, logging.CRITICAL)
             return INVALID_SIZE
