@@ -472,5 +472,5 @@ def cancel():
 logger = _logging.getLogger(__name__)
 key_bar_is_collapsed = True
 expand_key_is_shown = True
-no_globals = {"confirmation", "full-grid-image"}
+no_globals = {"global", "confirmation", "full-grid-image"}
 _confirm = _cancel = _prev_view_widget = None  # To be set by `set_confirmation()`

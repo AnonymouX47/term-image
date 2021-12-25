@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging as _logging
 import os
 from os.path import basename, isfile, islink, realpath
-from time import sleep
 from typing import Generator, Iterable, Iterator, Tuple, Union
 
 import PIL
@@ -87,15 +86,12 @@ def display_images(
             if top_level:
                 if items:
                     # Ensure ".." is not selectable at top level
-                    # Possible when `Home` action is invoked
+                    # Possible when "Home" action is invoked
                     pos = 0
                     menu.focus_position = 1
                     continue
                 else:
-                    logging.log("All entries have been removed! Exiting...", logger)
-                    loop.draw_screen()
-                    sleep(4)
-                    raise urwid.ExitMainLoop
+                    set_context("global")
             image_box._w.contents[1][0].contents[1] = (
                 _placeholder,
                 ("weight", 1, False),
@@ -222,7 +218,7 @@ def _process_input(key: str) -> bool:
 
     found = False
     if key in keys["global"]:
-        if _context not in no_globals:
+        if _context not in no_globals or _context == "global":
             func, state = keys["global"][key]
             func() if state else print("\a", end="", flush=True)
             found = True
