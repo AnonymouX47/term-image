@@ -295,7 +295,7 @@ logger = _logging.getLogger(__name__)
 _placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
-    [_placeholder],
+    [],
     cell_width,
     2,
     1,

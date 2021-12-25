@@ -17,6 +17,7 @@ from .keys import (
     menu_nav,
     no_globals,
     set_image_view_actions,
+    set_image_grid_actions,
     set_menu_actions,
 )
 from .widgets import (
@@ -241,6 +242,7 @@ def _process_input(key: str) -> bool:
                         set_image_view_actions()
                     else:
                         set_context("image-grid")
+                        set_image_grid_actions()
             else:  # Update image view
                 menu_nav()
             found = True

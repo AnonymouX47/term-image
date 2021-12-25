@@ -316,6 +316,13 @@ def cell_width_dec():
         Image._grid_cache.clear()
 
 
+def set_image_grid_actions():
+    if image_grid.contents:
+        enable_actions("image-grid", "Open", "Size-", "Size+")
+    else:
+        disable_actions("image-grid", "Open", "Size-", "Size+")
+
+
 # full-grid-image
 @_register_key(("full-grid-image", "Force Render"))
 def force_render_maximized_cell():
@@ -459,6 +466,7 @@ def switch_pane():
             set_image_view_actions()
         else:
             main.set_context("image-grid")
+            set_image_grid_actions()
 
 
 # confirmation
