@@ -239,24 +239,26 @@ def menu_nav():
 def set_menu_actions():
     pos = menu.focus_position - 1
     if pos == -1:
-        disable_actions("menu", "Switch Pane", "Delete", "Prev")
+        disable_actions("menu", "Switch Pane", "Delete", "Prev", "Page Up", "Top")
     elif isinstance(main.menu_list[pos][1], GeneratorType):
         disable_actions("menu", "Delete")
-        enable_actions("menu", "Switch Pane", "Prev")
+        enable_actions("menu", "Prev", "Page Up", "Top")
     else:
-        enable_actions("menu", "Switch Pane", "Delete", "Prev")
+        enable_actions("menu", "Switch Pane", "Delete", "Prev", "Page Up", "Top")
 
     if main.at_top_level:
         if pos == 0:
-            disable_actions("menu", "Prev")
+            # "Top" is not disabled to ensure ".." is never selected
+            # See `pos == -1` in `.main.display_images()`
+            disable_actions("menu", "Prev", "Page Up")
         disable_actions("menu", "Back")
     else:
         enable_actions("menu", "Back")
 
     if pos == len(main.menu_list) - 1:
-        disable_actions("menu", "Next")
+        disable_actions("menu", "Next", "Page Down", "Bottom")
     else:
-        enable_actions("menu", "Next")
+        enable_actions("menu", "Next", "Page Down", "Bottom")
 
 
 @_register_key(("menu", "Open"))

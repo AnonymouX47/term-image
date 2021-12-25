@@ -10,6 +10,7 @@ from typing import Generator, Iterable, Iterator, Tuple, Union
 import PIL
 import urwid
 
+from .config import context_keys
 from .keys import (
     display_context_keys,
     keys,
@@ -231,8 +232,8 @@ def _process_input(key: str) -> bool:
             found = True
         elif _context == "menu":
             if viewer.focus_position == 1:
-                if menu.focus_position == 0:
-                    # Set focus back to the menu if top item is selected
+                if not context_keys["menu"]["Switch Pane"][4]:
+                    # Set focus back to the menu if "menu::Switch Pane" is disabled
                     viewer.focus_position = 0
                 else:
                     set_context(
