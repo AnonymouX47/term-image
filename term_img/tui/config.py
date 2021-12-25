@@ -24,11 +24,6 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
 def load_config() -> None:
     """Load user config from disk"""
 
-    def _set_action_status() -> None:
-        for keyset in context_keys.values():
-            for action in keyset.values():
-                action[3:] = (True, True)  # Default: "shown", "enabled"
-
     try:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
@@ -72,6 +67,12 @@ def load_config() -> None:
         update_context(context, context_keys[context], keyset)
 
     _set_action_status()
+
+
+def _set_action_status() -> None:
+    for keyset in context_keys.values():
+        for action in keyset.values():
+            action[3:] = (True, True)  # Default: "shown", "enabled"
 
 
 def store_config(*, default: bool = False) -> None:
@@ -307,6 +308,7 @@ if os.path.isfile(f"{user_dir}/config.json"):
     load_config()
 else:
     update_context_nav_keys(context_keys, nav, nav)
+    _set_action_status()
     store_config(default=True)
 
 expand_key = context_keys["global"]["Key Bar"]
