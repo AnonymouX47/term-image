@@ -296,6 +296,15 @@ _context_keys = {
         "Confirm": ["enter", "\u23ce", ""],
         "Cancel": ["esc", "\u238b", ""],
     },
+    "overlay": {
+        "Close": ["esc", "\u238b", ""],
+        "Up": ["up", "", "Scroll up"],
+        "Down": ["down", "", "Scroll down"],
+        "Page Up": ["page up", "PgUp", "Scroll up one page"],
+        "Page Down": ["page down", "PgDn", "Scroll down one page"],
+        "Top": ["home", "Home", "Jump to the top"],
+        "Bottom": ["end", "End", "Jump to the bottom"],
+    },
 }
 # End of Defaults
 

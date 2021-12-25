@@ -68,6 +68,7 @@ launched = False
 
 palette = [
     ("default", "", "", "", "#ffffff", ""),
+    ("default bold", "", "", "", "#ffffff, bold", ""),
     ("inactive", "", "", "", "#7f7f7f", ""),
     ("white on black", "", "", "", "#ffffff", "#000000"),
     ("black on white", "", "", "", "#000000", "#ffffff"),

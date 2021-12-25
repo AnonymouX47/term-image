@@ -346,3 +346,27 @@ confirmation_overlay = urwid.Overlay(
     50,
     3,
 )
+
+overlay = urwid.Overlay(
+    urwid.LineBox(
+        urwid.ListBox([_placeholder]),
+        "Help",
+        "center",
+        "default bold",
+        "\u2554",
+        "\u2550",
+        "\u2551",
+        "\u2557",
+        "\u255a",
+        "\u2551",
+        "\u2550",
+        "\u255d",
+    ),
+    _placeholder,
+    "center",
+    ("relative", 50),
+    "middle",
+    ("relative", 75),
+    100,
+    5,
+)

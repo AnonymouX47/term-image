@@ -15,6 +15,7 @@ from .widgets import (
     bottom_bar,
     confirmation,
     confirmation_overlay,
+    expand,
     Image,
     image_box,
     image_grid,
@@ -22,7 +23,7 @@ from .widgets import (
     key_bar,
     main as main_widget,
     menu,
-    expand,
+    overlay,
     pile,
     _placeholder,
     view,
@@ -67,6 +68,111 @@ def show_actions(context: str, *actions: str):
 
 
 # Main
+
+
+def display_context_help(context: str) -> None:
+    global _prev_view_widget
+
+    actions = (
+        *context_keys[context].items(),
+        *(() if context in no_globals else context_keys["global"].items()),
+    )
+
+    separator = (1, urwid.Filler(urwid.Text("\u2502" * 3)))
+    contents = [
+        (
+            3,
+            urwid.Columns(
+                [
+                    (
+                        "weight",
+                        3,
+                        urwid.Filler(
+                            urwid.Text(("default bold", f"{action}"), "center")
+                        ),
+                    ),
+                    separator,
+                    (
+                        "weight",
+                        1,
+                        urwid.Filler(
+                            urwid.Text(("default bold", f"{symbol}"), "center")
+                        ),
+                    ),
+                    separator,
+                    (
+                        "weight",
+                        6,
+                        urwid.Filler(
+                            urwid.Text(("default bold", f"{description}"), "center")
+                        ),
+                    ),
+                ],
+                min_width=5,
+            ),
+        )
+        for action, (_, symbol, description, visible, _) in actions
+        if visible
+    ]
+
+    line = urwid.SolidFill("\u2500")
+    divider = urwid.Columns(
+        [
+            ("weight", 3, line),
+            (1, urwid.Filler(urwid.Text("\u253c"))),
+            ("weight", 1, line),
+            (1, urwid.Filler(urwid.Text("\u253c"))),
+            ("weight", 6, line),
+        ],
+        min_width=5,
+    )
+    for index in range(1, (len(contents) - 1) * 2, 2):
+        contents.insert(index, (1, divider))
+
+    contents.insert(
+        0,
+        (
+            1,
+            urwid.Columns(
+                [
+                    ("weight", 3, line),
+                    (1, urwid.Filler(urwid.Text("\u252c"))),
+                    ("weight", 1, line),
+                    (1, urwid.Filler(urwid.Text("\u252c"))),
+                    ("weight", 6, line),
+                ],
+                min_width=5,
+            ),
+        ),
+    )
+
+    contents.append(
+        (
+            1,
+            urwid.Columns(
+                [
+                    ("weight", 3, line),
+                    (1, urwid.Filler(urwid.Text("\u2534"))),
+                    ("weight", 1, line),
+                    (1, urwid.Filler(urwid.Text("\u2534"))),
+                    ("weight", 6, line),
+                ],
+                min_width=5,
+            ),
+        )
+    )
+
+    overlay.top_w.original_widget.body[0] = urwid.Pile(contents)
+    overlay.bottom_w = view if main.get_context() == "full-image" else pile
+    main_widget.contents[0] = (overlay, ("weight", 1))
+    main.set_context("overlay")
+
+    # `Image` widgets don't support overlay.
+    # Always reset by or "overlay::Close"
+    _prev_view_widget = view.original_widget
+    view.original_widget = urwid.LineBox(
+        _placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
+    )
 
 
 def display_context_keys(context: str) -> None:
@@ -190,6 +296,11 @@ def expand_collapse_keys():
             expand.original_widget.set_text(f"\u25B2 [{expand_key[0]}]")
             main_widget.contents[-1] = (bottom_bar, ("given", 1))
             key_bar_is_collapsed = True
+
+
+@_register_key(("global", "Help"))
+def help():
+    display_context_help(main.get_context())
 
 
 def resize():
@@ -484,8 +595,20 @@ def cancel():
     main.set_prev_context()
 
 
+# overlay
+@_register_key(("overlay", "Close"))
+def close():
+    main_widget.contents[0] = (
+        view if main.get_prev_context() == "full-image" else pile,
+        ("weight", 1),
+    )
+    view.original_widget = _prev_view_widget
+    main.set_prev_context()
+
+
 logger = _logging.getLogger(__name__)
 key_bar_is_collapsed = True
 expand_key_is_shown = True
-no_globals = {"global", "confirmation", "full-grid-image"}
-_confirm = _cancel = _prev_view_widget = None  # To be set by `set_confirmation()`
+no_globals = {"global", "confirmation", "full-grid-image", "overlay"}
+_confirm = _cancel = None  # To be set by `set_confirmation()`
+_prev_view_widget = None  # Used for overlays
