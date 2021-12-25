@@ -9,12 +9,12 @@ import os
 import requests
 import time
 from math import ceil
-from operator import truediv
+from operator import mul, truediv
 from random import randint
 from shutil import get_terminal_size
 
 from PIL import Image, UnidentifiedImageError
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from urllib.parse import urlparse
 
 from .exceptions import InvalidSize, URLNotFoundError
@@ -32,12 +32,15 @@ class TermImage:
         - image: Image to be rendered.
         - width: The width to render the image with.
         - height: The height to render the image with.
+        - scale: The image render scale on respective axes.
 
     NOTE:
         - _width_ is the exact number of columns that'll be used on the terminal.
         - _height_ is **2 times** the number of lines that'll be used on the terminal.
         - If neither is given or `None`, the size is automatically determined
           when the image is to be rendered, such that it can fit within the terminal.
+        - The size is multiplied by the scale on each axis respectively before the image
+          is rendered.
     """
 
     # Special Methods
@@ -48,6 +51,7 @@ class TermImage:
         *,
         width: Optional[int] = None,
         height: Optional[int] = None,
+        scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
         """See class description"""
         if not isinstance(image, Image.Image):
@@ -63,6 +67,8 @@ class TermImage:
         self._size = (
             None if width is None is height else self._valid_size(width, height)
         )
+        self._scale = []
+        self._scale[:] = self.__check_scale(scale)
 
     def __del__(self) -> None:
         try:
@@ -135,6 +141,56 @@ class TermImage:
         lambda self: self._original_size, doc="Original image size"
     )
 
+    scale = property(
+        lambda self: tuple(self._scale),
+        doc="""
+        Image render scale
+
+        Allowed values are:
+            - A float; sets both axes.
+            - A tuple of two floats; sets for (x, y) respectively.
+
+        A scale value must be such that 0.0 < value <= 1.0.
+        """,
+    )
+
+    @scale.setter
+    def scale(self, scale: Union[float, Tuple[float, float]]) -> None:
+        if isinstance(scale, float):
+            if not 0.0 < scale <= 1.0:
+                raise ValueError(f"Scale value out of range; got: {scale}")
+            self._scale[:] = (scale,) * 2
+        elif isinstance(scale, tuple):
+            self._scale[:] = self.__check_scale(scale)
+        else:
+            raise TypeError("Given value must be a float or a tuple of floats")
+
+    scale_x = property(
+        lambda self: self._scale[0],
+        doc="""
+        Image x-axis render scale
+
+        A scale value must be a float such that 0.0 < x <= 1.0.
+        """,
+    )
+
+    @scale_x.setter
+    def scale_x(self, x: float) -> None:
+        self._scale[0] = self.__check_scale_2(x)
+
+    scale_y = property(
+        lambda self: self._scale[0],
+        doc="""
+        Image y-ayis render scale
+
+        A scale value must be a float such that 0.0 < y <= 1.0.
+        """,
+    )
+
+    @scale_y.setter
+    def scale_y(self, y: float) -> None:
+        self._scale[1] = self.__check_scale_2(y)
+
     size = property(lambda self: self._size, doc="Image render size")
 
     source = property(
@@ -174,7 +230,7 @@ class TermImage:
             self._size = self._valid_size(None, None)
             reset_size = True
         else:
-            width, height = self._size
+            width, height = map(ceil, map(mul, self._size, self._scale))
             columns, lines = get_terminal_size()
             # A 2-line allowance for the shell prompt
             if width > columns or height > (lines - 2) * 2:
@@ -203,7 +259,7 @@ class TermImage:
     def from_file(
         cls,
         filepath: str,
-        **size,
+        **size_scale,
     ) -> TermImage:
         """Create a `TermImage` object from an image file
 
@@ -229,7 +285,7 @@ class TermImage:
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
-        new = cls(Image.open(filepath), **size)
+        new = cls(Image.open(filepath), **size_scale)
         new._source = os.path.realpath(filepath)
         return new
 
@@ -237,7 +293,7 @@ class TermImage:
     def from_url(
         cls,
         url: str,
-        **size,
+        **size_scale,
     ) -> TermImage:
         """Create a `TermImage` object from an image url
 
@@ -277,12 +333,47 @@ class TermImage:
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        new = cls(Image.open(filepath), **size)
+        new = cls(Image.open(filepath), **size_scale)
         new._source = filepath
         new.__url = url
         return new
 
     # Private Methods
+
+    @staticmethod
+    def __check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
+        """Check a scale tuple
+
+        Returns: The scale tuple, if valid.
+
+        Raises:
+            - TypeError, if the object is not a tuple of floats.
+            - ValueError, if the object is not a tuple of two floats, 0.0 < x <= 1.0.
+        """
+        if not (isinstance(scale, tuple) and all(isinstance(x, float) for x in scale)):
+            raise TypeError("'scale' must be a tuple of floats")
+
+        if not (len(scale) == 2 and all(0.0 < x <= 1.0 for x in scale)):
+            raise ValueError(
+                f"'scale' must be a tuple of two floats, 0.0 < x <= 1.0; got: {scale}"
+            )
+        return scale
+
+    @staticmethod
+    def __check_scale_2(value: float) -> float:
+        """Check a single scale value
+
+        Returns: The scale value, if valid.
+
+        Raises:
+            - TypeError, if the object is not a float.
+            - ValueError, if the value is not within range 0.0 < x <= 1.0.
+        """
+        if not isinstance(value, float):
+            raise TypeError("Given value must be a float")
+        if not 0.0 < value <= 1.0:
+            raise ValueError(f"Scale value out of range; got: {value}")
+        return value
 
     @staticmethod
     def __color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
@@ -298,7 +389,7 @@ class TermImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
-        height = ceil(self._size[1] / 2)
+        height = ceil(self._size[1] * self._scale[1] / 2)
         try:
             while True:
                 for frame in range(0, image.n_frames):
@@ -334,9 +425,9 @@ class TermImage:
                 buf_write(FG_FMT % cluster_fg)
                 buf_write(PIXEL * n)
 
-        image = image.resize(self._size)
+        width, height = map(ceil, map(mul, self._size, self._scale))
+        image = image.resize((width, height))
         pixels = tuple(image.convert("RGB").getdata())
-        width, height = self._size
         if height % 2:
             # Starting index of the last row (when height is odd)
             mark = width * (height // 2) * 2
