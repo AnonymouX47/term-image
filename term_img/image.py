@@ -6,6 +6,7 @@ __all__ = ("TermImage",)
 
 import io
 import os
+import re
 import requests
 import time
 from math import ceil
@@ -23,6 +24,7 @@ from .exceptions import InvalidSize, URLNotFoundError
 FG_FMT: str = "\033[38;2;%d;%d;%dm"
 BG_FMT: str = "\033[48;2;%d;%d;%dm"
 PIXEL: str = "\u2580"  # upper-half block element
+FORMAT_SPEC = re.compile(r"(([<|>])?(\d*))?(\.(([-^_])?(\d*)))?", re.ASCII)
 
 
 class TermImage:
@@ -84,6 +86,32 @@ class TermImage:
         ):
             os.remove(self._source)
 
+    def __format__(self, spec) -> str:
+        """Image alignment and padding
+
+        Format specification: "[[h_align][width]][.[v_align][height]]"
+            - h_align: '<' | '|' | '>' (default: '|')
+            - width: Integer  (default: terminal width)
+            - v_align: '^' | '-' | '_'  (default: '-')
+            - height: Integer  (default: terminal height, with a 2-line allowance)
+
+        All fields are optional with defaults in parentheses.
+        """
+        match = FORMAT_SPEC.fullmatch(spec)
+        if not match:
+            raise ValueError("Invalid format specifier")
+
+        _, h_align, width, _, _, v_align, height = match.groups()
+        h_align = h_align or None
+        v_align = v_align or None
+        width = None if width in {None, ""} else int(width)
+        height = None if height in {None, ""} else int(height)
+
+        return self._format_image(
+            self.__str__(),
+            *self.__check_formating(h_align, width, v_align, height),
+        )
+
     def __repr__(self) -> str:
         return "<{}(source={!r}, size={})>".format(
             type(self).__name__,
@@ -96,7 +124,7 @@ class TermImage:
         )
 
     def __str__(self) -> str:
-        # Only the first frame for GIFs
+        # Only the first/set frame for animated images
         reset_size = False
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
@@ -341,6 +369,44 @@ class TermImage:
     # Private Methods
 
     @staticmethod
+    def __check_formating(
+        h_align: Optional[str] = None,
+        width: Optional[int] = None,
+        v_align: Optional[str] = None,
+        height: Optional[int] = None,
+    ) -> Tuple[Union[str, int, None]]:
+        """Validate and translate literal formatting arguments
+
+        Returns: The respective arguments appropriate for `_format_image()`.
+        """
+        if h_align is not None:
+            align = {"left": "<", "center": "|", "right": ">"}.get(h_align, h_align)
+            if not align:
+                raise ValueError(f"Invalid horizontal alignment option: {h_align!r}")
+            h_align = align
+
+        if not isinstance(width, (type(None), int)):
+            raise TypeError("Wrong type; Padding width must be None or an integer.")
+        if width is not None:
+            if width <= 0:
+                raise ValueError(f"Padding width must be positive, got: {width}")
+            if width > get_terminal_size()[0]:
+                raise ValueError("Padding width larger than terminal width")
+
+        if v_align is not None:
+            align = {"top": "^", "middle": "-", "bottom": "_"}.get(v_align, v_align)
+            if not align:
+                raise ValueError(f"Invalid vertical alignment option: {v_align!r}")
+            v_align = align
+
+        if not isinstance(height, (type(None), int)):
+            raise TypeError("Wrong type; Padding height must be None or an integer.")
+        if None is not height <= 0:
+            raise ValueError(f"Padding height must be positive, got: {height}")
+
+        return h_align, width, v_align, height
+
+    @staticmethod
     def __check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
         """Check a scale tuple
 
@@ -478,6 +544,60 @@ class TermImage:
         buffer.seek(0)  # Reset buffer pointer
 
         return buffer.getvalue()
+
+    def _format_image(
+        self,
+        render: str,
+        h_align: Optional[str] = None,
+        width: Optional[int] = None,
+        v_align: Optional[str] = None,
+        height: Optional[int] = None,
+    ) -> str:
+        """Format rendered image text
+
+        All arguments should be passed through `__check_formatting()` first.
+        """
+        lines = render.splitlines()
+        cols, rows = self._size or self._valid_size(None, None)
+        rows = ceil(rows / 2)
+
+        width = width or get_terminal_size()[0]
+        width = max(cols, width)
+        if h_align == "<":  # left
+            pad_left = ""
+            pad_right = " " * (width - cols)
+        elif h_align == ">":  # right
+            pad_left = " " * (width - cols)
+            pad_right = ""
+        else:  # center
+            pad_left = " " * ((width - cols) // 2)
+            pad_right = " " * (width - cols - len(pad_left))
+
+        if pad_left and pad_right:
+            lines = [pad_left + line + pad_right for line in lines]
+        elif pad_left:
+            lines = [pad_left + line for line in lines]
+        elif pad_right:
+            lines = [line + pad_right for line in lines]
+
+        height = height or get_terminal_size()[1] - 2
+        height = max(rows, height)
+        if v_align == "^":  # top
+            pad_up = 0
+            pad_down = height - rows
+        elif v_align == "_":  # bottom
+            pad_up = height - rows
+            pad_down = 0
+        else:  # middle
+            pad_up = (height - rows) // 2
+            pad_down = height - rows - pad_up
+
+        if pad_down:
+            lines[rows:] = (" " * width,) * pad_down
+        if pad_up:
+            lines[:0] = (" " * width,) * pad_up
+
+        return "\n".join(lines)
 
     def _valid_size(
         self,
