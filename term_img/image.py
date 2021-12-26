@@ -89,13 +89,15 @@ class TermImage:
     def __format__(self, spec) -> str:
         """Image alignment and padding
 
-        Format specification: "[[h_align][width]][.[v_align][height]]"
+        Format specification: `[[h_align][width]][.[v_align][height]]`
+
             - h_align: '<' | '|' | '>' (default: '|')
             - width: Integer  (default: terminal width)
             - v_align: '^' | '-' | '_'  (default: '-')
             - height: Integer  (default: terminal height, with a 2-line allowance)
 
-        All fields are optional with defaults in parentheses.
+        All fields are optional.
+        _width_ and _height_ are in units of columns and lines, repectively.
         """
         match = FORMAT_SPEC.fullmatch(spec)
         if not match:
@@ -254,14 +256,16 @@ class TermImage:
         v_align: Optional[str] = "middle",
         pad_height: Optional[int] = None,
     ) -> None:
-        """Print an image to the terminal (with optional alignment and padding)
+        """Print an image to the terminal, with optional alignment and padding.
 
         Args:
             - h_align: Horizontal alignment ("left", "center" or "right").
-            - pad_width: Padding width (default: terminal width).
+            - pad_width: No of columns within which to align the image.
+              Excess columns are filled with spaces. (default: terminal width)
             - v_align: Vertical alignment ("top", "middle" or "bottom").
-            - pad_height: Padding height (default: terminal height,
-              with a 2-line allowance).
+            - pad_height: No of lines within which to align the image.
+              Excess lines are filled with spaces.
+              (default: terminal height, with a 2-line allowance).
 
         Raises:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
