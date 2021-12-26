@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from .exceptions import URLNotFoundError
-from .exit_codes import INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
+from .exceptions import InvalidSize, URLNotFoundError
+from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
 
 
@@ -147,8 +147,8 @@ NOTES:
         "CLI-only Options",
         "These options apply only when there is just one valid image source",
     )
-    size_options = cli_options.add_mutually_exclusive_group()
 
+    size_options = cli_options.add_mutually_exclusive_group()
     size_options.add_argument(
         "-w",
         "--width",
@@ -178,6 +178,43 @@ NOTES:
         metavar="N",
         default=1.0,
         help="y-axis scale of the image to be rendered [2]",
+    )
+
+    align_options = parser.add_argument_group("Alignment Options (CLI-only)")
+    align_options.add_argument(
+        "--no-align",
+        action="store_true",
+        help=(
+            "Output image without alignment or padding. "
+            "Overrides all other alignment options"
+        ),
+    )
+    align_options.add_argument(
+        "-H",
+        "--h-align",
+        choices=("left", "center", "right"),
+        help="Horizontal alignment (default: center)",
+    )
+    align_options.add_argument(
+        "--pad-width",
+        metavar="N",
+        type=int,
+        help="No of columns within which to align the image (default: terminal width)",
+    )
+    align_options.add_argument(
+        "-V",
+        "--v-align",
+        choices=("top", "middle", "bottom"),
+        help="Vertical alignment (default: middle)",
+    )
+    align_options.add_argument(
+        "--pad-height",
+        metavar="N",
+        type=int,
+        help=(
+            "No of lines within which to align the image "
+            "(default: terminal height, with a 2-line allowance)"
+        ),
     )
 
     # TUI-only
@@ -218,6 +255,7 @@ or multiple valid sources
     log_options_.add_argument(
         "-l",
         "--log",
+        metavar="FILE",
         default=os.path.join(user_dir, "term_img.log"),
         help="Specify a file to write logs to instead of the default",
     )
@@ -338,12 +376,20 @@ or multiple valid sources
                 image.height = args.height
             image.scale_x = args.scale_x
             image.scale_y = args.scale_y
+
+            if args.no_align:
+                print(image)
+            else:
+                image.draw_image(
+                    args.h_align, args.pad_width, args.v_align, args.pad_height
+                )
+
         # Handles `ValueError` and `.exceptions.InvalidSize`
-        # raised by `TermImage.__valid_size()` or scale setter methods.
+        # raised by `TermImage.__valid_size()`, scaling value checks
+        # or padding width/height checks.
         except ValueError as e:
             log(str(e), logger, logging.CRITICAL)
-            return INVALID_SIZE
-        image.draw_image()
+            return INVALID_SIZE if isinstance(e, InvalidSize) else FAILURE
     else:
         tui.init(args, images, contents)
 
