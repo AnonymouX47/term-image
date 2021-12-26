@@ -247,13 +247,32 @@ class TermImage:
 
     # Public Methods
 
-    def draw_image(self) -> None:
-        """Print an image to the terminal
+    def draw_image(
+        self,
+        h_align: Optional[str] = "center",
+        pad_width: Optional[int] = None,
+        v_align: Optional[str] = "middle",
+        pad_height: Optional[int] = None,
+    ) -> None:
+        """Print an image to the terminal (with optional alignment and padding)
+
+        Args:
+            - h_align: Horizontal alignment ("left", "center" or "right").
+            - pad_width: Padding width (default: terminal width).
+            - v_align: Vertical alignment ("top", "middle" or "bottom").
+            - pad_height: Padding height (default: terminal height,
+              with a 2-line allowance).
 
         Raises:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
             that it can no longer fit the previously set image render size.
+            - TypeError: if padding width/height value is of innapropriate type.
+            - ValueError: if any argument has an unexpected/invalid value.
         """
+        h_align, pad_width, v_align, pad_height = self.__check_formating(
+            h_align, pad_width, v_align, pad_height
+        )
+
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
             reset_size = True
@@ -273,9 +292,24 @@ class TermImage:
 
         try:
             if self._is_animated:
-                self.__display_animated(image)
+                if None is not pad_height > get_terminal_size()[1] - 2:
+                    raise ValueError(
+                        "Padding height must not be larger than the terminal height, "
+                        "for animated images"
+                    )
+                self.__display_animated(image, h_align, pad_width, v_align, pad_height)
             else:
-                print(self.__draw_image(image), end="", flush=True)
+                print(
+                    self._format_image(
+                        self.__draw_image(image),
+                        h_align,
+                        pad_width,
+                        v_align,
+                        pad_height,
+                    ),
+                    end="",
+                    flush=True,
+                )
         finally:
             self._buffer.seek(0)  # Reset buffer pointer
             self._buffer.truncate()  # Clear buffer
@@ -450,7 +484,7 @@ class TermImage:
         """
         return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
-    def __display_animated(self, image: Image.Image) -> None:
+    def __display_animated(self, image: Image.Image, *fmt) -> None:
         """Print an animated GIF image on the terminal
 
         This is done infinitely but can be canceled with `Ctrl-C`.
@@ -460,7 +494,7 @@ class TermImage:
             while True:
                 for frame in range(0, image.n_frames):
                     image.seek(frame)
-                    print(self.__draw_image(image))
+                    print(self._format_image(self.__draw_image(image), *fmt))
                     self._buffer.truncate()  # Clear buffer
                     time.sleep(0.1)
                     # Move cursor up to the first line of the image
