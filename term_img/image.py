@@ -23,8 +23,9 @@ from .exceptions import InvalidSize, URLNotFoundError
 
 FG_FMT: str = "\033[38;2;%d;%d;%dm"
 BG_FMT: str = "\033[48;2;%d;%d;%dm"
-PIXEL: str = "\u2580"  # upper-half block element
 FORMAT_SPEC = re.compile(r"(([<|>])?(\d*))?(\.(([-^_])?(\d*)))?", re.ASCII)
+UPPER_PIXEL: str = "\u2580"  # upper-half block element
+LOWER_PIXEL: str = "\u2584"  # lower-half block element
 
 
 class TermImage:
@@ -508,7 +509,7 @@ class TermImage:
             # Prevents "overlayed" output on the terminal
             print("\033[%dB" % height, end="", flush=True)
 
-    def __draw_image(self, image: Image.Image) -> str:
+    def __draw_image(self, image: Image.Image, alpha: Optional[float]) -> str:
         """Convert entire image pixel data to a color-coded string
 
         Two pixels per character using FG and BG colors.
@@ -522,61 +523,127 @@ class TermImage:
         buf_write = buffer.write
 
         def update_buffer():
-            buf_write(BG_FMT % cluster_bg)
-            if cluster_fg == cluster_bg:
-                buf_write(" " * n)
-            else:
-                buf_write(FG_FMT % cluster_fg)
-                buf_write(PIXEL * n)
+            if alpha:
+                no_alpha = False
+                if a_cluster1 == 0 == a_cluster2:
+                    buf_write("\033[0m")
+                    buf_write(" " * n)
+                elif a_cluster1 == 0:  # up is transparent
+                    buf_write("\033[0m")
+                    buf_write(FG_FMT % cluster2)
+                    buf_write(LOWER_PIXEL * n)
+                elif a_cluster2 == 0:  # down is transparent
+                    buf_write("\033[0m")
+                    buf_write(FG_FMT % cluster1)
+                    buf_write(UPPER_PIXEL * n)
+                else:
+                    no_alpha = True
+
+            if not alpha or no_alpha:
+                buf_write(BG_FMT % cluster2)
+                if cluster1 == cluster2:
+                    buf_write(" " * n)
+                else:
+                    buf_write(FG_FMT % cluster1)
+                    buf_write(UPPER_PIXEL * n)
 
         width, height = map(ceil, map(mul, self._size, self._scale))
-        image = image.resize((width, height))
-        pixels = tuple(image.convert("RGB").getdata())
-        if height % 2:
-            # Starting index of the last row (when height is odd)
-            mark = width * (height // 2) * 2
-            pixels, last_row = pixels[:mark], pixels[mark:]
+        image = image.convert("RGBA").resize((width, height))
+        rgb = tuple(image.convert("RGB").getdata())
+        alpha_threshold = round((alpha or 0) * 255)
+        alpha_ = [0 if a < alpha_threshold else a for a in image.getdata(3)]
 
-        row_pairs = (
+        # To distinguish 0.0 from None, since _alpha_ is used via "truth value testing"
+        if alpha == 0.0:
+            alpha = 0.1
+
+        # clean up
+        if not isinstance(self._source, Image.Image):
+            image.close()
+
+        if height % 2:
+            # Starting index of the last row, when height is odd
+            mark = width * (height // 2) * 2
+            rgb, last_rgb = rgb[:mark], rgb[mark:]
+            alpha_, last_alpha = alpha_[:mark], alpha_[mark:]
+
+        rgb_pairs = (
             (
-                zip(pixels[x : x + width], pixels[x + width : x + width * 2]),
-                (pixels[x], pixels[x + width]),
+                zip(rgb[x : x + width], rgb[x + width : x + width * 2]),
+                (rgb[x], rgb[x + width]),
             )
-            for x in range(0, len(pixels), width * 2)
+            for x in range(0, len(rgb), width * 2)
+        )
+        a_pairs = (
+            (
+                zip(alpha_[x : x + width], alpha_[x + width : x + width * 2]),
+                (alpha_[x], alpha_[x + width]),
+            )
+            for x in range(0, len(alpha_), width * 2)
         )
 
         row_no = 0
         # Two rows of pixels per line
-        for row_pair, (cluster_fg, cluster_bg) in row_pairs:
+        for (rgb_pair, (cluster1, cluster2)), (a_pair, (a_cluster1, a_cluster2)) in zip(
+            rgb_pairs, a_pairs
+        ):
             row_no += 2
             n = 0
-            for fg, bg in row_pair:  # upper pixel -> FG, lower pixel -> BG
+            for (p1, p2), (a1, a2) in zip(rgb_pair, a_pair):
                 # Color-code characters and write to buffer
-                # when upper and/or lower pixel color changes
-                if fg != cluster_fg or bg != cluster_bg:
+                # when upper and/or lower pixel color/alpha-level changes
+                if not (alpha and a1 == a_cluster1 == 0 == a_cluster2 == a2) and (
+                    p1 != cluster1
+                    or p2 != cluster2
+                    or alpha
+                    and (
+                        # From non-transparent to transparent
+                        a_cluster1 != a1 == 0
+                        or a_cluster2 != a2 == 0
+                        # From transparent to non-transparent
+                        or 0 == a_cluster1 != a1
+                        or 0 == a_cluster2 != a2
+                    )
+                ):
                     update_buffer()
-                    cluster_fg = fg
-                    cluster_bg = bg
+                    cluster1 = p1
+                    cluster2 = p2
+                    if alpha:
+                        a_cluster1 = a1
+                        a_cluster2 = a2
                     n = 0
                 n += 1
             # Rest of the line
             update_buffer()
-            if row_no < height:  # Excludes the last line
+            if row_no < height:  # last line not yet rendered
                 buf_write("\033[0m\n")
 
         if height % 2:
-            cluster_fg = last_row[0]
+            cluster1 = last_rgb[0]
+            a_cluster1 = last_alpha[0]
             n = 0
-            for fg in last_row:
-                if fg != cluster_fg:
-                    buf_write(FG_FMT % cluster_fg)
-                    buf_write(PIXEL * n)
-                    cluster_fg = fg
+            for p1, a1 in zip(last_rgb, last_alpha):
+                if p1 != cluster1 or (
+                    alpha and a_cluster1 != a1 == 0 or 0 == a_cluster1 != a1
+                ):
+                    if alpha and a_cluster1 == 0:
+                        buf_write("\033[0m")
+                        buf_write(" " * n)
+                    else:
+                        buf_write(FG_FMT % cluster1)
+                        buf_write(UPPER_PIXEL * n)
+                    cluster1 = p1
+                    if alpha:
+                        a_cluster1 = a1
                     n = 0
                 n += 1
             # Last cluster
-            buf_write(FG_FMT % cluster_fg)
-            buf_write(PIXEL * n)
+            if alpha and a_cluster1 == 0:
+                buf_write("\033[0m")
+                buf_write(" " * n)
+            else:
+                buf_write(FG_FMT % cluster1)
+                buf_write(UPPER_PIXEL * n)
 
         buf_write("\033[0m")  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
