@@ -23,9 +23,12 @@ from .exceptions import InvalidSize, URLNotFoundError
 
 FG_FMT: str = "\033[38;2;%d;%d;%dm"
 BG_FMT: str = "\033[48;2;%d;%d;%dm"
-FORMAT_SPEC = re.compile(r"(([<|>])?(\d*))?(\.(([-^_])?(\d*)))?", re.ASCII)
 UPPER_PIXEL: str = "\u2580"  # upper-half block element
 LOWER_PIXEL: str = "\u2584"  # lower-half block element
+FORMAT_SPEC = re.compile(
+    r"(([<|>])?(\d*))?(\.(([-^_])?(\d*)))?(#(\.\d+)?)?",
+    re.ASCII,
+)
 
 
 class TermImage:
@@ -90,30 +93,54 @@ class TermImage:
     def __format__(self, spec) -> str:
         """Image alignment and padding
 
-        Format specification: `[[h_align][width]][.[v_align][height]]`
+        Format specification: `[[h_align][width]][.[v_align][height]][#[threshold]]`
 
             - h_align: '<' | '|' | '>' (default: '|')
             - width: Integer  (default: terminal width)
             - v_align: '^' | '-' | '_'  (default: '-')
             - height: Integer  (default: terminal height, with a 2-line allowance)
+            - #: Transparency setting.
+              If absent, transparency is enabled.
+            - threshold: Alpha ratio below which pixels are taken as transparent
+              e.g '.0', '.325043', '.99999' (0.0 <= threshold < 1.0).
+              If absent (but '#' is present), transparency is disabled.
 
-        All fields are optional.
+        Fields within `[]` are optional.
         _width_ and _height_ are in units of columns and lines, repectively.
         """
         match = FORMAT_SPEC.fullmatch(spec)
         if not match:
             raise ValueError("Invalid format specifier")
 
-        _, h_align, width, _, _, v_align, height = match.groups()
+        _, h_align, width, _, _, v_align, height, alpha, threshold = match.groups()
+
         h_align = h_align or None
         v_align = v_align or None
         width = None if width in {None, ""} else int(width)
         height = None if height in {None, ""} else int(height)
 
-        return self._format_image(
-            self.__str__(),
-            *self.__check_formating(h_align, width, v_align, height),
-        )
+        reset_size = False
+        if not self._size:  # Size is unset
+            self._size = self._valid_size(None, None)
+            reset_size = True
+
+        try:
+            return self._format_image(
+                self.__draw_image(
+                    (
+                        Image.open(self._source)
+                        if isinstance(self._source, str)
+                        else self._source
+                    ),
+                    threshold and float(threshold) if alpha else 40 / 255,
+                ),
+                *self.__check_formating(h_align, width, v_align, height),
+            )
+        finally:
+            self._buffer.seek(0)  # Reset buffer pointer
+            self._buffer.truncate()  # Clear buffer
+            if reset_size:
+                self._size = None
 
     def __repr__(self) -> str:
         return "<{}(source={!r}, size={})>".format(
@@ -135,9 +162,12 @@ class TermImage:
 
         try:
             return self.__draw_image(
-                Image.open(self._source)
-                if isinstance(self._source, str)
-                else self._source
+                (
+                    Image.open(self._source)
+                    if isinstance(self._source, str)
+                    else self._source
+                ),
+                40 / 255,
             )
         finally:
             self._buffer.seek(0)  # Reset buffer pointer
