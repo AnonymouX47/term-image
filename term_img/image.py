@@ -256,6 +256,7 @@ class TermImage:
         pad_width: Optional[int] = None,
         v_align: Optional[str] = "middle",
         pad_height: Optional[int] = None,
+        alpha: Optional[float] = 40 / 255,
     ) -> None:
         """Print an image to the terminal, with optional alignment and padding.
 
@@ -267,16 +268,28 @@ class TermImage:
             - pad_height: No of lines within which to align the image.
               Excess lines are filled with spaces.
               (default: terminal height, with a 2-line allowance).
+            - alpha: Transparency setting.
+              If `None`, disables transparency.
+              If a float, 0.0 <= x < 1.0, sets the alpha ratio below which pixels
+              are taken as transparent.
 
         Raises:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
             that it can no longer fit the previously set image render size.
-            - TypeError: if padding width/height value is of innapropriate type.
+            - TypeError: if any argument is of an inappropriate type.
             - ValueError: if any argument has an unexpected/invalid value.
         """
         h_align, pad_width, v_align, pad_height = self.__check_formating(
             h_align, pad_width, v_align, pad_height
         )
+        if alpha is not None:
+            if not isinstance(alpha, float):
+                raise TypeError(
+                    "'alpha' must be `None` or of type `float` "
+                    f"(got: {type(alpha).__name__})"
+                )
+            if not 0.0 <= alpha < 1.0:
+                raise ValueError(f"Alpha threshold out of range (got: {alpha})")
 
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
@@ -302,11 +315,13 @@ class TermImage:
                         "Padding height must not be larger than the terminal height, "
                         "for animated images"
                     )
-                self.__display_animated(image, h_align, pad_width, v_align, pad_height)
+                self.__display_animated(
+                    image, alpha, h_align, pad_width, v_align, pad_height
+                )
             else:
                 print(
                     self._format_image(
-                        self.__draw_image(image),
+                        self.__draw_image(image, alpha),
                         h_align,
                         pad_width,
                         v_align,
@@ -489,7 +504,9 @@ class TermImage:
         """
         return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
-    def __display_animated(self, image: Image.Image, *fmt) -> None:
+    def __display_animated(
+        self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
+    ) -> None:
         """Print an animated GIF image on the terminal
 
         This is done infinitely but can be canceled with `Ctrl-C`.
@@ -499,7 +516,7 @@ class TermImage:
             while True:
                 for frame in range(0, image.n_frames):
                     image.seek(frame)
-                    print(self._format_image(self.__draw_image(image), *fmt))
+                    print(self._format_image(self.__draw_image(image, alpha), *fmt))
                     self._buffer.truncate()  # Clear buffer
                     time.sleep(0.1)
                     # Move cursor up to the first line of the image
