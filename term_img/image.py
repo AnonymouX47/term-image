@@ -26,9 +26,10 @@ BG_FMT: str = "\033[48;2;%d;%d;%dm"
 UPPER_PIXEL: str = "\u2580"  # upper-half block element
 LOWER_PIXEL: str = "\u2584"  # lower-half block element
 FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d*))?(\.(([-^_])?(\d*)))?(#(\.\d+)?)?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
 )
+HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
 class TermImage:
@@ -93,31 +94,35 @@ class TermImage:
     def __format__(self, spec) -> str:
         """Image alignment and padding
 
-        Format specification: `[[h_align][width]][.[v_align][height]][#[threshold]]`
+        Format specification:
+
+            `[[h_align][width]][.[v_align][height]][#[threshold|bgcolor]]`
 
             - h_align: '<' | '|' | '>' (default: '|')
-            - width: Integer  (default: terminal width)
+            - width: Integer padding width (default: terminal width)
             - v_align: '^' | '-' | '_'  (default: '-')
-            - height: Integer  (default: terminal height, with a 2-line allowance)
+            - height: Integer padding height
+              (default: terminal height, with a 2-line allowance).
             - #: Transparency setting.
-              If absent, transparency is enabled.
-            - threshold: Alpha ratio below which pixels are taken as transparent
-              e.g '.0', '.325043', '.99999' (0.0 <= threshold < 1.0).
-              If absent (but '#' is present), transparency is disabled.
+              - If absent, transparency is enabled.
+              - threshold: Alpha ratio below which pixels are taken as transparent
+                e.g '.0', '.325043', '.99999' (0.0 <= threshold < 1.0).
+              - bgcolor: Hex color with which transparent background should be replaced
+                e.g ffffff, 7faa52.
+              - If neither _threshold_ nor _bgcolor_ is present, but '#' is present,
+                a black background is used.
 
-        Fields within `[]` are optional.
+        Fields within `[]` are optional, `|` implies mutual exclusivity.
         _width_ and _height_ are in units of columns and lines, repectively.
         """
         match = FORMAT_SPEC.fullmatch(spec)
         if not match:
             raise ValueError("Invalid format specifier")
 
-        _, h_align, width, _, _, v_align, height, alpha, threshold = match.groups()
+        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match.groups()
 
-        h_align = h_align or None
-        v_align = v_align or None
-        width = None if width in {None, ""} else int(width)
-        height = None if height in {None, ""} else int(height)
+        width = width and int(width)
+        height = height and int(height)
 
         reset_size = False
         if not self._size:  # Size is unset
@@ -125,6 +130,7 @@ class TermImage:
             reset_size = True
 
         try:
+            # Only the first/set frame for animated images
             return self._format_image(
                 self.__draw_image(
                     (
@@ -132,7 +138,16 @@ class TermImage:
                         if isinstance(self._source, str)
                         else self._source
                     ),
-                    threshold and float(threshold) if alpha else 40 / 255,
+                    (
+                        threshold_or_bg
+                        and (
+                            "#" + threshold_or_bg
+                            if HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
+                            else float(threshold_or_bg)
+                        )
+                        if alpha
+                        else 40 / 255
+                    ),
                 ),
                 *self.__check_formating(h_align, width, v_align, height),
             )
@@ -154,13 +169,13 @@ class TermImage:
         )
 
     def __str__(self) -> str:
-        # Only the first/set frame for animated images
         reset_size = False
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
             reset_size = True
 
         try:
+            # Only the first/set frame for animated images
             return self.__draw_image(
                 (
                     Image.open(self._source)
@@ -299,9 +314,11 @@ class TermImage:
               Excess lines are filled with spaces.
               (default: terminal height, with a 2-line allowance).
             - alpha: Transparency setting.
-              If `None`, disables transparency.
-              If a float, 0.0 <= x < 1.0, sets the alpha ratio below which pixels
-              are taken as transparent.
+              - If `None`, transparency is disabled (i.e black background).
+              - If a float, 0.0 <= x < 1.0, specifies the alpha ratio below which pixels
+                are taken as transparent.
+              - If a string, specifies a hex color with which transparent background
+                should be replaced.
 
         Raises:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
@@ -313,13 +330,17 @@ class TermImage:
             h_align, pad_width, v_align, pad_height
         )
         if alpha is not None:
-            if not isinstance(alpha, float):
+            if isinstance(alpha, float):
+                if not 0.0 <= alpha < 1.0:
+                    raise ValueError(f"Alpha threshold out of range (got: {alpha})")
+            elif isinstance(alpha, str):
+                if not HEX_COLOR_FORMAT.fullmatch(alpha):
+                    raise ValueError(f"Invalid hex color string (got: {alpha})")
+            else:
                 raise TypeError(
-                    "'alpha' must be `None` or of type `float` "
+                    "'alpha' must be `None` or of type `float` or `str` "
                     f"(got: {type(alpha).__name__})"
                 )
-            if not 0.0 <= alpha < 1.0:
-                raise ValueError(f"Alpha threshold out of range (got: {alpha})")
 
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
@@ -599,6 +620,13 @@ class TermImage:
 
         width, height = map(round, map(mul, self._size, self._scale))
         image = image.convert("RGBA").resize((width, height))
+        if isinstance(alpha, str):
+            bg = Image.new("RGBA", image.size, alpha)
+            bg.alpha_composite(image)
+            if not isinstance(self._source, Image.Image):
+                image.close()
+            image = bg
+            alpha = None
         rgb = tuple(image.convert("RGB").getdata())
         alpha_threshold = round((alpha or 0) * 255)
         alpha_ = [0 if a < alpha_threshold else a for a in image.getdata(3)]
