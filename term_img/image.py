@@ -255,7 +255,7 @@ class TermImage:
         self._scale[0] = self.__check_scale_2(x)
 
     scale_y = property(
-        lambda self: self._scale[0],
+        lambda self: self._scale[1],
         doc="""
         Image y-ayis render scale
 
@@ -564,7 +564,7 @@ class TermImage:
         """
         height = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
-            ceil(self._size[1] * self._scale[1] / 2),
+            ceil(self._size[1] * self._scale[1] * _pixel_ratio / 2),
         )
         try:
             while True:
@@ -618,7 +618,9 @@ class TermImage:
                     buf_write(_FG_FMT % cluster1)
                     buf_write(_UPPER_PIXEL * n)
 
-        width, height = map(round, map(mul, self._size, self._scale))
+        width, height = map(
+            round, map(mul, self._size, map(mul, self._scale, (1, _pixel_ratio)))
+        )
         image = image.convert("RGBA").resize((width, height))
         if isinstance(alpha, str):
             bg = Image.new("RGBA", image.size, alpha)
@@ -743,7 +745,11 @@ class TermImage:
         lines = render.splitlines()
         cols, rows = map(
             round,
-            map(mul, self._size or self._valid_size(None, None), self._scale),
+            map(
+                mul,
+                self._size or self._valid_size(None, None),
+                map(mul, self._scale, (1, _pixel_ratio)),
+            ),
         )
         rows = ceil(rows / 2)
 
@@ -843,3 +849,6 @@ class TermImage:
             )
 
         return (width, height)
+
+
+_pixel_ratio = None  # Set by `.set_font_ratio()`
