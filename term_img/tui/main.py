@@ -186,7 +186,6 @@ def display_images(
                 ]
                 image_grid_box.set_title(f"{realpath(entry)}/")
                 image_grid_box.base_widget.focus_position = 0
-                image_grid_box.base_widget.render((1, 1))  # Force a re-render
                 view.original_widget = image_grid_box
                 Image._grid_cache.clear()
 

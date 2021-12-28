@@ -27,6 +27,7 @@ class GridListBox(urwid.ListBox):
         self.__grid = grid
         self.__prev_ncell = 1
         self.__prev_cell_width = grid.cell_width
+        self.__grid_hash = hash(tuple(grid.cells))
 
         return super().__init__(self.__grid_contents((grid.cell_width,)))
 
@@ -45,23 +46,30 @@ class GridListBox(urwid.ListBox):
             )
         )
 
+        grid_hash = hash(tuple(self.__grid.cells))
         if (
             not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
             or ncell != self.__prev_ncell
             or self.__prev_cell_width != self.__grid.cell_width
+            or self.__grid_hash != grid_hash
         ):
             self.__prev_cell_width = self.__grid.cell_width
+            self.__grid_hash = grid_hash
+
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
-            if ncell and self.__prev_ncell and self.__grid.contents:
+
+            # Old and new grid are both non-empty
+            both_non_empty = len(self.body) > 1 and self.__grid.cells
+            if ncell and self.__prev_ncell and both_non_empty:
                 col_focus_position = self.focus.focus_position
 
             self.body[:] = self.__grid_contents(size[:1])
             # Ensure focus-position is not out-of-bounds
             self.focus_position = min(len(self.body) - 1, self.focus_position)
 
-            if ncell and self.__prev_ncell and self.__grid.contents:  # Same as above
+            if ncell and self.__prev_ncell and both_non_empty:
                 self.focus.focus_position = min(
                     len(self.focus.contents) - 1, col_focus_position
                 )
