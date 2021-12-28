@@ -105,7 +105,7 @@ class TermImage:
               (default: terminal height, with a 2-line allowance).
             - #: Transparency setting.
               - If absent, transparency is enabled.
-              - threshold: Alpha ratio below which pixels are taken as transparent
+              - threshold: Alpha ratio above which pixels are taken as opaque
                 e.g '.0', '.325043', '.99999' (0.0 <= threshold < 1.0).
               - bgcolor: Hex color with which transparent background should be replaced
                 e.g ffffff, 7faa52.
@@ -315,8 +315,8 @@ class TermImage:
               (default: terminal height, with a 2-line allowance).
             - alpha: Transparency setting.
               - If `None`, transparency is disabled (i.e black background).
-              - If a float, 0.0 <= x < 1.0, specifies the alpha ratio below which pixels
-                are taken as transparent.
+              - If a float, 0.0 <= x < 1.0, specifies the alpha ratio above which pixels
+                are taken as opaque.
               - If a string, specifies a hex color with which transparent background
                 should be replaced.
 

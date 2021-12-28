@@ -121,7 +121,7 @@ For example, `$ term-img [options] -- -image.jpg --image.png`
 NOTES:
   1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
   2. The size is multiplied by the scale on each axis respectively before the image
-     is rendered.
+     is rendered. A scale value must be such that 0.0 < value <= 1.0.
   3. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.
@@ -140,6 +140,34 @@ NOTES:
         "--help",
         action="help",
         help="show this help message and exit",
+    )
+
+    _alpha_options = parser.add_argument_group(
+        "Transparency Options (General)",
+        "NOTE: These are mutually exclusive",
+    )
+    alpha_options = _alpha_options.add_mutually_exclusive_group()
+    alpha_options.add_argument(
+        "--no-alpha",
+        action="store_true",
+        help="Disable image transparency (i.e black background)",
+    )
+    alpha_options.add_argument(
+        "-A",
+        "--alpha",
+        type=float,
+        metavar="N",
+        default=40 / 255,
+        help="Alpha ratio above which pixels are taken as opaque (0 <= x < 1)",
+    )
+    alpha_options.add_argument(
+        "-b",
+        "--alpha-bg",
+        metavar="COLOR",
+        help=(
+            "Hex color (without '#') with which transparent backgrounds should be "
+            "replaced"
+        ),
     )
 
     # CLI-only
@@ -382,7 +410,12 @@ or multiple valid sources
                     (None, 1, None, 1)
                     if args.no_align
                     else (args.h_align, args.pad_width, args.v_align, args.pad_height)
-                )
+                ),
+                (
+                    None
+                    if args.no_alpha
+                    else args.alpha_bg and "#" + args.alpha_bg or args.alpha
+                ),
             )
 
         # Handles `ValueError` and `.exceptions.InvalidSize`
