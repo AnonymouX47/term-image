@@ -146,7 +146,7 @@ class Image(urwid.Widget):
 
         image = self._image
 
-        if mul(*image._original_size) > tui_main.max_pixels:
+        if mul(*image._original_size) > tui_main.MAX_PIXELS:
             if self._force_render:
                 del self._force_render
             else:

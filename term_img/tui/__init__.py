@@ -33,10 +33,10 @@ def init(
     loop.screen.clear()
     loop.screen.set_terminal_properties(2 ** 24)
 
+    main.MAX_PIXELS = args.max_pixels
+    main.RECURSIVE = args.recursive
+    main.SHOW_HIDDEN = args.all
     main.loop = loop
-    main.max_pixels = args.max_pixels
-    main.recursive = args.recursive
-    main.show_hidden = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
 
     Image._alpha = (

@@ -279,7 +279,7 @@ def scan_dir(
     os.chdir(dir)
     errors = 0
     for entry in os.listdir():
-        if entry.startswith(".") and not show_hidden:
+        if entry.startswith(".") and not SHOW_HIDDEN:
             continue
         if isfile(entry):
             try:
@@ -292,7 +292,7 @@ def scan_dir(
                 errors += 1
             else:
                 yield entry, Image(TermImage.from_file(entry))
-        elif recursive and entry in contents:
+        elif RECURSIVE and entry in contents:
             if islink(entry):  # check_dir() already eliminates bad symlinks
                 # Return to the link's parent rather than the linked directory's parent
                 yield (
@@ -381,6 +381,6 @@ at_top_level = None
 # Placeholders; Set from `..tui.init()`
 displayer = None
 loop = None
-max_pixels = None
-recursive = None
-show_hidden = None
+MAX_PIXELS = None
+RECURSIVE = None
+SHOW_HIDDEN = None

@@ -34,7 +34,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     try:
         os.chdir(dir)
     except OSError:
-        log_exception(
+        _log_exception(
             f"Could not access '{os.path.abspath(dir)}/'", logger, direct=True
         )
         return
@@ -43,7 +43,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     try:
         entries = os.listdir()
     except OSError:
-        log_exception(
+        _log_exception(
             f"Could not get the contents of '{os.path.abspath('.')}/'",
             logger,
             direct=True,
@@ -53,7 +53,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     empty = True
     content = {}
     for entry in entries:
-        if entry.startswith(".") and not show_hidden:
+        if entry.startswith(".") and not _SHOW_HIDDEN:
             continue
         if os.path.isfile(entry):
             if not empty:
@@ -64,7 +64,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                     empty = False
             except Exception:
                 pass
-        elif recursive:
+        elif _RECURSIVE:
             try:
                 if os.path.islink(entry):
                     # Eliminate broken and cyclic symlinks
@@ -83,7 +83,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
                     # from being reported as directories within the recursive call
                     result = check_dir(entry) if os.path.isdir(entry) else None
             except RecursionError:
-                log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
+                _log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
                 # Don't bother checking anything else in the current directory
                 # Could possibly mark the directory as empty even though it contains
                 # image files but at the same time, could be very costly when
@@ -98,7 +98,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 def main():
     """CLI execution entry-point"""
-    global args, log, log_exception, recursive, show_hidden
+    global args, _log, _log_exception, _RECURSIVE, _SHOW_HIDDEN
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
@@ -107,6 +107,8 @@ def main():
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
     from . import tui
+
+    _log, _log_exception = log, log_exception
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -320,8 +322,8 @@ or multiple valid sources
     )
 
     args = parser.parse_args()
-    recursive = args.recursive
-    show_hidden = args.all
+    _RECURSIVE = args.recursive
+    _SHOW_HIDDEN = args.all
 
     init_log(
         args.log,
@@ -433,6 +435,8 @@ or multiple valid sources
 logger = logging.getLogger(__name__)
 
 # Set from within `main()`
-args = None
-log = None
-log_exception = None
+_RECURSIVE = None
+_SHOW_HIDDEN = None
+args = None  # Imported from within other modules
+_log = None
+_log_exception = None
