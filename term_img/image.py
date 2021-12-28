@@ -21,15 +21,15 @@ from urllib.parse import urlparse
 from .exceptions import InvalidSize, URLNotFoundError
 
 
-FG_FMT: str = "\033[38;2;%d;%d;%dm"
-BG_FMT: str = "\033[48;2;%d;%d;%dm"
-UPPER_PIXEL: str = "\u2580"  # upper-half block element
-LOWER_PIXEL: str = "\u2584"  # lower-half block element
-FORMAT_SPEC = re.compile(
+_FG_FMT: str = "\033[38;2;%d;%d;%dm"
+_BG_FMT: str = "\033[48;2;%d;%d;%dm"
+_UPPER_PIXEL: str = "\u2580"  # upper-half block element
+_LOWER_PIXEL: str = "\u2584"  # lower-half block element
+_FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
 )
-HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
+_HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
 class TermImage:
@@ -115,7 +115,7 @@ class TermImage:
         Fields within `[]` are optional, `|` implies mutual exclusivity.
         _width_ and _height_ are in units of columns and lines, repectively.
         """
-        match = FORMAT_SPEC.fullmatch(spec)
+        match = _FORMAT_SPEC.fullmatch(spec)
         if not match:
             raise ValueError("Invalid format specifier")
 
@@ -142,7 +142,7 @@ class TermImage:
                         threshold_or_bg
                         and (
                             "#" + threshold_or_bg
-                            if HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
+                            if _HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
                             else float(threshold_or_bg)
                         )
                         if alpha
@@ -334,7 +334,7 @@ class TermImage:
                 if not 0.0 <= alpha < 1.0:
                     raise ValueError(f"Alpha threshold out of range (got: {alpha})")
             elif isinstance(alpha, str):
-                if not HEX_COLOR_FORMAT.fullmatch(alpha):
+                if not _HEX_COLOR_FORMAT.fullmatch(alpha):
                     raise ValueError(f"Invalid hex color string (got: {alpha})")
             else:
                 raise TypeError(
@@ -553,7 +553,7 @@ class TermImage:
 
         The color code is ommited for any of 'fg' or 'bg' that is empty.
         """
-        return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
+        return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
     def __display_animated(
         self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
@@ -601,22 +601,22 @@ class TermImage:
                     buf_write(" " * n)
                 elif a_cluster1 == 0:  # up is transparent
                     buf_write("\033[0m")
-                    buf_write(FG_FMT % cluster2)
-                    buf_write(LOWER_PIXEL * n)
+                    buf_write(_FG_FMT % cluster2)
+                    buf_write(_LOWER_PIXEL * n)
                 elif a_cluster2 == 0:  # down is transparent
                     buf_write("\033[0m")
-                    buf_write(FG_FMT % cluster1)
-                    buf_write(UPPER_PIXEL * n)
+                    buf_write(_FG_FMT % cluster1)
+                    buf_write(_UPPER_PIXEL * n)
                 else:
                     no_alpha = True
 
             if not alpha or no_alpha:
-                buf_write(BG_FMT % cluster2)
+                buf_write(_BG_FMT % cluster2)
                 if cluster1 == cluster2:
                     buf_write(" " * n)
                 else:
-                    buf_write(FG_FMT % cluster1)
-                    buf_write(UPPER_PIXEL * n)
+                    buf_write(_FG_FMT % cluster1)
+                    buf_write(_UPPER_PIXEL * n)
 
         width, height = map(round, map(mul, self._size, self._scale))
         image = image.convert("RGBA").resize((width, height))
@@ -708,8 +708,8 @@ class TermImage:
                         buf_write("\033[0m")
                         buf_write(" " * n)
                     else:
-                        buf_write(FG_FMT % cluster1)
-                        buf_write(UPPER_PIXEL * n)
+                        buf_write(_FG_FMT % cluster1)
+                        buf_write(_UPPER_PIXEL * n)
                     cluster1 = p1
                     if alpha:
                         a_cluster1 = a1
@@ -720,8 +720,8 @@ class TermImage:
                 buf_write("\033[0m")
                 buf_write(" " * n)
             else:
-                buf_write(FG_FMT % cluster1)
-                buf_write(UPPER_PIXEL * n)
+                buf_write(_FG_FMT % cluster1)
+                buf_write(_UPPER_PIXEL * n)
 
         buf_write("\033[0m")  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
