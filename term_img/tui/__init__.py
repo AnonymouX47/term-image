@@ -39,6 +39,10 @@ def init(
     main.show_hidden = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
 
+    Image._alpha = (
+        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
+    )
+
     logger = logging.getLogger(__name__)
     log("Launching TUI", logger, direct=False)
     launched = True

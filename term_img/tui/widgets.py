@@ -100,6 +100,8 @@ class Image(urwid.Widget):
     _last_canv = (None, None)
     _grid_cache = {}
 
+    _alpha = f"{40 / 255}"[1:]
+
     def __init__(self, image: TermImage):
         self._image = image
 
@@ -156,7 +158,11 @@ class Image(urwid.Widget):
         image._size = image._valid_size(None, None, maxsize=size)
 
         try:
-            canv = ImageCanvas(str(image).encode().split(b"\n"), size, image._size)
+            canv = ImageCanvas(
+                format(image, f"1.1{self._alpha}").encode().split(b"\n"),
+                size,
+                image._size,
+            )
         except Exception:
             logging.log_exception(
                 f"{image._source!r} could not be loaded",
