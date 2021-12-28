@@ -377,12 +377,13 @@ or multiple valid sources
             image.scale_x = args.scale_x
             image.scale_y = args.scale_y
 
-            if args.no_align:
-                print(image)
-            else:
-                image.draw_image(
-                    args.h_align, args.pad_width, args.v_align, args.pad_height
+            image.draw_image(
+                *(
+                    (None, 1, None, 1)
+                    if args.no_align
+                    else (args.h_align, args.pad_width, args.v_align, args.pad_height)
                 )
+            )
 
         # Handles `ValueError` and `.exceptions.InvalidSize`
         # raised by `TermImage.__valid_size()`, scaling value checks

@@ -325,7 +325,7 @@ class TermImage:
             self._size = self._valid_size(None, None)
             reset_size = True
         else:
-            width, height = map(ceil, map(mul, self._size, self._scale))
+            width, height = map(round, map(mul, self._size, self._scale))
             columns, lines = get_terminal_size()
             # A 2-line allowance for the shell prompt
             if width > columns or height > (lines - 2) * 2:
@@ -541,7 +541,10 @@ class TermImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
-        height = ceil(self._size[1] * self._scale[1] / 2)
+        height = max(
+            (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
+            ceil(self._size[1] * self._scale[1] / 2),
+        )
         try:
             while True:
                 for frame in range(0, image.n_frames):
@@ -594,7 +597,7 @@ class TermImage:
                     buf_write(FG_FMT % cluster1)
                     buf_write(UPPER_PIXEL * n)
 
-        width, height = map(ceil, map(mul, self._size, self._scale))
+        width, height = map(round, map(mul, self._size, self._scale))
         image = image.convert("RGBA").resize((width, height))
         rgb = tuple(image.convert("RGB").getdata())
         alpha_threshold = round((alpha or 0) * 255)
@@ -710,7 +713,10 @@ class TermImage:
         All arguments should be passed through `__check_formatting()` first.
         """
         lines = render.splitlines()
-        cols, rows = self._size or self._valid_size(None, None)
+        cols, rows = map(
+            round,
+            map(mul, self._size or self._valid_size(None, None), self._scale),
+        )
         rows = ceil(rows / 2)
 
         width = width or get_terminal_size()[0]
