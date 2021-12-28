@@ -546,15 +546,6 @@ class TermImage:
             raise ValueError(f"Scale value out of range; got: {value}")
         return value
 
-    @staticmethod
-    def __color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
-        """Prepend _text_ with ANSI 24-bit color codes
-        for the given foreground and/or backgroung RGB values.
-
-        The color code is ommited for any of 'fg' or 'bg' that is empty.
-        """
-        return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
-
     def __display_animated(
         self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
     ) -> None:
@@ -849,6 +840,16 @@ class TermImage:
             )
 
         return (width, height)
+
+
+# Reserved
+def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
+    """Prepend _text_ with ANSI 24-bit color codes
+    for the given foreground and/or backgroung RGB values.
+
+    The color code is ommited for any of 'fg' or 'bg' that is empty.
+    """
+    return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
 
 _pixel_ratio = None  # Set by `.set_font_ratio()`
