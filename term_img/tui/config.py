@@ -33,7 +33,7 @@ def load_config() -> None:
         _set_action_status()
         return
 
-    for name in ("cell width", "max pixels"):
+    for name in ("cell width", "max pixels", "font ratio"):
         try:
             globals()[name.replace(" ", "_")] = config[name]
         except KeyError:
@@ -96,6 +96,7 @@ def store_config(*, default: bool = False) -> None:
                 "version": version,
                 "max pixels": (_max_pixels if default else max_pixels),
                 "cell width": (_cell_width if default else cell_width),
+                "font ratio": (_font_ratio if default else font_ratio),
                 "keys": stored_keys,
             },
             f,
@@ -215,6 +216,8 @@ valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 # Defaults
 _cell_width = 30
 _max_pixels = 2 ** 22  # 2048x2048
+_font_ratio = 0.5
+
 _nav = {
     "Left": ["left", "\u25c0"],
     "Up": ["up", "\u25b2"],
@@ -230,7 +233,7 @@ _nav = {
 # <visibility> and <state> are added later in `load_config()`.
 _context_keys = {
     "global": {
-        "Config": ["C", "C", "Open configuration menu"],
+        "Config": ["C", "\u21e7C", "Open configuration menu"],
         "Help": ["f1", "F1", "Show this help menu"],
         "Quit": ["q", "q", "Exit Term-Img"],
         "Key Bar": [".", ".", "Expand/Collapse key bar"],
@@ -310,6 +313,7 @@ _context_keys = {
 
 cell_width = _cell_width
 max_pixels = _max_pixels
+font_ratio = _font_ratio
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 

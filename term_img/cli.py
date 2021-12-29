@@ -14,6 +14,7 @@ import requests
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import TermImage
+from . import set_font_ratio
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
@@ -102,7 +103,7 @@ def main():
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
-    from .tui.config import max_pixels, user_dir
+    from .tui.config import font_ratio, max_pixels, user_dir
     from .tui.main import scan_dir
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
@@ -142,6 +143,14 @@ NOTES:
         "--help",
         action="help",
         help="show this help message and exit",
+    )
+    general.add_argument(
+        "-f",
+        "--font-ratio",
+        type=float,
+        metavar="N",
+        default=font_ratio,
+        help="Specify your terminal's font ratio for proper image scaling",
     )
 
     _alpha_options = parser.add_argument_group(
@@ -332,6 +341,7 @@ or multiple valid sources
         args.verbose,
         args.verbose_log,
     )
+    set_font_ratio(args.font_ratio)
 
     images = []
     contents = {}

@@ -169,7 +169,7 @@ class Image(urwid.Widget):
             canv = ImageCanvas(
                 format(image, f"1.1{self._alpha}").encode().split(b"\n"),
                 size,
-                image._size,
+                image.rendered_size,
             )
         except Exception:
             logging.log_exception(
@@ -203,7 +203,7 @@ class ImageCanvas(urwid.Canvas):
         super().__init__()
         self.size = size
         self.lines = lines
-        self.__image_size = image_size[0], ceil(image_size[1] / 2)
+        self.__image_size = image_size
 
     def cols(self):
         return self.size[0]
