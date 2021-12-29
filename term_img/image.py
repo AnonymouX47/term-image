@@ -346,12 +346,19 @@ class TermImage:
             self._size = self._valid_size(None, None)
             reset_size = True
         else:
-            width, height = map(round, map(mul, self._size, self._scale))
+            # If the set size is larger than terminal size but the set scale makes
+            # it fit in, then it's all good.
+            width, height = map(
+                round,
+                map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1))),
+            )
             columns, lines = get_terminal_size()
             # A 2-line allowance for the shell prompt
             if width > columns or height > (lines - 2) * 2:
                 raise InvalidSize(
-                    "Seems the terminal has been resized since the render size was set"
+                    "Seems the terminal has been resized or font-ratio has been "
+                    "changed since the image render size was set and the image can "
+                    "no longer fit into the terminal"
                 )
             reset_size = False
 
@@ -610,7 +617,7 @@ class TermImage:
                     buf_write(_UPPER_PIXEL * n)
 
         width, height = map(
-            round, map(mul, self._size, map(mul, self._scale, (1, _pixel_ratio)))
+            round, map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1)))
         )
         image = image.convert("RGBA").resize((width, height))
         if isinstance(alpha, str):
@@ -739,7 +746,7 @@ class TermImage:
             map(
                 mul,
                 self._size or self._valid_size(None, None),
-                map(mul, self._scale, (1, _pixel_ratio)),
+                map(truediv, self._scale, (_pixel_ratio, 1)),
             ),
         )
         rows = ceil(rows / 2)
@@ -824,17 +831,42 @@ class TermImage:
         # Two pixel rows per line
         rows = (lines) * 2
 
+        # NOTE: The image scale is not considered since it should never be > 1
+
         if width is None is height:
-            return tuple(
-                round(x * min(map(truediv, (columns, rows), (ori_width, ori_height))))
-                for x in (ori_width, ori_height)
-            )
+            # The smaller fraction will always fit into the larger fraction
+            # Using the larger fraction with cause the image not to fit on the axis with
+            # the smaller fraction
+            factor = min(map(truediv, (columns, rows), (ori_width, ori_height)))
+            width, height = map(round, map(mul, (factor,) * 2, (ori_width, ori_height)))
+
+            # The width will later be divided by the pixel-ratio when rendering
+            # Not be rounded at this point since the value used for further calculations
+            # Rounding here could result in a new rendered width that's off by 1 or 2
+            # when dealing with some odd (non-even) widths
+            rendered_width = width / _pixel_ratio
+
+            if round(rendered_width) <= columns:
+                return (width, height)
+            else:
+                # Adjust the width such that the rendered width is exactly the maximum
+                # number of columns and adjust the height proportionally
+                return (
+                    # w1 = rw1 * (w0 / rw0)
+                    round(columns * width / rendered_width),
+                    # h1 = h0 * (w1 / w0) == h0 * (rw1 / rw0)
+                    round(height * columns / rendered_width),
+                )
         elif width is None:
             width = round((height / ori_height) * ori_width)
         elif height is None:
             height = round((width / ori_width) * ori_height)
 
-        if not ignore_oversize and (width > columns or height > rows):
+        if not ignore_oversize and (
+            # The width will later be divided by the pixel-ratio when rendering
+            round(width / _pixel_ratio) > columns
+            or height > rows
+        ):
             raise InvalidSize(
                 "The resulting render size will not fit into the terminal"
             )
@@ -852,4 +884,8 @@ def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
     return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
 
+# The pixel ratio is always used to adjust the width and not the height, so that the
+# image can fill the terminal screen as much as possible.
+# The final width is always rounded, but that should never be an issue
+# since it's also rounded during size validation.
 _pixel_ratio = None  # Set by `.set_font_ratio()`
