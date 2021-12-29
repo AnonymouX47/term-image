@@ -10,7 +10,7 @@ import re
 import requests
 import time
 from math import ceil
-from operator import mul, truediv
+from operator import gt, mul, truediv
 from random import randint
 from shutil import get_terminal_size
 
@@ -42,7 +42,8 @@ class TermImage:
         - scale: The image render scale on respective axes.
 
     NOTE:
-        - _width_ is the exact number of columns that'll be used on the terminal.
+        - _width_ is not neccesarily the exact number of columns that'll be used
+          to render the image. That is influenced by the set font-ratio.
         - _height_ is **2 times** the number of lines that'll be used on the terminal.
         - If neither is given or `None`, the size is automatically determined
           when the image is to be rendered, such that it can fit within the terminal.
@@ -192,6 +193,15 @@ class TermImage:
 
     # Properties
 
+    columns = property(
+        lambda self: round(
+            (self._size or self._valid_size(None, None))[0]
+            * self._scale[0]
+            / _pixel_ratio
+        ),
+        doc="The number of columns that the rendered image will occupy on the terminal",
+    )
+
     is_animated = property(
         lambda self: self._is_animated,
         doc="True if the image is animated. Otherwise, False.",
@@ -216,6 +226,28 @@ class TermImage:
     original_size = property(
         lambda self: self._original_size, doc="Original image size"
     )
+
+    lines = property(
+        lambda self: ceil(
+            (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
+        ),
+        doc="The number of lines that the rendered image will occupy on the terminal",
+    )
+
+    @property
+    def rendered_size(self) -> Tuple[int, int]:
+        """The number of columns and lines (respectively) that the rendered image will
+        occupy on the terminal.
+        """
+        columns, rows = map(
+            round,
+            map(
+                mul,
+                self._size or self._valid_size(None, None),
+                map(truediv, self._scale, (_pixel_ratio, 1)),
+            ),
+        )
+        return (columns, ceil(rows / 2))
 
     scale = property(
         lambda self: tuple(self._scale),
@@ -348,13 +380,7 @@ class TermImage:
         else:
             # If the set size is larger than terminal size but the set scale makes
             # it fit in, then it's all good.
-            width, height = map(
-                round,
-                map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1))),
-            )
-            columns, lines = get_terminal_size()
-            # A 2-line allowance for the shell prompt
-            if width > columns or height > (lines - 2) * 2:
+            if any(map(gt, self.rendered_size, get_terminal_size())):
                 raise InvalidSize(
                     "Seems the terminal has been resized or font-ratio has been "
                     "changed since the image render size was set and the image can "
@@ -562,7 +588,7 @@ class TermImage:
         """
         height = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
-            ceil(self._size[1] * self._scale[1] * _pixel_ratio / 2),
+            self.lines,
         )
         try:
             while True:
@@ -741,15 +767,7 @@ class TermImage:
         All arguments should be passed through `__check_formatting()` first.
         """
         lines = render.splitlines()
-        cols, rows = map(
-            round,
-            map(
-                mul,
-                self._size or self._valid_size(None, None),
-                map(truediv, self._scale, (_pixel_ratio, 1)),
-            ),
-        )
-        rows = ceil(rows / 2)
+        cols, rows = self.rendered_size
 
         width = width or get_terminal_size()[0]
         width = max(cols, width)
