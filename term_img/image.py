@@ -208,14 +208,16 @@ class TermImage:
     )
 
     height = property(
-        lambda self: self._size[1],
+        lambda self: self._size and self._size[1],
         doc="""
-        Height of the rendered image
+        Image render height (`None` when render size is unset)
 
-        Setting this affects the width proportionally to keep the image in scale
+        Settable values:
+            - `None`: Sets the render size to the automatically calculated one.
+            - A positive integer: Sets the render height to the given value and
+              the width proprtionally.
 
         The image is actually rendered using half this number of lines
-        (keeps the image in proper scale on most terminals)
         """,
     )
 
@@ -299,7 +301,20 @@ class TermImage:
     def scale_y(self, y: float) -> None:
         self._scale[1] = self.__check_scale_2(y)
 
-    size = property(lambda self: self._size, doc="Image render size")
+    size = property(
+        lambda self: self._size,
+        doc="""Image render size (`None` when render size is unset)
+
+        Setting this to `None` unsets the render size, so that it's automatically
+        calculated whenever the image is rendered.
+        """,
+    )
+
+    @size.setter
+    def size(self, value: None) -> None:
+        if value is not None:
+            raise TypeError("The only acceptable value is `None`")
+        self._size = value
 
     source = property(
         lambda self: (
@@ -313,11 +328,14 @@ class TermImage:
     )
 
     width = property(
-        lambda self: self._size[0],
+        lambda self: self._size and self._size[0],
         doc="""
-        Width of the rendered image
+        Image render width (`None` when render size is unset)
 
-        Setting this affects the height proportionally to keep the image in scale
+        Settable values:
+            - `None`: Sets the render size to the automatically calculated one.
+            - A positive integer: Sets the render width to the given value and
+              the height proprtionally.
         """,
     )
 
