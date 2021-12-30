@@ -98,7 +98,9 @@ class TermImage:
             os.remove(self._source)
 
     def __format__(self, spec) -> str:
-        """Image alignment and padding
+        """Render the image with alignment, padding and transparency control
+
+        Only the currently set frame is rendered for animated images
 
         Format specification:
 
@@ -136,7 +138,6 @@ class TermImage:
             reset_size = True
 
         try:
-            # Only the first/set frame for animated images
             return self._format_image(
                 self.__draw_image(
                     (
@@ -175,13 +176,16 @@ class TermImage:
         )
 
     def __str__(self) -> str:
+        """Render the image with transparency enabled and without alignment
+
+        Only the currently set frame is rendered for animated images
+        """
         reset_size = False
         if not self._size:  # Size is unset
             self._size = self._valid_size(None, None)
             reset_size = True
 
         try:
-            # Only the first/set frame for animated images
             return self.__draw_image(
                 (
                     Image.open(self._source)
@@ -645,23 +649,43 @@ class TermImage:
 
         This is done infinitely but can be canceled with `Ctrl-C`.
         """
-        height = max(
+        lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
             self.lines,
         )
+        cache = [None] * self._n_frames
+        prev_seek_pos = self._seek_position
         try:
+            # By implication, the first frame is repeated once at the start :D
+            self.seek(0)
+            cache[0] = frame = self._format_image(self.__draw_image(image, alpha), *fmt)
+            duration = self._frame_duration
             while True:
-                for frame in range(0, image.n_frames):
-                    image.seek(frame)
-                    print(self._format_image(self.__draw_image(image, alpha), *fmt))
+                for n in range(self._n_frames):
+                    print(frame)  # Current frame
+
+                    # Render next frame during current frame's duration
+                    start = time.time()
                     self._buffer.truncate()  # Clear buffer
-                    time.sleep(0.1)
+                    self.seek(n)
+                    if cache[n]:
+                        frame = cache[n]
+                    else:
+                        cache[n] = frame = self._format_image(
+                            self.__draw_image(image, alpha),
+                            *fmt,
+                        )
                     # Move cursor up to the first line of the image
-                    print("\033[%dA" % height, end="")
+                    # Not flushed until the next frame is printed
+                    print("\033[%dA" % lines, end="")
+
+                    # Left-over of current frame's duration
+                    time.sleep(max(0, duration - (time.time() - start)))
         finally:
+            self.seek(prev_seek_pos)
             # Move the cursor to the line after the image
             # Prevents "overlayed" output on the terminal
-            print("\033[%dB" % height, end="", flush=True)
+            print("\033[%dB" % lines, end="", flush=True)
 
     def __draw_image(self, image: Image.Image, alpha: Optional[float]) -> str:
         """Convert entire image pixel data to a color-coded string
@@ -701,6 +725,8 @@ class TermImage:
                     buf_write(_FG_FMT % cluster1)
                     buf_write(_UPPER_PIXEL * n)
 
+        if self._is_animated:
+            image.seek(self._seek_position)
         width, height = map(
             round, map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1)))
         )
