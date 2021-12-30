@@ -33,7 +33,7 @@ def load_config() -> None:
         _set_action_status()
         return
 
-    for name in ("cell width", "max pixels", "font ratio"):
+    for name in ("cell width", "font ratio", "frame duration", "max pixels"):
         try:
             globals()[name.replace(" ", "_")] = config[name]
         except KeyError:
@@ -94,9 +94,10 @@ def store_config(*, default: bool = False) -> None:
         json.dump(
             {
                 "version": version,
-                "max pixels": (_max_pixels if default else max_pixels),
                 "cell width": (_cell_width if default else cell_width),
                 "font ratio": (_font_ratio if default else font_ratio),
+                "frame duration": (_frame_duration if default else frame_duration),
+                "max pixels": (_max_pixels if default else max_pixels),
                 "keys": stored_keys,
             },
             f,
@@ -217,6 +218,7 @@ valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
 _cell_width = 30
 _max_pixels = 2 ** 22  # 2048x2048
 _font_ratio = 0.5
+_frame_duration = 0.1
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -314,6 +316,7 @@ _context_keys = {
 cell_width = _cell_width
 max_pixels = _max_pixels
 font_ratio = _font_ratio
+frame_duration = _frame_duration
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 

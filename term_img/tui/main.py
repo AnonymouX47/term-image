@@ -381,6 +381,7 @@ at_top_level = None
 # Placeholders; Set from `..tui.init()`
 displayer = None
 loop = None
+FRAME_DURATION = None
 MAX_PIXELS = None
 RECURSIVE = None
 SHOW_HIDDEN = None

@@ -33,6 +33,7 @@ def init(
     loop.screen.clear()
     loop.screen.set_terminal_properties(2 ** 24)
 
+    main.FRAME_DURATION = args.frame_duration
     main.MAX_PIXELS = args.max_pixels
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all

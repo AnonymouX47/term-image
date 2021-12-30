@@ -103,10 +103,11 @@ def main():
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
-    from .tui.config import font_ratio, max_pixels, user_dir
+    from .tui.config import font_ratio, frame_duration, max_pixels, user_dir
     from .tui.main import scan_dir
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
+    from . import notify
     from . import tui
 
     _log, _log_exception = log, log_exception
@@ -151,6 +152,14 @@ NOTES:
         metavar="N",
         default=font_ratio,
         help="Specify your terminal's font ratio for proper image scaling",
+    )
+    general.add_argument(
+        "-F",
+        "--frame-duration",
+        type=float,
+        metavar="N",
+        default=frame_duration,
+        help="Specify the time (in seconds) between frames of an animated image",
     )
 
     _alpha_options = parser.add_argument_group(
@@ -341,7 +350,23 @@ or multiple valid sources
         args.verbose,
         args.verbose_log,
     )
-    set_font_ratio(args.font_ratio)
+
+    try:
+        set_font_ratio(args.font_ratio)
+    except ValueError:
+        notify.notify(
+            f"Invalid font ratio (got: {args.font_ratio}). Using config value...",
+            level=notify.ERROR,
+        )
+        args.font_ratio = font_ratio
+        set_font_ratio(font_ratio)
+
+    if args.frame_duration <= 0:
+        notify.notify(
+            f"Invalid duration (got: {args.frame_duration}). Using config value...",
+            level=notify.ERROR,
+        )
+        args.frame_duration = frame_duration
 
     images = []
     contents = {}
@@ -416,6 +441,7 @@ or multiple valid sources
                 image.height = args.height
             image.scale_x = args.scale_x
             image.scale_y = args.scale_y
+            image.frame_duration = args.frame_duration
 
             image.draw_image(
                 *(
