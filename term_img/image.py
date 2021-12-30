@@ -138,8 +138,8 @@ class TermImage:
             reset_size = True
 
         try:
-            return self._format_image(
-                self.__draw_image(
+            return self.__format_render(
+                self.__render_image(
                     (
                         Image.open(self._source)
                         if isinstance(self._source, str)
@@ -186,7 +186,7 @@ class TermImage:
             reset_size = True
 
         try:
-            return self.__draw_image(
+            return self.__render_image(
                 (
                     Image.open(self._source)
                     if isinstance(self._source, str)
@@ -452,8 +452,8 @@ class TermImage:
                 )
             else:
                 print(
-                    self._format_image(
-                        self.__draw_image(image, alpha),
+                    self.__format_render(
+                        self.__render_image(image, alpha),
                         h_align,
                         pad_width,
                         v_align,
@@ -578,7 +578,7 @@ class TermImage:
     ) -> Tuple[Union[str, int, None]]:
         """Validate and translate literal formatting arguments
 
-        Returns: The respective arguments appropriate for `_format_image()`.
+        Returns: The respective arguments appropriate for `__format_render()`.
         """
         if h_align is not None:
             align = {"left": "<", "center": "|", "right": ">"}.get(h_align, h_align)
@@ -658,7 +658,9 @@ class TermImage:
         try:
             # By implication, the first frame is repeated once at the start :D
             self.seek(0)
-            cache[0] = frame = self._format_image(self.__draw_image(image, alpha), *fmt)
+            cache[0] = frame = self.__format_render(
+                self.__render_image(image, alpha), *fmt
+            )
             duration = self._frame_duration
             while True:
                 for n in range(self._n_frames):
@@ -671,8 +673,8 @@ class TermImage:
                     if cache[n]:
                         frame = cache[n]
                     else:
-                        cache[n] = frame = self._format_image(
-                            self.__draw_image(image, alpha),
+                        cache[n] = frame = self.__format_render(
+                            self.__render_image(image, alpha),
                             *fmt,
                         )
                     # Move cursor up to the first line of the image
@@ -687,7 +689,7 @@ class TermImage:
             # Prevents "overlayed" output on the terminal
             print("\033[%dB" % lines, end="", flush=True)
 
-    def __draw_image(self, image: Image.Image, alpha: Optional[float]) -> str:
+    def __render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
         """Convert entire image pixel data to a color-coded string
 
         Two pixels per character using FG and BG colors.
@@ -839,7 +841,7 @@ class TermImage:
 
         return buffer.getvalue()
 
-    def _format_image(
+    def __format_render(
         self,
         render: str,
         h_align: Optional[str] = None,
