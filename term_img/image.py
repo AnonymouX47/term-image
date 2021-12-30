@@ -68,7 +68,6 @@ class TermImage:
                 f"(got: {type(image).__name__!r})."
             )
 
-        self._is_animated = hasattr(image, "is_animated") and image.is_animated
         self._source = image
         self._buffer = io.StringIO()
         self._original_size = image.size
@@ -77,6 +76,12 @@ class TermImage:
         )
         self._scale = []
         self._scale[:] = self.__check_scale(scale)
+
+        self._is_animated = hasattr(image, "is_animated") and image.is_animated
+        if self._is_animated:
+            self._frame_duration = 0.1
+            self._seek_position = 0
+            self._n_frames = image.n_frames
 
     def __del__(self) -> None:
         try:
@@ -202,10 +207,21 @@ class TermImage:
         doc="The number of columns that the rendered image will occupy on the terminal",
     )
 
-    is_animated = property(
-        lambda self: self._is_animated,
-        doc="True if the image is animated. Otherwise, False.",
+    frame_duration = property(
+        lambda self: self._frame_duration if self._is_animated else None,
+        doc="Duration (in seconds) of a single frame for animated images",
     )
+
+    @frame_duration.setter
+    def frame_duration(self, value: float) -> None:
+        if not isinstance(value, float):
+            raise TypeError(f"Invalid duration type (got: {type(value).__name__})")
+        if value <= 0:
+            raise ValueError(
+                f"Invalid frame duration (got: {value}, n_frames={self._n_frames})"
+            )
+        if self._is_animated:
+            self._frame_duration = value
 
     height = property(
         lambda self: self._size and self._size[1],
@@ -225,8 +241,9 @@ class TermImage:
     def height(self, height: int) -> None:
         self._size = self._valid_size(None, height)
 
-    original_size = property(
-        lambda self: self._original_size, doc="Original image size"
+    is_animated = property(
+        lambda self: self._is_animated,
+        doc="True if the image is animated. Otherwise, False.",
     )
 
     lines = property(
@@ -234,6 +251,15 @@ class TermImage:
             (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
         ),
         doc="The number of lines that the rendered image will occupy on the terminal",
+    )
+
+    original_size = property(
+        lambda self: self._original_size, doc="Original image size"
+    )
+
+    n_frames = property(
+        lambda self: self._n_frames if self._is_animated else 1,
+        doc="Number of frames in an image",
     )
 
     @property
@@ -521,6 +547,21 @@ class TermImage:
         new._source = filepath
         new.__url = url
         return new
+
+    def seek(self, pos: int) -> None:
+        """Change current image frame (Frame numbers start from 0 (zero))"""
+        if not isinstance(pos, int):
+            raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
+        if not 0 <= pos < self._n_frames if self._is_animated else pos:
+            raise ValueError(
+                f"Invalid frame number (got: {pos}, n_frames={self._n_frames})"
+            )
+        if self._is_animated:
+            self._seek_position = pos
+
+    def tell(self) -> int:
+        """Return the current image frame number"""
+        return self._seek_position if self._is_animated else 0
 
     # Private Methods
 
