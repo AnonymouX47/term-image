@@ -64,8 +64,8 @@ class TermImage:
         """See class description"""
         if not isinstance(image, Image.Image):
             raise TypeError(
-                "Expected a 'PIL.Image.Image' instance for 'image',"
-                f" got {type(image).__name__!r}."
+                "Expected a 'PIL.Image.Image' instance for 'image' "
+                f"(got: {type(image).__name__!r})."
             )
 
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
@@ -268,7 +268,7 @@ class TermImage:
     def scale(self, scale: Union[float, Tuple[float, float]]) -> None:
         if isinstance(scale, float):
             if not 0.0 < scale <= 1.0:
-                raise ValueError(f"Scale value out of range; got: {scale}")
+                raise ValueError(f"Scale value out of range (got: {scale})")
             self._scale[:] = (scale,) * 2
         elif isinstance(scale, tuple):
             self._scale[:] = self.__check_scale(scale)
@@ -459,7 +459,7 @@ class TermImage:
         """
         if not isinstance(filepath, str):
             raise TypeError(
-                f"File path must be a string, got {type(filepath).__name__!r}."
+                f"File path must be a string (got: {type(filepath).__name__!r})."
             )
 
         # Intentionally propagates `UnidentifiedImageError` and `IsADirectoryError`
@@ -493,7 +493,7 @@ class TermImage:
             - Propagates `UnidentifiedImageError` from `PIL.Image.open()`.
         """
         if not isinstance(url, str):
-            raise TypeError(f"URL must be a string, got {type(url).__name__!r}.")
+            raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
         if not all(urlparse(url)[:3]):
             raise ValueError(f"Invalid url: {url!r}")
 
@@ -545,7 +545,7 @@ class TermImage:
             raise TypeError("Wrong type; Padding width must be None or an integer.")
         if width is not None:
             if width <= 0:
-                raise ValueError(f"Padding width must be positive, got: {width}")
+                raise ValueError(f"Padding width must be positive (got: {width})")
             if width > get_terminal_size()[0]:
                 raise ValueError("Padding width larger than terminal width")
 
@@ -558,7 +558,7 @@ class TermImage:
         if not isinstance(height, (type(None), int)):
             raise TypeError("Wrong type; Padding height must be None or an integer.")
         if None is not height <= 0:
-            raise ValueError(f"Padding height must be positive, got: {height}")
+            raise ValueError(f"Padding height must be positive (got: {height})")
 
         return h_align, width, v_align, height
 
@@ -577,7 +577,7 @@ class TermImage:
 
         if not (len(scale) == 2 and all(0.0 < x <= 1.0 for x in scale)):
             raise ValueError(
-                f"'scale' must be a tuple of two floats, 0.0 < x <= 1.0; got: {scale}"
+                f"'scale' must be a tuple of two floats, 0.0 < x <= 1.0 (got: {scale})"
             )
         return scale
 
@@ -594,7 +594,7 @@ class TermImage:
         if not isinstance(value, float):
             raise TypeError("Given value must be a float")
         if not 0.0 < value <= 1.0:
-            raise ValueError(f"Scale value out of range; got: {value}")
+            raise ValueError(f"Scale value out of range (got: {value})")
         return value
 
     def __display_animated(
@@ -854,7 +854,7 @@ class TermImage:
             if not (x is None or isinstance(x, int)):
                 raise TypeError(
                     f"{argname} must be an integer "
-                    f"(got {argname} of type {type(x).__name__!r})"
+                    f"(got: {argname} of type {type(x).__name__!r})"
                 )
             if None is not x <= 0:
                 raise ValueError(f"{argname} must be positive (got: {x})")
