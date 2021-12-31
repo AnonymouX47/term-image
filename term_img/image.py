@@ -152,14 +152,19 @@ class TermImage:
         )
 
     def __repr__(self) -> str:
-        return "<{}(source={!r}, size={})>".format(
+        return (
+            "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
+        ).format(
             type(self).__name__,
             (
                 self.__url
                 if hasattr(self, f"_{__class__.__name__}__url")
                 else self._source
             ),
+            self._original_size,
             self._size,
+            self.scale,  # Stored as a list but should be shown as a tuple
+            self._is_animated,
         )
 
     def __str__(self) -> str:
