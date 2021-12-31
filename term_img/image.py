@@ -1029,4 +1029,4 @@ def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
 # image can fill the terminal screen as much as possible.
 # The final width is always rounded, but that should never be an issue
 # since it's also rounded during size validation.
-_pixel_ratio = None  # Set by `.set_font_ratio()`
+_pixel_ratio = 1.0  # Default

@@ -1,8 +1,23 @@
-"""term-img Package Top-Level"""
+"""
+term-img
 
-__all__ = ("TermImage", "set_font_ratio", "get_font_ratio")
+Display images in a terminal
 
-from .image import TermImage
+Provides
+========
+    1. A library with utilities to display images in a terminal in various ways.
+    2. A CLI to display individual images from a local filesystem or URLs.
+    3. A TUI to browse multiple images on a local filesystem or from URLS.
+
+It basically works by converting images into text, since that's all conventional
+terminals can represent.
+Colored output is achieved using ANSI 24-bit color escape codes.
+
+AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
+Copyright (c) 2021
+"""
+
+__all__ = ("set_font_ratio", "get_font_ratio")
 
 version_info = (0, 1, 0)
 __version__ = ".".join(map(str, version_info))
@@ -42,4 +57,4 @@ def set_font_ratio(ratio: float) -> None:
     image._pixel_ratio = 2 * ratio
 
 
-set_font_ratio(0.5)  # Default
+_font_ratio = 0.5  # Default

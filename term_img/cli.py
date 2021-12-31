@@ -96,7 +96,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
 
 
 def main():
-    """CLI execution entry-point"""
+    """CLI execution sub-entry-point"""
     global args, _log, _log_exception, _RECURSIVE, _SHOW_HIDDEN
 
     # Ensure user-config is loaded only when the package is executed as a module,

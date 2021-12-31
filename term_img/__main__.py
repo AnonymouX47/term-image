@@ -6,7 +6,9 @@ import sys
 from .exit_codes import codes, FAILURE, INTERRUPTED
 from . import cli
 
-if __name__ == "__main__":
+
+def main():
+    """CLI execution entry-point"""
     from . import logging
     from .tui import main
 
@@ -29,7 +31,7 @@ if __name__ == "__main__":
         )
         if cli.args.debug:
             raise
-        sys.exit(INTERRUPTED)
+        return INTERRUPTED
     except Exception as e:
         logging.log(
             f"Session not ended successfully: ({type(e).__name__}) {e}",
@@ -40,7 +42,11 @@ if __name__ == "__main__":
         )
         if cli.args.debug:
             raise
-        sys.exit(FAILURE)
+        return FAILURE
     else:
         logger.info(f"Session ended with return-code {exit_code} ({codes[exit_code]})")
-        sys.exit(exit_code)
+        return exit_code
+
+
+if __name__ == "__main__":
+    sys.exit(main())
