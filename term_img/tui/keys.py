@@ -419,6 +419,10 @@ def maximize_cell():
     image_box.set_title(basename(image._image._source))
     main_widget.contents[0] = (image_box, ("weight", 1))
 
+    image_box.original_widget = image  # For image animation
+    if image._image._is_animated:
+        main.animate_image(image)
+
 
 @_register_key(("image-grid", "Size-"))
 def cell_width_dec():
@@ -445,6 +449,13 @@ def force_render_maximized_cell():
 # full-image, full-grid-image
 @_register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
 def restore():
+    # For image animation
+    if (
+        main.get_context() == "full-grid-image"
+        and image_box.original_widget._image._is_animated
+    ):
+        image_box.original_widget = _placeholder
+
     main.set_prev_context()
     main_widget.contents[0] = (pile, ("weight", 1))
     if main.get_context() == "menu":

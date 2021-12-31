@@ -108,6 +108,11 @@ class Image(urwid.Widget):
     _last_canv = (None, None)
     _grid_cache = {}
 
+    # Set per image from `.main.animate_image()`
+    # Since only one full-sized (non-grid-cell) image is rendered per time,
+    # there shouldn't be collisions
+    _frame_cache = None
+
     _alpha = f"{40 / 255}"[1:]
 
     def __init__(self, image: TermImage):
@@ -129,6 +134,9 @@ class Image(urwid.Widget):
 
     def render(self, size, focus=False):
         context = tui_main.get_context()
+        image = self._image
+
+        # Cache retrieval
 
         if (
             view.original_widget is image_grid_box
@@ -139,12 +147,16 @@ class Image(urwid.Widget):
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
             if canv and size[0] + 2 == image_grid.cell_width:
                 return canv
+        elif image._is_animated:
+            canv = self._frame_cache[image._seek_position]
+            if canv and canv.size == size:
+                return canv
         elif self._last_canv[0] == hash((self._image._source, size)):
             if context in self._force_render_contexts:
                 keys.disable_actions(context, "Force Render")
             return self._last_canv[1]
 
-        image = self._image
+        # Forced render
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS:
             if self._force_render:
@@ -156,6 +168,8 @@ class Image(urwid.Widget):
         if context in self._force_render_contexts:
             keys.disable_actions(context, "Force Render")
 
+        # Size augmentation
+
         if len(size) == 1:
             size = image._valid_size(
                 None,
@@ -165,7 +179,15 @@ class Image(urwid.Widget):
             size = (size[0], ceil(size[1] / 2))
         image._size = image._valid_size(None, None, maxsize=size)
 
+        # Rendering
+
         try:
+            # Using `TermImage` for padding will use more memory since all the
+            # spaces will be in the render output string, and theoretically more time
+            # with all the checks and string splitting & joining.
+            # While `ImageCanvas` is better since it only stores the main image render
+            # string (as a list though) then generates and yields the complete lines
+            # **as needed**. Trimmed padding lines are never generated at all.
             canv = ImageCanvas(
                 format(image, f"1.1{self._alpha}").encode().split(b"\n"),
                 size,
@@ -182,6 +204,8 @@ class Image(urwid.Widget):
             )
             canv = self._faulty_image.render(size, focus)
 
+        # Cache storing
+
         if (
             view.original_widget is image_grid_box
             and tui_main.get_context() != "full-grid-image"
@@ -190,6 +214,8 @@ class Image(urwid.Widget):
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             if size[0] + 2 == image_grid.cell_width:
                 __class__._grid_cache[self] = canv
+        elif image._is_animated:
+            self._frame_cache[image._seek_position] = canv
         else:
             __class__._last_canv = (hash((self._image._source, size)), canv)
 

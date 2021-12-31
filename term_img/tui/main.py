@@ -38,6 +38,35 @@ from .. import logging
 from .. import notify
 
 
+def animate_image(image_widget: Image, forced_render: bool = False) -> None:
+    """Change frames of an animated image"""
+
+    def change_frame(*_) -> None:
+        nonlocal last_alarm, n
+
+        loop.remove_alarm(last_alarm)
+        if image_box.original_widget is image_widget:
+            last_alarm = loop.set_alarm_in(FRAME_DURATION, change_frame)
+            image.seek(n)
+            if forced_render:
+                image_widget._forced_render = True
+            n += 1
+            if n == image.n_frames:
+                n = 0
+        else:
+            image.seek(0)
+            # Avoid overwriting the frame-cache for a new animated image
+            widget = image_box.original_widget
+            if isinstance(widget, Image) and not widget._image._is_animated:
+                Image._frame_cache = None
+
+    image = image_widget._image
+    Image._frame_cache = [None] * image._n_frames
+    image.seek(0)
+    n = 1
+    last_alarm = loop.set_alarm_in(FRAME_DURATION, change_frame)
+
+
 def display_images(
     dir: str,
     items: Iterator[Tuple[str, Union[Image, Iterator]]],
@@ -168,6 +197,9 @@ def display_images(
                 image_box._w.contents[1][0].contents[1] = (value, ("weight", 1, False))
                 image_box.set_title(entry)
                 view.original_widget = image_box
+                image_box.original_widget = value  # For image animation
+                if value._image._is_animated:
+                    animate_image(value)
             else:  # Directory
                 image_grid.contents[:] = [
                     (
