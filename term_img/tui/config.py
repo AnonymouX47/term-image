@@ -33,9 +33,17 @@ def load_config() -> None:
         _set_action_status()
         return
 
-    for name in ("cell width", "font ratio", "frame duration", "max pixels"):
+    for name, is_valid in config_options.items():
         try:
-            globals()[name.replace(" ", "_")] = config[name]
+            value = config[name]
+            if is_valid(value):
+                globals()[name.replace(" ", "_")] = value
+            else:
+                print(
+                    f"config: Invalid value/type for {name!r} "
+                    f"(got: {value!r} of type {type(value).__name__!r})... "
+                    "Using default."
+                )
         except KeyError:
             print(f"User-config: {name!r} not found... Using default.")
 
@@ -319,6 +327,13 @@ font_ratio = _font_ratio
 frame_duration = _frame_duration
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
+
+config_options = {
+    "cell width": lambda value: isinstance(value, int) and value > 0,
+    "font ratio": lambda value: isinstance(value, float) and value > 0.0,
+    "frame duration": lambda value: isinstance(value, float) and value > 0.0,
+    "max pixels": lambda value: isinstance(value, int) and value > 0,
+}
 
 if os.path.isfile(f"{user_dir}/config.json"):
     load_config()

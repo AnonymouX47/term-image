@@ -103,7 +103,13 @@ def main():
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
-    from .tui.config import font_ratio, frame_duration, max_pixels, user_dir
+    from .tui.config import (
+        config_options,
+        font_ratio,
+        frame_duration,
+        max_pixels,
+        user_dir,
+    )
     from .tui.main import scan_dir
     from .tui.widgets import Image
     from .logging import init_log, log, log_exception
@@ -351,22 +357,18 @@ or multiple valid sources
         args.verbose_log,
     )
 
-    try:
-        set_font_ratio(args.font_ratio)
-    except ValueError:
-        notify.notify(
-            f"Invalid font ratio (got: {args.font_ratio}). Using config value...",
-            level=notify.ERROR,
-        )
-        args.font_ratio = font_ratio
-        set_font_ratio(font_ratio)
+    for name, is_valid in config_options.items():
+        var_name = name.replace(" ", "_")
+        value = getattr(args, var_name, None)
+        # Not all config options have corresponding command-line arguments
+        if value and not is_valid(value):
+            notify.notify(
+                f"Invalid {name} (got: {value})... Using config value.",
+                level=notify.ERROR,
+            )
+            setattr(args, var_name, locals()[var_name])
 
-    if args.frame_duration <= 0:
-        notify.notify(
-            f"Invalid duration (got: {args.frame_duration}). Using config value...",
-            level=notify.ERROR,
-        )
-        args.frame_duration = frame_duration
+    set_font_ratio(args.font_ratio)
 
     images = []
     contents = {}
