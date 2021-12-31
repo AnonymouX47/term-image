@@ -16,7 +16,8 @@ from random import randint
 from shutil import get_terminal_size
 
 from PIL import Image, UnidentifiedImageError
-from typing import Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
+from types import FunctionType
 from urllib.parse import urlparse
 
 from .exceptions import InvalidSize, URLNotFoundError
@@ -133,19 +134,10 @@ class TermImage:
         width = width and int(width)
         height = height and int(height)
 
-        reset_size = False
-        if not self._size:  # Size is unset
-            self._size = self._valid_size(None, None)
-            reset_size = True
-
-        try:
-            return self.__format_render(
+        return self._renderer(
+            lambda image: self.__format_render(
                 self.__render_image(
-                    (
-                        Image.open(self._source)
-                        if isinstance(self._source, str)
-                        else self._source
-                    ),
+                    image,
                     (
                         threshold_or_bg
                         and (
@@ -159,11 +151,7 @@ class TermImage:
                 ),
                 *self.__check_formating(h_align, width, v_align, height),
             )
-        finally:
-            self._buffer.seek(0)  # Reset buffer pointer
-            self._buffer.truncate()  # Clear buffer
-            if reset_size:
-                self._size = None
+        )
 
     def __repr__(self) -> str:
         return "<{}(source={!r}, size={})>".format(
@@ -181,25 +169,7 @@ class TermImage:
 
         Only the currently set frame is rendered for animated images
         """
-        reset_size = False
-        if not self._size:  # Size is unset
-            self._size = self._valid_size(None, None)
-            reset_size = True
-
-        try:
-            return self.__render_image(
-                (
-                    Image.open(self._source)
-                    if isinstance(self._source, str)
-                    else self._source
-                ),
-                40 / 255,
-            )
-        finally:
-            self._buffer.seek(0)  # Reset buffer pointer
-            self._buffer.truncate()  # Clear buffer
-            if reset_size:
-                self._size = None
+        return self._renderer(lambda image: self.__render_image(image, 40 / 255))
 
     # Properties
 
@@ -383,6 +353,8 @@ class TermImage:
         v_align: Optional[str] = "middle",
         pad_height: Optional[int] = None,
         alpha: Optional[float] = 40 / 255,
+        *,
+        ignore_oversize: bool = False,
     ) -> None:
         """Print an image to the terminal, with optional alignment and padding.
 
@@ -400,6 +372,8 @@ class TermImage:
                 are taken as opaque.
               - If a string, specifies a hex color with which transparent background
                 should be replaced.
+            - ignore_oversize: Do not check if the image will fit into the terminal
+              with it's currently set size.
 
         Raises:
             - .exceptions.InvalidSize: if the terminal has been resized in such a way
@@ -410,6 +384,13 @@ class TermImage:
         h_align, pad_width, v_align, pad_height = self.__check_formating(
             h_align, pad_width, v_align, pad_height
         )
+
+        if self._is_animated and None is not pad_height > get_terminal_size()[1] - 2:
+            raise ValueError(
+                "Padding height must not be larger than the terminal height, "
+                "for animated images"
+            )
+
         if alpha is not None:
             if isinstance(alpha, float):
                 if not 0.0 <= alpha < 1.0:
@@ -423,52 +404,28 @@ class TermImage:
                     f"(got: {type(alpha).__name__})"
                 )
 
-        if not self._size:  # Size is unset
-            self._size = self._valid_size(None, None)
-            reset_size = True
-        else:
-            # If the set size is larger than terminal size but the set scale makes
-            # it fit in, then it's all good.
-            if any(map(gt, self.rendered_size, get_terminal_size())):
-                raise InvalidSize(
-                    "Seems the terminal has been resized or font-ratio has been "
-                    "changed since the image render size was set and the image can "
-                    "no longer fit into the terminal"
-                )
-            reset_size = False
-
-        image = (
-            Image.open(self._source) if isinstance(self._source, str) else self._source
-        )
-
-        try:
-            if self._is_animated:
-                if None is not pad_height > get_terminal_size()[1] - 2:
-                    raise ValueError(
-                        "Padding height must not be larger than the terminal height, "
-                        "for animated images"
+        def render(image) -> None:
+            try:
+                if self._is_animated:
+                    self.__display_animated(
+                        image, alpha, h_align, pad_width, v_align, pad_height
                     )
-                self.__display_animated(
-                    image, alpha, h_align, pad_width, v_align, pad_height
-                )
-            else:
-                print(
-                    self.__format_render(
-                        self.__render_image(image, alpha),
-                        h_align,
-                        pad_width,
-                        v_align,
-                        pad_height,
-                    ),
-                    end="",
-                    flush=True,
-                )
-        finally:
-            self._buffer.seek(0)  # Reset buffer pointer
-            self._buffer.truncate()  # Clear buffer
-            print("\033[0m")  # Always reset color
-            if reset_size:
-                self._size = None
+                else:
+                    print(
+                        self.__format_render(
+                            self.__render_image(image, alpha),
+                            h_align,
+                            pad_width,
+                            v_align,
+                            pad_height,
+                        ),
+                        end="",
+                        flush=True,
+                    )
+            finally:
+                print("\033[0m")  # Always reset color
+
+        self._renderer(render, not ignore_oversize)
 
     @classmethod
     def from_file(
@@ -689,6 +646,59 @@ class TermImage:
             # Prevents "overlayed" output on the terminal
             print("\033[%dB" % lines, end="", flush=True)
 
+    def __format_render(
+        self,
+        render: str,
+        h_align: Optional[str] = None,
+        width: Optional[int] = None,
+        v_align: Optional[str] = None,
+        height: Optional[int] = None,
+    ) -> str:
+        """Format rendered image text
+
+        All arguments should be passed through `__check_formatting()` first.
+        """
+        lines = render.splitlines()
+        cols, rows = self.rendered_size
+
+        width = width or get_terminal_size()[0]
+        width = max(cols, width)
+        if h_align == "<":  # left
+            pad_left = ""
+            pad_right = " " * (width - cols)
+        elif h_align == ">":  # right
+            pad_left = " " * (width - cols)
+            pad_right = ""
+        else:  # center
+            pad_left = " " * ((width - cols) // 2)
+            pad_right = " " * (width - cols - len(pad_left))
+
+        if pad_left and pad_right:
+            lines = [pad_left + line + pad_right for line in lines]
+        elif pad_left:
+            lines = [pad_left + line for line in lines]
+        elif pad_right:
+            lines = [line + pad_right for line in lines]
+
+        height = height or get_terminal_size()[1] - 2
+        height = max(rows, height)
+        if v_align == "^":  # top
+            pad_up = 0
+            pad_down = height - rows
+        elif v_align == "_":  # bottom
+            pad_up = height - rows
+            pad_down = 0
+        else:  # middle
+            pad_up = (height - rows) // 2
+            pad_down = height - rows - pad_up
+
+        if pad_down:
+            lines[rows:] = (" " * width,) * pad_down
+        if pad_up:
+            lines[:0] = (" " * width,) * pad_up
+
+        return "\n".join(lines)
+
     def __render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
         """Convert entire image pixel data to a color-coded string
 
@@ -841,58 +851,44 @@ class TermImage:
 
         return buffer.getvalue()
 
-    def __format_render(
-        self,
-        render: str,
-        h_align: Optional[str] = None,
-        width: Optional[int] = None,
-        v_align: Optional[str] = None,
-        height: Optional[int] = None,
-    ) -> str:
-        """Format rendered image text
+    def _renderer(self, callback: FunctionType, check_size: bool = False) -> Any:
+        """Perform common render preparations and rendering operation
 
-        All arguments should be passed through `__check_formatting()` first.
+        Args:
+            - callback: The function to perform the specifc rendering operation for the
+              caller of this function (`_renderer()`).
+              This function should accept just one argument, the PIL image.
+            - check_size: Determines whether or not the image's set size (if any) is
+              checked to see if still fits into the terminal.
+
+        Returns: The return value of _callback_.
         """
-        lines = render.splitlines()
-        cols, rows = self.rendered_size
+        try:
+            reset_size = False
+            if not self._size:  # Size is unset
+                self._size = self._valid_size(None, None)
+                reset_size = True
+            # If the set size is larger than terminal size but the set scale makes
+            # it fit in, then it's all good.
+            elif check_size and any(map(gt, self.rendered_size, get_terminal_size())):
+                raise InvalidSize(
+                    "Seems the terminal has been resized or font-ratio has been "
+                    "changed since the image render size was set and the image can "
+                    "no longer fit into the terminal"
+                )
 
-        width = width or get_terminal_size()[0]
-        width = max(cols, width)
-        if h_align == "<":  # left
-            pad_left = ""
-            pad_right = " " * (width - cols)
-        elif h_align == ">":  # right
-            pad_left = " " * (width - cols)
-            pad_right = ""
-        else:  # center
-            pad_left = " " * ((width - cols) // 2)
-            pad_right = " " * (width - cols - len(pad_left))
+            image = (
+                Image.open(self._source)
+                if isinstance(self._source, str)
+                else self._source
+            )
 
-        if pad_left and pad_right:
-            lines = [pad_left + line + pad_right for line in lines]
-        elif pad_left:
-            lines = [pad_left + line for line in lines]
-        elif pad_right:
-            lines = [line + pad_right for line in lines]
-
-        height = height or get_terminal_size()[1] - 2
-        height = max(rows, height)
-        if v_align == "^":  # top
-            pad_up = 0
-            pad_down = height - rows
-        elif v_align == "_":  # bottom
-            pad_up = height - rows
-            pad_down = 0
-        else:  # middle
-            pad_up = (height - rows) // 2
-            pad_down = height - rows - pad_up
-
-        if pad_down:
-            lines[rows:] = (" " * width,) * pad_down
-        if pad_up:
-            lines[:0] = (" " * width,) * pad_up
-
-        return "\n".join(lines)
+            return callback(image)
+        finally:
+            self._buffer.seek(0)  # Reset buffer pointer
+            self._buffer.truncate()  # Clear buffer
+            if reset_size:
+                self._size = None
 
     def _valid_size(
         self,
