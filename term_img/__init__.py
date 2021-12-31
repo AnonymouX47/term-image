@@ -4,6 +4,9 @@ __all__ = ("TermImage", "set_font_ratio", "get_font_ratio")
 
 from .image import TermImage
 
+version_info = (0, 1, 0)
+__version__ = ".".join(map(str, version_info))
+
 
 def get_font_ratio() -> float:
     """Return the set libray-wide font ratio"""

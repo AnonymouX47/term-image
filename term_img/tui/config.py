@@ -349,5 +349,6 @@ else:
     _set_action_status()
     store_config(default=True)
 
+context_keys["global"]["Config"][3] = False  # Temporary, till config menu is implemted
 expand_key = context_keys["global"]["Key Bar"]
 expand_key[3] = False  # Hidden

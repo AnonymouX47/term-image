@@ -30,7 +30,7 @@ from .widgets import (
     viewer,
 )
 from . import main
-from .. import logging
+from .. import logging, __version__
 
 # Action Status Modification
 
@@ -146,20 +146,30 @@ def display_context_help(context: str) -> None:
         ),
     )
 
-    contents.append(
-        (
-            1,
-            urwid.Columns(
-                [
-                    ("weight", 3, line),
-                    (1, urwid.Filler(urwid.Text("\u2534"))),
-                    ("weight", 1, line),
-                    (1, urwid.Filler(urwid.Text("\u2534"))),
-                    ("weight", 6, line),
-                ],
-                min_width=5,
+    contents.extend(
+        [
+            (
+                1,
+                urwid.Columns(
+                    [
+                        ("weight", 3, line),
+                        (1, urwid.Filler(urwid.Text("\u2534"))),
+                        ("weight", 1, line),
+                        (1, urwid.Filler(urwid.Text("\u2534"))),
+                        ("weight", 6, line),
+                    ],
+                    min_width=5,
+                ),
             ),
-        )
+            (
+                3,
+                urwid.LineBox(
+                    urwid.Filler(
+                        urwid.Text(("default bold", f"Version {__version__}"), "center")
+                    )
+                ),
+            ),
+        ]
     )
 
     overlay.top_w.original_widget.body[0] = urwid.Pile(contents)

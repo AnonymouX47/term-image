@@ -14,7 +14,7 @@ import requests
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
-from . import set_font_ratio
+from . import set_font_ratio, __version__
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
@@ -149,7 +149,13 @@ NOTES:
     general.add_argument(
         "--help",
         action="help",
-        help="show this help message and exit",
+        help="Show this help message and exit",
+    )
+    general.add_argument(
+        "--version",
+        action="version",
+        version=__version__,
+        help="Show the program version and exit",
     )
     general.add_argument(
         "-f",
