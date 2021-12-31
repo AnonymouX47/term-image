@@ -28,7 +28,7 @@ def load_config() -> None:
         with open(f"{user_dir}/config.json") as f:
             config = json.load(f)
     except json.JSONDecodeError:
-        print("Error loading user config... Using defaults.")
+        print("config: Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         _set_action_status()
         return
@@ -45,12 +45,12 @@ def load_config() -> None:
                     "Using default."
                 )
         except KeyError:
-            print(f"User-config: {name!r} not found... Using default.")
+            print(f"config: {name!r} not found... Using default.")
 
     try:
         keys = config["keys"]
     except KeyError:
-        print("User-config: Key config not found... Using defaults.")
+        print("config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         _set_action_status()
         return
@@ -59,7 +59,7 @@ def load_config() -> None:
     try:
         nav_update = keys.pop("navigation")
     except KeyError:
-        print("User-config: Navigation keys config not found... Using defaults.")
+        print("config: Navigation keys config not found... Using defaults.")
     else:
         # Resolves all issues with _nav_update_ in the process
         update_context("navigation", nav, nav_update)
@@ -70,7 +70,7 @@ def load_config() -> None:
 
     for context, keyset in keys.items():
         if context not in context_keys:
-            print(f"Unknown context {context!r}.")
+            print(f"config: Unknown context {context!r}.")
             continue
         update_context(context, context_keys[context], keyset)
 
@@ -159,30 +159,37 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             and all(isinstance(x, str) for x in details)
         ):
             print(
-                f"The details of action {action!r} in context {name!r} "
+                f"config: The details of action {action!r} in context {name!r} "
                 "is in an incorrect format... Using the default."
             )
             continue
 
         key, symbol = details
         if action not in keyset:
-            print(f"Action {action!r} not available in context {name!r}.")
+            print(f"config: Action {action!r} not available in context {name!r}.")
             continue
         if key not in _valid_keys:
-            print(f"Invalid key {key!r}; Trying default...")
+            print(f"config: Invalid key {key!r}; Trying default...")
             use_default_key()
             continue
 
         if key in _global:
-            print(f"{key!r} already assigned to a global action; Trying default...")
+            print(
+                f"config: {key!r} already assigned to a global action; "
+                "Trying default..."
+            )
             use_default_key()
         elif key in navi:
-            print(f"{key!r} already assigned to a navigation action; Trying default...")
+            print(
+                f"config: {key!r} already assigned to a navigation action; "
+                "Trying default..."
+            )
             use_default_key()
         elif key in assigned:
             print(
-                f"{key!r} already assigned to action {action_with_key(key, keyset)!r} "
-                f"in the same context; Trying default..."
+                f"config: {key!r} already assigned to action "
+                f"{action_with_key(key, keyset)!r} in the same context; "
+                "Trying default..."
             )
             use_default_key()
         else:
@@ -208,7 +215,7 @@ def update_context_nav_keys(
 user_dir = os.path.expanduser("~/.term_img")
 if os.path.exists(user_dir):
     if not os.path.isdir(user_dir):
-        print("Please rename or remove the file {user_dir!r}.")
+        print("config: Please rename or remove the file {user_dir!r}.")
         sys.exit(CONFIG_ERROR)
 else:
     os.mkdir(user_dir)
