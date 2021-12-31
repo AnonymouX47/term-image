@@ -1,4 +1,6 @@
-from setuptools import setup
+from setuptools import find_packages, setup
+
+from term_img import __version__
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -15,20 +17,20 @@ with open("README.md", "r") as fp:
 
 setup(
     name="term-img",
-    version="0.0.3",
+    version=__version__,
     author="Anonymoux47",
-    author_email="lekzy771@gmail.com",
-    url="https://github.com/AnonymouX47/img",
+    author_email="anonymoux47@gmail.com",
+    url="https://github.com/AnonymouX47/term-img",
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=["term_img"],
+    packages=find_packages(where=".", include=["term_img*"]),
     license="MIT",
     classifiers=classifiers,
-    python_requires=">=3.7",
-    install_requires=["pillow", "requests", "urwid"],
+    python_requires=">=3.6",
+    install_requires=["pillow>=8.3", "requests>=2.23", "urwid>=2.1"],
     entry_points={
-        "console_scripts": ["term-img=term_img.cli:main"],
+        "console_scripts": ["term-img=term_img.__main__:main"],
     },
     keywords=[
         "image",

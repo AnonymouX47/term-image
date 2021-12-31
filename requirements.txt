@@ -1,5 +1,5 @@
-Pillow
-requests
-black
-flake8
-urwid
+Pillow>=8.3
+requests>=2.23
+black>=21.*
+flake8>=4.0
+urwid>=2.1
