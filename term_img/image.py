@@ -9,6 +9,7 @@ import os
 import re
 import requests
 import time
+from itertools import cycle
 from math import ceil
 from operator import gt, mul, truediv
 from random import randint
@@ -558,7 +559,7 @@ class TermImage:
             raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
         if not 0 <= pos < self._n_frames if self._is_animated else pos:
             raise ValueError(
-                f"Invalid frame number (got: {pos}, n_frames={self._n_frames})"
+                f"Invalid frame number (got: {pos}, n_frames={self.n_frames})"
             )
         if self._is_animated:
             self._seek_position = pos
@@ -662,27 +663,26 @@ class TermImage:
                 self.__render_image(image, alpha), *fmt
             )
             duration = self._frame_duration
-            while True:
-                for n in range(self._n_frames):
-                    print(frame)  # Current frame
+            for n in cycle(range(self._n_frames)):
+                print(frame)  # Current frame
 
-                    # Render next frame during current frame's duration
-                    start = time.time()
-                    self._buffer.truncate()  # Clear buffer
-                    self.seek(n)
-                    if cache[n]:
-                        frame = cache[n]
-                    else:
-                        cache[n] = frame = self.__format_render(
-                            self.__render_image(image, alpha),
-                            *fmt,
-                        )
-                    # Move cursor up to the first line of the image
-                    # Not flushed until the next frame is printed
-                    print("\033[%dA" % lines, end="")
+                # Render next frame during current frame's duration
+                start = time.time()
+                self._buffer.truncate()  # Clear buffer
+                self.seek(n)
+                if cache[n]:
+                    frame = cache[n]
+                else:
+                    cache[n] = frame = self.__format_render(
+                        self.__render_image(image, alpha),
+                        *fmt,
+                    )
+                # Move cursor up to the first line of the image
+                # Not flushed until the next frame is printed
+                print("\033[%dA" % lines, end="")
 
-                    # Left-over of current frame's duration
-                    time.sleep(max(0, duration - (time.time() - start)))
+                # Left-over of current frame's duration
+                time.sleep(max(0, duration - (time.time() - start)))
         finally:
             self.seek(prev_seek_pos)
             # Move the cursor to the line after the image
