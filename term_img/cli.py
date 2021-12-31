@@ -13,7 +13,7 @@ import requests
 
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
-from .image import TermImage
+from .image import _ALPHA_THRESHOLD, TermImage
 from . import set_font_ratio
 
 
@@ -189,10 +189,10 @@ NOTES:
         "--alpha",
         type=float,
         metavar="N",
-        default=40 / 255,
+        default=_ALPHA_THRESHOLD,
         help=(
             "Alpha ratio above which pixels are taken as opaque (0 <= x < 1) "
-            f"(default: {40 / 255:f})"
+            f"(default: {_ALPHA_THRESHOLD:f})"
         ),
     )
     alpha_options.add_argument(

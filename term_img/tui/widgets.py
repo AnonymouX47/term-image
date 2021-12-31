@@ -10,7 +10,7 @@ import urwid
 from .config import cell_width, expand_key, _nav, nav
 from . import keys
 from . import main as tui_main
-from ..image import TermImage
+from ..image import _ALPHA_THRESHOLD, TermImage
 from .. import logging
 
 
@@ -113,7 +113,7 @@ class Image(urwid.Widget):
     # there shouldn't be collisions
     _frame_cache = None
 
-    _alpha = f"{40 / 255}"[1:]
+    _alpha = f"{_ALPHA_THRESHOLD}"[1:]
 
     def __init__(self, image: TermImage):
         self._image = image

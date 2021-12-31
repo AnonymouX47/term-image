@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 from .exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 
+_ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FG_FMT: str = "\033[38;2;%d;%d;%dm"
 _BG_FMT: str = "\033[48;2;%d;%d;%dm"
 _UPPER_PIXEL: str = "\u2580"  # upper-half block element
@@ -143,7 +144,7 @@ class TermImage:
                             else float(threshold_or_bg)
                         )
                         if alpha
-                        else 40 / 255
+                        else _ALPHA_THRESHOLD
                     ),
                 ),
                 *self.__check_formating(h_align, width, v_align, height),
@@ -166,7 +167,9 @@ class TermImage:
 
         Only the currently set frame is rendered for animated images
         """
-        return self._renderer(lambda image: self.__render_image(image, 40 / 255))
+        return self._renderer(
+            lambda image: self.__render_image(image, _ALPHA_THRESHOLD)
+        )
 
     # Properties
 
@@ -380,7 +383,7 @@ class TermImage:
         pad_width: Optional[int] = None,
         v_align: Optional[str] = "middle",
         pad_height: Optional[int] = None,
-        alpha: Optional[float] = 40 / 255,
+        alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
         ignore_oversize: bool = False,
     ) -> None:
