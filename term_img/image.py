@@ -89,6 +89,13 @@ class TermImage:
     def __del__(self) -> None:
         self.close()
 
+    def __enter__(self) -> None:
+        return self
+
+    def __exit__(self, typ, val, tb) -> bool:
+        self.close()
+        return False  # Currently, no particular exception is suppressed
+
     def __format__(self, spec) -> str:
         """Render the image with alignment, padding and transparency control
 
