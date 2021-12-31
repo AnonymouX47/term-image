@@ -121,7 +121,7 @@ def main():
     parser = argparse.ArgumentParser(
         prog="term-img",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Display images in a terminal",
+        description="Display/Browse images in a terminal",
         epilog=""" \
 
 '--' should be used to separate positional arguments that begin with an '-' \
@@ -137,7 +137,7 @@ NOTES:
      or viewed externally.
      Note that increasing this will have adverse effects on performance.
   4. Any event with a level lower than the specified one is not reported.
-  5. Supports all image formats supported by PIL.Image.open().
+  5. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -157,7 +157,10 @@ NOTES:
         type=float,
         metavar="N",
         default=font_ratio,
-        help="Specify your terminal's font ratio for proper image scaling",
+        help=(
+            "Specify your terminal's font ratio for proper image scaling "
+            f"(default: {font_ratio})"
+        ),
     )
     general.add_argument(
         "-F",
@@ -165,7 +168,10 @@ NOTES:
         type=float,
         metavar="N",
         default=frame_duration,
-        help="Specify the time (in seconds) between frames of an animated image",
+        help=(
+            "Specify the time (in seconds) between frames of an animated image "
+            f"(default: {frame_duration})"
+        ),
     )
 
     _alpha_options = parser.add_argument_group(
@@ -184,7 +190,10 @@ NOTES:
         type=float,
         metavar="N",
         default=40 / 255,
-        help="Alpha ratio above which pixels are taken as opaque (0 <= x < 1)",
+        help=(
+            "Alpha ratio above which pixels are taken as opaque (0 <= x < 1) "
+            f"(default: {40 / 255:f})"
+        ),
     )
     alpha_options.add_argument(
         "-b",
@@ -208,14 +217,14 @@ NOTES:
         "--width",
         type=int,
         metavar="N",
-        help="Width of the image to be rendered [1]",
+        help="Width of the image to be rendered (default: auto) [1]",
     )
     size_options.add_argument(
         "-h",
         "--height",
         type=int,
         metavar="N",
-        help="Height of the image to be rendered [1]",
+        help="Height of the image to be rendered (default: auto) [1]",
     )
     cli_options.add_argument(
         "-x",
@@ -223,7 +232,7 @@ NOTES:
         type=float,
         metavar="N",
         default=1.0,
-        help="x-axis scale of the image to be rendered [2]",
+        help="x-axis scale of the image to be rendered (default: 1.0) [2]",
     )
     cli_options.add_argument(
         "-y",
@@ -231,7 +240,7 @@ NOTES:
         type=float,
         metavar="N",
         default=1.0,
-        help="y-axis scale of the image to be rendered [2]",
+        help="y-axis scale of the image to be rendered (default: 1.0) [2]",
     )
 
     align_options = parser.add_argument_group("Alignment Options (CLI-only)")
@@ -296,29 +305,36 @@ or multiple valid sources
         type=int,
         metavar="N",
         default=max_pixels,
-        help="Maximum amount of pixels in images to be displayed (default=4194304) [3]",
+        help=(
+            "Maximum amount of pixels in images to be displayed "
+            f"(default: {max_pixels}) [3]"
+        ),
     )
 
     # Logging
     log_options_ = parser.add_argument_group(
         "Logging Options",
-        "NOTE: These are all mutually exclusive",
+        "NOTE: These are mutually exclusive",
     )
     log_options = log_options_.add_mutually_exclusive_group()
 
+    log_file = os.path.join(user_dir, "term_img.log")
     log_options_.add_argument(
         "-l",
         "--log",
         metavar="FILE",
-        default=os.path.join(user_dir, "term_img.log"),
-        help="Specify a file to write logs to instead of the default",
+        default=log_file,
+        help=f"Specify a file to write logs to (default: {log_file})",
     )
     log_options.add_argument(
         "--log-level",
         metavar="LEVEL",
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
         default="WARNING",
-        help="Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL [4]",
+        help=(
+            "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
+            "(default: WARNING) [4]"
+        ),
     )
     log_options.add_argument(
         "-v",
@@ -361,7 +377,7 @@ or multiple valid sources
         var_name = name.replace(" ", "_")
         value = getattr(args, var_name, None)
         # Not all config options have corresponding command-line arguments
-        if value and not is_valid(value):
+        if value is not None and not is_valid(value):
             notify.notify(
                 f"Invalid {name} (got: {value})... Using config value.",
                 level=notify.ERROR,
