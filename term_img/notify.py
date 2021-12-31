@@ -20,7 +20,7 @@ def notify(msg: str, *, verbose: bool = False, level: int = INFO) -> None:
     """Display a message in the TUI's notification bar or the console"""
     if verbose and not logging.VERBOSE:
         return
-    if not tui.launched:
+    if not tui.is_launched:
         return print(f"\033[31m{msg}\033[0m" if level >= ERROR else msg)
 
     # CRITICAL-level notifications should never be displayed in the TUI,

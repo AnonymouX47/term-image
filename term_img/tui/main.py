@@ -12,7 +12,9 @@ import urwid
 
 from .config import context_keys
 from .keys import (
+    disable_actions,
     display_context_keys,
+    enable_actions,
     keys,
     menu_nav,
     no_globals,
@@ -220,6 +222,10 @@ def display_images(
                 image_grid_box.base_widget.focus_position = 0
                 view.original_widget = image_grid_box
                 Image._grid_cache.clear()
+                if image_grid.cells:
+                    enable_actions("menu", "Switch Pane")
+                else:
+                    disable_actions("menu", "Switch Pane")
 
         prev_pos = pos
         pos = yield

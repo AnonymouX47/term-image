@@ -413,7 +413,7 @@ or multiple valid sources
             result = check_dir(source, os.getcwd())
             log("... Done!", logger, verbose=True)
             if result is not None:
-                source = os.path.relpath(source)
+                source = os.path.abspath(source)
                 contents[source] = result
                 images.append((source, scan_dir(source, result, os.getcwd())))
         else:

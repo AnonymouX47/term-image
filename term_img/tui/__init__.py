@@ -22,23 +22,22 @@ def init(
     """Initializes the TUI"""
     from ..logging import log
 
-    global launched
+    global is_launched
 
     if cli.args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
-    loop = MainLoop(main_widget, palette, unhandled_input=_process_input)
-    loop.screen.clear()
-    loop.screen.set_terminal_properties(2 ** 24)
-
     main.FRAME_DURATION = args.frame_duration
     main.MAX_PIXELS = args.max_pixels
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
-    main.loop = loop
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
+    main.loop = Loop(main_widget, palette, unhandled_input=_process_input)
+
+    main.loop.screen.clear()
+    main.loop.screen.set_terminal_properties(2 ** 24)
 
     Image._alpha = (
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
@@ -46,17 +45,18 @@ def init(
 
     logger = logging.getLogger(__name__)
     log("Launching TUI", logger, direct=False)
-    launched = True
+    is_launched = True
 
     try:
         next(main.displayer)
         main.loop.run()
         log("Exited TUI normally", logger, direct=False)
     finally:
-        launched = False
+        main.displayer.close()
+        is_launched = False
 
 
-class MainLoop(urwid.MainLoop):
+class Loop(urwid.MainLoop):
     def start(self):
         # Properly set expand key visbility at initialization
         self.unhandled_input("resized")
@@ -69,7 +69,7 @@ class MainLoop(urwid.MainLoop):
         return super().process_input(keys)
 
 
-launched = False
+is_launched = False
 
 palette = [
     ("default", "", "", "", "#ffffff", ""),

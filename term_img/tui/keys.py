@@ -343,7 +343,7 @@ keys["global"].update({"resized": [resize, True]})
 )
 def menu_nav():
     main.displayer.send(menu.focus_position - 1)
-    if not main.at_top_level or main.at_top_level and main.menu_list:
+    if not main.at_top_level or main.menu_list:
         set_menu_actions()
 
 

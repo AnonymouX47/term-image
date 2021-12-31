@@ -8,6 +8,7 @@ from . import cli
 
 if __name__ == "__main__":
     from . import logging
+    from .tui import main
 
     # Can't use "term_img", since the logger's level is changed.
     # Otherwise, it would affect children of "term_img".
@@ -23,6 +24,8 @@ if __name__ == "__main__":
             _logging.CRITICAL,
             # If logging has been successfully initialized
             file=logging.VERBOSE is not None,
+            # If the TUI was not launched, only print to console if verbosity is enabled
+            direct=bool(main.loop or cli.args.verbose or cli.args.debug),
         )
         if cli.args.debug:
             raise
