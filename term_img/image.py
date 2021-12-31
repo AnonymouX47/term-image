@@ -1,7 +1,5 @@
 """The main term-img module"""
 
-from __future__ import annotations
-
 __all__ = ("TermImage",)
 
 import io
@@ -468,7 +466,7 @@ class TermImage:
         cls,
         filepath: str,
         **size_scale,
-    ) -> TermImage:
+    ) -> "TermImage":
         """Create a `TermImage` object from an image file
 
         Args:
@@ -502,7 +500,7 @@ class TermImage:
         cls,
         url: str,
         **size_scale,
-    ) -> TermImage:
+    ) -> "TermImage":
         """Create a `TermImage` object from an image url
 
         Args:

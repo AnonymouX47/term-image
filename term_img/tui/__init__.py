@@ -1,7 +1,5 @@
 """Term-Img's Terminal User Interface"""
 
-from __future__ import annotations
-
 import argparse
 import logging
 from typing import Iterable, Iterator, Tuple, Union

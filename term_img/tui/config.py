@@ -1,7 +1,5 @@
 """Term-Img COnfiguration"""
 
-from __future__ import annotations
-
 from copy import deepcopy
 import json
 import os
@@ -198,9 +196,9 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
 
 
 def update_context_nav_keys(
-    context_keys: dict[str, dict[str, list]],
-    nav: dict[str, list],
-    nav_update: dict[str, list],
+    context_keys: Dict[str, Dict[str, list]],
+    nav: Dict[str, list],
+    nav_update: Dict[str, list],
 ):
     """Update keys and symbols of navigation actions in all contexts in _context_keys_
     using _nav_ to identify navigation actions and _nav_update_ to update
