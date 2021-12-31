@@ -20,7 +20,7 @@ from typing import Any, Optional, Tuple, Union
 from types import FunctionType
 from urllib.parse import urlparse
 
-from .exceptions import InvalidSize, URLNotFoundError
+from .exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 
 _FG_FMT: str = "\033[38;2;%d;%d;%dm"
@@ -70,6 +70,7 @@ class TermImage:
                 f"(got: {type(image).__name__!r})."
             )
 
+        self.__closed = False
         self._source = image
         self._buffer = io.StringIO()
         self._original_size = image.size
@@ -86,18 +87,7 @@ class TermImage:
             self._n_frames = image.n_frames
 
     def __del__(self) -> None:
-        try:
-            self._buffer.close()
-        except AttributeError:
-            # When an exception is raised during instance creation or initialization.
-            pass
-
-        if (
-            hasattr(self, f"_{__class__.__name__}__url")
-            and os.path.exists(self._source)
-            # The file might not exist for whatever reason.
-        ):
-            os.remove(self._source)
+        self.close()
 
     def __format__(self, spec) -> str:
         """Render the image with alignment, padding and transparency control
@@ -172,6 +162,11 @@ class TermImage:
         return self._renderer(lambda image: self.__render_image(image, 40 / 255))
 
     # Properties
+
+    closed = property(
+        lambda self: self.__closed,
+        doc="Instance finalization status",
+    )
 
     columns = property(
         lambda self: round(
@@ -345,6 +340,32 @@ class TermImage:
         self._size = self._valid_size(width, None)
 
     # Public Methods
+
+    def close(self) -> None:
+        """Finalize the instance and release external resources
+
+        NOTE:
+            - It's not neccesary to explicity call this method, as it's automatically
+              called when neccesary.
+            - This method can be safely called mutiple times.
+            - If the instance was initialized with a PIL image, it's never finalized.
+        """
+        try:
+            if not self.__closed:
+                self._buffer.close()
+                self._buffer = None
+
+                if (
+                    hasattr(self, f"_{__class__.__name__}__url")
+                    and os.path.exists(self._source)
+                    # The file might not exist for whatever reason.
+                ):
+                    os.remove(self._source)
+        except AttributeError:
+            # Instance creation or initialization was unsuccessful
+            pass
+        finally:
+            self.__closed = True
 
     def draw_image(
         self,
@@ -704,6 +725,9 @@ class TermImage:
 
         Two pixels per character using FG and BG colors.
         """
+        if self.__closed:
+            raise TermImageException("This image has been finalized")
+
         # NOTE:
         # It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
@@ -863,6 +887,9 @@ class TermImage:
 
         Returns: The return value of _callback_.
         """
+        if self.__closed:
+            raise TermImageException("This image has been finalized")
+
         try:
             reset_size = False
             if not self._size:  # Size is unset
