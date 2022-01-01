@@ -1,6 +1,6 @@
 ## How to setup a development environment
 ### Requirements
-- [Python >= 3.7](https://www.python.org/)
+- [Python >= 3.6](https://www.python.org/)
 - [Pip](https://pip.pypa.io/en/stable/installation/)
 - (Optional but recommended) A virtual environment
 
@@ -15,8 +15,10 @@ Now that you have created a development environment, you can contribute your cod
 **NAMES tell WHAT... CODE tell HOW... COMMENTS tell WHY, when necessary (and WHAT, when impossible to make it obvious with names)**
 
 - For feature additions, please open a new Feature Request in the [issues section](https://github.com/AnonymouX47/term-img/issues) first to discuss how it would be implemented... you should propose your idea there.
-- Try to make sure the package is not in a broken state at any commit... can be incomplete but **not broken**, at the same time :point_down:
+- Every pull request should be from a branch other than the default (main).
+- Try to make sure the package is not [obviously] broken at any commit... can be incomplete but **not broken**, at the same time :point_down:
 - Avoid making too many unique/substantial changes in a single commit.
+  - Closely-related or mutually-dependent changes should not be separated into different commits if doing so will cause the package to be broken at any of the commits.
 - Try to make pull requests as specific as possible, though a single one could fix multiple **related** issues.
 - Always test that everything works as expected before opening a pull request.
 
