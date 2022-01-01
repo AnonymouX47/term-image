@@ -2,7 +2,7 @@
 <h1><b>Term-Img</b></h1>
 <b>Display Images in your terminal with python</b>
 <br>
-<img src="https://i.imgur.com/8Tk6A15.png" height="450">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/shot.png" height="450">
 
 <p align="center">
     <img src="https://static.pepy.tech/badge/term-img">
@@ -77,6 +77,9 @@ pip install .
 - Automatic adjustment upon terminal resize (TUI)
 - Detailed logging
 - ... more coming soon :grin:
+
+### TUI Video Demo
+[![asciicast]()](https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/demo.mp4)
 
 ## CLI/TUI Quick Start
 
