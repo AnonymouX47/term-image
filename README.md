@@ -2,7 +2,7 @@
 <h1><b>Term-Img</b></h1>
 <b>Display Images in your terminal with python</b>
 <br>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/shot.png" height="450">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/shot.png">
 
 <p align="center">
     <img src="https://static.pepy.tech/badge/term-img">
@@ -15,12 +15,10 @@
 
 </div>
 
-## NOTE: This project is a _work in progress_ and not everything on here has actually been implemented.
-
 ## Contents
 - [Installation](#installation)
 - [Features](#features)
-- [CLI/TUI Quick Start](#cli_tui-quick-start)
+- [CLI/TUI Quick Start](#clitui-quick-start)
 - [Library Quick Start](#library-quick-start)
 - [Usage](#usage)
 - [Contribution](#contribution)
@@ -78,8 +76,6 @@ pip install .
 - Detailed logging
 - ... more coming soon :grin:
 
-### TUI Video Demo
-[![asciicast]()](https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/demo.mp4)
 
 ## CLI/TUI Quick Start
 
@@ -98,6 +94,7 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped but can
 **If multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images.**
 
 **NOTE:** `python -m term_img` can be used as an alternative to the `term-img` command **(take note of the _underscore_ VS _hyphen_)**.
+
 
 ## Library Quick Start
 
