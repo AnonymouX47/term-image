@@ -14,7 +14,7 @@ terminals can represent.
 Colored output is achieved using ANSI 24-bit color escape codes.
 
 AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
-Copyright (c) 2021
+Copyright (c) 2022
 """
 
 __all__ = ("set_font_ratio", "get_font_ratio")

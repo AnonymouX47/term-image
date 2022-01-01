@@ -242,7 +242,7 @@ In no particular order (Will probably create a roadmap soon):
 ## FAQs
 1. Why?
    - Why not?
-   - Some of us literally spend our lives in terminals :cry: .
+   - Some of us literally spend our lives in terminals :smiling_face_with_tear: .
 2. What about Windows support?
    - Firstly, only the new [Windows Terminal](https://github.com/microsoft/terminal) seems to have proper ANSI support and mordern terminal emulator features.
    - The CLI-only mode currently works on Windows (i.e using CMD or Powershell) if the other requirements are satisfied but can't guarantee it'll always be so.
