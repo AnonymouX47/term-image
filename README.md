@@ -1,6 +1,6 @@
 <div align="center">
 <h1><b>Term-Img</b></h1>
-<b>Display Images in your terminal with python</b>
+<b>Display Images in the terminal with python</b>
 <br>
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/shot.png">
 
@@ -69,11 +69,14 @@ pip install .
 - Basically everything the library supports
 - Individual image display
 - Multiple images / Directory / Recursive browsing
+- Image grid
 - Context-based controls
 - Dynamic controls (context actions are disabled and enabled dynamically)
 - Customizable controls and configuration options
 - Automatic adjustment upon terminal resize (TUI)
-- Detailed logging
+- Image deletion
+- Notification system
+- Detailed logging system
 - ... more coming soon :grin:
 
 
@@ -144,7 +147,7 @@ Renders the image with:
 - a padding height of 100 lines
 - transparent background replaced with a white (#ffffff) background
 
-```
+```python
 f"{image:>._#.5}"
 ````
 Renders the image with:
@@ -154,7 +157,7 @@ Renders the image with:
 - automatic padding height (the current terminal height with a 2-line allowance)
 - transparent background with 0.5 alpha threshold
 
-```
+```python
 "{:1.1#}".format(image)
 ```
 Renders the image with:
@@ -177,11 +180,11 @@ image.draw_image()
 
 #### 2. Using `print()` with an image render output (i.e printing the rendered string)
 ```python
-print(image)  # Uses str(image)
+print(image)  # Uses str()
 ```
 OR
 ```python
-print(f"{image:>200.^100#ffffff}")  # Uses format(image)
+print(f"{image:>200.^100#ffffff}")  # Uses format()
 ```
 
 For animated images, only the first method animates the output, the second only outputs the current frame.
@@ -191,7 +194,7 @@ For animated images, only the first method animates the output, the second only 
 
 ## Usage
 
-### CLI
+### CLI (Command-Line Interface)
 Run `term-img --help` to see full usage info.
 
 ### TUI (Text-based/Terminal User Interface)
@@ -218,15 +221,17 @@ Also, check out the [WIP](#wip) and [TODO](#todo) sections below. If you wish to
 Thanks! :heart:
 
 ## WIP
-- Documentation (Using `Sphinx`)
-- Unit-testing (using `pytest`)
+- Documentation (Using [Sphinx](https://www.sphinx-doc.org/en/master/))
+- Unit-testing (using [pytest](https://docs.pytest.org/en/6.2.x/))
 
 ## TODO
 
 In no particular order (Will probably create a roadmap soon):
 
 - Performance improvements
-- Urwid widgets for displaying images
+- `AsciiImage` class, renders images in greyscale using ASCII characters only
+- Make urwid widgets for displaying images public
+- Add overlay support to `Image` widgets
 - Theme customization
 - Slideshow
 - Zoom
