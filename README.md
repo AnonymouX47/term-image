@@ -15,6 +15,7 @@
 
 </div>
 
+
 ## Contents
 - [Installation](#installation)
 - [Features](#features)
@@ -25,6 +26,7 @@
 - [WIP](#wip)
 - [TODO](#todo)
 - [FAQs](#faqs)
+
 
 ## Installation
 
@@ -210,19 +212,25 @@ See the [examples]() for usage samples and the [documentation]() for full descri
 1. **The examples and documentation are in progress**. Please bear with the help messages (for the CLI/TUI) and docstrings (for the library) for now. **Thanks**
 2. The project is currently at a stage where the public API can change without notice.
 
+
 ## Contribution
 
 If you find any bugs or want to suggest a new feature, please open a new issue with proper description (after browsing through the existing issues and making sure you won't create a duplicate).
 
 For code contributions, please make sure you read the [guidelines](CONTRIBUTING.md).
 
-Also, check out the [WIP](#wip) and [TODO](#todo) sections below. If you wish to work on any of these, please open an issue appropriately (if one hasn't been opened yet), so the implementation can be discussed.
+Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
+If you wish to work on any of these, please open a [discussion](https://github.com/AnonymouX47/term-img/discussions) (if one hasn't been opened yet), so the implementation can be discussed.
+
+For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-img/discussions) instead.
 
 Thanks! :heart:
+
 
 ## WIP
 - Documentation (Using [Sphinx](https://www.sphinx-doc.org/en/master/))
 - Unit-testing (using [pytest](https://docs.pytest.org/en/6.2.x/))
+
 
 ## TODO
 
@@ -243,6 +251,7 @@ In no particular order (Will probably create a roadmap soon):
 - Minimum and maximum file size
 - Optionally skipping symlinks
 - ... and more :grin:.
+
 
 ## FAQs
 1. Why?
