@@ -9,6 +9,9 @@ Welcome to term-img's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installation
+   library/index
+
 
 Indices and tables
 ==================
