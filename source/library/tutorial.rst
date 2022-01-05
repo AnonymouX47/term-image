@@ -157,4 +157,135 @@ There are two ways to draw an image to the terminal screen:
 
 .. Link class definition below
 
-.. important:: All the above examples use automatic sizing and default scale, see ``help(TermImage)`` for the descriptions of the *width*, *height* and *scale* constructor parameters and object properties to set custom image size and scale.
+.. important:: All the examples above use automatic sizing and default scale.
+
+
+Image render size
+-----------------
+| The *render size* of an image is the number of *pixels* with which the image is rendered.
+| The *render size* can be retrieved via the ``size``, ``width`` and ``height`` properties.
+
+The *render size* of an image can be in either of two states:
+
+1. Set
+
+   | The size is said the be *set* when the image has a fixed size.
+   | In this state, the ``size`` property is a ``tuple`` of integers, the ``width`` and ``height`` properties are integers.
+
+.. _unset-size:
+
+2. Unset
+
+   | The size is said to be *unset* when the image doesn't have a fixed size i.e the ``size`` property is ``None``.
+   | In this case, the size with which the image is rendered is automatically calculated (based on the current terminal size) whenever the image is to be rendered.
+   | In this state, the ``size``, ``width`` and ``height`` properties are ``None``.
+
+| The render size of an image can be set when creating the instance by passing valid values to the *width* **or** *height* **keyword-only** parameter.
+| For whichever axis is given, the other axis is proportionally calculated.
+
+.. note::
+   1. The argument can only be given by keyword.
+   2. If neither is given, the size is *unset*.
+   3. All methods of instantiation accept these arguments.
+
+For example:
+
+>>> image = Termimage.from_file("python.png")  # Unset
+>>> image.size is None
+True
+>>> image = TermImage.from_file("python.png", width=60)  # width is given
+>>> image.size
+(60, 60)
+>>> image.height
+60
+>>> image = TermImage.from_file("python.png", height=56)  # height is given
+>>> image.size
+(56, 56)
+>>> image.width
+56
+
+The resulting size must fit into the terminal window
+
+>>> image = TermImage.from_file("python.png", height=136)  # (terminal_height - 2) * 2; Still OK
+>>> image.size
+(136, 136)
+>>> image = TermImage.from_file("python.png", height=137)  # Not OK
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/.../term_img/image.py", line 494, in from_file
+    new = cls(Image.open(filepath), **size_scale)
+  File "/.../term_img/image.py", line 77, in __init__
+    None if width is None is height else self._valid_size(width, height)
+  File "/.../term_img/image.py", line 1011, in _valid_size
+    raise InvalidSize(
+term_img.exceptions.InvalidSize: The resulting render size will not fit into the terminal
+**
+
+An exception is raised when both *width* and *height* are given.
+
+>>> image = TermImage.from_file("python.png", width=100, height=100)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/.../term_img/image.py", line 494, in from_file
+    new = cls(Image.open(filepath), **size_scale)
+  File "/.../term_img/image.py", line 77, in __init__
+    None if width is None is height else self._valid_size(width, height)
+  File "/.../term_img/image.py", line 957, in _valid_size
+    raise ValueError("Cannot specify both width and height")
+ValueError: Cannot specify both width and height
+**
+
+The properties ``width`` and ``height`` are used to set the render size of an image after instantiation.
+
+>>> image = Termimage.from_file("python.png")  # Unset
+>>> image.size is None
+True
+>>> image.width = 56
+>>> image.size
+(56, 56)
+>>> image.height
+56
+>>> image.height = 136
+>>> image.size
+(136, 136)
+>>> image.width
+136
+>>> image.width = 200  # Even though the terminal can contain this width, it can't contain the resulting height
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/.../term_img/image.py", line 353, in width
+    self._size = self._valid_size(width, None)
+  File "/.../term_img/image.py", line 1011, in _valid_size
+    raise InvalidSize(
+term_img.exceptions.InvalidSize: The resulting render size will not fit into the terminal
+
+Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated based on the current terminal size.
+
+>>> image = Termimage.from_file("python.png")  # Unset
+>>> image.size is None
+True
+>>> image.width = None
+>>> image.size
+(136, 136)
+>>> image.width = 56
+>>> image.size
+(56, 56)
+>>> image.height = None
+>>> image.size
+(136, 136)
+
+The ``size`` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the *render size*.
+
+>>> image = Termimage.from_file("python.png", width=100)
+>>> image.size
+(100, 100)
+>>> image.size = None
+>>> image.size is image.width is image.height is None
+True
+
+.. important::
+   1. The resulting size must not exceed the terminal size i.e either for the given axis or the axis automatically calculated.
+   2. The height is actually **twice the number of lines** that'll be used to render the image, assuming the *y-scale* is 1.0 (we'll get to that).
+   3. There is a 2-line allowance for the height to allow for shell prompts or the likes.
+
+   Therefore, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
