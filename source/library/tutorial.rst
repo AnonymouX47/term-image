@@ -289,3 +289,51 @@ True
    3. There is a 2-line allowance for the height to allow for shell prompts or the likes.
 
    Therefore, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
+
+
+Image render scale
+------------------
+
+| The *render scale* of an image is the **fraction** of the *render size* that'll actually be used to render the image.
+| A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero but less than or equal to one.
+| The *render scale* can be retrieved via the properties ``scale``, ``scale_x`` and ``scale_y``.
+
+The scale can be set at instantiation by passing a value to the *scale* **keyword-only** paramter.
+
+>>> image = Termimage.from_file("python.png", scale=(0.75, 0.6))
+>>> image.scale
+>>> (0.75, 0.6)
+
+The rendered result (using ``image.draw_image()``) should look like:
+
+.. image:: /resources/tutorial/scale_set.png
+
+If the argument is ommited, the default scale ``(1.0, 1.0)`` is used.
+
+>>> image = Termimage.from_file("python.png")
+>>> image.scale
+>>> (1.0, 1.0)
+
+The rendered result (using ``image.draw_image()``) should look like:
+
+.. image:: /resources/tutorial/scale_unset.png
+
+| The properties ``scale``, ``scale_x`` and ``scale_y`` are used to set the *render scale* of an image after instantiation.
+| ``scale`` accepts a ``tuple`` of two scale values or a single scale value.
+| ``scale_x`` and ``scale_y`` accept a single scale value.
+
+>>> image = Termimage.from_file("python.png")
+>>> image.scale = (.3, .56756)
+>>> image.scale
+(0.3, 0.56756)
+>>> image.scale = .5
+>>> image.scale
+(0.5, 0.5)
+>>> image.scale_x = .75
+>>> image.scale
+(0.75, 0.5)
+>>> image.scale_y = 1.
+>>> image.scale
+(0.75, 1.0)
+
+Finally, to explore more of the library's features and functionality, check out the :ref:`features` and :ref:`reference` sections.
