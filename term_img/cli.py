@@ -101,7 +101,7 @@ def main():
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
-    from .tui.config import (
+    from .config import (
         config_options,
         font_ratio,
         frame_duration,

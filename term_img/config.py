@@ -8,7 +8,7 @@ from typing import Dict
 
 import urwid
 
-from ..exit_codes import CONFIG_ERROR
+from .exit_codes import CONFIG_ERROR
 
 
 def action_with_key(key: str, keyset: Dict[str, list]) -> str:

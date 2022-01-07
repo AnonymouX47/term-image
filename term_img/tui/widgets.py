@@ -7,9 +7,9 @@ from shutil import get_terminal_size
 
 import urwid
 
-from .config import cell_width, expand_key, _nav, nav
 from . import keys
 from . import main as tui_main
+from ..config import cell_width, expand_key, _nav, nav
 from ..image import _ALPHA_THRESHOLD, TermImage
 from .. import logging
 

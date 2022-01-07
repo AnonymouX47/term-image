@@ -10,7 +10,6 @@ from typing import Tuple
 
 import urwid
 
-from .config import context_keys, expand_key
 from .widgets import (
     bottom_bar,
     confirmation,
@@ -30,6 +29,7 @@ from .widgets import (
     viewer,
 )
 from . import main
+from ..config import context_keys, expand_key
 from .. import logging, __version__
 
 # Action Status Modification

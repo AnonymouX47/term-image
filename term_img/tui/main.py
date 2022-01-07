@@ -8,7 +8,6 @@ from typing import Generator, Iterable, Iterator, Tuple, Union
 import PIL
 import urwid
 
-from .config import context_keys
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -33,6 +32,7 @@ from .widgets import (
     view,
     viewer,
 )
+from ..config import context_keys
 from ..image import TermImage
 from .. import logging
 from .. import notify
