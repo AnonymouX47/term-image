@@ -402,7 +402,6 @@ logger = _logging.getLogger(__name__)
 # For Context Management
 _prev_contexts = ["menu"] * 3
 _context = "menu"  # To avoid a NameError the first time set_context() is called.
-set_context("menu")
 
 # Constants for `display_images()`
 OPEN = -2

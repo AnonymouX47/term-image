@@ -5,8 +5,8 @@ from typing import Any, Union, Tuple
 
 import urwid
 
-from .tui.widgets import notifications
 from .tui import main
+from .tui import widgets
 from . import logging
 from . import tui
 
@@ -31,7 +31,7 @@ def notify(msg: str, *, verbose: bool = False, level: int = INFO) -> None:
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
     if _alarms.qsize() == MAX_NOTIFICATIONS:
         clear_notification(main.loop, None)
-    notifications.contents.insert(
+    widgets.notifications.contents.insert(
         0, (urwid.Filler(urwid.Text(msg, wrap="ellipsis")), ("given", 1))
     )
     _alarms.put(main.loop.set_alarm_in(5, clear_notification))
@@ -40,7 +40,7 @@ def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
 def clear_notification(
     loop: Union[urwid.MainLoop, urwid.main_loop.EventLoop], data: Any
 ) -> None:
-    notifications.contents.pop()
+    widgets.notifications.contents.pop()
     loop.remove_alarm(_alarms.get())
 
 

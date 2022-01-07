@@ -43,6 +43,7 @@ def init(
 
     logger = logging.getLogger(__name__)
     log("Launching TUI", logger, direct=False)
+    main.set_context("menu")
     is_launched = True
 
     try:

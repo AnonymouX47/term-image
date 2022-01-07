@@ -19,6 +19,31 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
             return action
 
 
+def init_config():
+    """Initializes user configuration
+
+    IMPORTANT:
+        Must be called before any other function in this module
+        and before anything else is imported from this module.
+    """
+    if os.path.exists(user_dir):
+        if not os.path.isdir(user_dir):
+            print("config: Please rename or remove the file {user_dir!r}.")
+            sys.exit(CONFIG_ERROR)
+    else:
+        os.mkdir(user_dir)
+
+    if os.path.isfile(f"{user_dir}/config.json"):
+        load_config()
+    else:
+        update_context_nav_keys(context_keys, nav, nav)
+        _set_action_status()
+        store_config(default=True)
+
+    context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
+    expand_key[3] = False  # "Key bar" action should be hidden
+
+
 def load_config() -> None:
     """Load user config from disk"""
 
@@ -211,13 +236,6 @@ def update_context_nav_keys(
 
 
 user_dir = os.path.expanduser("~/.term_img")
-if os.path.exists(user_dir):
-    if not os.path.isdir(user_dir):
-        print("config: Please rename or remove the file {user_dir!r}.")
-        sys.exit(CONFIG_ERROR)
-else:
-    os.mkdir(user_dir)
-
 version = 0.1  # For backwards compatibility
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
@@ -332,6 +350,7 @@ font_ratio = _font_ratio
 frame_duration = _frame_duration
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
+expand_key = context_keys["global"]["Key Bar"]
 
 config_options = {
     "cell width": lambda value: isinstance(value, int) and value > 0,
@@ -339,14 +358,3 @@ config_options = {
     "frame duration": lambda value: isinstance(value, float) and value > 0.0,
     "max pixels": lambda value: isinstance(value, int) and value > 0,
 }
-
-if os.path.isfile(f"{user_dir}/config.json"):
-    load_config()
-else:
-    update_context_nav_keys(context_keys, nav, nav)
-    _set_action_status()
-    store_config(default=True)
-
-context_keys["global"]["Config"][3] = False  # Temporary, till config menu is implemted
-expand_key = context_keys["global"]["Key Bar"]
-expand_key[3] = False  # Hidden

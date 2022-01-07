@@ -9,6 +9,10 @@ from . import cli
 
 def main():
     """CLI execution entry-point"""
+    from .config import init_config
+
+    init_config()  # Must be called before anything else is imported from `.config`.
+
     from . import logging
     from .tui import main
 
