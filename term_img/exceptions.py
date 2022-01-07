@@ -1,4 +1,7 @@
-"""Custom Exceptions"""
+"""
+Custom Exceptions
+=================
+"""
 
 
 class TermImageException(Exception):

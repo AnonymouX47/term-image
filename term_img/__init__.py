@@ -31,10 +31,12 @@ def get_font_ratio() -> float:
 def set_font_ratio(ratio: float) -> None:
     """Set the library-wide font ratio
 
-    The given value should be the aspect ratio of your terminal's font
-    i.e `width / height` of a single character cell.
+    :param ratio: The aspect ratio of your terminal's font i.e `width / height` of
+        a single character cell.
+
     This value is taken into consideration when rendering images in order for images
     drawn to the terminal to have a proper scale.
+
     If you can't determine this value from your terminal's configuration,
     you might have to try different values till you get a good fit.
     Normally, this value should be between 0 and 1, but not close to either boundary.

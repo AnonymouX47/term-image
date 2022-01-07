@@ -1,4 +1,7 @@
-"""The main term-img module"""
+"""
+Core Library Definitions
+========================
+"""
 
 __all__ = ("TermImage",)
 
@@ -37,18 +40,18 @@ class TermImage:
     """Text-printable image
 
     Args:
-        - image: Image to be rendered.
-        - width: The width to render the image with.
-        - height: The height to render the image with.
-        - scale: The image render scale on respective axes.
+        image: Image to be rendered.
+        width: The width to render the image with.
+        height: The height to render the image with.
+        scale: The image render scale on respective axes.
 
     NOTE:
-        - _width_ is not neccesarily the exact number of columns that'll be used
-          to render the image. That is influenced by the set font-ratio.
-        - _height_ is **2 times** the number of lines that'll be used on the terminal.
-        - If neither is given or `None`, the size is automatically determined
+        * *width* is not neccesarily the exact number of columns that'll be used
+          to render the image. That is influenced by the currently set font ratio.
+        * *height* is **2 times** the number of lines that'll be used on the terminal.
+        * If neither is given or ``None``, the size is automatically determined
           when the image is to be rendered, such that it can fit within the terminal.
-        - The size is multiplied by the scale on each axis respectively before the image
+        * The size is multiplied by the scale on each axis respectively before the image
           is rendered.
     """
 
@@ -61,7 +64,7 @@ class TermImage:
         width: Optional[int] = None,
         height: Optional[int] = None,
         scale: Tuple[float, float] = (1.0, 1.0),
-    ) -> None:
+    ):
         """See class description"""
         if not isinstance(image, Image.Image):
             raise TypeError(
@@ -85,42 +88,19 @@ class TermImage:
             self._seek_position = 0
             self._n_frames = image.n_frames
 
-    def __del__(self) -> None:
+    def __del__(self):
         self.close()
 
-    def __enter__(self) -> None:
+    def __enter__(self):
         return self
 
-    def __exit__(self, typ, val, tb) -> bool:
+    def __exit__(self, typ, val, tb):
         self.close()
         return False  # Currently, no particular exception is suppressed
 
-    def __format__(self, spec) -> str:
-        """Render the image with alignment, padding and transparency control
-
-        Only the currently set frame is rendered for animated images
-
-        Format specification:
-
-            `[[h_align][width]][.[v_align][height]][#[threshold|bgcolor]]`
-
-            - h_align: '<' | '|' | '>' (default: '|')
-            - width: Integer padding width (default: terminal width)
-            - v_align: '^' | '-' | '_'  (default: '-')
-            - height: Integer padding height
-              (default: terminal height, with a 2-line allowance).
-            - #: Transparency setting.
-              - If absent, transparency is enabled.
-              - threshold: Alpha ratio above which pixels are taken as opaque
-                e.g '.0', '.325043', '.99999' (0.0 <= threshold < 1.0).
-              - bgcolor: Hex color with which transparent background should be replaced
-                e.g ffffff, 7faa52.
-              - If neither _threshold_ nor _bgcolor_ is present, but '#' is present,
-                a black background is used.
-
-        Fields within `[]` are optional, `|` implies mutual exclusivity.
-        _width_ and _height_ are in units of columns and lines, repectively.
-        """
+    def __format__(self, spec):
+        """Renders the image with alignment, padding and transparency control"""
+        # Only the currently set frame is rendered for animated images
         match = _FORMAT_SPEC.fullmatch(spec)
         if not match:
             raise ValueError("Invalid format specifier")
@@ -149,7 +129,7 @@ class TermImage:
             )
         )
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return (
             "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
         ).format(
@@ -165,11 +145,9 @@ class TermImage:
             self._is_animated,
         )
 
-    def __str__(self) -> str:
-        """Render the image with transparency enabled and without alignment
-
-        Only the currently set frame is rendered for animated images
-        """
+    def __str__(self):
+        """Renders the image with transparency enabled and without alignment"""
+        # Only the currently set frame is rendered for animated images
         return self._renderer(
             lambda image: self.__render_image(image, _ALPHA_THRESHOLD)
         )
@@ -209,11 +187,14 @@ class TermImage:
     height = property(
         lambda self: self._size and self._size[1],
         doc="""
-        Image render height (`None` when render size is unset)
+        Image render height
+
+        ``None`` when render size is unset.
 
         Settable values:
-            - `None`: Sets the render size to the automatically calculated one.
-            - A positive integer: Sets the render height to the given value and
+
+            * ``None``: Sets the render size to the automatically calculated one.
+            * A positive ``int``: Sets the render height to the given value and
               the width proprtionally.
 
         The image is actually rendered using half this number of lines
@@ -221,12 +202,12 @@ class TermImage:
     )
 
     @height.setter
-    def height(self, height: int) -> None:
+    def height(self, height: Optional[int]) -> None:
         self._size = self._valid_size(None, height)
 
     is_animated = property(
         lambda self: self._is_animated,
-        doc="True if the image is animated. Otherwise, False.",
+        doc="``True`` if the image is animated. Otherwise, ``False``.",
     )
 
     lines = property(
@@ -242,13 +223,13 @@ class TermImage:
 
     n_frames = property(
         lambda self: self._n_frames if self._is_animated else 1,
-        doc="Number of frames in an image",
+        doc="The number of frames in the image",
     )
 
     @property
     def rendered_size(self) -> Tuple[int, int]:
         """The number of columns and lines (respectively) that the rendered image will
-        occupy on the terminal.
+        occupy in the terminal
         """
         columns, rows = map(
             round,
@@ -265,11 +246,12 @@ class TermImage:
         doc="""
         Image render scale
 
-        Allowed values are:
-            - A float; sets both axes.
-            - A tuple of two floats; sets for (x, y) respectively.
+        Settable values are:
 
-        A scale value must be such that 0.0 < value <= 1.0.
+            * A *scale value*; sets both axes.
+            * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+
+        A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
         """,
     )
 
@@ -287,9 +269,9 @@ class TermImage:
     scale_x = property(
         lambda self: self._scale[0],
         doc="""
-        Image x-axis render scale
+        x-axis render scale
 
-        A scale value must be a float such that 0.0 < x <= 1.0.
+        A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
         """,
     )
 
@@ -300,9 +282,9 @@ class TermImage:
     scale_y = property(
         lambda self: self._scale[1],
         doc="""
-        Image y-ayis render scale
+        y-ayis render scale
 
-        A scale value must be a float such that 0.0 < y <= 1.0.
+        A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
         """,
     )
 
@@ -312,9 +294,11 @@ class TermImage:
 
     size = property(
         lambda self: self._size,
-        doc="""Image render size (`None` when render size is unset)
+        doc="""Image render size
 
-        Setting this to `None` unsets the render size, so that it's automatically
+        ``None`` when render size is unset.
+
+        Setting this to ``None`` unsets the render size, so that it's automatically
         calculated whenever the image is rendered.
         """,
     )
@@ -330,7 +314,7 @@ class TermImage:
             self.__url if hasattr(self, f"_{__class__.__name__}__url") else self._source
         ),
         doc="""
-        Source from which the instance was initialized
+        The source from which the instance was initialized
 
         Can be a PIL image, file path or URL.
         """,
@@ -339,29 +323,32 @@ class TermImage:
     width = property(
         lambda self: self._size and self._size[0],
         doc="""
-        Image render width (`None` when render size is unset)
+        Image render width
+
+        ``None`` when render size is unset.
 
         Settable values:
-            - `None`: Sets the render size to the automatically calculated one.
-            - A positive integer: Sets the render width to the given value and
-              the height proprtionally.
+
+            * ``None``: Sets the render size to the automatically calculated one.
+            * A positive ``int``: Sets the render width to the given value and
+              the height proportionally.
         """,
     )
 
     @width.setter
-    def width(self, width: int) -> None:
+    def width(self, width: Optional[int]) -> None:
         self._size = self._valid_size(width, None)
 
     # Public Methods
 
     def close(self) -> None:
-        """Finalize the instance and release external resources
+        """Finalizes the instance and releases external resources.
 
         NOTE:
-            - It's not neccesary to explicity call this method, as it's automatically
+            * It's not neccesary to explicity call this method, as it's automatically
               called when neccesary.
-            - This method can be safely called mutiple times.
-            - If the instance was initialized with a PIL image, it's never finalized.
+            * This method can be safely called mutiple times.
+            * If the instance was initialized with a PIL image, it's never finalized.
         """
         try:
             if not self.__closed:
@@ -382,38 +369,47 @@ class TermImage:
 
     def draw_image(
         self,
-        h_align: Optional[str] = "center",
+        h_align: str = "center",
         pad_width: Optional[int] = None,
-        v_align: Optional[str] = "middle",
+        v_align: str = "middle",
         pad_height: Optional[int] = None,
         alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
         ignore_oversize: bool = False,
     ) -> None:
-        """Print an image to the terminal, with optional alignment and padding.
+        """Draws/Displays an image in the terminal, with optional alignment and padding.
 
         Args:
-            - h_align: Horizontal alignment ("left", "center" or "right").
-            - pad_width: No of columns within which to align the image.
-              Excess columns are filled with spaces. (default: terminal width)
-            - v_align: Vertical alignment ("top", "middle" or "bottom").
-            - pad_height: No of lines within which to align the image.
-              Excess lines are filled with spaces.
-              (default: terminal height, with a 2-line allowance).
-            - alpha: Transparency setting.
-              - If `None`, transparency is disabled (i.e black background).
-              - If a float, 0.0 <= x < 1.0, specifies the alpha ratio above which pixels
-                are taken as opaque.
-              - If a string, specifies a hex color with which transparent background
+            h_align: Horizontal alignment ("left", "center" or "right").
+            pad_width: Number of columns within which to align the image.
+
+              * Excess columns are filled with spaces.
+              * default: terminal width.
+
+            v_align: Vertical alignment ("top", "middle" or "bottom").
+            pad_height: Number of lines within which to align the image.
+
+              * Excess lines are filled with spaces.
+              * default: terminal height, with a 2-line allowance.
+
+            alpha: Transparency setting.
+
+              * If ``None``, transparency is disabled (i.e black background).
+              * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
+                **above** which pixels are taken as *opaque*.
+              * If a string, specifies a **hex color** with which transparent background
                 should be replaced.
-            - ignore_oversize: Do not check if the image will fit into the terminal
-              with it's currently set size.
+
+            ignore_oversize: If ``True``, do not verify if the image will fit into
+              the terminal with it's currently set render size.
 
         Raises:
-            - .exceptions.InvalidSize: if the terminal has been resized in such a way
-            that it can no longer fit the previously set image render size.
-            - TypeError: if any argument is of an inappropriate type.
-            - ValueError: if any argument has an unexpected/invalid value.
+            term_img.exceptions.InvalidSize: The terminal has been resized in such
+              a way that it can no longer fit the previously set render size.
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument has an unexpected/invalid value.
+
+        Animated images are displayed infinitely but can be terminated with ``Ctrl-C``.
         """
         h_align, pad_width, v_align, pad_height = self.__check_formating(
             h_align, pad_width, v_align, pad_height
@@ -465,19 +461,22 @@ class TermImage:
     def from_file(
         cls,
         filepath: str,
-        **size_scale,
+        **kwargs,
     ) -> "TermImage":
-        """Create a `TermImage` object from an image file
+        """Creates a ``TermImage`` instance from an image file.
 
         Args:
-            - filepath: Relative/Absolute path to an image file.
-            - See the class description for others.
+            filepath: Relative/Absolute path to an image file.
+            kwargs: Same keyword arguments as the class constructor.
+
+        Returns:
+            A new ``TermImage`` instance.
 
         Raises:
-            - TypeError: if _filepath_ is not a string.
-            - FileNotFoundError: if the given path does not exist.
-            - Propagates `UnidentifiedImageError` and `IsADirectoryError`
-            from PIL.Image.open()
+            TypeError: *filepath* is not a string.
+            FileNotFoundError: The given path does not exist.
+            IsADirectoryError: Propagated from from ``PIL.Image.open()``.
+            UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
         """
         if not isinstance(filepath, str):
             raise TypeError(
@@ -491,7 +490,7 @@ class TermImage:
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
 
-        new = cls(Image.open(filepath), **size_scale)
+        new = cls(Image.open(filepath), **kwargs)
         new._source = os.path.realpath(filepath)
         return new
 
@@ -499,20 +498,24 @@ class TermImage:
     def from_url(
         cls,
         url: str,
-        **size_scale,
+        **kwargs,
     ) -> "TermImage":
-        """Create a `TermImage` object from an image url
+        """Creates a ``TermImage`` instance from an image URL.
 
         Args:
-            - url: URL of an image file.
-            - See the class description for others.
+            url: URL of an image file.
+            kwargs: Same keyword arguments as the class constructor.
+
+        Returns:
+            A new ``TermImage`` instance.
 
         Raises:
-            - TypeError: if _url_ is not a string.
-            - ValueError: if the given URL is invalid.
-            - .exceptions.URLNotFoundError: if the URL does not exist.
-            - Propagates connection-related errors from `requests.get()`.
-            - Propagates `UnidentifiedImageError` from `PIL.Image.open()`.
+            TypeError: *url* is not a string.
+            ValueError: The URL is invalid.
+            term_img.exceptions.URLNotFoundError: The URL does not exist.
+            UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
+
+        Also propagates connection-related errors from ``requests.get()``.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
@@ -539,13 +542,16 @@ class TermImage:
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        new = cls(Image.open(filepath), **size_scale)
+        new = cls(Image.open(filepath), **kwargs)
         new._source = filepath
         new.__url = url
         return new
 
     def seek(self, pos: int) -> None:
-        """Change current image frame (Frame numbers start from 0 (zero))"""
+        """Changes current image frame.
+
+        Frame numbers start from 0 (zero).
+        """
         if not isinstance(pos, int):
             raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
         if not 0 <= pos < self._n_frames if self._is_animated else pos:
@@ -556,7 +562,7 @@ class TermImage:
             self._seek_position = pos
 
     def tell(self) -> int:
-        """Return the current image frame number"""
+        """Returns the current image frame number"""
         return self._seek_position if self._is_animated else 0
 
     # Private Methods
@@ -567,10 +573,11 @@ class TermImage:
         width: Optional[int] = None,
         v_align: Optional[str] = None,
         height: Optional[int] = None,
-    ) -> Tuple[Union[str, int, None]]:
-        """Validate and translate literal formatting arguments
+    ) -> Tuple[Union[None, str, int]]:
+        """Validates formatting arguments while also translating literal ones.
 
-        Returns: The respective arguments appropriate for `__format_render()`.
+        Returns:
+            The respective arguments appropriate for ``__format_render()``.
         """
         if h_align is not None:
             align = {"left": "<", "center": "|", "right": ">"}.get(h_align, h_align)
@@ -601,13 +608,14 @@ class TermImage:
 
     @staticmethod
     def __check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
-        """Check a scale tuple
+        """Checks a tuple of scale values.
 
-        Returns: The scale tuple, if valid.
+        Returns:
+            The tuple of scale values, if valid.
 
         Raises:
-            - TypeError, if the object is not a tuple of floats.
-            - ValueError, if the object is not a tuple of two floats, 0.0 < x <= 1.0.
+            TypeError: The object is not a tuple of ``float``\\ s.
+            ValueError: The object is not a 2-tuple or the values are out of range.
         """
         if not (isinstance(scale, tuple) and all(isinstance(x, float) for x in scale)):
             raise TypeError("'scale' must be a tuple of floats")
@@ -620,13 +628,14 @@ class TermImage:
 
     @staticmethod
     def __check_scale_2(value: float) -> float:
-        """Check a single scale value
+        """Checks a single scale value.
 
-        Returns: The scale value, if valid.
+        Returns:
+            The scale value, if valid.
 
         Raises:
-            - TypeError, if the object is not a float.
-            - ValueError, if the value is not within range 0.0 < x <= 1.0.
+            TypeError: The object is not a ``float``.
+            ValueError: The value is out of range.
         """
         if not isinstance(value, float):
             raise TypeError("Given value must be a float")
@@ -637,9 +646,9 @@ class TermImage:
     def __display_animated(
         self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
     ) -> None:
-        """Print an animated GIF image on the terminal
+        """Displays an animated GIF image in the terminal.
 
-        This is done infinitely but can be canceled with `Ctrl-C`.
+        This is done infinitely but can be terminated with ``Ctrl-C``.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
@@ -688,9 +697,9 @@ class TermImage:
         v_align: Optional[str] = None,
         height: Optional[int] = None,
     ) -> str:
-        """Format rendered image text
+        """Formats rendered image text.
 
-        All arguments should be passed through `__check_formatting()` first.
+        All arguments should be passed through ``__check_formatting()`` first.
         """
         lines = render.splitlines()
         cols, rows = self.rendered_size
@@ -734,7 +743,7 @@ class TermImage:
         return "\n".join(lines)
 
     def __render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
-        """Convert entire image pixel data to a color-coded string
+        """Converts image pixel data into a "color-coded" string.
 
         Two pixels per character using FG and BG colors.
         """
@@ -889,16 +898,17 @@ class TermImage:
         return buffer.getvalue()
 
     def _renderer(self, callback: FunctionType, check_size: bool = False) -> Any:
-        """Perform common render preparations and rendering operation
+        """Performs common render preparations and a rendering operation.
 
         Args:
-            - callback: The function to perform the specifc rendering operation for the
-              caller of this function (`_renderer()`).
+            callback: The function to perform the specifc rendering operation for the
+              caller of this function (``_renderer()``).
               This function should accept just one argument, the PIL image.
-            - check_size: Determines whether or not the image's set size (if any) is
+            check_size: Determines whether or not the image's set size (if any) is
               checked to see if still fits into the terminal.
 
-        Returns: The return value of _callback_.
+        Returns:
+            The return value of *callback*.
         """
         if self.__closed:
             raise TermImageException("This image has been finalized")
@@ -924,6 +934,7 @@ class TermImage:
             )
 
             return callback(image)
+
         finally:
             self._buffer.seek(0)  # Reset buffer pointer
             self._buffer.truncate()  # Clear buffer
@@ -938,20 +949,25 @@ class TermImage:
         maxsize: Optional[Tuple[int, int]] = None,
         ignore_oversize: bool = False,
     ) -> Tuple[int, int]:
-        """Generate size tuple from given height or width and
-        check if the resulting render size is valid
+        """Generates a *render size* tuple from the given height or width and
+        checks if the resulting *rendered size* is valid.
 
-        Returns: Valid size tuple.
+        Args:
+            width: Render width to use.
+            height: Render height to use.
+            maxsize: If given, it's used instead of the terminal size.
+            ignore_oversize: If ``True``, the validity of the resulting *rendered size*
+            is not checked.
+
+        Returns:
+            A valid *render size* tuple.
 
         Raises:
-            - ValueError: if
-                - both width and height are specified, or
-                - the specified dimension is non-positive.
-            - .exceptions.InvalidSize: if the resulting size will not fit properly
-            into the terminal or _maxsize_.
+            ValueError: Both width and height are specified,
+              or the specified dimension is not positive.
+            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
+              fit into the terminal or *maxsize*.
 
-        If _ignore_oversize_ is True, the validity of the resulting render size
-        is not checked.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
@@ -1017,10 +1033,10 @@ class TermImage:
 
 # Reserved
 def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
-    """Prepend _text_ with ANSI 24-bit color codes
-    for the given foreground and/or backgroung RGB values.
+    """Prepends *text* with ANSI 24-bit color escape codes
+    for the given foreground and/or background RGB values.
 
-    The color code is ommited for any of 'fg' or 'bg' that is empty.
+    The color code is ommited for any of *fg* or *bg* that is empty.
     """
     return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
 
