@@ -25,7 +25,7 @@ from .widgets import (
     menu,
     overlay,
     pile,
-    _placeholder,
+    placeholder,
     view,
     viewer,
 )
@@ -181,7 +181,7 @@ def display_context_help(context: str) -> None:
     # Always reset by or "overlay::Close"
     _prev_view_widget = view.original_widget
     view.original_widget = urwid.LineBox(
-        _placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
+        placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
     )
 
 
@@ -271,7 +271,7 @@ def set_confirmation(
     # but _confirm()_ must reset `view.original_widget` on it's own.
     _prev_view_widget = view.original_widget
     view.original_widget = urwid.LineBox(
-        _placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
+        placeholder, _prev_view_widget.title_widget.text.strip(" "), "left"
     )
 
     confirmation_overlay.bottom_w = bottom_widget
@@ -464,7 +464,7 @@ def restore():
         main.get_context() == "full-grid-image"
         and image_box.original_widget._image._is_animated
     ):
-        image_box.original_widget = _placeholder
+        image_box.original_widget = placeholder
 
     main.set_prev_context()
     main_widget.contents[0] = (pile, ("weight", 1))

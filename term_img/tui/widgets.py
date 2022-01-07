@@ -332,7 +332,7 @@ class PlaceHolder(urwid.SolidFill):
 
 logger = _logging.getLogger(__name__)
 
-_placeholder = PlaceHolder(" ")
+placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 image_grid = urwid.GridFlow(
     [],
@@ -341,7 +341,7 @@ image_grid = urwid.GridFlow(
     1,
     "left",
 )
-image_box = urwid.LineBox(_placeholder, "Image", "left")
+image_box = urwid.LineBox(placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
 view = urwid.AttrMap(
     image_box,
@@ -391,7 +391,7 @@ confirmation_overlay = urwid.Overlay(
         "\u2550",
         "\u255d",
     ),
-    _placeholder,
+    placeholder,
     "center",
     ("relative", 25),
     "middle",
@@ -402,7 +402,7 @@ confirmation_overlay = urwid.Overlay(
 
 overlay = urwid.Overlay(
     urwid.LineBox(
-        urwid.ListBox([_placeholder]),
+        urwid.ListBox([placeholder]),
         "Help",
         "center",
         "default bold",
@@ -415,7 +415,7 @@ overlay = urwid.Overlay(
         "\u2550",
         "\u255d",
     ),
-    _placeholder,
+    placeholder,
     "center",
     ("relative", 50),
     "middle",

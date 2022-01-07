@@ -29,7 +29,7 @@ from .widgets import (
     LineSquare,
     menu,
     MenuEntry,
-    _placeholder,
+    placeholder,
     view,
     viewer,
 )
@@ -124,7 +124,7 @@ def display_images(
                 else:
                     set_context("global")
             image_box._w.contents[1][0].contents[1] = (
-                _placeholder,
+                placeholder,
                 ("weight", 1, False),
             )
             image_box.set_title("Image")
@@ -249,7 +249,7 @@ def get_prev_context(n=1):
     return _prev_contexts[n - 1]
 
 
-def _process_input(key: str) -> bool:
+def process_input(key: str) -> bool:
     if logging.DEBUG:
         info_bar.set_text(f"{key!r} {info_bar.text}")
 

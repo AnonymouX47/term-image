@@ -101,11 +101,11 @@ class TermImage:
     def __format__(self, spec):
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
-        match = _FORMAT_SPEC.fullmatch(spec)
-        if not match:
+        match_ = _FORMAT_SPEC.fullmatch(spec)
+        if not match_:
             raise ValueError("Invalid format specifier")
 
-        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match.groups()
+        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()
 
         width = width and int(width)
         height = height and int(height)

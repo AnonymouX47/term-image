@@ -6,7 +6,7 @@ from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
 
-from .main import _process_input
+from .main import process_input
 from .widgets import Image, info_bar, main as main_widget
 from . import main
 from .. import cli
@@ -32,7 +32,7 @@ def init(
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)
-    main.loop = Loop(main_widget, palette, unhandled_input=_process_input)
+    main.loop = Loop(main_widget, palette, unhandled_input=process_input)
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)
