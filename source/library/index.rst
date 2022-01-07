@@ -1,14 +1,12 @@
 Library Documentation
-==================================
+=====================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    tutorial
-   examples
-   features
-   reference
+   reference/index
 
 
 Known Issues

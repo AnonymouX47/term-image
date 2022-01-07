@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-This is a basic introduction to using the library. Please refer to :doc:`features` for detailed description of the features provided by the library or the :doc:`reference` for the complete library reference.
+This is a basic introduction to using the library. Please refer to :doc:`reference/index` for detailed description of the features and functionality provided by the library.
 
 For this tutorial we'll be using the image below:
 
@@ -55,6 +55,8 @@ Renders the image without padding/alignment and with transparency enabled
 The result should look like:
 
 .. image:: /resources/tutorial/str.png
+
+.. _formatted-render:
 
 2. Formatted
 ^^^^^^^^^^^^
@@ -127,7 +129,7 @@ The result should look like:
 
 .. image:: /resources/tutorial/no_alpha_no_align.png
 
-You should also have a look at the complete :ref:`format-spec`.
+You should also have a look at the complete :ref:`format-spec`\ .
 
 Drawing/Displaying an image to/in the terminal
 ----------------------------------------------
@@ -284,9 +286,11 @@ The ``size`` property can only be set to one value, ``None`` and doing this :ref
 True
 
 .. important::
-   1. The resulting size must not exceed the terminal size i.e either for the given axis or the axis automatically calculated.
-   2. The height is actually **twice the number of lines** that'll be used to render the image, assuming the *y-scale* is 1.0 (we'll get to that).
-   3. There is a 2-line allowance for the height to allow for shell prompts or the likes.
+
+   1. The currently set :ref:`font ratio <font-ratio>` is also taken into consideration when calculating or validating sizes.
+   2. The resulting size must not exceed the terminal size i.e either for the given axis or the axis automatically calculated.
+   3. The height is actually **twice the number of lines** that'll be used to render the image, assuming the *y-scale* is 1.0 (we'll get to that).
+   4. There is a 2-line allowance for the height to allow for shell prompts or the likes.
 
    Therefore, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
 
@@ -336,4 +340,4 @@ The rendered result (using ``image.draw_image()``) should look like:
 >>> image.scale
 (0.75, 1.0)
 
-Finally, to explore more of the library's features and functionality, check out the :ref:`features` and :ref:`reference` sections.
+Finally, to explore more of the library's features and functionality, check out the :doc:`reference/index` section.
