@@ -250,6 +250,13 @@ NOTES:
         ),
     )
     cli_options.add_argument(
+        "-s",
+        "--scale",
+        type=float,
+        metavar="N",
+        help="Scale of the image to be rendered (overrides `-x` and `-y`) [2]",
+    )
+    cli_options.add_argument(
         "-x",
         "--scale-x",
         type=float,
@@ -476,13 +483,14 @@ or multiple valid sources
         )
         image = images[0][1]._image
         try:
-            image.scale_x = args.scale_x
-            image.scale_y = args.scale_y
             image.set_size(
                 args.width,
                 args.height,
                 check_height=not (args.scroll or args.oversize),
                 check_width=not args.oversize,
+            )
+            image.scale = (
+                (args.scale_x, args.scale_y) if args.scale is None else args.scale
             )
             image.frame_duration = args.frame_duration
 
