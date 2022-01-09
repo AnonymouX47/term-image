@@ -430,7 +430,7 @@ class TermImage:
 
         if self._is_animated and None is not pad_height > get_terminal_size()[1] - 2:
             raise ValueError(
-                "Padding height must not be larger than the terminal height, "
+                "Padding height must not be greater than the terminal height "
                 "for animated images"
             )
 
@@ -714,7 +714,7 @@ class TermImage:
             ValueError: The object is not a 2-tuple or the values are out of range.
         """
         if not (isinstance(scale, tuple) and all(isinstance(x, float) for x in scale)):
-            raise TypeError("'scale' must be a tuple of floats")
+            raise TypeError(f"'scale' must be a tuple of floats (got: {scale!r})")
 
         if not (len(scale) == 2 and all(0.0 < x <= 1.0 for x in scale)):
             raise ValueError(
@@ -734,7 +734,9 @@ class TermImage:
             ValueError: The value is out of range.
         """
         if not isinstance(value, float):
-            raise TypeError("Given value must be a float")
+            raise TypeError(
+                f"Given value must be a float (got: type {type(value).__name__!r})"
+            )
         if not 0.0 < value <= 1.0:
             raise ValueError(f"Scale value out of range (got: {value})")
         return value
@@ -1129,7 +1131,7 @@ class TermImage:
             or (check_height and height > rows)
         ):
             raise InvalidSize(
-                "The resulting render size will not fit into the terminal"
+                "The resulting rendered size will not fit into the terminal"
             )
 
         return (width, height)
