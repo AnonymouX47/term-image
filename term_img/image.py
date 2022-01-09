@@ -72,7 +72,7 @@ class TermImage:
                 f"(got: {type(image).__name__!r})."
             )
 
-        self.__closed = False
+        self._closed = False
         self._source = image
         self._buffer = io.StringIO()
         self._original_size = image.size
@@ -117,7 +117,7 @@ class TermImage:
 
         return self._renderer(
             lambda image: self.__format_render(
-                self.__render_image(
+                self._render_image(
                     image,
                     (
                         threshold_or_bg
@@ -153,24 +153,13 @@ class TermImage:
     def __str__(self):
         """Renders the image with transparency enabled and without alignment"""
         # Only the currently set frame is rendered for animated images
-        return self._renderer(
-            lambda image: self.__render_image(image, _ALPHA_THRESHOLD)
-        )
+        return self._renderer(lambda image: self._render_image(image, _ALPHA_THRESHOLD))
 
     # Properties
 
     closed = property(
-        lambda self: self.__closed,
+        lambda self: self._closed,
         doc="Instance finalization status",
-    )
-
-    columns = property(
-        lambda self: round(
-            (self._size or self._valid_size(None, None))[0]
-            * self._scale[0]
-            / _pixel_ratio
-        ),
-        doc="The number of columns that the rendered image will occupy on the terminal",
     )
 
     frame_duration = property(
@@ -212,13 +201,6 @@ class TermImage:
         doc="``True`` if the image is animated. Otherwise, ``False``.",
     )
 
-    lines = property(
-        lambda self: ceil(
-            (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
-        ),
-        doc="The number of lines that the rendered image will occupy on the terminal",
-    )
-
     original_size = property(
         lambda self: self._original_size, doc="Original image size"
     )
@@ -226,6 +208,13 @@ class TermImage:
     n_frames = property(
         lambda self: self._n_frames if self._is_animated else 1,
         doc="The number of frames in the image",
+    )
+
+    rendered_height = property(
+        lambda self: ceil(
+            (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
+        ),
+        doc="The number of lines that the rendered image will occupy on the terminal",
     )
 
     @property
@@ -242,6 +231,15 @@ class TermImage:
             ),
         )
         return (columns, ceil(rows / 2))
+
+    rendered_width = property(
+        lambda self: round(
+            (self._size or self._valid_size(None, None))[0]
+            * self._scale[0]
+            / _pixel_ratio
+        ),
+        doc="The number of columns that the rendered image will occupy on the terminal",
+    )
 
     scale = property(
         lambda self: tuple(self._scale),
@@ -350,7 +348,7 @@ class TermImage:
             * If the instance was initialized with a PIL image, it's never finalized.
         """
         try:
-            if not self.__closed:
+            if not self._closed:
                 self._buffer.close()
                 self._buffer = None
 
@@ -364,7 +362,7 @@ class TermImage:
             # Instance creation or initialization was unsuccessful
             pass
         finally:
-            self.__closed = True
+            self._closed = True
 
     def draw_image(
         self,
@@ -456,7 +454,7 @@ class TermImage:
                 else:
                     print(
                         self.__format_render(
-                            self.__render_image(image, alpha),
+                            self._render_image(image, alpha),
                             h_align,
                             pad_width,
                             v_align,
@@ -750,7 +748,7 @@ class TermImage:
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
-            self.lines,
+            self.rendered_height,
         )
         cache = [None] * self._n_frames
         prev_seek_pos = self._seek_position
@@ -758,7 +756,7 @@ class TermImage:
             # By implication, the first frame is repeated once at the start :D
             self.seek(0)
             cache[0] = frame = self.__format_render(
-                self.__render_image(image, alpha), *fmt
+                self._render_image(image, alpha), *fmt
             )
             duration = self._frame_duration
             for n in cycle(range(self._n_frames)):
@@ -772,7 +770,7 @@ class TermImage:
                     frame = cache[n]
                 else:
                     cache[n] = frame = self.__format_render(
-                        self.__render_image(image, alpha),
+                        self._render_image(image, alpha),
                         *fmt,
                     )
                 # Move cursor up to the first line of the image
@@ -840,12 +838,12 @@ class TermImage:
 
         return "\n".join(lines)
 
-    def __render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
+    def _render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
         """Converts image pixel data into a "color-coded" string.
 
         Two pixels per character using FG and BG colors.
         """
-        if self.__closed:
+        if self._closed:
             raise TermImageException("This image has been finalized")
 
         # NOTE:
@@ -995,25 +993,25 @@ class TermImage:
 
         return buffer.getvalue()
 
-    def _renderer(self, callback: FunctionType, check_size: bool = False) -> Any:
+    def _renderer(self, renderer: FunctionType, check_size: bool = False) -> Any:
         """Performs common render preparations and a rendering operation.
 
         Args:
-            callback: The function to perform the specifc rendering operation for the
+            renderer: The function to perform the specifc rendering operation for the
               caller of this function (``_renderer()``).
               This function should accept just one argument, the PIL image.
             check_size: Determines whether or not the image's set size (if any) is
               checked to see if still fits into the terminal.
 
         Returns:
-            The return value of *callback*.
+            The return value of *renderer*.
 
         NOTE:
             * If the ``set_size()`` method was previously used to set the *render size*,
               (directly or not), the last value of its *check_height* parameter
               is taken into consideration, for non-animated images.
         """
-        if self.__closed:
+        if self._closed:
             raise TermImageException("This image has been finalized")
 
         try:
@@ -1041,7 +1039,9 @@ class TermImage:
                         "can no longer fit into the terminal"
                     )
 
-                if self._is_animated and not self.__check_height and self.lines > lines:
+                # Reaching here means it's either valid or `__check_height` is `False`
+                # Hence, there's no need to check `__check_height`
+                if self._is_animated and self.rendered_height > lines:
                     raise InvalidSize(
                         "The image height cannot be greater than the terminal height "
                         "for animated images"
@@ -1053,7 +1053,7 @@ class TermImage:
                 else self._source
             )
 
-            return callback(image)
+            return renderer(image)
 
         finally:
             self._buffer.seek(0)  # Reset buffer pointer
