@@ -401,13 +401,10 @@ class TermImage:
               the terminal with it's currently set render size.
 
         Raises:
-            term_img.exceptions.InvalidSize:
-
-              * The terminal has been resized in such a way that the previously set
-                *render size* can no longer fit into it.
-              * The image is **animated** and the *rendered size* won't fit into the
-                terminal.
-
+            term_img.exceptions.InvalidSize: The terminal has been resized in such a
+              way that the previously set size can no longer fit into it.
+            term_img.exceptions.InvalidSize: The image is **animated** and the
+              previously set size won't fit into the terminal.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value.
 
@@ -419,7 +416,7 @@ class TermImage:
               is taken into consideration, for non-animated images.
             * For animated images:
 
-              * Render size and padding height are always validated.
+              * *Render size* and *padding height* are always validated.
               * *ignore_oversize* has no effect.
         """
         h_align, pad_width, v_align, pad_height = self.__check_formating(
@@ -596,10 +593,9 @@ class TermImage:
             term_img.exceptions.InvalidSize: The resulting *rendered size* will not
               fit into the terminal or *maxsize*.
             TypeError: An argument is of an inappropriate type.
-            ValueError:
-
-              * An argument has an unexpected/invalid value but of an appropriate type.
-              * Both width and height are specified.
+            ValueError: An argument has an unexpected/invalid value but of an
+              appropriate type.
+            ValueError: Both *width* and *height* are specified.
 
         If neither *width* nor *height* is given or anyone given is ``None``:
 
