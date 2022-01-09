@@ -88,6 +88,11 @@ class TermImage:
             self._seek_position = 0
             self._n_frames = image.n_frames
 
+        # Recognized advanced sizing options.
+        # These are initialized here only to avoid `AttributeError`s in case `_size` is
+        # initially set via a means other than `set_size()`.
+        self.__check_height = True
+
     def __del__(self):
         self.close()
 
@@ -561,6 +566,89 @@ class TermImage:
         if self._is_animated:
             self._seek_position = pos
 
+    def set_size(
+        self,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        *,
+        maxsize: Optional[Tuple[int, int]] = None,
+        check_width: bool = True,
+        check_height: bool = True,
+    ) -> None:
+        """Sets the *render size* with advanced control.
+
+        Args:
+            width: Render width to use.
+            height: Render height to use.
+            maxsize: If given, it's used instead of the terminal size.
+            check_width: If ``False``, the validity of the resulting *rendered width*
+              is not checked.
+            check_height: If ``False``, the validity of the resulting *rendered height*
+              is not checked.
+
+        Raises:
+            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
+              fit into the terminal or *maxsize*.
+            TypeError: An argument is of an inappropriate type.
+            ValueError:
+
+              * An argument has an unexpected/invalid value but of an appropriate type.
+              * Both width and height are specified.
+
+        If neither *width* nor *height* is given or anyone given is ``None``:
+
+          * The size is automatically calcuated to fit within the terminal size
+            (or *maxsize*, if given).
+          * If *check_height* is ``False``, the size is set such that the
+            *rendered width* is exactly the terminal width (or ``maxsize[1]``)
+            (assuming the *render scale* equals 1), regardless of the font ratio.
+
+        The *check_height* might be set to ``False`` to set the *render size* for
+        vertically-oriented images (i.e images with height > width) such that the
+        drawn image spans more columns but the terminal window has to be scrolled
+        to view the entire image.
+
+        Whenever *check_height* is set to ``False``, the ``draw_image()`` method
+        recognizes and respects it until the *render size* is set again via another
+        means or with *check_height* set to ``True``.
+
+        *check_width* is only provided for completeness and is meant for advanced use.
+        It should probably be used only when the image will not be drawn to the
+        current terminal.
+        """
+        if width is not None is not height:
+            raise ValueError("Cannot specify both width and height")
+        for argname, x in zip(("width", "height"), (width, height)):
+            if not (x is None or isinstance(x, int)):
+                raise TypeError(
+                    f"{argname} must be an integer (got: type {type(x).__name__!r})"
+                )
+            if None is not x <= 0:
+                raise ValueError(f"{argname} must be positive (got: {x})")
+        if maxsize is not None:
+            if not (
+                isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
+            ):
+                raise TypeError(
+                    f"'maxsize' must be a tuple of `int`s (got: {maxsize!r})"
+                )
+
+            if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
+                raise ValueError(
+                    f"'maxsize' must contain two positive integers (got: {maxsize})"
+                )
+        if not (isinstance(check_width, bool) and (check_height, bool)):
+            raise TypeError("The size-Check arguments must be booleans")
+
+        self._size = self._valid_size(
+            width,
+            height,
+            maxsize=maxsize,
+            check_height=check_height,
+            ignore_oversize=not (check_width or check_height),
+        )
+        self.__check_height = check_height
+
     def tell(self) -> int:
         """Returns the current image frame number"""
         return self._seek_position if self._is_animated else 0
@@ -947,39 +1035,21 @@ class TermImage:
         height: Optional[int],
         *,
         maxsize: Optional[Tuple[int, int]] = None,
+        check_height: bool = True,
         ignore_oversize: bool = False,
     ) -> Tuple[int, int]:
         """Generates a *render size* tuple from the given height or width and
         checks if the resulting *rendered size* is valid.
 
         Args:
-            width: Render width to use.
-            height: Render height to use.
-            maxsize: If given, it's used instead of the terminal size.
             ignore_oversize: If ``True``, the validity of the resulting *rendered size*
-            is not checked.
+              is not checked.
+
+        See the description of ``set_size()`` for the other parameters.
 
         Returns:
             A valid *render size* tuple.
-
-        Raises:
-            ValueError: Both width and height are specified,
-              or the specified dimension is not positive.
-            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
-              fit into the terminal or *maxsize*.
-
         """
-        if width is not None is not height:
-            raise ValueError("Cannot specify both width and height")
-        for argname, x in zip(("width", "height"), (width, height)):
-            if not (x is None or isinstance(x, int)):
-                raise TypeError(
-                    f"{argname} must be an integer "
-                    f"(got: {argname} of type {type(x).__name__!r})"
-                )
-            if None is not x <= 0:
-                raise ValueError(f"{argname} must be positive (got: {x})")
-
         ori_width, ori_height = self._original_size
 
         columns, lines = maxsize or get_terminal_size()
@@ -991,6 +1061,10 @@ class TermImage:
         # NOTE: The image scale is not considered since it should never be > 1
 
         if width is None is height:
+            if not check_height:
+                width = columns * _pixel_ratio
+                return (round(width), round(ori_height * width / ori_width))
+
             # The smaller fraction will always fit into the larger fraction
             # Using the larger fraction with cause the image not to fit on the axis with
             # the smaller fraction
@@ -1022,7 +1096,7 @@ class TermImage:
         if not ignore_oversize and (
             # The width will later be divided by the pixel-ratio when rendering
             round(width / _pixel_ratio) > columns
-            or height > rows
+            or (check_height and height > rows)
         ):
             raise InvalidSize(
                 "The resulting render size will not fit into the terminal"
