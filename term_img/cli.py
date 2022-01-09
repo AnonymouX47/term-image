@@ -127,15 +127,19 @@ from options/flags, to avoid ambiguity.
 For example, `$ term-img [options] -- -image.jpg --image.png`
 
 NOTES:
-  1. The displayed image uses HEIGHT/2 lines and WIDTH columns.
+  1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
+     on the WIDTH and the FONT RATIO.
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
-  3. Any image having more pixels than the specified maximum will be replaced
+  3. If used without `-w` or `-h`, the size is automatically calculated such that the
+     *rendered width* is exactly the terminal width (assuming the *scale* equals 1),
+     regardless of the font ratio.
+  4. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.
      Note that increasing this will have adverse effects on performance.
-  4. Any event with a level lower than the specified one is not reported.
-  5. Supports all image formats supported by `PIL.Image.open()`.
+  5. Any event with a level lower than the specified one is not reported.
+  6. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -231,6 +235,21 @@ NOTES:
         help="Height of the image to be rendered (default: auto) [1]",
     )
     cli_options.add_argument(
+        "-S",
+        "--scroll",
+        action="store_true",
+        help=("Allow the image height to go beyond the terminal height [3]"),
+    )
+    cli_options.add_argument(
+        "-O",
+        "--oversize",
+        action="store_true",
+        help=(
+            "Allow the image size to go beyond the terminal size "
+            "(To be used with `-w` or `-h`)"
+        ),
+    )
+    cli_options.add_argument(
         "-x",
         "--scale-x",
         type=float,
@@ -311,7 +330,7 @@ or multiple valid sources
         default=max_pixels,
         help=(
             "Maximum amount of pixels in images to be displayed "
-            f"(default: {max_pixels}) [3]"
+            f"(default: {max_pixels}) [4]"
         ),
     )
 
@@ -337,7 +356,7 @@ or multiple valid sources
         default="WARNING",
         help=(
             "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
-            "(default: WARNING) [4]"
+            "(default: WARNING) [5]"
         ),
     )
     log_options.add_argument(
@@ -457,12 +476,14 @@ or multiple valid sources
         )
         image = images[0][1]._image
         try:
-            if args.width is not None:
-                image.width = args.width
-            elif args.height is not None:
-                image.height = args.height
             image.scale_x = args.scale_x
             image.scale_y = args.scale_y
+            image.set_size(
+                args.width,
+                args.height,
+                check_height=not (args.scroll or args.oversize),
+                check_width=not args.oversize,
+            )
             image.frame_duration = args.frame_duration
 
             image.draw_image(
@@ -476,6 +497,7 @@ or multiple valid sources
                     if args.no_alpha
                     else args.alpha_bg and "#" + args.alpha_bg or args.alpha
                 ),
+                ignore_oversize=args.oversize,
             )
 
         # Handles `ValueError` and `.exceptions.InvalidSize`

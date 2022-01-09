@@ -605,9 +605,9 @@ class TermImage:
 
         If neither *width* nor *height* is given or anyone given is ``None``:
 
-          * The size is automatically calcuated to fit within the terminal size
-            (or *maxsize*, if given).
-          * If *check_height* is ``False``, the size is set such that the
+          * and *check_height* is ``True``, the size is automatically calculated to fit
+            within the terminal size (or *maxsize*, if given).
+          * and *check_height* is ``False``, the size is set such that the
             *rendered width* is exactly the terminal width (or ``maxsize[1]``)
             (assuming the *render scale* equals 1), regardless of the font ratio.
 

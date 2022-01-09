@@ -122,11 +122,11 @@ class Image(urwid.Widget):
         return key
 
     def rows(self, size, focus=False):
-        # Incompetent implementation due to the lack of maxrows
+        # Incompetent implementation due to the lack of *maxrows*
         size = self._image._valid_size(
             size[0],
             None,
-            maxsize=get_terminal_size(),
+            maxsize=get_terminal_size(),  # Omit 2-line allowance
             ignore_oversize=True,  # For the sake of vertically-oriented images
         )
         rows = ceil(size[1] / 2)
@@ -168,7 +168,7 @@ class Image(urwid.Widget):
         if context in self._force_render_contexts:
             keys.disable_actions(context, "Force Render")
 
-        # Size augmentation
+        # Size augmentation and setting
 
         if len(size) == 1:
             size = image._valid_size(
@@ -177,7 +177,7 @@ class Image(urwid.Widget):
                 maxsize=(size[0], get_terminal_size()[1]),
             )
             size = (size[0], ceil(size[1] / 2))
-        image._size = image._valid_size(None, None, maxsize=size)
+        image.set_size(maxsize=size)
 
         # Rendering
 
