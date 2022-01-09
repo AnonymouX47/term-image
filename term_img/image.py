@@ -191,6 +191,7 @@ class TermImage:
 
     height = property(
         lambda self: self._size and self._size[1],
+        lambda self, height: self.set_size(height=height),
         doc="""
         Image render height
 
@@ -205,10 +206,6 @@ class TermImage:
         The image is actually rendered using half this number of lines
         """,
     )
-
-    @height.setter
-    def height(self, height: Optional[int]) -> None:
-        self._size = self._valid_size(None, height)
 
     is_animated = property(
         lambda self: self._is_animated,
@@ -327,6 +324,7 @@ class TermImage:
 
     width = property(
         lambda self: self._size and self._size[0],
+        lambda self, width: self.set_size(width),
         doc="""
         Image render width
 
@@ -339,10 +337,6 @@ class TermImage:
               the height proportionally.
         """,
     )
-
-    @width.setter
-    def width(self, width: Optional[int]) -> None:
-        self._size = self._valid_size(width, None)
 
     # Public Methods
 
@@ -409,12 +403,26 @@ class TermImage:
               the terminal with it's currently set render size.
 
         Raises:
-            term_img.exceptions.InvalidSize: The terminal has been resized in such
-              a way that it can no longer fit the previously set render size.
+            term_img.exceptions.InvalidSize:
+
+              * The terminal has been resized in such a way that the previously set
+                *render size* can no longer fit into it.
+              * The image is **animated** and the *rendered size* won't fit into the
+                terminal.
+
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value.
 
-        Animated images are displayed infinitely but can be terminated with ``Ctrl-C``.
+        NOTE:
+            * Animated images are displayed infinitely but can be terminated with
+              ``Ctrl-C``.
+            * If the ``set_size()`` method was previously used to set the *render size*,
+              (directly or not), the last value of its *check_height* parameter
+              is taken into consideration, for non-animated images.
+            * For animated images:
+
+              * Render size and padding height are always validated.
+              * *ignore_oversize* has no effect.
         """
         h_align, pad_width, v_align, pad_height = self.__check_formating(
             h_align, pad_width, v_align, pad_height
@@ -460,7 +468,7 @@ class TermImage:
             finally:
                 print("\033[0m")  # Always reset color
 
-        self._renderer(render, not ignore_oversize)
+        self._renderer(render, self._is_animated or not ignore_oversize)
 
     @classmethod
     def from_file(
@@ -997,6 +1005,11 @@ class TermImage:
 
         Returns:
             The return value of *callback*.
+
+        NOTE:
+            * If the ``set_size()`` method was previously used to set the *render size*,
+              (directly or not), the last value of its *check_height* parameter
+              is taken into consideration, for non-animated images.
         """
         if self.__closed:
             raise TermImageException("This image has been finalized")
@@ -1004,16 +1017,33 @@ class TermImage:
         try:
             reset_size = False
             if not self._size:  # Size is unset
-                self._size = self._valid_size(None, None)
+                self.set_size()
                 reset_size = True
             # If the set size is larger than terminal size but the set scale makes
             # it fit in, then it's all good.
-            elif check_size and any(map(gt, self.rendered_size, get_terminal_size())):
-                raise InvalidSize(
-                    "Seems the terminal has been resized or font-ratio has been "
-                    "changed since the image render size was set and the image can "
-                    "no longer fit into the terminal"
-                )
+            elif check_size:
+                columns, lines = get_terminal_size()
+                lines -= 2
+                if any(
+                    map(
+                        gt,
+                        # the compared height will be 0 when `__check_height` is `False`
+                        # and the terminal height should never be < 0
+                        map(mul, self.rendered_size, (1, self.__check_height)),
+                        (columns, lines),
+                    )
+                ):
+                    raise InvalidSize(
+                        "Seems the terminal has been resized or font ratio has been "
+                        "changed since the image render size was set and the image "
+                        "can no longer fit into the terminal"
+                    )
+
+                if self._is_animated and not self.__check_height and self.lines > lines:
+                    raise InvalidSize(
+                        "The image height cannot be greater than the terminal height "
+                        "for animated images"
+                    )
 
             image = (
                 Image.open(self._source)
