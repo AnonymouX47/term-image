@@ -134,6 +134,7 @@ NOTES:
   3. If used without `-w` or `-h`, the size is automatically calculated such that the
      *rendered width* is exactly the terminal width (assuming the *scale* equals 1),
      regardless of the font ratio.
+     Also, `--v-allow` has no effect i.e vertical allowance is overriden.
   4. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.

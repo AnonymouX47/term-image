@@ -621,7 +621,8 @@ class TermImage:
             *rendered width* is exactly the terminal width (or ``maxsize[1]``)
             (assuming the *render scale* equals 1), regardless of the font ratio.
 
-        Allowance does not apply when *maxsize* is given.
+        | Allowance does not apply when *maxsize* is given.
+        | Vertical allowance has no effect when *check_height* is ``False``.
 
         The *check_height* might be set to ``False`` to set the *render size* for
         vertically-oriented images (i.e images with height > width) such that the
@@ -672,14 +673,14 @@ class TermImage:
             width,
             height,
             h_allow,
-            v_allow,
+            v_allow * check_height,
             maxsize=maxsize,
             check_height=check_height,
             ignore_oversize=not (check_width or check_height),
         )
         self.__check_height = check_height
         self.__h_allow = h_allow * (not maxsize)
-        self.__v_allow = v_allow * (not maxsize)
+        self.__v_allow = v_allow * (not maxsize) * check_height
 
     def tell(self) -> int:
         """Returns the current image frame number"""
