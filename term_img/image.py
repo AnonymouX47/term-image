@@ -413,6 +413,7 @@ class TermImage:
               previously set size won't fit into the terminal.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value.
+            ValueError: Render size or scale too small.
 
         NOTE:
             * Animated images are displayed infinitely but can be terminated with
@@ -640,7 +641,8 @@ class TermImage:
         for argname, x in zip(("width", "height"), (width, height)):
             if not (x is None or isinstance(x, int)):
                 raise TypeError(
-                    f"{argname} must be an integer (got: type {type(x).__name__!r})"
+                    f"{argname} must be `None` or an integer "
+                    f"(got: type {type(x).__name__!r})"
                 )
             if None is not x <= 0:
                 raise ValueError(f"{argname} must be positive (got: {x})")
@@ -908,7 +910,10 @@ class TermImage:
         width, height = map(
             round, map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1)))
         )
-        image = image.convert("RGBA").resize((width, height))
+        try:
+            image = image.convert("RGBA").resize((width, height))
+        except ValueError:
+            raise ValueError("Render size or scale too small")
         if isinstance(alpha, str):
             bg = Image.new("RGBA", image.size, alpha)
             bg.alpha_composite(image)
@@ -1029,6 +1034,9 @@ class TermImage:
 
         Returns:
             The return value of *renderer*.
+
+        Raises:
+            ValueError: Render size or scale too small.
 
         NOTE:
             * If the ``set_size()`` method was previously used to set the *render size*,
