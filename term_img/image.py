@@ -12,7 +12,7 @@ import requests
 import time
 from itertools import cycle
 from math import ceil
-from operator import gt, mul, truediv
+from operator import gt, mul, sub, truediv
 from random import randint
 from shutil import get_terminal_size
 
@@ -92,6 +92,8 @@ class TermImage:
         # These are initialized here only to avoid `AttributeError`s in case `_size` is
         # initially set via a means other than `set_size()`.
         self.__check_height = True
+        self.__h_allow = 0
+        self.__v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     def __del__(self):
         self.close()
@@ -298,8 +300,9 @@ class TermImage:
 
         ``None`` when render size is unset.
 
-        Setting this to ``None`` unsets the render size, so that it's automatically
-        calculated whenever the image is rendered.
+        Setting this to ``None`` unsets the *render size* (so that it's automatically
+        calculated whenever the image is rendered) and resets the recognized advanced
+        sizing options to their defaults.
         """,
     )
 
@@ -308,6 +311,9 @@ class TermImage:
         if value is not None:
             raise TypeError("The only acceptable value is `None`")
         self._size = value
+        self.__check_height = True
+        self.__h_allow = 0
+        self.__v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
         lambda self: (
@@ -412,8 +418,9 @@ class TermImage:
             * Animated images are displayed infinitely but can be terminated with
               ``Ctrl-C``.
             * If the ``set_size()`` method was previously used to set the *render size*,
-              (directly or not), the last value of its *check_height* parameter
-              is taken into consideration, for non-animated images.
+              (directly or not), the last values of its *check_height*, *h_allow* and
+              *v_allow* parameters are taken into consideration, with *check_height*
+              applying to only non-animated images.
             * For animated images:
 
               * *Render size* and *padding height* are always validated.
@@ -423,7 +430,10 @@ class TermImage:
             h_align, pad_width, v_align, pad_height
         )
 
-        if self._is_animated and None is not pad_height > get_terminal_size()[1] - 2:
+        if (
+            self._is_animated
+            and None is not pad_height > get_terminal_size()[1] - self.__v_allow
+        ):
             raise ValueError(
                 "Padding height must not be greater than the terminal height "
                 "for animated images"
@@ -573,6 +583,8 @@ class TermImage:
         self,
         width: Optional[int] = None,
         height: Optional[int] = None,
+        h_allow: int = 0,
+        v_allow: int = 2,
         *,
         maxsize: Optional[Tuple[int, int]] = None,
         check_width: bool = True,
@@ -583,6 +595,8 @@ class TermImage:
         Args:
             width: Render width to use.
             height: Render height to use.
+            h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
+            v_allow: Vertical allowance i.e minimum number of lines to leave unused.
             maxsize: If given, it's used instead of the terminal size.
             check_width: If ``False``, the validity of the resulting *rendered width*
               is not checked.
@@ -590,6 +604,7 @@ class TermImage:
               is not checked.
 
         Raises:
+            term_img.exceptions.InvalidSize: The terminal size is too small.
             term_img.exceptions.InvalidSize: The resulting *rendered size* will not
               fit into the terminal or *maxsize*.
             TypeError: An argument is of an inappropriate type.
@@ -605,14 +620,16 @@ class TermImage:
             *rendered width* is exactly the terminal width (or ``maxsize[1]``)
             (assuming the *render scale* equals 1), regardless of the font ratio.
 
+        Allowance does not apply when *maxsize* is given.
+
         The *check_height* might be set to ``False`` to set the *render size* for
         vertically-oriented images (i.e images with height > width) such that the
         drawn image spans more columns but the terminal window has to be scrolled
         to view the entire image.
 
-        Whenever *check_height* is set to ``False``, the ``draw_image()`` method
-        recognizes and respects it until the *render size* is set again via another
-        means or with *check_height* set to ``True``.
+        All image rendering and formatting methods recognize and respect the
+        *check_height*, *h_allow* and *v_allow* options, until the size is re-set
+        or unset.
 
         *check_width* is only provided for completeness and is meant for advanced use.
         It should probably be used only when the image will not be drawn to the
@@ -627,6 +644,13 @@ class TermImage:
                 )
             if None is not x <= 0:
                 raise ValueError(f"{argname} must be positive (got: {x})")
+        for argname, x in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
+            if not isinstance(x, int):
+                raise TypeError(
+                    f"{argname} must be an integer (got: type {type(x).__name__!r})"
+                )
+            if x < 0:
+                raise ValueError(f"{argname} must be non-negative (got: {x})")
         if maxsize is not None:
             if not (
                 isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
@@ -645,11 +669,15 @@ class TermImage:
         self._size = self._valid_size(
             width,
             height,
+            h_allow,
+            v_allow,
             maxsize=maxsize,
             check_height=check_height,
             ignore_oversize=not (check_width or check_height),
         )
         self.__check_height = check_height
+        self.__h_allow = h_allow * (not maxsize)
+        self.__v_allow = v_allow * (not maxsize)
 
     def tell(self) -> int:
         """Returns the current image frame number"""
@@ -657,8 +685,8 @@ class TermImage:
 
     # Private Methods
 
-    @staticmethod
     def __check_formating(
+        self,
         h_align: Optional[str] = None,
         width: Optional[int] = None,
         v_align: Optional[str] = None,
@@ -680,7 +708,7 @@ class TermImage:
         if width is not None:
             if width <= 0:
                 raise ValueError(f"Padding width must be positive (got: {width})")
-            if width > get_terminal_size()[0]:
+            if width > get_terminal_size()[0] - self.__h_allow:
                 raise ValueError("Padding width larger than terminal width")
 
         if v_align is not None:
@@ -743,7 +771,7 @@ class TermImage:
         This is done infinitely but can be terminated with ``Ctrl-C``.
         """
         lines = max(
-            (fmt or (None,))[-1] or get_terminal_size()[1] - 2,
+            (fmt or (None,))[-1] or get_terminal_size()[1] - self.__v_allow,
             self.rendered_height,
         )
         cache = [None] * self._n_frames
@@ -796,7 +824,7 @@ class TermImage:
         lines = render.splitlines()
         cols, rows = self.rendered_size
 
-        width = width or get_terminal_size()[0]
+        width = width or get_terminal_size()[0] - self.__h_allow
         width = max(cols, width)
         if h_align == "<":  # left
             pad_left = ""
@@ -815,7 +843,7 @@ class TermImage:
         elif pad_right:
             lines = [line + pad_right for line in lines]
 
-        height = height or get_terminal_size()[1] - 2
+        height = height or get_terminal_size()[1] - self.__v_allow
         height = max(rows, height)
         if v_align == "^":  # top
             pad_up = 0
@@ -1018,8 +1046,12 @@ class TermImage:
             # If the set size is larger than terminal size but the set scale makes
             # it fit in, then it's all good.
             elif check_size:
-                columns, lines = get_terminal_size()
-                lines -= 2
+                columns, lines = map(
+                    sub,
+                    get_terminal_size(),
+                    (self.__h_allow, self.__v_allow),
+                )
+
                 if any(
                     map(
                         gt,
@@ -1061,13 +1093,15 @@ class TermImage:
         self,
         width: Optional[int],
         height: Optional[int],
+        h_allow: int = 0,
+        v_allow: int = 2,
         *,
         maxsize: Optional[Tuple[int, int]] = None,
         check_height: bool = True,
         ignore_oversize: bool = False,
     ) -> Tuple[int, int]:
-        """Generates a *render size* tuple from the given height or width and
-        checks if the resulting *rendered size* is valid.
+        """Generates a *render size* tuple and checks if the resulting *rendered size*
+        is valid.
 
         Args:
             ignore_oversize: If ``True``, the validity of the resulting *rendered size*
@@ -1080,9 +1114,11 @@ class TermImage:
         """
         ori_width, ori_height = self._original_size
 
-        columns, lines = maxsize or get_terminal_size()
-        if not maxsize:
-            lines -= 2  # A 2-line allowance for the shell prompt
+        columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
+        for name in ("columns", "lines"):
+            if locals()[name] <= 0:
+                raise InvalidSize(f"Maximum amount of available {name} too small")
+
         # Two pixel rows per line
         rows = (lines) * 2
 
