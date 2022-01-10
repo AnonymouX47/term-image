@@ -235,6 +235,26 @@ NOTES:
         help="Height of the image to be rendered (default: auto) [1]",
     )
     cli_options.add_argument(
+        "--h-allow",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Horizontal allowance i.e minimum number of columns to leave unused "
+            "(default: 0)"
+        ),
+    )
+    cli_options.add_argument(
+        "--v-allow",
+        type=int,
+        default=2,
+        metavar="N",
+        help=(
+            "Vertical allowance i.e minimum number of lines to leave unused "
+            "(default: 2)"
+        ),
+    )
+    cli_options.add_argument(
         "-S",
         "--scroll",
         action="store_true",
@@ -486,6 +506,8 @@ or multiple valid sources
             image.set_size(
                 args.width,
                 args.height,
+                args.h_allow,
+                args.v_allow,
                 check_height=not (args.scroll or args.oversize),
                 check_width=not args.oversize,
             )
