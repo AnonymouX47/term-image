@@ -48,8 +48,8 @@ class TermImage:
     NOTE:
         * *width* is not neccesarily the exact number of columns that'll be used
           to render the image. That is influenced by the currently set font ratio.
-        * *height* is **2 times** the number of lines that'll be used on the terminal.
-        * If neither is given or ``None``, the size is automatically determined
+        * *height* is **2 times** the number of lines that'll be used in the terminal.
+        * If neither is given or both are ``None``, the size is automatically determined
           when the image is to be rendered, such that it can fit within the terminal.
         * The size is multiplied by the scale on each axis respectively before the image
           is rendered.
@@ -216,7 +216,7 @@ class TermImage:
         lambda self: ceil(
             (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
         ),
-        doc="The number of lines that the rendered image will occupy on the terminal",
+        doc="The number of lines that the rendered image will occupy in the terminal",
     )
 
     @property
@@ -240,7 +240,7 @@ class TermImage:
             * self._scale[0]
             / _pixel_ratio
         ),
-        doc="The number of columns that the rendered image will occupy on the terminal",
+        doc="The number of columns that the rendered image will occupy in the terminal",
     )
 
     scale = property(
@@ -404,13 +404,13 @@ class TermImage:
                 should be replaced.
 
             ignore_oversize: If ``True``, do not verify if the image will fit into
-              the terminal with it's currently set render size.
+              the *available* terminal size with it's currently set *render size*.
 
         Raises:
             term_img.exceptions.InvalidSize: The terminal has been resized in such a
               way that the previously set size can no longer fit into it.
             term_img.exceptions.InvalidSize: The image is **animated** and the
-              previously set size won't fit into the terminal.
+              previously set size won't fit into the *available* terminal size.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value.
             ValueError: Render size or scale too small.
@@ -436,8 +436,8 @@ class TermImage:
             and None is not pad_height > get_terminal_size()[1] - self.__v_allow
         ):
             raise ValueError(
-                "Padding height must not be greater than the terminal height "
-                "for animated images"
+                "Padding height must not be greater than the available terminal "
+                "height for animated images"
             )
 
         if alpha is not None:
@@ -605,9 +605,9 @@ class TermImage:
               is not checked.
 
         Raises:
-            term_img.exceptions.InvalidSize: The terminal size is too small.
+            term_img.exceptions.InvalidSize: The *available* size is too small.
             term_img.exceptions.InvalidSize: The resulting *rendered size* will not
-              fit into the terminal or *maxsize*.
+              fit into the *available* terminal size (or *maxsize*, if given).
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value but of an
               appropriate type.
@@ -616,9 +616,9 @@ class TermImage:
         If neither *width* nor *height* is given or anyone given is ``None``:
 
           * and *check_height* is ``True``, the size is automatically calculated to fit
-            within the terminal size (or *maxsize*, if given).
+            within the *available* terminal size (or *maxsize*, if given).
           * and *check_height* is ``False``, the size is set such that the
-            *rendered width* is exactly the terminal width (or ``maxsize[1]``)
+            *rendered width* is exactly the *available* terminal width or ``maxsize[1]``
             (assuming the *render scale* equals 1), regardless of the font ratio.
 
         | Allowance does not apply when *maxsize* is given.
@@ -712,7 +712,9 @@ class TermImage:
             if width <= 0:
                 raise ValueError(f"Padding width must be positive (got: {width})")
             if width > get_terminal_size()[0] - self.__h_allow:
-                raise ValueError("Padding width larger than terminal width")
+                raise ValueError(
+                    "Padding width is larger than the available terminal width"
+                )
 
         if v_align is not None:
             align = {"top": "^", "middle": "-", "bottom": "_"}.get(v_align, v_align)
@@ -809,7 +811,7 @@ class TermImage:
         finally:
             self.seek(prev_seek_pos)
             # Move the cursor to the line after the image
-            # Prevents "overlayed" output on the terminal
+            # Prevents "overlayed" output in the terminal
             print("\033[%dB" % lines, end="", flush=True)
 
     def __format_render(
@@ -1031,7 +1033,7 @@ class TermImage:
               caller of this function (``_renderer()``).
               This function should accept just one argument, the PIL image.
             check_size: Determines whether or not the image's set size (if any) is
-              checked to see if still fits into the terminal.
+              checked to see if it still fits into the *avaliable* terminal size.
 
         Returns:
             The return value of *renderer*.
@@ -1052,8 +1054,9 @@ class TermImage:
             if not self._size:  # Size is unset
                 self.set_size()
                 reset_size = True
-            # If the set size is larger than terminal size but the set scale makes
-            # it fit in, then it's all good.
+
+            # If the set size is larger than the available terminal size but the scale
+            # makes it fit in, then it's all good.
             elif check_size:
                 columns, lines = map(
                     sub,
@@ -1073,15 +1076,15 @@ class TermImage:
                     raise InvalidSize(
                         "Seems the terminal has been resized or font ratio has been "
                         "changed since the image render size was set and the image "
-                        "can no longer fit into the terminal"
+                        "can no longer fit into the available terminal size"
                     )
 
                 # Reaching here means it's either valid or `__check_height` is `False`
                 # Hence, there's no need to check `__check_height`
                 if self._is_animated and self.rendered_height > lines:
                     raise InvalidSize(
-                        "The image height cannot be greater than the terminal height "
-                        "for animated images"
+                        "The image height cannot be greater than the available "
+                        "terminal height for animated images"
                     )
 
             image = (
@@ -1126,7 +1129,7 @@ class TermImage:
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
         for name in ("columns", "lines"):
             if locals()[name] <= 0:
-                raise InvalidSize(f"Maximum amount of available {name} too small")
+                raise InvalidSize(f"Number of available {name} too small")
 
         # Two pixel rows per line
         rows = (lines) * 2
@@ -1172,7 +1175,7 @@ class TermImage:
             or (check_height and height > rows)
         ):
             raise InvalidSize(
-                "The resulting rendered size will not fit into the terminal"
+                "The resulting rendered size will not fit into the available size"
             )
 
         return (width, height)

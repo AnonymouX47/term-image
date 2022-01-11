@@ -129,11 +129,14 @@ For example, `$ term-img [options] -- -image.jpg --image.png`
 NOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
      on the WIDTH and the FONT RATIO.
+     The auto sizing is calculated such that the image always fits into the available
+     terminal size (i.e terminal size minus allowances) except when `--scroll` is
+     specified, which allows the image height to go beyond the terminal height.
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
   3. If used without `-w` or `-h`, the size is automatically calculated such that the
-     *rendered width* is exactly the terminal width (assuming the *scale* equals 1),
-     regardless of the font ratio.
+     *rendered width* is exactly the terminal width (minus horizontal allowance),
+     assuming the *scale* equals 1, regardless of the font ratio.
      Also, `--v-allow` has no effect i.e vertical allowance is overriden.
   4. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
@@ -313,7 +316,10 @@ NOTES:
         "--pad-width",
         metavar="N",
         type=int,
-        help="No of columns within which to align the image (default: terminal width)",
+        help=(
+            "No of columns within which to align the image "
+            "(default: terminal width, minus horizontal allowance)"
+        ),
     )
     align_options.add_argument(
         "-V",
@@ -327,7 +333,7 @@ NOTES:
         type=int,
         help=(
             "No of lines within which to align the image "
-            "(default: terminal height, with a 2-line allowance)"
+            "(default: terminal height, minus vertical allowance)"
         ),
     )
 
