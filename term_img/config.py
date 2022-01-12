@@ -1,10 +1,11 @@
 """Term-Img COnfiguration"""
 
-from copy import deepcopy
 import json
 import os
 import sys
-from typing import Dict
+from copy import deepcopy
+from operator import gt
+from typing import Any, Dict
 
 import urwid
 
@@ -34,7 +35,9 @@ def init_config():
         os.mkdir(user_dir)
 
     if os.path.isfile(f"{user_dir}/config.json"):
-        load_config()
+        if load_config():
+            store_config()
+            print("config: Successfully updated user config.")
     else:
         update_context_nav_keys(context_keys, nav, nav)
         _set_action_status()
@@ -44,8 +47,9 @@ def init_config():
     expand_key[3] = False  # "Key bar" action should be hidden
 
 
-def load_config() -> None:
+def load_config() -> bool:
     """Load user config from disk"""
+    updated = False
 
     try:
         with open(f"{user_dir}/config.json") as f:
@@ -54,7 +58,16 @@ def load_config() -> None:
         print("config: Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         _set_action_status()
-        return
+        return updated
+
+    try:
+        c_version = config["version"]
+        if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
+            print("config: Updating user config...")
+            update_config(config, c_version)
+            updated = True
+    except KeyError:
+        print("config: Config version not found... Please correct this manually.")
 
     for name, is_valid in config_options.items():
         try:
@@ -76,7 +89,7 @@ def load_config() -> None:
         print("config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         _set_action_status()
-        return
+        return updated
 
     prev_nav = deepcopy(nav)  # used for identification.
     try:
@@ -98,6 +111,7 @@ def load_config() -> None:
         update_context(context, context_keys[context], keyset)
 
     _set_action_status()
+    return updated
 
 
 def _set_action_status() -> None:
@@ -134,6 +148,37 @@ def store_config(*, default: bool = False) -> None:
             f,
             indent=4,
         )
+
+
+def update_config(config: Dict[str, Any], old_version: str):
+    """Updates the user config to latest version"""
+    # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
+    changes = {
+        "0.1": [],
+    }
+
+    versions = tuple(changes)
+    versions = versions[versions.index(old_version) :]
+
+    for version in versions:
+        for location, old, new in changes[version]:
+            try:
+                if old is None:  # Addition
+                    exec(f"config{location} = new")
+                elif new is None:  # Removal
+                    exec("del config" + location)
+                else:  # Update
+                    if old == eval("config" + location):  # Still default
+                        exec(f"config{location} = new")
+            except (KeyError, IndexError):
+                print(
+                    f"config: Config option/value at {location!r} is missing, "
+                    "the new default will be put in place."
+                )
+
+    config["version"] = version
+    with open(f"{user_dir}/config.json", "w") as f:
+        json.dump(config, f, indent=4)
 
 
 def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:
@@ -236,7 +281,7 @@ def update_context_nav_keys(
 
 
 user_dir = os.path.expanduser("~/.term_img")
-version = 0.1  # For backwards compatibility
+version = "0.1"  # For backwards compatibility
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
