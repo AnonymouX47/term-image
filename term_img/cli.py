@@ -186,6 +186,21 @@ NOTES:
         ),
     )
 
+    mode_options = general.add_mutually_exclusive_group()
+    mode_options.add_argument(
+        "--cli",
+        action="store_true",
+        help=(
+            "Do not the launch the TUI, instead draw all non-animated image sources "
+            "to the terminal directly (directory sources are skipped)"
+        ),
+    )
+    mode_options.add_argument(
+        "--tui",
+        action="store_true",
+        help="Always launch the TUI, even for a single image",
+    )
+
     _alpha_options = parser.add_argument_group(
         "Transparency Options (General)",
         "NOTE: These are mutually exclusive",
@@ -480,6 +495,14 @@ or multiple valid sources
                     logging.ERROR,
                 )
         elif os.path.isdir(source):
+            if args.cli:
+                log(
+                    f"Skipping directory {source!r}",
+                    logger,
+                    verbose=True,
+                )
+                continue
+
             log(
                 f"Checking directory {source!r}...",
                 logger,
@@ -502,47 +525,72 @@ or multiple valid sources
         log("No valid source!", logger)
         return NO_VALID_SOURCE
 
-    if len(images) == 1 and isinstance(images[0][1], Image):
+    if args.cli or (
+        not args.tui and len(images) == 1 and isinstance(images[0][1], Image)
+    ):
         log(
-            "Single image source; Printing directly to console",
+            "Running in CLI mode",
             logger,
             direct=False,
         )
-        image = images[0][1]._image
-        try:
-            image.set_size(
-                args.width,
-                args.height,
-                args.h_allow,
-                args.v_allow,
-                check_height=not (args.scroll or args.oversize),
-                check_width=not args.oversize,
-            )
-            image.scale = (
-                (args.scale_x, args.scale_y) if args.scale is None else args.scale
-            )
-            image.frame_duration = args.frame_duration
 
-            image.draw_image(
-                *(
-                    (None, 1, None, 1)
-                    if args.no_align
-                    else (args.h_align, args.pad_width, args.v_align, args.pad_height)
-                ),
-                (
-                    None
-                    if args.no_alpha
-                    else args.alpha_bg and "#" + args.alpha_bg or args.alpha
-                ),
-                ignore_oversize=args.oversize,
-            )
+        err = False
+        for entry in images:
+            image = entry[1]._image
+            if image.is_animated and len(images) > 1:
+                log(
+                    f"Skipping {entry[0]!r}",
+                    logger,
+                    verbose=True,
+                )
+                continue
 
-        # Handles `ValueError` and `.exceptions.InvalidSize`
-        # raised by `TermImage.__valid_size()`, scaling value checks
-        # or padding width/height checks.
-        except ValueError as e:
-            log(str(e), logger, logging.CRITICAL)
-            return INVALID_SIZE if isinstance(e, InvalidSize) else FAILURE
+            print("\n" + os.path.basename(entry[0]) + ":")
+            try:
+                image.set_size(
+                    args.width,
+                    args.height,
+                    args.h_allow,
+                    args.v_allow,
+                    check_height=not (args.scroll or args.oversize),
+                    check_width=not args.oversize,
+                )
+                image.scale = (
+                    (args.scale_x, args.scale_y) if args.scale is None else args.scale
+                )
+                image.frame_duration = args.frame_duration
+
+                image.draw_image(
+                    *(
+                        (None, 1, None, 1)
+                        if args.no_align
+                        else (
+                            args.h_align,
+                            args.pad_width,
+                            args.v_align,
+                            args.pad_height,
+                        )
+                    ),
+                    (
+                        None
+                        if args.no_alpha
+                        else args.alpha_bg and "#" + args.alpha_bg or args.alpha
+                    ),
+                    ignore_oversize=args.oversize,
+                )
+
+            # Handles `ValueError` and `.exceptions.InvalidSize`
+            # raised by `TermImage.__valid_size()`, scaling value checks
+            # or padding width/height checks.
+            except ValueError as e:
+                if isinstance(e, InvalidSize):
+                    notify.notify(str(e), level=notify.ERROR)
+                    err = True
+                else:
+                    log(str(e), logger, logging.CRITICAL)
+                    return FAILURE
+        if err:
+            return INVALID_SIZE
     else:
         tui.init(args, images, contents)
 
