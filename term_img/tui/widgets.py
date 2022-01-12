@@ -370,8 +370,8 @@ pile = urwid.Pile([(4, banner), viewer, (2, notifications)], 1)
 
 info_bar = urwid.Text("")
 key_bar = urwid.Filler(urwid.Text([[("mine", "cool"), " "]] * 19 + [("mine", "cool")]))
-expand = urwid.Filler(urwid.Text(f"\u25B2 [{expand_key[0]}]", align="right"), "middle")
-bottom_bar = urwid.Columns([key_bar, (5, expand)], 2)
+expand = urwid.Filler(urwid.Text(f"\u25B2 [{expand_key[1]}]", align="right"), "middle")
+bottom_bar = urwid.Columns([key_bar, (len(expand.original_widget.text), expand)], 2)
 
 main = urwid.Pile([pile, (1, bottom_bar)], 0)
 

@@ -296,14 +296,14 @@ def expand_collapse_keys():
 
     if expand_key_is_shown:
         if key_bar_is_collapsed and key_bar_rows() > 1:
-            expand.original_widget.set_text(f"\u25BC [{expand_key[0]}]")
+            expand.original_widget.set_text(f"\u25BC [{expand_key[1]}]")
             main_widget.contents[-1] = (
                 bottom_bar,
                 ("given", key_bar_rows()),
             )
             key_bar_is_collapsed = False
         elif not key_bar_is_collapsed:
-            expand.original_widget.set_text(f"\u25B2 [{expand_key[0]}]")
+            expand.original_widget.set_text(f"\u25B2 [{expand_key[1]}]")
             main_widget.contents[-1] = (bottom_bar, ("given", 1))
             key_bar_is_collapsed = True
 
@@ -323,7 +323,9 @@ def resize():
             bottom_bar.contents.pop()
             expand_key_is_shown = False
     elif rows > 1:
-        bottom_bar.contents.append((expand, ("given", 5, False)))
+        bottom_bar.contents.append(
+            (expand, ("given", len(expand.original_widget.text), False))
+        )
         expand_key_is_shown = True
 
     if not key_bar_is_collapsed:
