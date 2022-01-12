@@ -11,6 +11,7 @@ Welcome to term-img's documentation!
 
    installation
    library/index
+   viewer/index
 
 
 Indices and tables
