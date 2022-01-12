@@ -40,9 +40,11 @@ def init_config():
             print("config: Successfully updated user config.")
     else:
         update_context_nav_keys(context_keys, nav, nav)
-        _set_action_status()
         store_config(default=True)
 
+    for keyset in context_keys.values():
+        for action in keyset.values():
+            action[3:] = (True, True)  # Default: "shown", "enabled"
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
@@ -57,7 +59,6 @@ def load_config() -> bool:
     except json.JSONDecodeError:
         print("config: Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
-        _set_action_status()
         return updated
 
     try:
@@ -88,7 +89,6 @@ def load_config() -> bool:
     except KeyError:
         print("config: Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
-        _set_action_status()
         return updated
 
     prev_nav = deepcopy(nav)  # used for identification.
@@ -110,14 +110,7 @@ def load_config() -> bool:
             continue
         update_context(context, context_keys[context], keyset)
 
-    _set_action_status()
     return updated
-
-
-def _set_action_status() -> None:
-    for keyset in context_keys.values():
-        for action in keyset.values():
-            action[3:] = (True, True)  # Default: "shown", "enabled"
 
 
 def store_config(*, default: bool = False) -> None:
@@ -139,10 +132,10 @@ def store_config(*, default: bool = False) -> None:
         json.dump(
             {
                 "version": version,
-                "cell width": (_cell_width if default else cell_width),
-                "font ratio": (_font_ratio if default else font_ratio),
-                "frame duration": (_frame_duration if default else frame_duration),
-                "max pixels": (_max_pixels if default else max_pixels),
+                **{
+                    name: globals()["_" * default + f"{name.replace(' ', '_')}"]
+                    for name in config_options
+                },
                 "keys": stored_keys,
             },
             f,
