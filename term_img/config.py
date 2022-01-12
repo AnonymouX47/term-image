@@ -239,11 +239,48 @@ user_dir = os.path.expanduser("~/.term_img")
 version = 0.1  # For backwards compatibility
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
-_valid_keys.difference_update({f"shift f{n}" for n in range(1, 13)}.union({None}))
+_valid_keys.update(
+    {
+        f"{modifier} {key}"
+        for key in (
+            *(f"f{n}" for n in range(1, 13)),
+            "delete",
+            "end",
+            "home",
+            "up",
+            "down",
+            "left",
+            "right",
+        )
+        for modifier in ("ctrl", "shift", "shift ctrl")
+    }
+)
+_valid_keys.update(
+    {
+        f"ctrl {key}"
+        for key in (
+            *map(chr, range(ord("a"), ord("z") + 1)),
+            "page up",
+            "page down",
+        )
+    }
+)
+_valid_keys.difference_update({None, "ctrl c", "ctrl z"})
 
 # For users and documentation
-# Grouped by length and sorted lexicographically
-valid_keys = sorted(_valid_keys, key=lambda s: chr(127 + len(s)) + s)
+valid_keys = sorted(
+    _valid_keys,
+    key=lambda s: (
+        chr(127 + len(s.rsplit(" ", 1)[-1]))  # group by main key
+        + s.rsplit(" ", 1)[-1].lower()  # group both cases of alphabetical keys together
+        + s.rsplit(" ", 1)[-1]  # sort alphabetical keys by case
+        + chr(127 + len(s))  # sort by length within a group of the same main key
+    ),
+)
+for key in ("page up", "page down"):
+    valid_keys.remove(key)
+    valid_keys.remove("ctrl " + key)
+valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
 _cell_width = 30
