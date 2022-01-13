@@ -170,8 +170,8 @@ NOTES:
         metavar="N",
         default=font_ratio,
         help=(
-            "Specify your terminal's font ratio for proper image scaling "
-            f"(default: {font_ratio})"
+            "Specify the width-to-height ratio of a character cell in your terminal "
+            f"for proper image scaling (default: {font_ratio})"
         ),
     )
     general.add_argument(

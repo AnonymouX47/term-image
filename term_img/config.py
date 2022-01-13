@@ -338,7 +338,7 @@ _nav = {
 }
 
 # {<context>: {<action>: [<key>, <symbol>, <help>, <visibility>, <state>], ...}, ...}
-# <visibility> and <state> are added later in `load_config()`.
+# <visibility> and <state> are added later in `init_config()`.
 _context_keys = {
     "global": {
         "Config": ["C", "\u21e7C", "Open configuration menu"],
