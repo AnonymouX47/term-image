@@ -179,12 +179,12 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
 
     def use_default_key() -> None:
         default = keyset[action][0]
-        if key == default or default in assigned | navi | _global:
+        if key == default or default in assigned | navi | global_:
             print(
                 f"...Failed to fallback to default key {default!r} "
                 f"for action {action!r} in context {name!r}, ..."
             )
-            if default in _global:
+            if default in global_:
                 print(
                     f"...already assigned to global action "
                     f"{action_with_key(default, context_keys['global'])!r}."
@@ -207,25 +207,25 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             f"in context {name!r}."
         )
 
-    _global = (
+    global_ = (
         {v[0] for v in context_keys["global"].values()} if name != "global" else set()
     )
     navi = set() if name == "navigation" else {v[0] for v in nav.values()}
     assigned = set()
 
-    for action, details in update.items():
+    for action, properties in update.items():
         if not (
-            isinstance(details, list)
-            and len(details) == 2
-            and all(isinstance(x, str) for x in details)
+            isinstance(properties, list)
+            and len(properties) == 2
+            and all(isinstance(x, str) for x in properties)
         ):
             print(
-                f"config: The details of action {action!r} in context {name!r} "
+                f"config: The properties of action {action!r} in context {name!r} "
                 "is in an incorrect format... Using the default."
             )
             continue
 
-        key, symbol = details
+        key, symbol = properties
         if action not in keyset:
             print(f"config: Action {action!r} not available in context {name!r}.")
             continue
@@ -234,7 +234,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             use_default_key()
             continue
 
-        if key in _global:
+        if key in global_:
             print(
                 f"config: {key!r} already assigned to a global action; "
                 "Trying default..."
@@ -268,9 +268,9 @@ def update_context_nav_keys(
     """
     navi = {v[0]: k for k, v in nav.items()}
     for context, keyset in context_keys.items():
-        for action, details in keyset.items():
-            if details[0] in navi:
-                details[:2] = nav_update[navi[details[0]]]
+        for action, properties in keyset.items():
+            if properties[0] in navi:
+                properties[:2] = nav_update[navi[properties[0]]]
 
 
 user_dir = os.path.expanduser("~/.term_img")
