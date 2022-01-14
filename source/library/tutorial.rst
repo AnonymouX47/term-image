@@ -213,29 +213,19 @@ The resulting size must fit into the terminal window
 (136, 136)
 >>> image = TermImage.from_file("python.png", height=137)  # Not OK
 Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File "/.../term_img/image.py", line 494, in from_file
-    new = cls(Image.open(filepath), **size_scale)
-  File "/.../term_img/image.py", line 77, in __init__
-    None if width is None is height else self._valid_size(width, height)
-  File "/.../term_img/image.py", line 1011, in _valid_size
-    raise InvalidSize(
-term_img.exceptions.InvalidSize: The resulting render size will not fit into the terminal
-**
+  .
+  .
+  .
+term_img.exceptions.InvalidSize: The resulting rendered size will not fit into the available size
 
 An exception is raised when both *width* and *height* are given.
 
 >>> image = TermImage.from_file("python.png", width=100, height=100)
 Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File "/.../term_img/image.py", line 494, in from_file
-    new = cls(Image.open(filepath), **size_scale)
-  File "/.../term_img/image.py", line 77, in __init__
-    None if width is None is height else self._valid_size(width, height)
-  File "/.../term_img/image.py", line 957, in _valid_size
-    raise ValueError("Cannot specify both width and height")
+  .
+  .
+  .
 ValueError: Cannot specify both width and height
-**
 
 The properties ``width`` and ``height`` are used to set the render size of an image after instantiation.
 
@@ -254,12 +244,10 @@ True
 136
 >>> image.width = 200  # Even though the terminal can contain this width, it can't contain the resulting height
 Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File "/.../term_img/image.py", line 353, in width
-    self._size = self._valid_size(width, None)
-  File "/.../term_img/image.py", line 1011, in _valid_size
-    raise InvalidSize(
-term_img.exceptions.InvalidSize: The resulting render size will not fit into the terminal
+  .
+  .
+  .
+term_img.exceptions.InvalidSize: The resulting rendered size will not fit into the available size
 
 Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated based on the current terminal size.
 
@@ -288,11 +276,15 @@ True
 .. important::
 
    1. The currently set :ref:`font ratio <font-ratio>` is also taken into consideration when calculating or validating sizes.
-   2. The resulting size must not exceed the terminal size i.e either for the given axis or the axis automatically calculated.
+   2. The resulting size must not exceed the terminal size i.e either for the given axis and the axis automatically calculated.
    3. The height is actually **twice the number of lines** that'll be used to render the image, assuming the *y-scale* is 1.0 (we'll get to that).
-   4. There is a 2-line allowance for the height to allow for shell prompts or the likes.
+   4. There is a **default** 2-line allowance for the height, to allow for shell prompts or the likes.
 
-   Therefore, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
+   Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
+
+.. hint::
+
+   See ``TermImage.set_size()`` in :doc:`reference/image` for advanced sizing control.
 
 
 Image render scale
