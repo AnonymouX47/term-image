@@ -103,3 +103,11 @@ A log entry has the following format:
      * Only the current and immediate previous log file are kept.
 
    * The Process ID of the ``term-img`` instance preceeds every log entry, so this can be used to distinguish and track logs from different sessions running simultaneously while using the same log file.
+
+
+Known Issues
+------------
+
+
+Planned Features
+----------------
