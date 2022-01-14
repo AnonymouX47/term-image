@@ -111,3 +111,12 @@ Known Issues
 
 Planned Features
 ----------------
+
+* Performance improvements
+* Overlay support for ``Image`` widgets
+* Theme customization
+* Grid cell animations
+* Config menu
+* Pattern-based file and directory exclusion
+* Minimum and maximum file size
+* Optionally skipping symlinks
