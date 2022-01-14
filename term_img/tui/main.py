@@ -32,7 +32,7 @@ from .widgets import (
     view,
     viewer,
 )
-from ..config import context_keys
+from ..config import context_keys, expand_key
 from ..image import TermImage
 from .. import logging
 from .. import notify
@@ -255,7 +255,11 @@ def process_input(key: str) -> bool:
 
     found = False
     if key in keys["global"]:
-        if _context not in no_globals or _context == "global":
+        if (
+            _context not in no_globals
+            or _context == "global"
+            or key in {"resized", expand_key[0]}
+        ):
             func, state = keys["global"][key]
             func() if state else print("\a", end="", flush=True)
             found = True
