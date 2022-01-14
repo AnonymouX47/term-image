@@ -45,6 +45,12 @@ class TermImage:
         height: The height to render the image with.
         scale: The image render scale on respective axes.
 
+    Raises:
+        TypeError: An argument is of an inappropriate type.
+        ValueError: An argument has an unexpected/invalid value.
+
+    Propagates exceptions raised by ``set_size()``, if *width* or *height* is given.
+
     NOTE:
         * *width* is not neccesarily the exact number of columns that'll be used
           to render the image. That is influenced by the currently set font ratio.
