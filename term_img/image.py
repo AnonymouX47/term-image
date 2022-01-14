@@ -76,9 +76,10 @@ class TermImage:
         self._source = image
         self._buffer = io.StringIO()
         self._original_size = image.size
-        self._size = (
-            None if width is None is height else self._valid_size(width, height)
-        )
+        if width is None is height:
+            self._size = None
+        else:
+            self.set_size(width, height)
         self._scale = []
         self._scale[:] = self.__check_scale(scale)
 
@@ -568,6 +569,14 @@ class TermImage:
 
     def seek(self, pos: int) -> None:
         """Changes current image frame.
+
+        Args:
+            pos: New frame number.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument has an unexpected/invalid value but of an
+              appropriate type.
 
         Frame numbers start from 0 (zero).
         """
