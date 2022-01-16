@@ -549,7 +549,7 @@ class TermImage:
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
         if not all(urlparse(url)[:3]):
-            raise ValueError(f"Invalid url: {url!r}")
+            raise ValueError(f"Invalid URL: {url!r}")
 
         # Propagates connection-related errors.
         response = requests.get(url, stream=True)
@@ -558,7 +558,7 @@ class TermImage:
         try:
             Image.open(io.BytesIO(response.content))
         except UnidentifiedImageError as e:
-            e.args = (f"The URL {url!r} doesn't link to a identifiable image.",)
+            e.args = (f"The URL {url!r} doesn't link to an identifiable image.",)
             raise e from None
 
         basedir = os.path.join(os.path.expanduser("~"), ".term_img", "temp")

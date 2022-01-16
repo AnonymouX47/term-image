@@ -1,8 +1,10 @@
+import os
 from shutil import get_terminal_size
 
 import pytest
 from PIL import Image, UnidentifiedImageError
 
+from term_img.exceptions import URLNotFoundError
 from term_img.image import TermImage
 
 columns, lines = term_size = get_terminal_size()
@@ -77,10 +79,11 @@ class TestInstantiation:
         with pytest.raises(IsADirectoryError):
             TermImage.from_file("tests")
         with pytest.raises(UnidentifiedImageError):
-            TermImage.from_file("tests/test_image.py")
+            TermImage.from_file("LICENSE")
 
-        assert isinstance(TermImage.from_file(python_image), TermImage)
-        assert isinstance(TermImage.from_file(anim_image), TermImage)
+        image = TermImage.from_file(python_image)
+        assert isinstance(image, TermImage)
+        assert image._source == os.path.realpath(python_image)
 
         # Ensure size arguments get through
         with pytest.raises(ValueError, match=r".* both width and height"):
@@ -89,3 +92,28 @@ class TestInstantiation:
         # Ensure scale argument gets through
         with pytest.raises(TypeError, match=r"'scale' .*"):
             TermImage.from_file(python_image, scale=1.0)
+
+    def test_from_url(self):
+        with pytest.raises(TypeError, match=r".* a string .*"):
+            TermImage.from_url(python_img)
+        with pytest.raises(ValueError, match="Invalid URL.*"):
+            TermImage.from_url(python_image)
+        with pytest.raises(URLNotFoundError):
+            TermImage.from_url(python_url + "e")
+        with pytest.raises(UnidentifiedImageError):
+            TermImage.from_url(
+                "https://raw.githubusercontent.com/AnonymouX47/term-img/main/LICENSE"
+            )
+
+        image = TermImage.from_url(python_url)
+        assert isinstance(image, TermImage)
+        assert image.source == python_url
+        assert os.path.exists(image._source)
+
+        # Ensure size arguments get through
+        with pytest.raises(ValueError, match=r".* both width and height"):
+            TermImage.from_url(python_url, width=1, height=1)
+
+        # Ensure scale argument gets through
+        with pytest.raises(TypeError, match=r"'scale' .*"):
+            TermImage.from_url(python_url, scale=1.0)
