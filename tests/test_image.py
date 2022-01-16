@@ -1,7 +1,7 @@
 from shutil import get_terminal_size
 
 import pytest
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from term_img.image import TermImage
 
@@ -56,6 +56,36 @@ class TestInstantiation:
         assert isinstance(image._original_size, tuple)
         assert image._size == (size_,) * 2
 
+        with pytest.raises(TypeError, match=r"'scale' .*"):
+            image = TermImage(python_img, scale=0.5)
+
+        with pytest.raises(ValueError, match=r"'scale' .*"):
+            image = TermImage(python_img, scale=(0.0, 0.0))
+
+        with pytest.raises(ValueError, match=r"'scale' .*"):
+            image = TermImage(python_img, scale=(-0.4, -0.4))
+
         image = TermImage(python_img, scale=(0.5, 0.4))
         assert isinstance(image._scale, list)
         assert image._scale == [0.5, 0.4]
+
+    def test_from_file(self):
+        with pytest.raises(TypeError, match=r".* a string .*"):
+            TermImage.from_file(python_img)
+        with pytest.raises(FileNotFoundError):
+            TermImage.from_file(python_image + "e")
+        with pytest.raises(IsADirectoryError):
+            TermImage.from_file("tests")
+        with pytest.raises(UnidentifiedImageError):
+            TermImage.from_file("tests/test_image.py")
+
+        assert isinstance(TermImage.from_file(python_image), TermImage)
+        assert isinstance(TermImage.from_file(anim_image), TermImage)
+
+        # Ensure size arguments get through
+        with pytest.raises(ValueError, match=r".* both width and height"):
+            TermImage.from_file(python_image, width=1, height=1)
+
+        # Ensure scale argument gets through
+        with pytest.raises(TypeError, match=r"'scale' .*"):
+            TermImage.from_file(python_image, scale=1.0)

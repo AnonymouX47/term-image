@@ -503,6 +503,8 @@ class TermImage:
             FileNotFoundError: The given path does not exist.
             IsADirectoryError: Propagated from from ``PIL.Image.open()``.
             UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
+
+        Also Propagates exceptions raised or propagated by the class constructor.
         """
         if not isinstance(filepath, str):
             raise TypeError(
@@ -541,7 +543,8 @@ class TermImage:
             term_img.exceptions.URLNotFoundError: The URL does not exist.
             UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
 
-        Also propagates connection-related errors from ``requests.get()``.
+        Also propagates connection-related exceptions from ``requests.get()``
+        and exceptions raised or propagated by the class constructor.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
