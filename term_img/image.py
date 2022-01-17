@@ -174,14 +174,17 @@ class TermImage:
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
-        doc="Duration (in seconds) of a single frame for animated images",
+        doc="""Duration (in seconds) of a single frame for animated images
+
+        Setting this on non-animated images is simply ignored, no exception is raised.
+        """,
     )
 
     @frame_duration.setter
     def frame_duration(self, value: float) -> None:
         if not isinstance(value, float):
             raise TypeError(f"Invalid duration type (got: {type(value).__name__})")
-        if value <= 0:
+        if value <= 0.0:
             raise ValueError(
                 f"Invalid frame duration (got: {value}, n_frames={self._n_frames})"
             )
