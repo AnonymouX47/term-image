@@ -33,6 +33,7 @@ _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
 )
+_NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
@@ -116,7 +117,7 @@ class TermImage:
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
         match_ = _FORMAT_SPEC.fullmatch(spec)
-        if not match_:
+        if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
             raise ValueError("Invalid format specifier")
 
         _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()

@@ -117,3 +117,50 @@ class TestInstantiation:
         # Ensure scale argument gets through
         with pytest.raises(TypeError, match=r"'scale' .*"):
             TermImage.from_url(python_url, scale=1.0)
+
+
+def test_format_spec():
+    image = TermImage(python_img)
+
+    for spec in (
+        "1<",
+        "-1.|1",
+        "<1.1^",
+        ".",
+        "1.",
+        "<.",
+        ">1.",
+        "-",
+        "<^",
+        ".#",
+        ">1.#.23",
+        "#0",
+        "#.",
+        "#2445",
+        "#.23fa45",
+        "#fffffff",
+        "#a45gh4",
+        " ",
+    ):
+        with pytest.raises(ValueError, match=r"Invalid format specifier"):
+            format(image, spec)
+
+    for spec in (
+        "<",
+        "1",
+        ".1",
+        "<1",
+        ".^1",
+        "|1.-1",
+        "<1.-",
+        ".-",
+        "#",
+        "#123456",
+        "#23af5b",
+        "#abcdef",
+        "#.4",
+        "#.343545453453",
+        "1.1#",
+        "<.^#ffffff",
+    ):
+        assert isinstance(format(image, spec), str)
