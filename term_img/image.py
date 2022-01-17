@@ -564,7 +564,7 @@ class TermImage:
 
         basedir = os.path.join(os.path.expanduser("~"), ".term_img", "temp")
         if not os.path.isdir(basedir):
-            os.mkdir(basedir)
+            os.makedirs(basedir)
 
         filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
         while os.path.exists(filepath):
