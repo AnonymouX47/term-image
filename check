@@ -3,4 +3,4 @@ flake8 --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-
 echo
 black --check --diff --color setup.py term_img/ tests/
 echo
-pytest tests/
+pytest -v "--ignore-glob=*url*" tests/

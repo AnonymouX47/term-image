@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -40,6 +40,4 @@ jobs:
     - name: Test package installation
       run: pip install -e .
     - name: Test with pytest
-      # Only successful if the previous run is
-      run: pytest
-
+      run: PYTHONPATH=$PWD pytest -v

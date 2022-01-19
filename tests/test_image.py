@@ -6,7 +6,6 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_img import set_font_ratio
-from term_img.exceptions import URLNotFoundError
 from term_img.image import TermImage
 
 columns, lines = term_size = get_terminal_size()
@@ -14,18 +13,8 @@ rows = lines * 2
 _size = min(columns, rows - 4)
 
 python_image = "tests/images/python.png"
-python_url = (
-    "https://raw.githubusercontent.com/AnonymouX47/term-img/main/tests/"
-    "images/python.png"
-)
 python_img = Image.open(python_image)
-
-anim_image = "tests/images/anim.webp"
-anim_url = (
-    "https://raw.githubusercontent.com/AnonymouX47/term-img/main/tests/"
-    "images/anim.webp"
-)
-anim_img = Image.open(anim_image)
+anim_img = Image.open("tests/images/anim.webp")
 
 
 class TestInstantiation:
@@ -93,31 +82,6 @@ class TestInstantiation:
         # Ensure scale argument gets through
         with pytest.raises(TypeError, match=r"'scale' .*"):
             TermImage.from_file(python_image, scale=1.0)
-
-    def test_from_url(self):
-        with pytest.raises(TypeError, match=r".* a string .*"):
-            TermImage.from_url(python_img)
-        with pytest.raises(ValueError, match="Invalid URL.*"):
-            TermImage.from_url(python_image)
-        with pytest.raises(URLNotFoundError):
-            TermImage.from_url(python_url + "e")
-        with pytest.raises(UnidentifiedImageError):
-            TermImage.from_url(
-                "https://raw.githubusercontent.com/AnonymouX47/term-img/main/LICENSE"
-            )
-
-        image = TermImage.from_url(python_url)
-        assert isinstance(image, TermImage)
-        assert image.source == python_url
-        assert os.path.exists(image._source)
-
-        # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r".* both width and height"):
-            TermImage.from_url(python_url, width=1, height=1)
-
-        # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale' .*"):
-            TermImage.from_url(python_url, scale=1.0)
 
 
 def test_format_spec():
@@ -324,9 +288,6 @@ class TestProperties:
 
         image = TermImage.from_file(python_image)
         assert image.source == os.path.realpath(python_image)
-
-        image = TermImage.from_url(python_url)
-        assert image.source == python_url
 
         with pytest.raises(AttributeError):
             image.source = None
