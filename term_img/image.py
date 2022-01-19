@@ -545,10 +545,20 @@ class TermImage:
             TypeError: *url* is not a string.
             ValueError: The URL is invalid.
             term_img.exceptions.URLNotFoundError: The URL does not exist.
-            UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
+            PIL.UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
 
         Also propagates connection-related exceptions from ``requests.get()``
         and exceptions raised or propagated by the class constructor.
+
+        NOTE:
+            This method creates a temporary image file, but only after a successful
+            initialization.
+            | Proper clean-up is guaranteed except maybe in very rare cases.
+            | To ensure 100% guarantee of clean-up, use the object as a context manager
+            like::
+
+               with TermImage.from_url(url) as image:
+                   ...
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
@@ -559,11 +569,14 @@ class TermImage:
         response = requests.get(url, stream=True)
         if response.status_code == 404:
             raise URLNotFoundError(f"URL {url!r} does not exist.")
+
         try:
-            Image.open(io.BytesIO(response.content))
+            new = cls(Image.open(io.BytesIO(response.content)), **kwargs)
         except UnidentifiedImageError as e:
             e.args = (f"The URL {url!r} doesn't link to an identifiable image.",)
             raise e from None
+
+        # Ensure initialization is successful before writing to file
 
         basedir = os.path.join(os.path.expanduser("~"), ".term_img", "temp")
         if not os.path.isdir(basedir):
@@ -575,7 +588,6 @@ class TermImage:
         with open(filepath, "wb") as image_writer:
             image_writer.write(response.content)
 
-        new = cls(Image.open(filepath), **kwargs)
         new._source = filepath
         new.__url = url
         return new
