@@ -632,31 +632,39 @@ class TermImage:
             height: Render height to use.
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
             v_allow: Vertical allowance i.e minimum number of lines to leave unused.
-            maxsize: If given, it's used instead of the terminal size.
+            maxsize: If given ``(cols, lines)``, it's used instead of the terminal size.
             check_width: If ``False``, the validity of the resulting *rendered width*
               is not checked.
             check_height: If ``False``, the validity of the resulting *rendered height*
               is not checked.
 
         Raises:
-            term_img.exceptions.InvalidSize: The *available* size is too small.
-            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
-              fit into the *available* terminal size (or *maxsize*, if given).
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value but of an
               appropriate type.
             ValueError: Both *width* and *height* are specified.
+            ValueError: The *available* size is too small.
+            term_img.exceptions.InvalidSize: The resulting *render size* is too small.
+            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
+              fit into the *available* terminal size (or *maxsize*, if given).
 
         If neither *width* nor *height* is given or anyone given is ``None``:
 
-          * and *check_height* is ``True``, the size is automatically calculated to fit
-            within the *available* terminal size (or *maxsize*, if given).
+          * and *check_height* and *check_width* are both ``True``, the size is
+            automatically calculated to fit within the *available* terminal size
+            (or *maxsize*, if given).
           * and *check_height* is ``False``, the size is set such that the
-            *rendered width* is exactly the *available* terminal width or ``maxsize[1]``
+            *rendered width* is exactly the *available* terminal width or ``maxsize[0]``
             (assuming the *render scale* equals 1), regardless of the font ratio.
+          * and *check_width* is ``False`` (and *check_height* is ``True``), the size is
+            set such that the *rendered height* is exactly the *available* terminal
+            height or ``maxsize[1]`` (assuming the *render scale* equals 1), regardless
+            of the font ratio.
 
-        | Allowance does not apply when *maxsize* is given.
+        Allowance does not apply when *maxsize* is given.
+
         | Vertical allowance has no effect when *check_height* is ``False``.
+        | Horizontal allowance has no effect when *check_width* is ``False``.
 
         The *check_height* might be set to ``False`` to set the *render size* for
         vertically-oriented images (i.e images with height > width) such that the
@@ -667,33 +675,34 @@ class TermImage:
         *check_height*, *h_allow* and *v_allow* options, until the size is re-set
         or unset.
 
-        *check_width* is only provided for completeness and is meant for advanced use.
-        It should probably be used only when the image will not be drawn to the
-        current terminal.
+        *check_width* is only provided for completeness, it should probably be used only
+        when the image will not be drawn to the current terminal.
+        | The value of this parameter is not recognized by any other method or
+        operation.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
         for argname, x in zip(("width", "height"), (width, height)):
             if not (x is None or isinstance(x, int)):
                 raise TypeError(
-                    f"{argname} must be `None` or an integer "
+                    f"{argname!r} must be `None` or an integer "
                     f"(got: type {type(x).__name__!r})"
                 )
             if None is not x <= 0:
-                raise ValueError(f"{argname} must be positive (got: {x})")
+                raise ValueError(f"{argname!r} must be positive (got: {x})")
         for argname, x in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
             if not isinstance(x, int):
                 raise TypeError(
-                    f"{argname} must be an integer (got: type {type(x).__name__!r})"
+                    f"{argname!r} must be an integer (got: type {type(x).__name__!r})"
                 )
             if x < 0:
-                raise ValueError(f"{argname} must be non-negative (got: {x})")
+                raise ValueError(f"{argname!r} must be non-negative (got: {x})")
         if maxsize is not None:
             if not (
                 isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
             ):
                 raise TypeError(
-                    f"'maxsize' must be a tuple of `int`s (got: {maxsize!r})"
+                    f"'maxsize' must be a tuple of integers (got: {maxsize!r})"
                 )
 
             if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
@@ -701,19 +710,20 @@ class TermImage:
                     f"'maxsize' must contain two positive integers (got: {maxsize})"
                 )
         if not (isinstance(check_width, bool) and (check_height, bool)):
-            raise TypeError("The size-Check arguments must be booleans")
+            raise TypeError("The size-check arguments must be booleans")
 
         self._size = self._valid_size(
             width,
             height,
-            h_allow,
+            h_allow * check_width,
             v_allow * check_height,
             maxsize=maxsize,
             check_height=check_height,
+            check_width=check_width,
             ignore_oversize=not (check_width or check_height),
         )
         self.__check_height = check_height
-        self.__h_allow = h_allow * (not maxsize)
+        self.__h_allow = h_allow * (not maxsize) * check_width
         self.__v_allow = v_allow * (not maxsize) * check_height
 
     def tell(self) -> int:
@@ -1144,6 +1154,7 @@ class TermImage:
         *,
         maxsize: Optional[Tuple[int, int]] = None,
         check_height: bool = True,
+        check_width: bool = True,
         ignore_oversize: bool = False,
     ) -> Tuple[int, int]:
         """Generates a *render size* tuple and checks if the resulting *rendered size*
@@ -1163,7 +1174,7 @@ class TermImage:
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
         for name in ("columns", "lines"):
             if locals()[name] <= 0:
-                raise InvalidSize(f"Number of available {name} too small")
+                raise ValueError(f"Number of available {name} too small")
 
         # Two pixel rows per line
         rows = (lines) * 2
@@ -1174,6 +1185,8 @@ class TermImage:
             if not check_height:
                 width = columns * _pixel_ratio
                 return (round(width), round(ori_height * width / ori_width))
+            if not check_width:
+                return (round(ori_width * rows / ori_height), rows)
 
             # The smaller fraction will always fit into the larger fraction
             # Using the larger fraction with cause the image not to fit on the axis with
@@ -1203,9 +1216,13 @@ class TermImage:
         elif height is None:
             height = round((width / ori_width) * ori_height)
 
+        if not (width and height):
+            raise InvalidSize(
+                f"The resulting render size is too small: {width, height}"
+            )
         if not ignore_oversize and (
             # The width will later be divided by the pixel-ratio when rendering
-            round(width / _pixel_ratio) > columns
+            (check_width and round(width / _pixel_ratio) > columns)
             or (check_height and height > rows)
         ):
             raise InvalidSize(
