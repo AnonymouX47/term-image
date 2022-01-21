@@ -442,13 +442,10 @@ class TermImage:
             h_align, pad_width, v_align, pad_height
         )
 
-        if (
-            self._is_animated
-            and None is not pad_height > get_terminal_size()[1] - self.__v_allow
-        ):
+        if self._is_animated and None is not pad_height > get_terminal_size()[1]:
             raise ValueError(
-                "Padding height must not be greater than the available terminal "
-                "height for animated images"
+                "Padding height can not be greater than the terminal height for "
+                "animated images"
             )
 
         if alpha is not None:
@@ -833,7 +830,7 @@ class TermImage:
             )
             duration = self._frame_duration
             for n in cycle(range(self._n_frames)):
-                print(frame)  # Current frame
+                print(frame, end="", flush=True)  # Current frame
 
                 # Render next frame during current frame's duration
                 start = time.time()
@@ -846,9 +843,9 @@ class TermImage:
                         self._render_image(image, alpha),
                         *fmt,
                     )
-                # Move cursor up to the first line of the image
+                # Move cursor up to the begining of the first line of the image
                 # Not flushed until the next frame is printed
-                print("\033[%dA" % lines, end="")
+                print("\r\033[%dA" % (lines - 1), end="")
 
                 # Left-over of current frame's duration
                 time.sleep(max(0, duration - (time.time() - start)))
@@ -1123,12 +1120,12 @@ class TermImage:
                         "can no longer fit into the available terminal size"
                     )
 
-                # Reaching here means it's either valid or `__check_height` is `False`
-                # Hence, there's no need to check `__check_height`
+                # Reaching here means it's either valid or `__check_height` is `False`.
+                # Hence, there's no need to check `__check_height`.
                 if self._is_animated and self.rendered_height > lines:
                     raise InvalidSize(
-                        "The image height cannot be greater than the available "
-                        "terminal height for animated images"
+                        "The image height cannot be greater than the terminal height "
+                        "for animated images"
                     )
 
             image = (
