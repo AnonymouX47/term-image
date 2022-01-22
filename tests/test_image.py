@@ -1,11 +1,13 @@
 import os
 from math import ceil
+from operator import gt, lt
 from shutil import get_terminal_size
 
 import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_img import set_font_ratio
+from term_img.exceptions import InvalidSize
 from term_img.image import TermImage
 
 columns, lines = term_size = get_terminal_size()
@@ -37,25 +39,20 @@ class TestInstantiation:
         assert image._seek_position == 0
         assert image._n_frames == image.n_frames
 
+        # Ensure size arguments get through to `set_size()`
         with pytest.raises(ValueError, match=r".* both width and height"):
             TermImage(python_img, width=1, height=1)
-
         image = TermImage(python_img, width=_size)
-        assert isinstance(image._original_size, tuple)
-        assert image._size == (_size,) * 2
-
+        assert isinstance(image._size, tuple)
         image = TermImage(python_img, height=_size)
-        assert isinstance(image._original_size, tuple)
-        assert image._size == (_size,) * 2
+        assert isinstance(image._size, tuple)
 
         with pytest.raises(TypeError, match=r"'scale' .*"):
             image = TermImage(python_img, scale=0.5)
 
-        with pytest.raises(ValueError, match=r"'scale' .*"):
-            image = TermImage(python_img, scale=(0.0, 0.0))
-
-        with pytest.raises(ValueError, match=r"'scale' .*"):
-            image = TermImage(python_img, scale=(-0.4, -0.4))
+        for value in ((0.0, 0.0), (-0.4, -0.4)):
+            with pytest.raises(ValueError, match=r"'scale' .*"):
+                image = TermImage(python_img, scale=value)
 
         image = TermImage(python_img, scale=(0.5, 0.4))
         assert isinstance(image._scale, list)
@@ -291,3 +288,128 @@ class TestProperties:
 
         with pytest.raises(AttributeError):
             image.source = None
+
+
+def test_set_size():
+    image = TermImage(python_img)
+    h_image = TermImage.from_file("tests/images/hori.jpg")
+    v_image = TermImage.from_file("tests/images/vert.jpg")
+
+    # Default args
+    image.set_size()
+    assert image._size == (_size,) * 2
+    h_image.set_size()
+    assert gt(*h_image._size)
+    v_image.set_size()
+    assert lt(*v_image._size)
+
+    # width and height
+    with pytest.raises(ValueError, match=".* both width and height"):
+        image.set_size(1, 1)
+    for value in (1.0, "1", (), []):
+        with pytest.raises(TypeError, match="'width' must be .*"):
+            image.set_size(value)
+        with pytest.raises(TypeError, match="'height' must be .*"):
+            image.set_size(height=value)
+    for value in (0, -1, -100):
+        with pytest.raises(ValueError, match="'width' must be .*"):
+            image.set_size(value)
+        with pytest.raises(ValueError, match="'height' must be .*"):
+            image.set_size(height=value)
+
+    # h_allow and v_allow
+    for value in (1.0, "1", (), []):
+        with pytest.raises(TypeError, match="'h_allow' must be .*"):
+            image.set_size(h_allow=value)
+        with pytest.raises(TypeError, match="'v_allow' must be .*"):
+            image.set_size(v_allow=value)
+    for value in (-1, -100):
+        with pytest.raises(ValueError, match="'h_allow' must be .*"):
+            image.set_size(h_allow=value)
+        with pytest.raises(ValueError, match="'v_allow' must be .*"):
+            image.set_size(v_allow=value)
+
+    # maxsize
+    for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
+        with pytest.raises(TypeError, match="'maxsize' must be .*"):
+            image.set_size(maxsize=value)
+    for value in ((), (0,), (1,), (1, 1, 1), (0, 1), (1, 0), (-1, 1), (1, -1)):
+        with pytest.raises(ValueError, match="'maxsize' must contain .*"):
+            image.set_size(maxsize=value)
+
+    # check_width and check_height
+    for value in (1, 1.0, "1", (), []):
+        with pytest.raises(TypeError, match=".* booleans"):
+            image.set_size(check_width=value)
+        with pytest.raises(TypeError, match=".* booleans"):
+            image.set_size(check_height=value)
+
+    # Size computation errors
+    with pytest.raises(InvalidSize, match=".* too small: .*"):
+        h_image.set_size(width=1)
+    with pytest.raises(InvalidSize, match=".* too small: .*"):
+        v_image.set_size(height=1)
+    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
+        image.set_size(_size + 1)
+
+    # Controlling the size by the axis with a larger fraction, will cause the image not
+    # to fit on the other axis
+
+    ori_width, ori_height = h_image._original_size
+    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
+        if columns / ori_width > (rows - 4) / ori_height:
+            h_image.set_size(width=columns)
+        else:
+            h_image.set_size(height=rows - 4)
+
+    ori_width, ori_height = v_image._original_size
+    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
+        if columns / ori_width > (rows - 4) / ori_height:
+            v_image.set_size(width=columns)
+        else:
+            v_image.set_size(height=rows - 4)
+
+    # Proportionality
+    image.set_size(width=_size)
+    assert image._size == (_size,) * 2
+    image.set_size(height=_size)
+    assert image._size == (_size,) * 2
+
+    h_image.set_size(width=_size)
+    ori_width, ori_height = h_image._original_size
+    assert h_image._size == (_size, round(ori_height * _size / ori_width))
+
+    v_image.set_size(height=_size)
+    ori_width, ori_height = v_image._original_size
+    assert v_image._size == (round(ori_width * _size / ori_height), _size)
+
+    # Proportionality with oversized axes
+    h_image.set_size(check_width=False)
+    ori_width, ori_height = h_image._original_size
+    assert h_image._size[0] == round(ori_width * (rows - 4) / ori_height)
+
+    v_image.set_size(check_height=False)
+    ori_width, ori_height = v_image._original_size
+    assert v_image._size[1] == round(ori_height * columns / ori_width)
+
+    image.set_size(max(columns + 1, rows), check_width=False, check_height=False)
+    assert image._size == (max(columns + 1, rows),) * 2
+
+    # Allowance
+    image.set_size(check_height=False)
+    assert image._size[0] == columns
+
+    image.set_size(check_width=False)
+    assert image._size[0] == rows - 4
+
+    image.set_size(h_allow=2, check_height=False)
+    assert image._size[0] == columns - 2
+
+    image.set_size(v_allow=3, check_width=False)
+    assert image._size[0] == rows - 6
+
+    # Maxsize (+ allowance nullification)
+    image.set_size(h_allow=2, v_allow=3, maxsize=(100, 55))
+    assert image._size == (100, 100)  # Square image
+    image.set_size(h_allow=2, v_allow=3, maxsize=(110, 50))
+    assert image._size == (100, 100)  # Square image

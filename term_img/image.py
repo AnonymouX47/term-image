@@ -706,7 +706,7 @@ class TermImage:
                 raise ValueError(
                     f"'maxsize' must contain two positive integers (got: {maxsize})"
                 )
-        if not (isinstance(check_width, bool) and (check_height, bool)):
+        if not (isinstance(check_width, bool) and isinstance(check_height, bool)):
             raise TypeError("The size-check arguments must be booleans")
 
         self._size = self._valid_size(
