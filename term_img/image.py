@@ -140,7 +140,7 @@ class TermImage:
                         else _ALPHA_THRESHOLD
                     ),
                 ),
-                *self.__check_formating(h_align, width, v_align, height),
+                *self.__check_formatting(h_align, width, v_align, height),
             )
         )
 
@@ -394,13 +394,13 @@ class TermImage:
         """Draws/Displays an image in the terminal, with optional alignment and padding.
 
         Args:
-            h_align: Horizontal alignment ("left", "center" or "right").
+            h_align: Horizontal alignment ("left"/"<", "center"/"|" or "right"/">").
             pad_width: Number of columns within which to align the image.
 
               * Excess columns are filled with spaces.
               * default: terminal width.
 
-            v_align: Vertical alignment ("top", "middle" or "bottom").
+            v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
             pad_height: Number of lines within which to align the image.
 
               * Excess lines are filled with spaces.
@@ -438,7 +438,7 @@ class TermImage:
               * *Render size* and *padding height* are always validated.
               * *ignore_oversize* has no effect.
         """
-        h_align, pad_width, v_align, pad_height = self.__check_formating(
+        h_align, pad_width, v_align, pad_height = self.__check_formatting(
             h_align, pad_width, v_align, pad_height
         )
 
@@ -729,7 +729,7 @@ class TermImage:
 
     # Private Methods
 
-    def __check_formating(
+    def __check_formatting(
         self,
         h_align: Optional[str] = None,
         width: Optional[int] = None,
@@ -741,14 +741,16 @@ class TermImage:
         Returns:
             The respective arguments appropriate for ``__format_render()``.
         """
-        if h_align is not None:
-            align = {"left": "<", "center": "|", "right": ">"}.get(h_align, h_align)
+        if not isinstance(h_align, (type(None), str)):
+            raise TypeError("'h_align' must be a string.")
+        if None is not h_align not in set("<|>"):
+            align = {"left": "<", "center": "|", "right": ">"}.get(h_align)
             if not align:
                 raise ValueError(f"Invalid horizontal alignment option: {h_align!r}")
             h_align = align
 
         if not isinstance(width, (type(None), int)):
-            raise TypeError("Wrong type; Padding width must be None or an integer.")
+            raise TypeError("Padding width must be `None` or an integer.")
         if width is not None:
             if width <= 0:
                 raise ValueError(f"Padding width must be positive (got: {width})")
@@ -757,14 +759,16 @@ class TermImage:
                     "Padding width is larger than the available terminal width"
                 )
 
-        if v_align is not None:
-            align = {"top": "^", "middle": "-", "bottom": "_"}.get(v_align, v_align)
+        if not isinstance(v_align, (type(None), str)):
+            raise TypeError("'v_align' must be a string.")
+        if None is not v_align not in set("^-_"):
+            align = {"top": "^", "middle": "-", "bottom": "_"}.get(v_align)
             if not align:
                 raise ValueError(f"Invalid vertical alignment option: {v_align!r}")
             v_align = align
 
         if not isinstance(height, (type(None), int)):
-            raise TypeError("Wrong type; Padding height must be None or an integer.")
+            raise TypeError("Padding height must be `None` or an integer.")
         if None is not height <= 0:
             raise ValueError(f"Padding height must be positive (got: {height})")
 
