@@ -916,6 +916,8 @@ class TermImage:
         """Converts image pixel data into a "color-coded" string.
 
         Two pixels per character using FG and BG colors.
+
+        NOTE: This method is not meant to be used directly, use `_renderer()` instead.
         """
         if self._closed:
             raise TermImageException("This image has been finalized")
@@ -961,11 +963,11 @@ class TermImage:
         try:
             image = image.convert("RGBA").resize((width, height))
         except ValueError:
-            raise ValueError("Render size or scale too small")
+            raise ValueError("Render size or scale too small") from None
         if isinstance(alpha, str):
             bg = Image.new("RGBA", image.size, alpha)
             bg.alpha_composite(image)
-            if not isinstance(self._source, Image.Image):
+            if image is not self._source:
                 image.close()
             image = bg
             alpha = None
@@ -978,7 +980,7 @@ class TermImage:
             alpha = 0.1
 
         # clean up
-        if not isinstance(self._source, Image.Image):
+        if image is not self._source:
             image.close()
 
         if height % 2:

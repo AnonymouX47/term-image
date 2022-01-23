@@ -389,6 +389,81 @@ def test_set_size():
     assert image._size == (100, 100)  # Square image
 
 
+def test_render():
+    def render_image(alpha):
+        return trans._renderer(lambda im: trans._render_image(im, alpha))
+
+    trans = TermImage.from_file("tests/images/trans.png")
+
+    trans.set_size(height=_size)
+    render = render_image(_ALPHA_THRESHOLD)
+    # No '\n' after the last line, hence the `+ 1`
+    assert render.count("\n") + 1 == ceil(trans.height / 2)  # Height
+    assert render.partition("\n")[0].count(" ") == trans.width  # Width
+
+    # If `_size` is even, `_size - 1` is odd, or otherwise
+    trans.set_size(height=_size - 1)
+    render = render_image(_ALPHA_THRESHOLD)
+    # No '\n' after the last line, hence the `+ 1`
+    assert render.count("\n") + 1 == ceil(trans.height / 2)  # Height
+    assert render.partition("\n")[0].count(" ") == trans.width  # Width
+
+    # Even height, to avoid the last line being in a different format
+    # The image is vertically-oriented, so there should be no problem setting the height
+    trans.set_size(height=_size - 1 if _size % 2 else _size)
+
+    # Transparency enabled
+    assert all(
+        line == "\033[0m" + " " * trans.width + "\033[0m"
+        for line in render_image(_ALPHA_THRESHOLD).splitlines()
+    )
+    # Transparency disabled
+    assert all(
+        line == "\033[48;2;0;0;0m" + " " * trans.width + "\033[0m"
+        for line in render_image(None).splitlines()
+    )
+    # Color fill (white)
+    assert all(
+        line == "\033[48;2;255;255;255m" + " " * trans.width + "\033[0m"
+        for line in render_image("#ffffff").splitlines()
+    )
+    # Color fill (red)
+    assert all(
+        line == "\033[48;2;255;0;0m" + " " * trans.width + "\033[0m"
+        for line in render_image("#ff0000").splitlines()
+    )
+
+    # Scaled renders
+    trans.set_size()
+
+    trans.scale = 0.0001
+    with pytest.raises(ValueError, match=".* scale too small"):
+        render_image(None)
+
+    # At varying scales
+    for value in range(10, 101):
+        trans.scale = value / 100
+        try:
+            render = render_image(_ALPHA_THRESHOLD)
+        except ValueError:
+            continue
+        assert render.count("\n") + 1 == trans.rendered_height
+        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+
+    # Random scales
+    for _ in range(100):
+        try:
+            trans.scale = random()
+            render = render_image(_ALPHA_THRESHOLD)
+        except ValueError:  # random value == 0 or scale is too small
+            continue
+        assert render.count("\n") + 1 == trans.rendered_height
+        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+
+    image = TermImage(python_img, width=_size)
+    assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
+
+
 def test_format_spec():
     image = TermImage(python_img)
 
