@@ -418,13 +418,13 @@ class TermImage:
               the *available* terminal size with it's currently set *render size*.
 
         Raises:
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument has an unexpected/invalid value.
+            ValueError: Render size or scale too small.
             term_img.exceptions.InvalidSize: The terminal has been resized in such a
               way that the previously set size can no longer fit into it.
             term_img.exceptions.InvalidSize: The image is **animated** and the
               previously set size won't fit into the *available* terminal size.
-            TypeError: An argument is of an inappropriate type.
-            ValueError: An argument has an unexpected/invalid value.
-            ValueError: Render size or scale too small.
 
         NOTE:
             * Animated images are displayed infinitely but can be terminated with
