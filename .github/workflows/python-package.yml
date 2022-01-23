@@ -38,6 +38,7 @@ jobs:
     - name: Check formatting with black
       run: black --check --diff .
     - name: Test package installation
-      run: pip install -e .
+      run: pip install .
     - name: Test with pytest
-      run: PYTHONPATH=$PWD pytest -v
+      # Executing using `python -m` adds CWD to `sys.path`.
+      run: python -m pytest -v
