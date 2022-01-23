@@ -1,6 +1,7 @@
 import os
 from math import ceil
 from operator import gt, lt
+from random import random
 from shutil import get_terminal_size
 
 import pytest
@@ -150,10 +151,30 @@ class TestProperties:
         assert image.rendered_height == ceil(_size / 2)
         assert image.rendered_size == (_size, ceil(_size / 2))
 
-        set_font_ratio(0.75)
-        assert image.rendered_width < _size
-        assert image.rendered_height == ceil(_size / 2)
+        # Higher font-ratio (> 0.5), hence the image's *rendered width* scales down.
+        # So, rendered_width never goes outta bounds and height is never adjusted.
+        for ratio in (0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+            set_font_ratio(ratio)
+            assert image.rendered_width == round(_size / (ratio * 2))
+            assert image.rendered_height == ceil(_size / 2)
         set_font_ratio(0.5)  # Reset
+
+        # At varying scales
+        for value in range(10, 101):
+            scale = value / 100
+            image.scale = scale
+            assert image.rendered_width == round(_size * scale)
+            assert image.rendered_height == ceil(round(_size * scale) / 2)
+
+        # Random scales
+        for _ in range(100):
+            scale = random()
+            try:
+                image.scale = scale
+            except ValueError:
+                continue
+            assert image.rendered_width == round(_size * scale)
+            assert image.rendered_height == ceil(round(_size * scale) / 2)
 
     def test_scale_x_y(self):
         image = TermImage(python_img)

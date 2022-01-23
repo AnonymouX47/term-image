@@ -225,7 +225,7 @@ class TermImage:
 
     rendered_height = property(
         lambda self: ceil(
-            (self._size or self._valid_size(None, None))[1] * self._scale[1] / 2
+            round((self._size or self._valid_size(None, None))[1] * self._scale[1]) / 2
         ),
         doc="The number of lines that the rendered image will occupy in the terminal",
     )
