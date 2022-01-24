@@ -12,7 +12,7 @@ import requests
 import time
 from itertools import cycle
 from math import ceil
-from operator import gt, mul, sub, truediv
+from operator import add, gt, mul, sub, truediv
 from random import randint
 from shutil import get_terminal_size
 
@@ -239,17 +239,27 @@ class TermImage:
             round,
             map(
                 mul,
-                self._size or self._valid_size(None, None),
-                map(truediv, self._scale, (_pixel_ratio, 1)),
+                map(
+                    add,
+                    map(
+                        truediv,
+                        self._size or self._valid_size(None, None),
+                        (_pixel_ratio, 1),
+                    ),
+                    (self._width_compensation, 0.0),
+                ),
+                self._scale,
             ),
         )
         return (columns, ceil(rows / 2))
 
     rendered_width = property(
         lambda self: round(
-            (self._size or self._valid_size(None, None))[0]
+            (
+                (self._size or self._valid_size(None, None))[0] / _pixel_ratio
+                + self._width_compensation
+            )
             * self._scale[0]
-            / _pixel_ratio
         ),
         doc="The number of columns that the rendered image will occupy in the terminal",
     )
@@ -362,7 +372,8 @@ class TermImage:
             * It's not neccesary to explicity call this method, as it's automatically
               called when neccesary.
             * This method can be safely called mutiple times.
-            * If the instance was initialized with a PIL image, it's never finalized.
+            * If the instance was initialized with a PIL image, the PIL image is never
+              finalized.
         """
         try:
             if not self._closed:
@@ -958,7 +969,16 @@ class TermImage:
         if self._is_animated:
             image.seek(self._seek_position)
         width, height = map(
-            round, map(mul, self._size, map(truediv, self._scale, (_pixel_ratio, 1)))
+            round,
+            map(
+                mul,
+                self._scale,
+                map(
+                    add,
+                    map(truediv, self._size, (_pixel_ratio, 1)),
+                    (self._width_compensation, 0.0),
+                ),
+            ),
         )
         try:
             image = image.convert("RGBA").resize((width, height))
@@ -1187,8 +1207,11 @@ class TermImage:
         if width is None is height:
             if not check_height:
                 width = columns * _pixel_ratio
+                # Adding back later compensates for the rounding
+                self._width_compensation = columns - (round(width) / _pixel_ratio)
                 return (round(width), round(ori_height * width / ori_width))
             if not check_width:
+                self._width_compensation = 0.0
                 return (round(ori_width * rows / ori_height), rows)
 
             # The smaller fraction will always fit into the larger fraction
@@ -1198,20 +1221,22 @@ class TermImage:
             width, height = map(round, map(mul, (factor,) * 2, (ori_width, ori_height)))
 
             # The width will later be divided by the pixel-ratio when rendering
-            # Not be rounded at this point since the value used for further calculations
-            # Rounding here could result in a new rendered width that's off by 1 or 2
-            # when dealing with some odd (non-even) widths
             rendered_width = width / _pixel_ratio
-
             if round(rendered_width) <= columns:
+                self._width_compensation = 0.0
                 return (width, height)
             else:
                 # Adjust the width such that the rendered width is exactly the maximum
-                # number of columns and adjust the height proportionally
+                # number of available columns and adjust the height proportionally
+
+                # w1 == rw1 * (w0 / rw0) == rw1 * _pixel_ratio
+                new_width = round(columns * _pixel_ratio)
+                # Adding back later compensates for the rounding
+                self._width_compensation = columns - (new_width / _pixel_ratio)
                 return (
-                    # w1 = rw1 * (w0 / rw0)
-                    round(columns * width / rendered_width),
-                    # h1 = h0 * (w1 / w0) == h0 * (rw1 / rw0)
+                    new_width,
+                    # h1 == h0 * (w1 / w0) == h0 * (rw1 / rw0)
+                    # But it's better to avoid the rounded widths
                     round(height * columns / rendered_width),
                 )
         elif width is None:
@@ -1232,6 +1257,7 @@ class TermImage:
                 "The resulting rendered size will not fit into the available size"
             )
 
+        self._width_compensation = 0.0
         return (width, height)
 
 
