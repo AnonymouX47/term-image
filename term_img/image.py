@@ -523,12 +523,14 @@ class TermImage:
                 f"File path must be a string (got: {type(filepath).__name__!r})."
             )
 
-        # Intentionally propagates `UnidentifiedImageError` and `IsADirectoryError`
-        # since the messages are OK.
+        # Intentionally propagates `IsADirectoryError` since the message is OK
         try:
             Image.open(filepath)
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
+        except UnidentifiedImageError as e:
+            e.args = (f"Could not identify {filepath!r} as an image",)
+            raise
 
         new = cls(Image.open(filepath), **kwargs)
         new._source = os.path.realpath(filepath)
@@ -581,8 +583,8 @@ class TermImage:
         try:
             new = cls(Image.open(io.BytesIO(response.content)), **kwargs)
         except UnidentifiedImageError as e:
-            e.args = (f"The URL {url!r} doesn't link to an identifiable image.",)
-            raise e from None
+            e.args = (f"The URL {url!r} doesn't link to an identifiable image",)
+            raise
 
         # Ensure initialization is successful before writing to file
 
