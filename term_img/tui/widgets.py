@@ -84,7 +84,7 @@ class GridListBox(urwid.ListBox):
                 self.focus.focus_position = min(
                     len(self.focus.contents) - 1, col_focus_position
                 )
-            else:
+            elif isinstance(self.focus, urwid.Columns):
                 self.focus.focus_position = 0
 
             self.__grid_hash = grid_hash

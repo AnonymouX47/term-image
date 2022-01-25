@@ -471,7 +471,9 @@ or multiple valid sources
     absolute_sources = set()
 
     for source in args.sources:
-        absolute_source = os.path.abspath(source)
+        absolute_source = (
+            source if all(urlparse(source)[:3]) else os.path.abspath(source)
+        )
         if absolute_source in absolute_sources:
             log(
                 f"Source repeated: {absolute_source!r}",
@@ -502,14 +504,12 @@ or multiple valid sources
                 log("... Done!", logger, verbose=True)
         elif os.path.isfile(source):
             try:
-                images.append(
-                    (source, Image(TermImage.from_file(os.path.relpath(source))))
-                )
+                images.append((source, Image(TermImage.from_file(source))))
             except PIL.UnidentifiedImageError as e:
                 log(str(e), logger, logging.ERROR)
             except OSError as e:
                 log(
-                    f"({e}) {source!r} could not be read",
+                    f"Could not read {source!r}: {e}",
                     logger,
                     logging.ERROR,
                 )

@@ -201,6 +201,11 @@ def display_images(
                 if value._image._is_animated:
                     animate_image(value)
             else:  # Directory
+                # For some reason, the `GridListBox` renders the cached canvas whenever
+                # the previous grid is empty
+                if not image_grid.cells:
+                    image_grid_box.base_widget._invalidate()
+
                 image_grid.contents[:] = [
                     (
                         urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
@@ -216,6 +221,7 @@ def display_images(
                     )
                     if isinstance(val, Image)  # Exclude directories from the grid
                 ]
+
                 image_grid_box.set_title(f"{realpath(entry)}/")
                 view.original_widget = image_grid_box
                 Image._grid_cache.clear()
