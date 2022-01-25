@@ -392,7 +392,7 @@ class TermImage:
         finally:
             self._closed = True
 
-    def draw_image(
+    def draw(
         self,
         h_align: str = "center",
         pad_width: Optional[int] = None,

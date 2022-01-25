@@ -658,43 +658,43 @@ def test_formatting():
     assert format(image).count("\n") + 1 == lines
 
 
-def test_draw_image():
+def test_draw():
     image = TermImage(python_img, width=_size)
     anim_image = TermImage(anim_img, width=_size)
 
     with pytest.raises(ValueError, match="Padding height .*"):
-        anim_image.draw_image(pad_height=lines + 1)
+        anim_image.draw(pad_height=lines + 1)
 
     for value in (1, (), [], {}, b""):
         with pytest.raises(TypeError, match="'alpha' must be .*"):
-            image.draw_image(alpha=value)
+            image.draw(alpha=value)
 
     for value in (-1.0, -0.1, 1.0, 1.1):
         with pytest.raises(ValueError, match="Alpha threshold .*"):
-            image.draw_image(alpha=value)
+            image.draw(alpha=value)
 
     for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
         with pytest.raises(ValueError, match="Invalid hex color .*"):
-            image.draw_image(alpha=value)
+            image.draw(alpha=value)
 
     image._size = (image.width, rows - 3)
     with pytest.raises(InvalidSize, match=".* terminal has been resized .*"):
-        image.draw_image()
+        image.draw()
 
     # `check_height == False` is overriden when displaying animated images
     anim_image.set_size(check_height=False)
     anim_image._size = (anim_image.width, rows + 1)
     with pytest.raises(InvalidSize, match=".* image height .* animated images"):
-        anim_image.draw_image()
+        anim_image.draw()
 
     # `ignore_oversize == True` is overriden when displaying animated images
     anim_image.set_size()
     anim_image._size = (anim_image.width, rows - 3)
     with pytest.raises(InvalidSize, match=".* terminal has been resized .*"):
-        anim_image.draw_image(ignore_oversize=True)
+        anim_image.draw(ignore_oversize=True)
 
     # Both of the above combined
     anim_image.set_size(check_height=False)
     anim_image._size = (anim_image.width, rows + 1)
     with pytest.raises(InvalidSize, match=".* image height .* animated images"):
-        anim_image.draw_image(ignore_oversize=True)
+        anim_image.draw(ignore_oversize=True)

@@ -589,7 +589,7 @@ or multiple valid sources
                 )
                 image.frame_duration = args.frame_duration
 
-                image.draw_image(
+                image.draw(
                     *(
                         (None, 1, None, 1)
                         if args.no_align

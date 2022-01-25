@@ -136,12 +136,12 @@ Drawing/Displaying an image to/in the terminal
 
 There are two ways to draw an image to the terminal screen:
 
-1. The ``draw_image()`` method
+1. The ``draw()`` method
    ::
 
-      image.draw_image()
+      image.draw()
 
-   **NOTE:** ``draw_image()`` has various parameters for alignment/padding and transparency control.
+   **NOTE:** ``draw()`` has various parameters for alignment/padding and transparency control.
 
 2. Using ``print()`` with an image render output (i.e printing the rendered string)
 
@@ -300,7 +300,7 @@ The scale can be set at instantiation by passing a value to the *scale* **keywor
 >>> image.scale
 >>> (0.75, 0.6)
 
-The rendered result (using ``image.draw_image()``) should look like:
+The rendered result (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_set.png
 
@@ -310,7 +310,7 @@ If the argument is ommited, the default scale ``(1.0, 1.0)`` is used.
 >>> image.scale
 >>> (1.0, 1.0)
 
-The rendered result (using ``image.draw_image()``) should look like:
+The rendered result (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_unset.png
 
