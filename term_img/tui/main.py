@@ -217,7 +217,6 @@ def display_images(
                     if isinstance(val, Image)  # Exclude directories from the grid
                 ]
                 image_grid_box.set_title(f"{realpath(entry)}/")
-                image_grid_box.base_widget.focus_position = 0
                 view.original_widget = image_grid_box
                 Image._grid_cache.clear()
                 if image_grid.cells:

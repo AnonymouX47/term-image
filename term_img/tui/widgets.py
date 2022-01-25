@@ -27,7 +27,7 @@ class GridListBox(urwid.ListBox):
         self.__grid = grid
         self.__prev_ncell = 1
         self.__prev_cell_width = grid.cell_width
-        self.__grid_hash = hash(tuple(grid.cells))
+        self.__grid_hash = hash("")
 
         return super().__init__(self.__grid_contents((grid.cell_width,)))
 
@@ -35,7 +35,8 @@ class GridListBox(urwid.ListBox):
         return self.__grid.rows(size[:1], focus)
 
     def render(self, size, focus=False):
-        # 0, if maxcol < cell_width (maxcol = size[0])
+        # 0, if maxcol < cell_width (maxcol = size[0]).
+        # Otherwise, number of cells per row.
         ncell = sum(
             map(
                 floordiv,
@@ -46,34 +47,49 @@ class GridListBox(urwid.ListBox):
             )
         )
 
-        grid_hash = hash(tuple(self.__grid.cells))
+        grid_hash = hash(image_grid_box.title_widget.text)
         if (
-            not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
-            or ncell != self.__prev_ncell
-            or self.__prev_cell_width != self.__grid.cell_width
-            or self.__grid_hash != grid_hash
+            self.__grid_hash != grid_hash  # Different grid cells
+            or not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
+            or ncell != self.__prev_ncell  # Number of cells per row changed
+            or self.__prev_cell_width != self.__grid.cell_width  # cell_width changed
         ):
-            self.__prev_cell_width = self.__grid.cell_width
-            self.__grid_hash = grid_hash
-
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
 
-            # Old and new grid are both non-empty
-            both_non_empty = len(self.body) > 1 and self.__grid.cells
-            if ncell and self.__prev_ncell and both_non_empty:
+            # Old and new grids are both non-empty
+            both_non_empty = self.__grid.cells and (
+                len(self.body) > 1 or isinstance(self.body[0], urwid.Columns)
+            )
+            # Conditions for transferring row focus position
+            transfer_row_focus = (
+                self.__grid_hash == grid_hash
+                and both_non_empty
+                and ncell
+                and self.__prev_ncell
+            )
+
+            if transfer_row_focus:
                 col_focus_position = self.focus.focus_position
 
             self.body[:] = self.__grid_contents(size[:1])
-            # Ensure focus-position is not out-of-bounds
-            self.focus_position = min(len(self.body) - 1, self.focus_position)
+            if self.__grid_hash == grid_hash:
+                # Ensure focus-position is not out-of-bounds
+                self.focus_position = min(len(self.body) - 1, self.focus_position)
+            else:
+                self.focus_position = 0
 
-            if ncell and self.__prev_ncell and both_non_empty:
+            if transfer_row_focus:
                 self.focus.focus_position = min(
                     len(self.focus.contents) - 1, col_focus_position
                 )
+            else:
+                self.focus.focus_position = 0
+
+            self.__grid_hash = grid_hash
             self.__prev_ncell = ncell
+            self.__prev_cell_width = self.__grid.cell_width
 
         return super().render(size, focus)
 
@@ -88,6 +104,7 @@ class GridListBox(urwid.ListBox):
             else content[0].original_widget
             for content in self.__grid.get_display_widget(size).contents
         ]
+
         for content in contents:
             if not isinstance(content, urwid.Divider):
                 content._selectable = True
