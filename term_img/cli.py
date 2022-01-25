@@ -164,7 +164,7 @@ NOTES:
         help="Show the program version and exit",
     )
     general.add_argument(
-        "-f",
+        "-F",
         "--font-ratio",
         type=float,
         metavar="N",
@@ -175,7 +175,7 @@ NOTES:
         ),
     )
     general.add_argument(
-        "-F",
+        "-f",
         "--frame-duration",
         type=float,
         metavar="N",
@@ -278,6 +278,14 @@ NOTES:
         "--scroll",
         action="store_true",
         help=("Allow the image height to go beyond the terminal height [3]"),
+    )
+    size_options.add_argument(
+        "--fit-to-width",
+        action="store_true",
+        help=(
+            "Automatically fit the image to the available terminal width "
+            "(Equivalent to using `--scroll` without `-w` or `-h`)."
+        ),
     )
     cli_options.add_argument(
         "-O",
@@ -460,8 +468,19 @@ or multiple valid sources
 
     images = []
     contents = {}
+    absolute_sources = set()
 
     for source in args.sources:
+        absolute_source = os.path.abspath(source)
+        if absolute_source in absolute_sources:
+            log(
+                f"Source repeated: {absolute_source!r}",
+                logger,
+                verbose=True,
+            )
+            continue
+        absolute_sources.add(absolute_source)
+
         if all(urlparse(source)[:3]):  # Is valid URL
             log(
                 f"Getting image from {source!r}...",
@@ -534,6 +553,7 @@ or multiple valid sources
             direct=False,
         )
 
+        show_name = len(args.sources) > 1
         err = False
         for entry in images:
             image = entry[1]._image
@@ -545,14 +565,17 @@ or multiple valid sources
                 )
                 continue
 
-            print("\n" + os.path.basename(entry[0]) + ":")
+            if show_name:
+                print("\n" + os.path.basename(entry[0]) + ":")
             try:
                 image.set_size(
                     args.width,
                     args.height,
                     args.h_allow,
                     args.v_allow,
-                    check_height=not (args.scroll or args.oversize),
+                    check_height=not (
+                        args.fit_to_width or args.scroll or args.oversize
+                    ),
                     check_width=not args.oversize,
                 )
                 image.scale = (
