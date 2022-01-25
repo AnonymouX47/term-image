@@ -493,7 +493,7 @@ class TermImage:
             finally:
                 print("\033[0m")  # Always reset color
 
-        self._renderer(render, self._is_animated or not ignore_oversize)
+        self._renderer(render, check_size=self._is_animated or not ignore_oversize)
 
     @classmethod
     def from_file(
@@ -928,7 +928,8 @@ class TermImage:
 
         Two pixels per character using FG and BG colors.
 
-        NOTE: This method is not meant to be used directly, use `_renderer()` instead.
+        NOTE: This method is not meant to be used directly, use it via `_renderer()`
+        instead.
         """
         if self._closed:
             raise TermImageException("This image has been finalized")
@@ -1092,15 +1093,21 @@ class TermImage:
 
         return buffer.getvalue()
 
-    def _renderer(self, renderer: FunctionType, check_size: bool = False) -> Any:
+    def _renderer(
+        self, renderer: FunctionType, *args: Any, check_size: bool = False, **kwargs
+    ) -> Any:
         """Performs common render preparations and a rendering operation.
 
         Args:
             renderer: The function to perform the specifc rendering operation for the
-              caller of this function (``_renderer()``).
-              This function should accept just one argument, the PIL image.
+              caller of this method (``_renderer()``).
+              This function must accept at least one positional argument, the
+              ``PIL.Image.Image`` instance corresponding to the source.
+            args: Positional arguments to pass on to *renderer*, after the
+              ``PIL.Image.Image`` instance.
             check_size: Determines whether or not the image's set size (if any) is
               checked to see if it still fits into the *avaliable* terminal size.
+            kwargs: Keyword arguments to pass on to *renderer*.
 
         Returns:
             The return value of *renderer*.
@@ -1160,7 +1167,7 @@ class TermImage:
                 else self._source
             )
 
-            return renderer(image)
+            return renderer(image, *args, **kwargs)
 
         finally:
             self._buffer.seek(0)  # Reset buffer pointer

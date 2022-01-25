@@ -390,10 +390,23 @@ def test_set_size():
 
 
 def test_render():
+    def test_renderer(img, *args, **kwargs):
+        return img, args, kwargs
+
     def render_image(alpha):
         return trans._renderer(lambda im: trans._render_image(im, alpha))
 
     trans = TermImage.from_file("tests/images/trans.png")
+
+    for positionals, keywords in (
+        ((), {}),
+        ((2,), {"d": "dude"}),
+        ((1, 2, 3), {"a": 1, "b": 2, "c": 3}),
+    ):
+        img, args, kwargs = trans._renderer(test_renderer, *positionals, **keywords)
+        assert isinstance(img, Image.Image)
+        assert args == positionals
+        assert kwargs == keywords
 
     trans.set_size(height=_size)
     render = render_image(_ALPHA_THRESHOLD)
