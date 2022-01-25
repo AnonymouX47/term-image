@@ -66,21 +66,28 @@ def log(
     direct: bool = True,
     file: bool = True,
     verbose: bool = False,
+    loading: bool = False,
 ):
     """Report events to various destinations"""
+    if loading:
+        msg += "..."
     kwargs = {"stacklevel": 2} if stacklevel_is_available else {}
 
     if verbose:
         if VERBOSE:
             logger.log(level, msg, **kwargs)
-            notify.notify(msg, level=getattr(notify, logging.getLevelName(level)))
+            notify.notify(
+                msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
+            )
         elif VERBOSE_LOG:
             logger.log(level, msg, **kwargs)
     else:
         if file:
             logger.log(level, msg, **kwargs)
         if direct:
-            notify.notify(msg, level=getattr(notify, logging.getLevelName(level)))
+            notify.notify(
+                msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
+            )
 
 
 def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:

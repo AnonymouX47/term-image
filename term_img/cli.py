@@ -485,9 +485,9 @@ or multiple valid sources
 
         if all(urlparse(source)[:3]):  # Is valid URL
             log(
-                f"Getting image from {source!r}...",
+                f"Getting image from {source!r}",
                 logger,
-                verbose=True,
+                loading=True,
             )
             try:
                 images.append(
@@ -495,13 +495,18 @@ or multiple valid sources
                 )
             # Also handles `ConnectionTimeout`
             except requests.exceptions.ConnectionError:
+                notify.stop_loading()
                 log(f"Unable to get {source!r}", logger, logging.ERROR)
+
             except URLNotFoundError as e:
+                notify.stop_loading()
                 log(str(e), logger, logging.ERROR)
             except PIL.UnidentifiedImageError as e:
+                notify.stop_loading()
                 log(str(e), logger, logging.ERROR)
             else:
-                log("... Done!", logger, verbose=True)
+                notify.stop_loading()
+                log("... Done!", logger)
         elif os.path.isfile(source):
             try:
                 images.append((source, Image(TermImage.from_file(source))))
@@ -523,12 +528,13 @@ or multiple valid sources
                 continue
 
             log(
-                f"Checking directory {source!r}...",
+                f"Checking directory {source!r}",
                 logger,
-                verbose=True,
+                loading=True,
             )
             result = check_dir(source, os.getcwd())
-            log("... Done!", logger, verbose=True)
+            notify.stop_loading()
+            log("... Done!", logger)
             if result is not None:
                 source = os.path.abspath(source)
                 contents[source] = result

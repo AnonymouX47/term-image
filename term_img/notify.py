@@ -1,6 +1,8 @@
 """Issuing user notifications in the TUI and on STDOUT"""
 
 from queue import Queue
+from threading import Thread
+from time import sleep
 from typing import Any, Union, Tuple
 
 import urwid
@@ -14,18 +16,6 @@ DEBUG = INFO = 0
 WARNING = 1
 ERROR = 2
 CRITICAL = 3
-
-
-def notify(msg: str, *, verbose: bool = False, level: int = INFO) -> None:
-    """Display a message in the TUI's notification bar or the console"""
-    if verbose and not logging.VERBOSE:
-        return
-    if not tui.is_launched:
-        return print(f"\033[31m{msg}\033[0m" if level >= ERROR else msg)
-
-    # CRITICAL-level notifications should never be displayed in the TUI,
-    # since the program shouldn't recover from the cause.
-    add_notification((msg, ("warning", msg), ("error", msg))[level])
 
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
@@ -44,5 +34,49 @@ def clear_notification(
     loop.remove_alarm(_alarms.get())
 
 
+def load(stopped) -> None:
+    while not stopped[0]:
+        for stage in (".  ", ".. ", "..."):
+            print(stage, end="")
+            print("\b" * 3, end="", flush=True)
+            sleep(0.25)
+
+
+def notify(
+    msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
+) -> None:
+    """Display a message in the TUI's notification bar or the console"""
+    if verbose and not logging.VERBOSE:
+        pass
+    elif not tui.is_launched:
+        print(f"\033[31m{msg}\033[0m" if level >= ERROR else msg)
+        if loading:
+            start_loading()
+    else:
+        # CRITICAL-level notifications should never be displayed in the TUI,
+        # since the program shouldn't recover from the cause.
+        add_notification((msg, ("warning", msg), ("error", msg))[level])
+
+
+def start_loading() -> None:
+    global _loading_thread
+
+    stop_loading()  # Ensure previous loading has stopped, if any.
+    _loading_stopped[0] = False
+    _loading_thread = Thread(target=load, args=(_loading_stopped,))
+    _loading_thread.start()
+
+
+def stop_loading() -> None:
+    global _loading_thread
+
+    if not _loading_stopped[0]:
+        _loading_stopped[0] = True
+        _loading_thread.join()
+        _loading_thread = None
+
+
 MAX_NOTIFICATIONS = 2
 _alarms = Queue(MAX_NOTIFICATIONS)
+_loading_thread = None
+_loading_stopped = [True]

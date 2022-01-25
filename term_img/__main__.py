@@ -14,6 +14,7 @@ def main():
     init_config()  # Must be called before anything else is imported from `.config`.
 
     from . import logging
+    from . import notify
     from .tui import main
 
     # Can't use "term_img", since the logger's level is changed.
@@ -24,6 +25,7 @@ def main():
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
+        notify.stop_loading()  # Ensure loading stops, if ongoing.
         logging.log(
             "Session interrupted",
             logger,
@@ -37,6 +39,7 @@ def main():
             raise
         return INTERRUPTED
     except Exception as e:
+        notify.stop_loading()  # Ensure loading stops, if ongoing.
         logging.log(
             f"Session not ended successfully: ({type(e).__name__}) {e}",
             logger,
