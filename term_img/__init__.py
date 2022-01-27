@@ -24,22 +24,23 @@ __version__ = ".".join(map(str, version_info))
 
 
 def get_font_ratio() -> float:
-    """Return the set libray-wide font ratio"""
+    """Return the set libray-wide :term:`font ratio`"""
     return _font_ratio
 
 
 def set_font_ratio(ratio: float) -> None:
     """Set the library-wide font ratio
 
-    :param ratio: The aspect ratio of your terminal's font i.e `width / height` of
-        a single character cell.
+    Args:
+        ratio: The aspect ratio of your terminal's font i.e `width / height` of a single
+          character cell.
 
     This value is taken into consideration when rendering images in order for images
-    drawn to the terminal to have a proper scale.
+    drawn to the terminal to have a proper perceived scale.
 
     If you can't determine this value from your terminal's configuration,
     you might have to try different values till you get a good fit.
-    Normally, this value should be between 0 and 1, but not close to either boundary.
+    Normally, this value should be between 0 and 1, but not too close to either.
     """
     from . import image
 

@@ -50,16 +50,19 @@ class TermImage:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument has an unexpected/invalid value.
 
-    Propagates exceptions raised by ``set_size()``, if *width* or *height* is given.
+    Propagates exceptions raised by :py:meth:`set_size()`, if *width* or *height* is
+    given.
 
     NOTE:
         * *width* is not neccesarily the exact number of columns that'll be used
-          to render the image. That is influenced by the currently set font ratio.
+          to render the image. That is influenced by the currently set
+          :term:`font ratio`.
         * *height* is **2 times** the number of lines that'll be used in the terminal.
         * If neither is given or both are ``None``, the size is automatically determined
-          when the image is to be rendered, such that it can fit within the terminal.
-        * The size is multiplied by the scale on each axis respectively before the image
-          is rendered.
+          when the image is to be :term:`rendered`, such that it can fit
+          within the terminal.
+        * The :term:`size <render size>` is multiplied by the :term:`scale` on each axis
+          respectively before the image is :term:`rendered`.
     """
 
     # Special Methods
@@ -174,7 +177,7 @@ class TermImage:
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
-        doc="""Duration (in seconds) of a single frame for animated images
+        doc="""Duration (in seconds) of a single frame for :term:`animated` images
 
         Setting this on non-animated images is simply ignored, no exception is raised.
         """,
@@ -195,9 +198,9 @@ class TermImage:
         lambda self: self._size and self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
-        Image render height
+        Image :term:`render height`
 
-        ``None`` when render size is unset.
+        ``None`` when :py:attr:`render size <size>` is :ref:`unset <unset-size>`.
 
         Settable values:
 
@@ -205,13 +208,13 @@ class TermImage:
             * A positive ``int``: Sets the render height to the given value and
               the width proprtionally.
 
-        The image is actually rendered using half this number of lines
+        The image is actually :term:`rendered` using half this number of lines
         """,
     )
 
     is_animated = property(
         lambda self: self._is_animated,
-        doc="``True`` if the image is animated. Otherwise, ``False``.",
+        doc="``True`` if the image is :term:`animated`. Otherwise, ``False``.",
     )
 
     original_size = property(
@@ -227,13 +230,13 @@ class TermImage:
         lambda self: ceil(
             round((self._size or self._valid_size(None, None))[1] * self._scale[1]) / 2
         ),
-        doc="The number of lines that the rendered image will occupy in the terminal",
+        doc="The number of lines that the drawn image will occupy in a terminal",
     )
 
     @property
     def rendered_size(self) -> Tuple[int, int]:
-        """The number of columns and lines (respectively) that the rendered image will
-        occupy in the terminal
+        """The number of columns and lines (respectively) that the drawn image will
+        occupy in a terminal
         """
         columns, rows = map(
             round,
@@ -261,13 +264,13 @@ class TermImage:
             )
             * self._scale[0]
         ),
-        doc="The number of columns that the rendered image will occupy in the terminal",
+        doc="The number of columns that the drawn image will occupy in a terminal",
     )
 
     scale = property(
         lambda self: tuple(self._scale),
         doc="""
-        Image render scale
+        Image :term:`render scale`
 
         Settable values are:
 
@@ -292,7 +295,7 @@ class TermImage:
     scale_x = property(
         lambda self: self._scale[0],
         doc="""
-        x-axis render scale
+        x-axis :term:`render scale`
 
         A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
         """,
@@ -305,7 +308,7 @@ class TermImage:
     scale_y = property(
         lambda self: self._scale[1],
         doc="""
-        y-ayis render scale
+        y-ayis :term:`render scale`
 
         A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
         """,
@@ -317,13 +320,13 @@ class TermImage:
 
     size = property(
         lambda self: self._size,
-        doc="""Image render size
+        doc="""Image :term:`render size`
 
         ``None`` when render size is unset.
 
-        Setting this to ``None`` unsets the *render size* (so that it's automatically
-        calculated whenever the image is rendered) and resets the recognized advanced
-        sizing options to their defaults.
+        Setting this to ``None`` :ref:`unsets <unset-size>` the *render size* (so that
+        it's automatically calculated whenever the image is :term:`rendered`) and
+        resets the recognized advanced sizing options to their defaults.
         """,
     )
 
@@ -341,7 +344,7 @@ class TermImage:
             self.__url if hasattr(self, f"_{__class__.__name__}__url") else self._source
         ),
         doc="""
-        The source from which the instance was initialized
+        The :term:`source` from which the instance was initialized
 
         Can be a PIL image, file path or URL.
         """,
@@ -351,9 +354,9 @@ class TermImage:
         lambda self: self._size and self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
-        Image render width
+        Image :term:`render width`
 
-        ``None`` when render size is unset.
+        ``None`` when :py:attr:`render size <size>` is :ref:`unset <unset-size>`.
 
         Settable values:
 
@@ -402,7 +405,8 @@ class TermImage:
         *,
         ignore_oversize: bool = False,
     ) -> None:
-        """Draws/Displays an image in the terminal, with optional alignment and padding.
+        """Draws/Displays an image in the terminal, with optional :term:`alignment` and
+        :term:`padding`.
 
         Args:
             h_align: Horizontal alignment ("left"/"<", "center"/"|" or "right"/">").
@@ -426,27 +430,29 @@ class TermImage:
                 should be replaced.
 
             ignore_oversize: If ``True``, do not verify if the image will fit into
-              the *available* terminal size with it's currently set *render size*.
+              the :term:`available terminal size <available size>` with it's currently
+              set :term:`render size`.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value.
-            ValueError: Render size or scale too small.
+            ValueError: :term:`Render size` or :term:`scale` too small.
             term_img.exceptions.InvalidSize: The terminal has been resized in such a
               way that the previously set size can no longer fit into it.
-            term_img.exceptions.InvalidSize: The image is **animated** and the
-              previously set size won't fit into the *available* terminal size.
+            term_img.exceptions.InvalidSize: The image is :term:`animated` and the
+              previously set size won't fit into the :term:`available terminal size
+              <available size>`.
 
         NOTE:
-            * Animated images are displayed infinitely but can be terminated with
-              ``Ctrl-C``.
-            * If the ``set_size()`` method was previously used to set the *render size*,
-              (directly or not), the last values of its *check_height*, *h_allow* and
-              *v_allow* parameters are taken into consideration, with *check_height*
-              applying to only non-animated images.
+            * :term:`Animated <animated>` images are looped indefinitely but can be
+              terminated with ``Ctrl-C``.
+            * If :py:meth:`set_size()` was previously used to set the
+              :term:`render size` (directly or not), the last values of its
+              *check_height*, *h_allow* and *v_allow* parameters are taken into
+              consideration, with *check_height* applying to only non-animated images.
             * For animated images:
 
-              * *Render size* and *padding height* are always validated.
+              * :term:`Render size` and :term:`padding height` are always validated.
               * *ignore_oversize* has no effect.
         """
         h_align, pad_width, v_align, pad_height = self.__check_formatting(
@@ -501,14 +507,14 @@ class TermImage:
         filepath: str,
         **kwargs,
     ) -> "TermImage":
-        """Creates a ``TermImage`` instance from an image file.
+        """Creates a :py:class:`TermImage` instance from an image file.
 
         Args:
             filepath: Relative/Absolute path to an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new ``TermImage`` instance.
+            A new :py:class:`TermImage` instance.
 
         Raises:
             TypeError: *filepath* is not a string.
@@ -542,14 +548,14 @@ class TermImage:
         url: str,
         **kwargs,
     ) -> "TermImage":
-        """Creates a ``TermImage`` instance from an image URL.
+        """Creates a :py:class:`TermImage` instance from an image URL.
 
         Args:
             url: URL of an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new ``TermImage`` instance.
+            A new :py:class:`TermImage` instance.
 
         Raises:
             TypeError: *url* is not a string.
@@ -563,12 +569,11 @@ class TermImage:
         NOTE:
             This method creates a temporary image file, but only after a successful
             initialization.
-            | Proper clean-up is guaranteed except maybe in very rare cases.
-            | To ensure 100% guarantee of clean-up, use the object as a context manager
-            like::
 
-               with TermImage.from_url(url) as image:
-                   ...
+            Proper clean-up is guaranteed except maybe in very rare cases.
+
+            To ensure 100% guarantee of clean-up, use the object as a
+            :ref:`context manager <context-manager>`.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
@@ -635,28 +640,30 @@ class TermImage:
         check_width: bool = True,
         check_height: bool = True,
     ) -> None:
-        """Sets the *render size* with advanced control.
+        """Sets the :term:`render size` with advanced control.
 
         Args:
-            width: Render width to use.
-            height: Render height to use.
+            width: :term:`Render width` to use.
+            height: :term:`Render height` to use.
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
             v_allow: Vertical allowance i.e minimum number of lines to leave unused.
             maxsize: If given ``(cols, lines)``, it's used instead of the terminal size.
-            check_width: If ``False``, the validity of the resulting *rendered width*
-              is not checked.
-            check_height: If ``False``, the validity of the resulting *rendered height*
-              is not checked.
+            check_width: If ``False``, the validity of the resulting
+              :term:`rendered width` is not checked.
+            check_height: If ``False``, the validity of the resulting
+              :term:`rendered height` is not checked.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value but of an
               appropriate type.
             ValueError: Both *width* and *height* are specified.
-            ValueError: The *available* size is too small.
-            term_img.exceptions.InvalidSize: The resulting *render size* is too small.
-            term_img.exceptions.InvalidSize: The resulting *rendered size* will not
-              fit into the *available* terminal size (or *maxsize*, if given).
+            ValueError: The :term:`available size` is too small.
+            term_img.exceptions.InvalidSize: The resulting :term:`render size` is too
+              small.
+            term_img.exceptions.InvalidSize: The resulting :term:`rendered size` will
+              not fit into the :term:`available terminal size <available size>`
+              (or *maxsize*, if given).
 
         If neither *width* nor *height* is given or anyone given is ``None``:
 
@@ -664,17 +671,18 @@ class TermImage:
             automatically calculated to fit within the *available* terminal size
             (or *maxsize*, if given).
           * and *check_height* is ``False``, the size is set such that the
-            *rendered width* is exactly the *available* terminal width or ``maxsize[0]``
-            (assuming the *render scale* equals 1), regardless of the font ratio.
+            :term:`rendered width` is exactly the *available* terminal width
+            or ``maxsize[0]`` (assuming the :term:`render scale` equals 1),
+            regardless of the :term:`font ratio`.
           * and *check_width* is ``False`` (and *check_height* is ``True``), the size is
-            set such that the *rendered height* is exactly the *available* terminal
-            height or ``maxsize[1]`` (assuming the *render scale* equals 1), regardless
-            of the font ratio.
+            set such that the :term:`rendered height` is exactly the *available*
+            terminal height or ``maxsize[1]`` (assuming the :term:`render scale`
+            equals 1), regardless of the :term:`font ratio`.
 
-        Allowance does not apply when *maxsize* is given.
+        :term:`Allowance` does not apply when *maxsize* is given.
 
-        | Vertical allowance has no effect when *check_height* is ``False``.
-        | Horizontal allowance has no effect when *check_width* is ``False``.
+        | No :term:`vertical allowance` when *check_height* is ``False``.
+        | No :term:`horizontal allowance` when *check_width* is ``False``.
 
         The *check_height* might be set to ``False`` to set the *render size* for
         vertically-oriented images (i.e images with height > width) such that the
@@ -683,11 +691,11 @@ class TermImage:
 
         All image rendering and formatting methods recognize and respect the
         *check_height*, *h_allow* and *v_allow* options, until the size is re-set
-        or unset.
+        or :ref:`unset <unset-size>`.
 
         *check_width* is only provided for completeness, it should probably be used only
         when the image will not be drawn to the current terminal.
-        | The value of this parameter is not recognized by any other method or
+        The value of this parameter is **not** recognized by any other method or
         operation.
         """
         if width is not None is not height:
@@ -737,7 +745,7 @@ class TermImage:
         self.__v_allow = v_allow * (not maxsize) * check_height
 
     def tell(self) -> int:
-        """Returns the current image frame number"""
+        """Returns the current image frame number."""
         return self._seek_position if self._is_animated else 0
 
     # Private Methods
