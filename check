@@ -1,7 +1,0 @@
-#!/bin/sh
-flake8 --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics setup.py term_img/ tests/ docs/source/conf.py
-echo
-black --check --diff --color setup.py term_img/ tests/ docs/source/conf.py
-echo
-# Executing using `python -m` adds CWD to `sys.path`.
-python -m pytest -v "--ignore-glob=*url*" tests/
