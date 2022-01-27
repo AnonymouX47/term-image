@@ -1,6 +1,6 @@
-Pillow>=8.3
-requests>=2.23
-black>=21.*
-flake8>=4.0
-urwid>=2.1
-pytest>=6.2
+Pillow==9.0.0
+requests==2.23
+urwid==2.1.2
+pytest==6.2.5
+black==21.*
+flake8==4.0.1
