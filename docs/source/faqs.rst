@@ -12,6 +12,9 @@ What about Windows support?
    - The TUI doesn't work due to lack of `urwid <https://urwid.org>`_ support.
    - If stuck on Windows, you could use WSL + Windows Terminal.
 
+Why are colours not properly reproduced?
+   - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
+
 Why do images look out-of-scale in my terminal?
    - Simply adjust your :ref:`font ratio <font-ratio-config>` setting appropriately.
 
