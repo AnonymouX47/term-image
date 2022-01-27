@@ -12,11 +12,14 @@ Welcome to term-img's documentation!
    installation
    library/index
    viewer/index
+   faqs
+   glossary
 
 
 Indices and tables
 ==================
 
+* :doc:`glossary`
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

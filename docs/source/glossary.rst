@@ -1,0 +1,104 @@
+Glossary
+========
+
+Below are definitions of terms used across the library's public interface, exception messages, CLI help text and the documentation.
+
+.. note::
+
+   For contributors, these terms are also used in the source code, as variable names, in comments, docstrings, etc.
+
+.. glossary::
+   :sorted:
+
+   alignment
+      The position to place a rendered image within its padding.
+
+   horizontal alignment
+      The position to place a rendered image within its :term:`padding width`.
+
+   vertical alignment
+      The position to place a rendered image within its :term:`padding height`.
+
+   allowance
+      The amount of space to be left un-used in a given maximum size.
+
+   horizontal allowance
+      The amount of **columns** to be left un-used in a given maximum amount of columns.
+
+   vertical allowance
+      The amount of **lines** to be left un-used in a given maximum amount of lines.
+
+   alpha threshold
+      Alpha ratio/value above which a pixel is taken as **opaque**.
+
+   animated
+      Having multiple frames.
+      
+      The frames of an animated image are generally meant to be displayed in rapid succession, to give the effect of animation.
+
+   available size
+      The remainder after :term:`allowances <allowance>` are subtracted from the maximum size.
+
+   available width
+      The remainder after horizontal allowance is subtracted from the maximum amount of columns.
+
+   available height
+      The remainder after vertical allowance is subtracted from the maximum amount of lines.
+
+   render
+   rendered
+      To convert image pixel data into a **string** (optionally including escape sequences to produce colour and transparency).
+
+   render size
+      The real dimension (in pixels) with which an image is rendered.
+
+   render width
+      The real **horizontal** dimension (in pixels) with which an image is rendered.
+
+   render height
+      The real **vertical** dimension (in pixels) with which an image is rendered.
+
+   rendered size
+      The amount of space (columns and lines) that'll be occupied by a rendered image **when drawn onto a terminal screen**.
+
+      This is determined by the :term:`render size` and :term:`scale` of an image and the global :term:`font ratio`.
+
+   rendered width
+      The amount of **columns** that'll be occupied by a rendered image **when drawn onto a terminal screen**.
+
+   rendered height
+      The amount of **lines** that'll be occupied by a rendered image **when drawn onto a terminal screen**.
+
+   font ratio
+      The **aspect ratio** of a terminal’s font i.e the ratio of **width to height** of a single **character cell** on the terminal.
+
+      See also: :py:func:`get_font_ratio() <term_img.get_font_ratio>` and :py:func:`set_font_ratio() <term_img.set_font_ratio>`.
+
+   padding
+   padding width
+      Amount of columns within which to fit an image. Excess columns on either or both sides of the image (depending on the :term:`horizontal alignment`) will be filled with spaces.
+
+   padding height
+      Amount of columns within which to fit an image. Excess columns on either or both sides of the image (depending on the :term:`vertical alignment`) will be filled with spaces.
+
+   pixel ratio
+      
+      It is equvalent to the :term:`font ratio` multiplied by 2, since there are two pixels (arranged vertically) in one character cell.
+
+   scale
+   render scale
+      The fraction of an image's :term:`render size` that'll actually be used to :term:`render` it.
+      
+      See also: :ref:`render-scale`.
+
+   source
+      The resource from which an image is derived.
+
+   terminal size
+      The amount of columns and lines on a terminal screen at a time i.e without scrolling.
+
+   terminal width
+      The amount of columns on a terminal screen at a time.
+
+   terminal height
+      The amount of lines on a terminal screen at a time i.e without scrolling.
