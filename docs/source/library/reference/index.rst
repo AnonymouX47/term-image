@@ -8,9 +8,8 @@ Reference
    image
    exceptions
 
-The package defines the following top-level functions:
-
-.. _font-ratio:
+Top-Level Functions
+-------------------
 
 .. autofunction:: term_img.get_font_ratio
 
@@ -27,7 +26,13 @@ Image Format Specification
 
    [h_align] [width] [ . [v_align] [height] ] [ # [threshold | bgcolor] ]
 
-*The spaces are only for clarity and not included in the syntax.*
+.. note::
+
+   * The spaces are only for clarity and not included in the syntax.
+   * Fields within ``[ ]`` are optional.
+   * ``|`` implies mutual exclusivity.
+   * ``width`` and ``height`` are in units of columns and lines repectively.
+   * If the :term:`padding width` or :term:`padding height` is less than or equal to the image's :term:`rendered width` or :term:`rendered height` respectively, the padding has **no effect**.
 
 * ``h_align``: This can be one of:
 
@@ -36,9 +41,9 @@ Image Format Specification
   * ``>`` → right
   * *absent* → center
 
-* ``width``: Integer padding width (default: terminal width)
+* ``width``: Integer padding width (default: :term:`terminal width` minus :term:`horizontal allowance`)
 
-  * Must not be greater than the terminal width.
+  * Must not be greater than the :term:`terminal width`.
 
 * ``v_align``: This can be one of:
 
@@ -47,9 +52,9 @@ Image Format Specification
   * ``_`` → bottom
   * *absent* → middle
 
-* ``height``: Integer padding height (default: terminal height, with a 2-line allowance)
+* ``height``: Integer padding height (default: :term:`terminal height` minus :term:`vertical allowance`)
 
-  * Must not be greater than the terminal height **for animated images**.
+  * Must not be greater than the :term:`terminal height` for :term:`animated` images.
 
 * ``#``: Transparency setting:
 
@@ -57,12 +62,5 @@ Image Format Specification
    * ``threshold``: Alpha ratio above which pixels are taken as opaque e.g ``.0``, ``.325043``, ``.99999``. The value must be in the range **0.0 <= threshold < 1.0**.
    * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
    * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled i.e the image has a **black background**.
-
-.. note::
-
-   * Fields within ``[]`` are optional.
-   * ``|`` implies mutual exclusivity.
-   * ``width`` and ``height`` are in units of columns and lines repectively.
-   * If the padding width or height is less than or equal to the image's rendered width or height (i.e number of columns or lines occupied by the render result) respectively, the padding has **no effect**.
 
 See :ref:`Formatted rendering <formatted-render>` for examples.

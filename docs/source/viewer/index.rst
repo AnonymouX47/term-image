@@ -24,7 +24,7 @@ The viewer accepts the following kinds of sources:
 * A directory on a local filesystem.
 * An Image URL.
 
-Any other thing given as a *source* is simply reported as invalid.
+Any other thing given as a :term:`source` is simply reported as invalid.
 
 
 Modes
@@ -37,9 +37,9 @@ The viewer can be used in two modes:
    | In this mode, images are directly printed to standard output.
    | This mode is used whenever there is only a single image source or when the ``--cli`` option is specified.
 
-2. **TUI**
+2. **TUI mode**
 
-   | In this mode, a Terminal/Text-based User Interface is launched, within which images and directories can be browsed and viewd in different ways.
+   | In this mode, a Terminal/Text-based User Interface is launched, within which images and directories can be browsed and viewed in different ways.
    | This mode is used whenever there are multiple image sources or at least one directory source, or when the ``--tui`` option is specified.
 
 

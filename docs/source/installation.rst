@@ -6,13 +6,15 @@ Requirements
 
 * Operating System: Unix / Linux / MacOS X / Windows (partial, see the :doc:`faqs`)
 * `Python >= 3.6 <https://www.python.org/>`_
-* A Terminal with full Unicode support and ANSI 24-bit color support
+* A terminal emulator with full Unicode support and ANSI 24-bit color support
+
   * Plans are in place to [partially] support terminals not meeting this requirement.
+
 
 Steps
 -----
 
-The package can be installed using `pip`
+The package can be installed from `PyPI <https://pypi.python.org/pypi/term-img>`_ using ``pip``:
 
 .. code-block:: shell
 
@@ -20,7 +22,7 @@ The package can be installed using `pip`
 
 OR
 
-Clone this repository using any method, then navigate into the project directory in a terminal and run
+Clone this repository using any method, then navigate into the project directory in a terminal and run:
 
 .. code-block:: shell
 

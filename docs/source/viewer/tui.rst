@@ -114,12 +114,12 @@ Actions
 | An action is a single entry in a :ref:`context <contexts>`, it represents a functionality available in that context.
 | An action has the following defining properties:
 
-* Name: The name of the action.
-* Key: The key/combination used to trigger the action.
-* Symbol: A string used to represent the *key*.
-* Description: A brief description of what the action does.
-* Visibility: Determines if the action is displayed in the *action/key bar* or not.
-* State: Determines if the action is enabled or not.
+* **name**: The name of the action.
+* **key**: The key/combination used to trigger the action.
+* **symbol**: A string used to represent the *key*.
+* **description**: A brief description of what the action does.
+* **visibility**: Determines if the action is displayed in the *action/key bar* or not.
+* **state**: Determines if the action is enabled or not.
   * If an action is disabled, pressing its *key* will trigger the terminal bell.
 
 
