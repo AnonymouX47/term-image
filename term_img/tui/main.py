@@ -40,6 +40,8 @@ from .. import notify
 
 def animate_image(image_widget: Image, forced_render: bool = False) -> None:
     """Change frames of an animated image"""
+    if NO_ANIMATION:
+        return
 
     def change_frame(*_) -> None:
         nonlocal last_alarm, n
@@ -427,5 +429,6 @@ displayer = None
 loop = None
 FRAME_DURATION = None
 MAX_PIXELS = None
+NO_ANIMATION = None
 RECURSIVE = None
 SHOW_HIDDEN = None

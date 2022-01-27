@@ -138,12 +138,15 @@ NOTES:
      *rendered width* is exactly the terminal width (minus horizontal allowance),
      assuming the *scale* equals 1, regardless of the font ratio.
      Also, `--v-allow` has no effect i.e vertical allowance is overriden.
-  4. Any image having more pixels than the specified maximum will be replaced
+  4. In CLI mode, only image sources are used, directory sources are skipped.
+     Animated images are displayed only when animation is disabled (with `--no-anim`)
+     or there's only one image source.
+  5. Any image having more pixels than the specified maximum will be replaced
      with a placeholder when displayed but can still be forced to display
      or viewed externally.
      Note that increasing this will have adverse effects on performance.
-  5. Any event with a level lower than the specified one is not reported.
-  6. Supports all image formats supported by `PIL.Image.open()`.
+  6. Any event with a level lower than the specified one is not reported.
+  7. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -174,7 +177,9 @@ NOTES:
             f"for proper image scaling (default: {font_ratio})"
         ),
     )
-    general.add_argument(
+
+    anim_options = general.add_mutually_exclusive_group()
+    anim_options.add_argument(
         "-f",
         "--frame-duration",
         type=float,
@@ -185,14 +190,22 @@ NOTES:
             f"(default: {frame_duration})"
         ),
     )
+    anim_options.add_argument(
+        "--no-anim",
+        action="store_true",
+        help=(
+            "Disable image animation. Animated images are displayed as just their "
+            "first frame."
+        ),
+    )
 
     mode_options = general.add_mutually_exclusive_group()
     mode_options.add_argument(
         "--cli",
         action="store_true",
         help=(
-            "Do not the launch the TUI, instead draw all non-animated image sources "
-            "to the terminal directly (directory sources are skipped)"
+            "Do not the launch the TUI, instead draw all image sources "
+            "to the terminal directly [4]"
         ),
     )
     mode_options.add_argument(
@@ -387,7 +400,7 @@ or multiple valid sources
         default=max_pixels,
         help=(
             "Maximum amount of pixels in images to be displayed "
-            f"(default: {max_pixels}) [4]"
+            f"(default: {max_pixels}) [5]"
         ),
     )
 
@@ -413,7 +426,7 @@ or multiple valid sources
         default="WARNING",
         help=(
             "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
-            "(default: WARNING) [5]"
+            "(default: WARNING) [6]"
         ),
     )
     log_options.add_argument(
@@ -563,9 +576,9 @@ or multiple valid sources
         err = False
         for entry in images:
             image = entry[1]._image
-            if image.is_animated and len(images) > 1:
+            if not args.no_anim and image._is_animated and len(images) > 1:
                 log(
-                    f"Skipping {entry[0]!r}",
+                    f"Skipping animated image: {entry[0]!r}",
                     logger,
                     verbose=True,
                 )
@@ -605,6 +618,7 @@ or multiple valid sources
                         if args.no_alpha
                         else args.alpha_bg and "#" + args.alpha_bg or args.alpha
                     ),
+                    animate=not args.no_anim,
                     ignore_oversize=args.oversize,
                 )
 

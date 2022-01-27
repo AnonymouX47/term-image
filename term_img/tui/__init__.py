@@ -29,6 +29,7 @@ def init(
 
     main.FRAME_DURATION = args.frame_duration
     main.MAX_PIXELS = args.max_pixels
+    main.NO_ANIMATION = args.no_anim
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.displayer = main.display_images(".", iter(images), contents, top_level=True)

@@ -164,7 +164,7 @@ class Image(urwid.Widget):
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
             if canv and size[0] + 2 == image_grid.cell_width:
                 return canv
-        elif image._is_animated:
+        elif not tui_main.NO_ANIMATION and image._is_animated:
             canv = self._frame_cache[image._seek_position]
             if canv and canv.size == size:
                 return canv
@@ -231,7 +231,7 @@ class Image(urwid.Widget):
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             if size[0] + 2 == image_grid.cell_width:
                 __class__._grid_cache[self] = canv
-        elif image._is_animated:
+        elif not tui_main.NO_ANIMATION and image._is_animated:
             self._frame_cache[image._seek_position] = canv
         else:
             __class__._last_canv = (hash((self._image._source, size)), canv)

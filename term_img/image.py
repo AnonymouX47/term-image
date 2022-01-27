@@ -403,6 +403,7 @@ class TermImage:
         pad_height: Optional[int] = None,
         alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
+        animate: bool = True,
         ignore_oversize: bool = False,
     ) -> None:
         """Draws/Displays an image in the terminal, with optional :term:`alignment` and
@@ -429,6 +430,8 @@ class TermImage:
               * If a string, specifies a **hex color** with which transparent background
                 should be replaced.
 
+            animate: If ``False``, disable animation i.e draw only the current frame of
+              an :term:`animated` image.
             ignore_oversize: If ``True``, do not verify if the image will fit into
               the :term:`available terminal size <available size>` with it's currently
               set :term:`render size`.
@@ -444,13 +447,13 @@ class TermImage:
               <available size>`.
 
         NOTE:
-            * :term:`Animated <animated>` images are looped indefinitely but can be
-              terminated with ``Ctrl-C``.
+            * Animations, if not disabled, are infinitely looped but can be terminated
+              with ``Ctrl-C`` (``SIGINT`` or "KeyboardInterrupt").
             * If :py:meth:`set_size()` was previously used to set the
               :term:`render size` (directly or not), the last values of its
               *check_height*, *h_allow* and *v_allow* parameters are taken into
               consideration, with *check_height* applying to only non-animated images.
-            * For animated images:
+            * For animated images, when *animate* is ``True``:
 
               * :term:`Render size` and :term:`padding height` are always validated.
               * *ignore_oversize* has no effect.
@@ -459,7 +462,11 @@ class TermImage:
             h_align, pad_width, v_align, pad_height
         )
 
-        if self._is_animated and None is not pad_height > get_terminal_size()[1]:
+        if (
+            animate
+            and self._is_animated
+            and None is not pad_height > get_terminal_size()[1]
+        ):
             raise ValueError(
                 "Padding height can not be greater than the terminal height for "
                 "animated images"
@@ -477,10 +484,14 @@ class TermImage:
                     "'alpha' must be `None` or of type `float` or `str` "
                     f"(got: {type(alpha).__name__})"
                 )
+        if not isinstance(animate, bool):
+            raise TypeError("'animate' must be a boolean")
+        if not isinstance(ignore_oversize, bool):
+            raise TypeError("'ignore_oversize' must be a boolean")
 
         def render(image) -> None:
             try:
-                if self._is_animated:
+                if animate and self._is_animated:
                     self.__display_animated(
                         image, alpha, h_align, pad_width, v_align, pad_height
                     )
@@ -499,7 +510,9 @@ class TermImage:
             finally:
                 print("\033[0m")  # Always reset color
 
-        self._renderer(render, check_size=self._is_animated or not ignore_oversize)
+        self._renderer(
+            render, check_size=animate and self._is_animated or not ignore_oversize
+        )
 
     @classmethod
     def from_file(
