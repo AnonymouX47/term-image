@@ -125,7 +125,7 @@ def store_config(*, default: bool = False) -> None:
     """Write current config to disk"""
     stored_keys = {"navigation": (_nav if default else nav)}
 
-    # Remove help and navigation keys from contexts
+    # Remove description and navigation keys from contexts
     navi = {v[0] for v in (_nav if default else nav).values()}
     for context, keyset in (_context_keys if default else context_keys).items():
         keys = {}
@@ -345,7 +345,7 @@ _nav = {
     "End": ["end", "End"],
 }
 
-# {<context>: {<action>: [<key>, <symbol>, <help>, <visibility>, <state>], ...}, ...}
+# {<context>: {<action>: [<key>, <symbol>, <desc>, <visibility>, <state>], ...}, ...}
 # <visibility> and <state> are added later in `init_config()`.
 _context_keys = {
     "global": {

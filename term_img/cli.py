@@ -130,13 +130,13 @@ NOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
      on the WIDTH and the FONT RATIO.
      The auto sizing is calculated such that the image always fits into the available
-     terminal size (i.e terminal size minus allowances) except when `--scroll` is
+     terminal size (i.e terminal size minus allowances) except when `-S` is
      specified, which allows the image height to go beyond the terminal height.
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
-  3. If used without `-w` or `-h`, the size is automatically calculated such that the
-     *rendered width* is exactly the terminal width (minus horizontal allowance),
-     assuming the *scale* equals 1, regardless of the font ratio.
+  3. If `-S` is used without `-w` or `-h`, the size is automatically calculated such
+     that the *rendered width* is exactly the *available* terminal width, assuming the
+     *scale* equals 1, regardless of the font ratio.
      Also, `--v-allow` has no effect i.e vertical allowance is overriden.
   4. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`)
@@ -297,7 +297,7 @@ NOTES:
         action="store_true",
         help=(
             "Automatically fit the image to the available terminal width "
-            "(Equivalent to using `--scroll` without `-w` or `-h`)."
+            "(Equivalent to using `-S` without `-w` or `-h`)."
         ),
     )
     cli_options.add_argument(

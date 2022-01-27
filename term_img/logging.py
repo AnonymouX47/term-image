@@ -36,7 +36,7 @@ def init_log(
 
     FORMAT = (
         "({process}) "
-        + "({asctime}) " * debug
+        + "({asctime}) "
         + "[{levelname}] {name}: "
         + "{funcName}: " * (debug and stacklevel_is_available)
         + "{message}"

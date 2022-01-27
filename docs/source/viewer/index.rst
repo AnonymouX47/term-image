@@ -82,9 +82,6 @@ A log entry has the following format:
 
 * *pid*: The process ID of the term-img session.
 * *date* and *time*: Current system date and time in the format ``%d-%m-%Y %H:%M:%S``.
-
-  * Only present when *logging level* is set to ``DEBUG`` (either by ``--debug`` or ``--log-level=DEBUG``).
-
 * *level*: The level of the log entry, this indicates it's importance.
 * *module*: The package sub-module from which it originated.
 * *function*: The function from which it originated.

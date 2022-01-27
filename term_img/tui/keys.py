@@ -195,8 +195,8 @@ def display_context_keys(context: str) -> None:
     key_bar.original_widget.set_text(
         [
             [
-                ("key" if enabled else "disabled key", f"{action.replace(' ', '_')}"),
-                ("key block", "\u2588"),
+                ("key" if enabled else "disabled key", action.replace(" ", "\u2800")),
+                ("key", "\u2800"),
                 ("key" if enabled else "disabled key", f"[{symbol}]"),
                 " ",
             ]

@@ -85,7 +85,6 @@ palette = [
     ("red on green", "", "", "", "#ff0000,bold", "#00ff00"),
     ("key", "", "", "", "#ffffff", "#5588ff"),
     ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
-    ("key block", "", "", "", "#5588ff", ""),
     ("error", "", "", "", "bold", "#ff0000"),
     ("warning", "", "", "", "#ff0000, bold", ""),
     ("input", "", "", "", "standout", ""),
