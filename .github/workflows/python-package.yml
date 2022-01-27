@@ -34,11 +34,13 @@ jobs:
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # Extended checks
-        flake8 . --count --max-line-length 88 --extend-ignore E203 --statistics
+        flake8 . --count --max-line-length 88 --extend-ignore E203 --show-source --statistics
     - name: Check formatting with black
       run: black --check --diff .
     - name: Test package installation
-      run: pip install .
+      run: |
+        pip install --upgrade build
+        python -m build
     - name: Test with pytest
       # Executing using `python -m` adds CWD to `sys.path`.
       run: python -m pytest -v
