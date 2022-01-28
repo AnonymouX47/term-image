@@ -29,6 +29,7 @@ _FG_FMT: str = "\033[38;2;%d;%d;%dm"
 _BG_FMT: str = "\033[48;2;%d;%d;%dm"
 _UPPER_PIXEL: str = "\u2580"  # upper-half block element
 _LOWER_PIXEL: str = "\u2584"  # lower-half block element
+_RESET = "\033[0m"
 _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
@@ -969,14 +970,14 @@ class TermImage:
             if alpha:
                 no_alpha = False
                 if a_cluster1 == 0 == a_cluster2:
-                    buf_write("\033[0m")
+                    buf_write(_RESET)
                     buf_write(" " * n)
                 elif a_cluster1 == 0:  # up is transparent
-                    buf_write("\033[0m")
+                    buf_write(_RESET)
                     buf_write(_FG_FMT % cluster2)
                     buf_write(_LOWER_PIXEL * n)
                 elif a_cluster2 == 0:  # down is transparent
-                    buf_write("\033[0m")
+                    buf_write(_RESET)
                     buf_write(_FG_FMT % cluster1)
                     buf_write(_UPPER_PIXEL * n)
                 else:
@@ -1004,20 +1005,27 @@ class TermImage:
                 ),
             ),
         )
-        try:
-            image = image.convert("RGBA").resize((width, height))
-        except ValueError:
-            raise ValueError("Render size or scale too small") from None
-        if isinstance(alpha, str):
-            bg = Image.new("RGBA", image.size, alpha)
-            bg.alpha_composite(image)
-            if image is not self._source:
-                image.close()
-            image = bg
-            alpha = None
-        rgb = tuple(image.convert("RGB").getdata())
-        alpha_threshold = round((alpha or 0) * 255)
-        alpha_ = [0 if a < alpha_threshold else a for a in image.getdata(3)]
+        if alpha is None or image.mode == "RGB":
+            try:
+                rgb = tuple(image.convert("RGB").resize((width, height)).getdata())
+            except ValueError:
+                raise ValueError("Render size or scale too small") from None
+            a = (255,) * mul(*image.size)
+        else:
+            try:
+                image = image.convert("RGBA").resize((width, height))
+            except ValueError:
+                raise ValueError("Render size or scale too small") from None
+            if isinstance(alpha, str):
+                bg = Image.new("RGBA", image.size, alpha)
+                bg.alpha_composite(image)
+                if image is not self._source:
+                    image.close()
+                image = bg
+                alpha = None
+            rgb = tuple(image.convert("RGB").getdata())
+            alpha_threshold = round((alpha or 0) * 255)
+            a = [0 if a < alpha_threshold else a for a in image.getdata(3)]
 
         # To distinguish 0.0 from None, since _alpha_ is used via "truth value testing"
         if alpha == 0.0:
@@ -1028,10 +1036,9 @@ class TermImage:
             image.close()
 
         if height % 2:
-            # Starting index of the last row, when height is odd
-            mark = width * (height // 2) * 2
+            mark = width * (height // 2) * 2  # Starting index of the last row
             rgb, last_rgb = rgb[:mark], rgb[mark:]
-            alpha_, last_alpha = alpha_[:mark], alpha_[mark:]
+            a, last_a = a[:mark], a[mark:]
 
         rgb_pairs = (
             (
@@ -1042,10 +1049,10 @@ class TermImage:
         )
         a_pairs = (
             (
-                zip(alpha_[x : x + width], alpha_[x + width : x + width * 2]),
-                (alpha_[x], alpha_[x + width]),
+                zip(a[x : x + width], a[x + width : x + width * 2]),
+                (a[x], a[x + width]),
             )
-            for x in range(0, len(alpha_), width * 2)
+            for x in range(0, len(a), width * 2)
         )
 
         row_no = 0
@@ -1055,12 +1062,12 @@ class TermImage:
         ):
             row_no += 2
             n = 0
-            for (p1, p2), (a1, a2) in zip(rgb_pair, a_pair):
+            for (px1, px2), (a1, a2) in zip(rgb_pair, a_pair):
                 # Color-code characters and write to buffer
                 # when upper and/or lower pixel color/alpha-level changes
                 if not (alpha and a1 == a_cluster1 == 0 == a_cluster2 == a2) and (
-                    p1 != cluster1
-                    or p2 != cluster2
+                    px1 != cluster1
+                    or px2 != cluster2
                     or alpha
                     and (
                         # From non-transparent to transparent
@@ -1072,8 +1079,8 @@ class TermImage:
                     )
                 ):
                     update_buffer()
-                    cluster1 = p1
-                    cluster2 = p2
+                    cluster1 = px1
+                    cluster2 = px2
                     if alpha:
                         a_cluster1 = a1
                         a_cluster2 = a2
@@ -1086,32 +1093,32 @@ class TermImage:
 
         if height % 2:
             cluster1 = last_rgb[0]
-            a_cluster1 = last_alpha[0]
+            a_cluster1 = last_a[0]
             n = 0
-            for p1, a1 in zip(last_rgb, last_alpha):
-                if p1 != cluster1 or (
+            for px1, a1 in zip(last_rgb, last_a):
+                if px1 != cluster1 or (
                     alpha and a_cluster1 != a1 == 0 or 0 == a_cluster1 != a1
                 ):
                     if alpha and a_cluster1 == 0:
-                        buf_write("\033[0m")
+                        buf_write(_RESET)
                         buf_write(" " * n)
                     else:
                         buf_write(_FG_FMT % cluster1)
                         buf_write(_UPPER_PIXEL * n)
-                    cluster1 = p1
+                    cluster1 = px1
                     if alpha:
                         a_cluster1 = a1
                     n = 0
                 n += 1
             # Last cluster
             if alpha and a_cluster1 == 0:
-                buf_write("\033[0m")
+                buf_write(_RESET)
                 buf_write(" " * n)
             else:
                 buf_write(_FG_FMT % cluster1)
                 buf_write(_UPPER_PIXEL * n)
 
-        buf_write("\033[0m")  # Reset color after last line
+        buf_write(_RESET)  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
 
         return buffer.getvalue()
