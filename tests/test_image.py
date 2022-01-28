@@ -528,8 +528,8 @@ def test_format_spec():
 
 def test_formatting():
     image = TermImage(python_img)
-    check_formatting = image._TermImage__check_formatting
-    format_render = image._TermImage__format_render
+    check_formatting = image._check_formatting
+    format_render = image._format_render
 
     # Argument valid types and values
     for value in (1, 1.0, (), []):

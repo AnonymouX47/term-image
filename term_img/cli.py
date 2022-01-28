@@ -33,7 +33,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
     try:
         os.chdir(dir)
     except OSError:
-        _log_exception(
+        log_exception(
             f"Could not access '{os.path.abspath(dir)}/'", logger, direct=True
         )
         return
@@ -42,7 +42,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
     try:
         entries = os.listdir()
     except OSError:
-        _log_exception(
+        log_exception(
             f"Could not get the contents of '{os.path.abspath('.')}/'",
             logger,
             direct=True,
@@ -52,7 +52,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
     empty = True
     content = {}
     for entry in entries:
-        if entry.startswith(".") and not _SHOW_HIDDEN:
+        if entry.startswith(".") and not SHOW_HIDDEN:
             continue
         if os.path.isfile(entry):
             if not empty:
@@ -63,7 +63,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
                     empty = False
             except Exception:
                 pass
-        elif _RECURSIVE:
+        elif RECURSIVE:
             try:
                 if os.path.islink(entry):
                     # Eliminate broken and cyclic symlinks
@@ -82,7 +82,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
                     # from being reported as directories within the recursive call
                     result = check_dir(entry) if os.path.isdir(entry) else None
             except RecursionError:
-                _log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
+                log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
                 # Don't bother checking anything else in the current directory
                 # Could possibly mark the directory as empty even though it contains
                 # image files but at the same time, could be very costly when
@@ -97,7 +97,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
 def main() -> None:
     """CLI execution sub-entry-point"""
-    global args, _log, _log_exception, _RECURSIVE, _SHOW_HIDDEN
+    global args, log, log_exception, RECURSIVE, SHOW_HIDDEN
 
     # Ensure user-config is loaded only when the package is executed as a module,
     # from the CLI
@@ -113,8 +113,6 @@ def main() -> None:
     from .logging import init_log, log, log_exception
     from . import notify
     from . import tui
-
-    _log, _log_exception = log, log_exception
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -455,8 +453,8 @@ or multiple valid sources
     )
 
     args = parser.parse_args()
-    _RECURSIVE = args.recursive
-    _SHOW_HIDDEN = args.all
+    RECURSIVE = args.recursive
+    SHOW_HIDDEN = args.all
 
     init_log(
         args.log,
@@ -623,7 +621,7 @@ or multiple valid sources
                 )
 
             # Handles `ValueError` and `.exceptions.InvalidSize`
-            # raised by `TermImage.__valid_size()`, scaling value checks
+            # raised by `TermImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except ValueError as e:
                 if isinstance(e, InvalidSize):
@@ -643,8 +641,8 @@ or multiple valid sources
 logger = logging.getLogger(__name__)
 
 # Set from within `main()`
-_RECURSIVE = None
-_SHOW_HIDDEN = None
+RECURSIVE = None
+SHOW_HIDDEN = None
 args = None  # Imported from within other modules
-_log = None
-_log_exception = None
+log = None
+log_exception = None

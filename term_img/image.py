@@ -92,7 +92,7 @@ class TermImage:
         else:
             self.set_size(width, height)
         self._scale = []
-        self._scale[:] = self.__check_scale(scale)
+        self._scale[:] = self._check_scale(scale)
 
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
         if self._is_animated:
@@ -103,9 +103,9 @@ class TermImage:
         # Recognized advanced sizing options.
         # These are initialized here only to avoid `AttributeError`s in case `_size` is
         # initially set via a means other than `set_size()`.
-        self.__check_height = True
-        self.__h_allow = 0
-        self.__v_allow = 2  # A 2-line allowance for the shell prompt, etc
+        self._check_height = True
+        self._h_allow = 0
+        self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     def __del__(self):
         self.close()
@@ -130,7 +130,7 @@ class TermImage:
         height = height and int(height)
 
         return self._renderer(
-            lambda image: self.__format_render(
+            lambda image: self._format_render(
                 self._render_image(
                     image,
                     (
@@ -144,7 +144,7 @@ class TermImage:
                         else _ALPHA_THRESHOLD
                     ),
                 ),
-                *self.__check_formatting(h_align, width, v_align, height),
+                *self._check_formatting(h_align, width, v_align, height),
             )
         )
 
@@ -153,11 +153,7 @@ class TermImage:
             "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
         ).format(
             type(self).__name__,
-            (
-                self.__url
-                if hasattr(self, f"_{__class__.__name__}__url")
-                else self._source
-            ),
+            (self._url if hasattr(self, "_url") else self._source),
             self._original_size,
             self._size,
             self.scale,  # Stored as a list but should be shown as a tuple
@@ -289,7 +285,7 @@ class TermImage:
                 raise ValueError(f"Scale value out of range (got: {scale})")
             self._scale[:] = (scale,) * 2
         elif isinstance(scale, tuple):
-            self._scale[:] = self.__check_scale(scale)
+            self._scale[:] = self._check_scale(scale)
         else:
             raise TypeError("Given value must be a float or a tuple of floats")
 
@@ -304,7 +300,7 @@ class TermImage:
 
     @scale_x.setter
     def scale_x(self, x: float) -> None:
-        self._scale[0] = self.__check_scale_2(x)
+        self._scale[0] = self._check_scale_2(x)
 
     scale_y = property(
         lambda self: self._scale[1],
@@ -317,7 +313,7 @@ class TermImage:
 
     @scale_y.setter
     def scale_y(self, y: float) -> None:
-        self._scale[1] = self.__check_scale_2(y)
+        self._scale[1] = self._check_scale_2(y)
 
     size = property(
         lambda self: self._size,
@@ -336,14 +332,12 @@ class TermImage:
         if value is not None:
             raise TypeError("The only acceptable value is `None`")
         self._size = value
-        self.__check_height = True
-        self.__h_allow = 0
-        self.__v_allow = 2  # A 2-line allowance for the shell prompt, etc
+        self._check_height = True
+        self._h_allow = 0
+        self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
-        lambda self: (
-            self.__url if hasattr(self, f"_{__class__.__name__}__url") else self._source
-        ),
+        lambda self: (self._url if hasattr(self, "_url") else self._source),
         doc="""
         The :term:`source` from which the instance was initialized
 
@@ -385,7 +379,7 @@ class TermImage:
                 self._buffer = None
 
                 if (
-                    hasattr(self, f"_{__class__.__name__}__url")
+                    hasattr(self, "_url")
                     and os.path.exists(self._source)
                     # The file might not exist for whatever reason.
                 ):
@@ -461,7 +455,7 @@ class TermImage:
               * :term:`Render size` and :term:`padding height` are always validated.
               * *ignore_oversize* has no effect.
         """
-        h_align, pad_width, v_align, pad_height = self.__check_formatting(
+        h_align, pad_width, v_align, pad_height = self._check_formatting(
             h_align, pad_width, v_align, pad_height
         )
 
@@ -495,12 +489,12 @@ class TermImage:
         def render(image) -> None:
             try:
                 if animate and self._is_animated:
-                    self.__display_animated(
+                    self._display_animated(
                         image, alpha, h_align, pad_width, v_align, pad_height
                     )
                 else:
                     print(
-                        self.__format_render(
+                        self._format_render(
                             self._render_image(image, alpha),
                             h_align,
                             pad_width,
@@ -620,7 +614,7 @@ class TermImage:
             image_writer.write(response.content)
 
         new._source = filepath
-        new.__url = url
+        new._url = url
         return new
 
     def seek(self, pos: int) -> None:
@@ -756,9 +750,9 @@ class TermImage:
             check_width=check_width,
             ignore_oversize=not (check_width or check_height),
         )
-        self.__check_height = check_height
-        self.__h_allow = h_allow * (not maxsize) * check_width
-        self.__v_allow = v_allow * (not maxsize) * check_height
+        self._check_height = check_height
+        self._h_allow = h_allow * (not maxsize) * check_width
+        self._v_allow = v_allow * (not maxsize) * check_height
 
     def tell(self) -> int:
         """Returns the current image frame number."""
@@ -766,7 +760,7 @@ class TermImage:
 
     # Private Methods
 
-    def __check_formatting(
+    def _check_formatting(
         self,
         h_align: Optional[str] = None,
         width: Optional[int] = None,
@@ -776,7 +770,7 @@ class TermImage:
         """Validates formatting arguments while also translating literal ones.
 
         Returns:
-            The respective arguments appropriate for ``__format_render()``.
+            The respective arguments appropriate for ``_format_render()``.
         """
         if not isinstance(h_align, (type(None), str)):
             raise TypeError("'h_align' must be a string.")
@@ -791,7 +785,7 @@ class TermImage:
         if width is not None:
             if width <= 0:
                 raise ValueError(f"Padding width must be positive (got: {width})")
-            if width > get_terminal_size()[0] - self.__h_allow:
+            if width > get_terminal_size()[0] - self._h_allow:
                 raise ValueError(
                     "Padding width is larger than the available terminal width"
                 )
@@ -812,7 +806,7 @@ class TermImage:
         return h_align, width, v_align, height
 
     @staticmethod
-    def __check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
+    def _check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
         """Checks a tuple of scale values.
 
         Returns:
@@ -832,7 +826,7 @@ class TermImage:
         return scale
 
     @staticmethod
-    def __check_scale_2(value: float) -> float:
+    def _check_scale_2(value: float) -> float:
         """Checks a single scale value.
 
         Returns:
@@ -850,7 +844,7 @@ class TermImage:
             raise ValueError(f"Scale value out of range (got: {value})")
         return value
 
-    def __display_animated(
+    def _display_animated(
         self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
     ) -> None:
         """Displays an animated GIF image in the terminal.
@@ -858,7 +852,7 @@ class TermImage:
         This is done infinitely but can be terminated with ``Ctrl-C``.
         """
         lines = max(
-            (fmt or (None,))[-1] or get_terminal_size()[1] - self.__v_allow,
+            (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
             self.rendered_height,
         )
         cache = [None] * self._n_frames
@@ -866,7 +860,7 @@ class TermImage:
         try:
             # By implication, the first frame is repeated once at the start :D
             self.seek(0)
-            cache[0] = frame = self.__format_render(
+            cache[0] = frame = self._format_render(
                 self._render_image(image, alpha), *fmt
             )
             duration = self._frame_duration
@@ -880,7 +874,7 @@ class TermImage:
                 if cache[n]:
                     frame = cache[n]
                 else:
-                    cache[n] = frame = self.__format_render(
+                    cache[n] = frame = self._format_render(
                         self._render_image(image, alpha),
                         *fmt,
                     )
@@ -896,7 +890,7 @@ class TermImage:
             # Prevents "overlayed" output in the terminal
             print("\033[%dB" % lines, end="", flush=True)
 
-    def __format_render(
+    def _format_render(
         self,
         render: str,
         h_align: Optional[str] = None,
@@ -906,12 +900,12 @@ class TermImage:
     ) -> str:
         """Formats rendered image text.
 
-        All arguments should be passed through ``__check_formatting()`` first.
+        All arguments should be passed through ``_check_formatting()`` first.
         """
         lines = render.splitlines()
         cols, rows = self.rendered_size
 
-        width = width or get_terminal_size()[0] - self.__h_allow
+        width = width or get_terminal_size()[0] - self._h_allow
         width = max(cols, width)
         if h_align == "<":  # left
             pad_left = ""
@@ -930,7 +924,7 @@ class TermImage:
         elif pad_right:
             lines = [line + pad_right for line in lines]
 
-        height = height or get_terminal_size()[1] - self.__v_allow
+        height = height or get_terminal_size()[1] - self._v_allow
         height = max(rows, height)
         if v_align == "^":  # top
             pad_up = 0
@@ -995,6 +989,7 @@ class TermImage:
 
         if self._is_animated:
             image.seek(self._seek_position)
+
         width, height = map(
             round,
             map(
@@ -1007,6 +1002,7 @@ class TermImage:
                 ),
             ),
         )
+
         if alpha is None or image.mode == "RGB":
             try:
                 rgb = tuple(image.convert("RGB").resize((width, height)).getdata())
@@ -1167,15 +1163,15 @@ class TermImage:
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
-                    (self.__h_allow, self.__v_allow),
+                    (self._h_allow, self._v_allow),
                 )
 
                 if any(
                     map(
                         gt,
-                        # the compared height will be 0 when `__check_height` is `False`
+                        # the compared height will be 0 when `_check_height` is `False`
                         # and the terminal height should never be < 0
-                        map(mul, self.rendered_size, (1, self.__check_height)),
+                        map(mul, self.rendered_size, (1, self._check_height)),
                         (columns, lines),
                     )
                 ):
@@ -1185,8 +1181,8 @@ class TermImage:
                         "can no longer fit into the available terminal size"
                     )
 
-                # Reaching here means it's either valid or `__check_height` is `False`.
-                # Hence, there's no need to check `__check_height`.
+                # Reaching here means it's either valid or `_check_height` is `False`.
+                # Hence, there's no need to check `_check_height`.
                 if self._is_animated and self.rendered_height > lines:
                     raise InvalidSize(
                         "The image height cannot be greater than the terminal height "

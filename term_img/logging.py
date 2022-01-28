@@ -25,7 +25,7 @@ def init_log(
         maxBytes=2 ** 20,  # 1 MiB
         backupCount=1,
     )
-    handler.addFilter(_filter)
+    handler.addFilter(filter_)
 
     VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
     DEBUG = debug = debug or level == logging.DEBUG
@@ -134,7 +134,7 @@ class Filter:
         self.disallowed.remove(name)
 
 
-_filter = Filter({"PIL", "urllib3"})
+filter_ = Filter({"PIL", "urllib3"})
 
 # Writing to STDERR messes up output, especially with the TUI
 warnings.showwarning = log_warning

@@ -28,7 +28,7 @@ def test_from_url():
 
     image = TermImage.from_url(python_url)
     assert isinstance(image, TermImage)
-    assert image.source == python_url
+    assert image._url == python_url
     assert os.path.exists(image._source)
 
     # Ensure size arguments get through
@@ -42,4 +42,4 @@ def test_from_url():
 
 def test_url_source():
     image = TermImage.from_url(python_url)
-    assert image.source == python_url
+    assert image._url == python_url

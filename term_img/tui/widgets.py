@@ -25,15 +25,15 @@ del command
 
 class GridListBox(urwid.ListBox):
     def __init__(self, grid: urwid.GridFlow):
-        self.__grid = grid
-        self.__prev_ncell = 1
-        self.__prev_cell_width = grid.cell_width
-        self.__grid_hash = hash("")
+        self._grid = grid
+        self._prev_ncell = 1
+        self._prev_cell_width = grid.cell_width
+        self._grid_hash = hash("")
 
-        return super().__init__(self.__grid_contents((grid.cell_width,)))
+        return super().__init__(self._grid_contents((grid.cell_width,)))
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
-        return self.__grid.rows(size[:1], focus)
+        return self._grid.rows(size[:1], focus)
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         # 0, if maxcol < cell_width (maxcol = size[0]).
@@ -42,40 +42,40 @@ class GridListBox(urwid.ListBox):
             map(
                 floordiv,
                 # No of whole (cell_width + h_sep), columns left after last h_sep
-                divmod(size[0], self.__grid.cell_width + self.__grid.h_sep),
+                divmod(size[0], self._grid.cell_width + self._grid.h_sep),
                 # if one cell_width can fit into the remaining space
-                (1, self.__grid.cell_width),
+                (1, self._grid.cell_width),
             )
         )
 
         grid_hash = hash(image_grid_box.title_widget.text)
         if (
-            self.__grid_hash != grid_hash  # Different grid cells
-            or not (ncell or self.__prev_ncell)  # maxcol is and was < cell_width
-            or ncell != self.__prev_ncell  # Number of cells per row changed
-            or self.__prev_cell_width != self.__grid.cell_width  # cell_width changed
+            self._grid_hash != grid_hash  # Different grid cells
+            or not (ncell or self._prev_ncell)  # maxcol is and was < cell_width
+            or ncell != self._prev_ncell  # Number of cells per row changed
+            or self._prev_cell_width != self._grid.cell_width  # cell_width changed
         ):
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
 
             # Old and new grids are both non-empty
-            both_non_empty = self.__grid.cells and (
+            both_non_empty = self._grid.cells and (
                 len(self.body) > 1 or isinstance(self.body[0], urwid.Columns)
             )
             # Conditions for transferring row focus position
             transfer_row_focus = (
-                self.__grid_hash == grid_hash
+                self._grid_hash == grid_hash
                 and both_non_empty
                 and ncell
-                and self.__prev_ncell
+                and self._prev_ncell
             )
 
             if transfer_row_focus:
                 col_focus_position = self.focus.focus_position
 
-            self.body[:] = self.__grid_contents(size[:1])
-            if self.__grid_hash == grid_hash:
+            self.body[:] = self._grid_contents(size[:1])
+            if self._grid_hash == grid_hash:
                 # Ensure focus-position is not out-of-bounds
                 self.focus_position = min(len(self.body) - 1, self.focus_position)
             else:
@@ -88,22 +88,22 @@ class GridListBox(urwid.ListBox):
             elif isinstance(self.focus, urwid.Columns):
                 self.focus.focus_position = 0
 
-            self.__grid_hash = grid_hash
-            self.__prev_ncell = ncell
-            self.__prev_cell_width = self.__grid.cell_width
+            self._grid_hash = grid_hash
+            self._prev_ncell = ncell
+            self._prev_cell_width = self._grid.cell_width
 
         return super().render(size, focus)
 
-    def __grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
+    def _grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
         # The display widget is a `Divider` when the grid is empty
-        if not self.__grid.contents:
-            return [self.__grid.get_display_widget(size)]
+        if not self._grid.contents:
+            return [self._grid.get_display_widget(size)]
 
         contents = [
             content[0] if isinstance(content[0], urwid.Divider)
             # `.original_widget` gets rid of an unnecessary padding
             else content[0].original_widget
-            for content in self.__grid.get_display_widget(size).contents
+            for content in self._grid.get_display_widget(size).contents
         ]
 
         for content in contents:
@@ -131,7 +131,7 @@ class Image(urwid.Widget):
     # there shouldn't be collisions.
     _frame_cache = None
 
-    _alpha = f"{_ALPHA_THRESHOLD}"[1:]
+    _alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
 
     def __init__(self, image: TermImage):
         self._image = image
@@ -249,7 +249,7 @@ class ImageCanvas(urwid.Canvas):
         super().__init__()
         self.size = size
         self.lines = lines
-        self.__image_size = image_size
+        self._image_size = image_size
 
     def cols(self) -> int:
         return self.size[0]
@@ -258,7 +258,7 @@ class ImageCanvas(urwid.Canvas):
         return self.size[1]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
-        diff_x, diff_y = map(sub, self.size, self.__image_size)
+        diff_x, diff_y = map(sub, self.size, self._image_size)
         pad_up = diff_y // 2
         pad_down = diff_y - pad_up
         pad_left = diff_x // 2

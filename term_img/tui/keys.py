@@ -214,7 +214,7 @@ def display_context_keys(context: str) -> None:
     resize()
 
 
-def _register_key(*args: Tuple[str, str]) -> FunctionType:
+def register_key(*args: Tuple[str, str]) -> FunctionType:
     """Returns a decorator to register a function to some context actions
 
     Args: `(context, action)` tuple(s), each specifying an _action_ and it's _context_.
@@ -234,12 +234,6 @@ def _register_key(*args: Tuple[str, str]) -> FunctionType:
             keys[context][context_keys[context][action][0]] = [func, True]
 
         return func
-
-    for context, action in args:
-        if context not in context_keys:
-            raise ValueError(f"Unknown context {context!r}")
-        if action not in context_keys[context]:
-            raise ValueError(f"No action {action!r} in context {context!r}")
 
     return register
 
@@ -292,12 +286,12 @@ keys = {context: {} for context in context_keys}
 
 
 # global
-@_register_key(("global", "Quit"))
+@register_key(("global", "Quit"))
 def quit():
     raise urwid.ExitMainLoop()
 
 
-@_register_key(("global", "Key Bar"))
+@register_key(("global", "Key Bar"))
 def expand_collapse_keys():
     global key_bar_is_collapsed
 
@@ -315,7 +309,7 @@ def expand_collapse_keys():
             key_bar_is_collapsed = True
 
 
-@_register_key(("global", "Help"))
+@register_key(("global", "Help"))
 def help():
     display_context_help(main.get_context())
 
@@ -352,7 +346,7 @@ keys["global"].update({"resized": [resize, True]})
 
 
 # menu
-@_register_key(
+@register_key(
     ("menu", "Prev"),
     ("menu", "Next"),
     ("menu", "Page Up"),
@@ -391,7 +385,7 @@ def set_menu_actions():
         enable_actions("menu", "Next", "Page Down", "Bottom")
 
 
-@_register_key(("menu", "Open"))
+@register_key(("menu", "Open"))
 def open():
     if menu.focus_position == 0 or isinstance(
         main.menu_list[menu.focus_position - 1][1], GeneratorType
@@ -403,13 +397,13 @@ def open():
         set_image_view_actions()
 
 
-@_register_key(("menu", "Back"))
+@register_key(("menu", "Back"))
 def back():
     main.displayer.send(main.BACK)
 
 
 # image
-@_register_key(("image", "Maximize"))
+@register_key(("image", "Maximize"))
 def maximize():
     main.set_context("full-image")
     main_widget.contents[0] = (view, ("weight", 1))
@@ -417,14 +411,14 @@ def maximize():
 
 
 # image-grid
-@_register_key(("image-grid", "Size+"))
+@register_key(("image-grid", "Size+"))
 def cell_width_inc():
     if image_grid.cell_width < 50:
         image_grid.cell_width += 2
         Image._grid_cache.clear()
 
 
-@_register_key(("image-grid", "Open"))
+@register_key(("image-grid", "Open"))
 def maximize_cell():
     main.set_context("full-grid-image")
     row = image_grid_box.base_widget.focus
@@ -443,7 +437,7 @@ def maximize_cell():
         main.animate_image(image)
 
 
-@_register_key(("image-grid", "Size-"))
+@register_key(("image-grid", "Size-"))
 def cell_width_dec():
     if image_grid.cell_width > 30:
         image_grid.cell_width -= 2
@@ -458,7 +452,7 @@ def set_image_grid_actions():
 
 
 # full-grid-image
-@_register_key(("full-grid-image", "Force Render"))
+@register_key(("full-grid-image", "Force Render"))
 def force_render_maximized_cell():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
@@ -466,7 +460,7 @@ def force_render_maximized_cell():
 
 
 # full-image, full-grid-image
-@_register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
+@register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
 def restore():
     # For image animation
     if (
@@ -484,7 +478,7 @@ def restore():
 
 
 # image, full-image
-@_register_key(("image", "Prev"), ("full-image", "Prev"))
+@register_key(("image", "Prev"), ("full-image", "Prev"))
 def prev_image():
     if menu.focus_position > 1:
         menu.focus_position -= 1
@@ -492,7 +486,7 @@ def prev_image():
     set_image_view_actions()
 
 
-@_register_key(("image", "Next"), ("full-image", "Next"))
+@register_key(("image", "Next"), ("full-image", "Next"))
 def next_image():
     # `menu_list` is one item less than `menu` (at it's beginning), hence no `len - 1`
     if (
@@ -506,7 +500,7 @@ def next_image():
     set_image_view_actions()
 
 
-@_register_key(("image", "Force Render"), ("full-image", "Force Render"))
+@register_key(("image", "Force Render"), ("full-image", "Force Render"))
 def force_render():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
@@ -531,7 +525,7 @@ def set_image_view_actions(context: str = None):
 
 
 # menu, image, full-image
-@_register_key(
+@register_key(
     ("menu", "Delete"),
     ("image", "Delete"),
     ("full-image", "Delete"),
@@ -590,7 +584,7 @@ def _cancel_delete():
 
 
 # menu, image, image-grid
-@_register_key(
+@register_key(
     ("menu", "Switch Pane"),
     ("image", "Switch Pane"),
     ("image-grid", "Switch Pane"),
@@ -611,14 +605,14 @@ def switch_pane():
 
 
 # confirmation
-@_register_key(("confirmation", "Confirm"))
+@register_key(("confirmation", "Confirm"))
 def confirm():
     # `_confirm()` must [re]set `view.original_widget`
     _confirm[0](*_confirm[1])
     main.set_prev_context()
 
 
-@_register_key(("confirmation", "Cancel"))
+@register_key(("confirmation", "Cancel"))
 def cancel():
     _cancel[0](*_cancel[1])
     view.original_widget = _prev_view_widget
@@ -626,7 +620,7 @@ def cancel():
 
 
 # overlay
-@_register_key(("overlay", "Close"))
+@register_key(("overlay", "Close"))
 def close():
     main_widget.contents[0] = (
         view if main.get_prev_context() == "full-image" else pile,

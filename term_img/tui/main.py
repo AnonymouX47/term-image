@@ -90,8 +90,6 @@ def display_images(
             (default:  parent directory of _dir_).
         - top_level: Specifies if _dir_ is the top level (For internal use only).
     """
-    # global depth
-
     items = sorted(
         items,
         key=(
@@ -106,13 +104,12 @@ def display_images(
             else (lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower())
         ),
     )
-    _update_menu(items, top_level)
+    update_menu(items, top_level)
 
     entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0
 
     os.chdir(dir)
-    # depth += 1
 
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
@@ -165,13 +162,13 @@ def display_images(
                 pos = min(prev_pos, len(items) - 1)
                 # Restore the menu and view pane for the previous (this) directory,
                 # while removing the empty directory entry.
-                _update_menu(items, top_level, pos)
+                update_menu(items, top_level, pos)
 
                 logger.debug(f"Removed empty directory entry '{entry}/' from the menu")
                 notify.notify(f"Removed empty directory entry '{entry}/' from the menu")
             else:
                 # Restore the menu and view pane for the previous (this) directory
-                _update_menu(items, top_level, prev_pos)
+                update_menu(items, top_level, prev_pos)
                 pos = prev_pos
 
             continue  # Skip `yield`
@@ -188,7 +185,7 @@ def display_images(
         elif pos == DELETE:
             del items[prev_pos]
             pos = min(prev_pos, len(items) - 1)
-            _update_menu(items, top_level, pos)
+            update_menu(items, top_level, pos)
             yield  # Displaying next image immediately will mess up confirmation overlay
             info_bar.set_text(f"delete_pos={pos} {info_bar.text}")
             continue
@@ -239,7 +236,6 @@ def display_images(
         if logging.DEBUG:
             info_bar.set_text(f"pos={pos} {info_bar.text}")
 
-    # depth -= 1
     if not top_level:
         logger.debug(f"Going back to {realpath(prev_dir)}/")
         os.chdir(prev_dir)
@@ -382,7 +378,7 @@ def set_prev_context(n: int = 1) -> None:
     info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
-def _update_menu(
+def update_menu(
     items: Iterable[Tuple[str, Union[Image, Generator]]],
     top_level: bool = False,
     pos: int = 0,
@@ -421,8 +417,7 @@ OPEN = -2
 BACK = -3
 DELETE = -4
 
-# Set by `_update_menu()`
-# depth = -1
+# Set by `update_menu()`
 menu_list = None
 at_top_level = None
 
