@@ -19,6 +19,7 @@ CRITICAL = 3
 
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
+    """Adds a message to the TUI notification bar"""
     if _alarms.qsize() == MAX_NOTIFICATIONS:
         clear_notification(main.loop, None)
     widgets.notifications.contents.insert(
@@ -30,11 +31,13 @@ def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
 def clear_notification(
     loop: Union[urwid.MainLoop, urwid.main_loop.EventLoop], data: Any
 ) -> None:
+    """Removes the oldest message in the TUI notification bar"""
     widgets.notifications.contents.pop()
     loop.remove_alarm(_alarms.get())
 
 
-def load(stopped) -> None:
+def load(stopped: list[bool]) -> None:
+    """Displays an elipsis-style loading indicator on STDOUT"""
     while not stopped[0]:
         for stage in (".  ", ".. ", "..."):
             print(stage, end="")
@@ -45,7 +48,7 @@ def load(stopped) -> None:
 def notify(
     msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
 ) -> None:
-    """Display a message in the TUI's notification bar or the console"""
+    """Displays a message in the TUI's notification bar or on STDOUT"""
     if verbose and not logging.VERBOSE:
         pass
     elif not tui.is_launched:
@@ -59,6 +62,7 @@ def notify(
 
 
 def start_loading() -> None:
+    """Starts a thread to display a loading indicator on STDOUT"""
     global _loading_thread
 
     stop_loading()  # Ensure previous loading has stopped, if any.
@@ -68,6 +72,7 @@ def start_loading() -> None:
 
 
 def stop_loading() -> None:
+    """Stops the thread displaying a loading indicator on STDOUT"""
     global _loading_thread
 
     if not _loading_stopped[0]:

@@ -3,7 +3,7 @@
 import argparse
 import logging
 import os
-from typing import Optional
+from typing import Dict, Optional
 from urllib.parse import urlparse
 
 import PIL
@@ -15,7 +15,7 @@ from .image import _ALPHA_THRESHOLD, TermImage
 from . import set_font_ratio, __version__
 
 
-def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
+def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, dict]]]:
     """Scan _dir_ (and sub-directories, if '--recursive' is set)
     and build the tree of directories [recursively] containing readable images.
 
@@ -95,7 +95,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[dict]:
     return None if empty and not content else content
 
 
-def main():
+def main() -> None:
     """CLI execution sub-entry-point"""
     global args, _log, _log_exception, _RECURSIVE, _SHOW_HIDDEN
 

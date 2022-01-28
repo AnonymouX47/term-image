@@ -28,7 +28,7 @@ def fatal(msg: str) -> None:
     print(f"\033[31m{msg}\033[0m")
 
 
-def init_config():
+def init_config() -> None:
     """Initializes user configuration
 
     IMPORTANT:
@@ -270,7 +270,7 @@ def update_context_nav_keys(
     context_keys: Dict[str, Dict[str, list]],
     nav: Dict[str, list],
     nav_update: Dict[str, list],
-):
+) -> None:
     """Update keys and symbols of navigation actions in all contexts in _context_keys_
     using _nav_ to identify navigation actions and _nav_update_ to update
     """

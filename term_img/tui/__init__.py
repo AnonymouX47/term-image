@@ -32,8 +32,8 @@ def init(
     main.NO_ANIMATION = args.no_anim
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
-    main.displayer = main.display_images(".", iter(images), contents, top_level=True)
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
+    main.displayer = main.display_images(".", images, contents, top_level=True)
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)

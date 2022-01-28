@@ -16,7 +16,7 @@ def init_log(
     debug: bool,
     verbose: bool = False,
     verbose_log: bool = False,
-):
+) -> None:
     """Initialize application event logging"""
     global DEBUG, VERBOSE, VERBOSE_LOG
 
@@ -67,7 +67,7 @@ def log(
     file: bool = True,
     verbose: bool = False,
     loading: bool = False,
-):
+) -> None:
     """Report events to various destinations"""
     if loading:
         msg += "..."
@@ -90,7 +90,7 @@ def log(
             )
 
 
-def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
+def log_exception(msg: str, logger: logging.Logger, *, direct: bool = False) -> None:
     """Report an error with the exception reponsible
 
     NOTE: Should be called from within an exception handler
@@ -110,7 +110,8 @@ def log_exception(msg: str, logger: logging.Logger, *, direct=False) -> None:
         notify.notify(msg, level=notify.ERROR)
 
 
-def log_warning(msg, catg, fname, lineno, f=None, line=None) -> None:
+# Not annotated because it's not directly used.
+def log_warning(msg, catg, fname, lineno, f=None, line=None):
     logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
     notify.notify(
         "Please view the logs for some warning(s).",
@@ -118,17 +119,18 @@ def log_warning(msg, catg, fname, lineno, f=None, line=None) -> None:
     )
 
 
+# See "Filters" section in `logging` standard library documentation.
 @dataclass
 class Filter:
     disallowed: Set[str]
 
-    def filter(self, record: logging.LogRecord):
+    def filter(self, record: logging.LogRecord) -> bool:
         return record.name.partition(".")[0] not in self.disallowed
 
-    def add(self, name: str):
+    def add(self, name: str) -> None:
         self.disallowed.add(name)
 
-    def remove(self, name: str):
+    def remove(self, name: str) -> None:
         self.disallowed.remove(name)
 
 

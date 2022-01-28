@@ -35,7 +35,7 @@ from .. import logging, __version__
 # Action Status Modification
 
 
-def disable_actions(context: str, *actions: str):
+def disable_actions(context: str, *actions: str) -> None:
     keyset = context_keys[context]
     for action in actions:
         keyset[action][4] = False
@@ -43,7 +43,7 @@ def disable_actions(context: str, *actions: str):
         display_context_keys(context)
 
 
-def enable_actions(context: str, *actions: str):
+def enable_actions(context: str, *actions: str) -> None:
     keyset = context_keys[context]
     for action in actions:
         keyset[action][4] = True
@@ -51,7 +51,7 @@ def enable_actions(context: str, *actions: str):
         display_context_keys(context)
 
 
-def hide_actions(context: str, *actions: str):
+def hide_actions(context: str, *actions: str) -> None:
     keyset = context_keys[context]
     for action in actions:
         keyset[action][3] = False
@@ -59,7 +59,7 @@ def hide_actions(context: str, *actions: str):
     disable_actions(context, *actions)
 
 
-def show_actions(context: str, *actions: str):
+def show_actions(context: str, *actions: str) -> None:
     keyset = context_keys[context]
     for action in actions:
         keyset[action][3] = True
@@ -71,6 +71,9 @@ def show_actions(context: str, *actions: str):
 
 
 def display_context_help(context: str) -> None:
+    """Displays the help menu for a particular context, showing all visible actions
+    and their descriptions.
+    """
     global _prev_view_widget
 
     actions = (
@@ -186,6 +189,10 @@ def display_context_help(context: str) -> None:
 
 
 def display_context_keys(context: str) -> None:
+    """Updates the Key/Action bar with the actions in the given context.
+
+    Includes "global" actions for all contexts except those in `no_globals`.
+    """
     actions = (
         *context_keys[context].items(),
         *(() if context in no_globals else context_keys["global"].items()),
@@ -208,11 +215,11 @@ def display_context_keys(context: str) -> None:
 
 
 def _register_key(*args: Tuple[str, str]) -> FunctionType:
-    """Decorate a function to register it to some context actions
+    """Returns a decorator to register a function to some context actions
 
     Args: `(context, action)` tuple(s), each specifying an _action_ and it's _context_.
 
-    Returns: a wrapper that registers a function to some context actions.
+    Returns: A decorator that registers a function to some context actions.
 
     Each _context_ and _action_ must be valid.
     If no argument is passed, the wrapper simply does nothing.

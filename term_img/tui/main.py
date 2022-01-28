@@ -3,7 +3,7 @@
 import logging as _logging
 import os
 from os.path import basename, isfile, islink, realpath
-from typing import Generator, Iterable, Iterator, Tuple, Union
+from typing import Dict, Generator, Iterable, Tuple, Union
 
 import PIL
 import urwid
@@ -39,7 +39,7 @@ from .. import notify
 
 
 def animate_image(image_widget: Image, forced_render: bool = False) -> None:
-    """Change frames of an animated image"""
+    """Changes frames of an animated image"""
     if NO_ANIMATION:
         return
 
@@ -71,7 +71,7 @@ def animate_image(image_widget: Image, forced_render: bool = False) -> None:
 
 def display_images(
     dir: str,
-    items: Iterator[Tuple[str, Union[Image, Iterator]]],
+    items: Iterable[Tuple[str, Union[Image, Generator]]],
     contents: dict,
     prev_dir: str = "..",
     *,
@@ -82,10 +82,10 @@ def display_images(
 
     Args:
         - dir: Path to directory containing images.
-        - images: An iterator yielding the images in _dir_ and/or similar iterators
-            for sub-directories of _dir_.
+        - items: An iterator yielding the images in _dir_ and/or similar iterators
+            for sub-directories of _dir_ (such as returned by `scan_dir(dir)`).
         - contents: Tree of directories containing readable images
-            (as produced by `check_dir(dir)`).
+            (such as returned by `check_dir(dir)`).
         - prev_dir: Path to set as working directory after displaying images in _dir_
             (default:  parent directory of _dir_).
         - top_level: Specifies if _dir_ is the top level (For internal use only).
@@ -247,11 +247,12 @@ def display_images(
     return not len(items)
 
 
-def get_context():
+def get_context() -> None:
+    """Returns the current context"""
     return _context
 
 
-def get_prev_context(n=1):
+def get_prev_context(n: int = 1) -> None:
     """Return the nth previous context (1 <= n <= 3)"""
     return _prev_contexts[n - 1]
 
@@ -305,10 +306,10 @@ def process_input(key: str) -> bool:
 
 
 def scan_dir(
-    dir: str, contents: dict, prev_dir: str = ".."
+    dir: str, contents: Dict[str, Dict[str, dict]], prev_dir: str = ".."
 ) -> Generator[Tuple[str, Union[Image, Generator]], None, None]:
     """Scan _dir_ (and sub-directories, if '--recursive' is set) for readable images
-    using a directory tree of the form produced by `check_dir(dir)`.
+    using a directory tree of the form produced by `.cli.check_dir(dir)`.
 
     Args:
         - dir: Path to directory to be scanned.
@@ -357,7 +358,8 @@ def scan_dir(
         )
 
 
-def set_context(new_context):
+def set_context(new_context) -> None:
+    """Sets the current context and updates the Key/Action bar"""
     global _context
 
     info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
@@ -368,7 +370,7 @@ def set_context(new_context):
     info_bar.set_text(f"{new_context!r} {_prev_contexts} {info_bar.text}")
 
 
-def set_prev_context(n=1):
+def set_prev_context(n: int = 1) -> None:
     """Set the nth previous context as the current context (1 <= n <= 3)"""
     global _context
 
@@ -381,7 +383,7 @@ def set_prev_context(n=1):
 
 
 def _update_menu(
-    items: Iterable[Tuple[str, Union[Image, Iterator]]],
+    items: Iterable[Tuple[str, Union[Image, Generator]]],
     top_level: bool = False,
     pos: int = 0,
 ) -> None:

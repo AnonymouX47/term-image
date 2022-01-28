@@ -4,6 +4,7 @@ import logging as _logging
 from math import ceil
 from operator import floordiv, mul, sub
 from shutil import get_terminal_size
+from typing import List, Optional, Tuple
 
 import urwid
 
@@ -23,7 +24,7 @@ del command
 
 
 class GridListBox(urwid.ListBox):
-    def __init__(self, grid):
+    def __init__(self, grid: urwid.GridFlow):
         self.__grid = grid
         self.__prev_ncell = 1
         self.__prev_cell_width = grid.cell_width
@@ -31,10 +32,10 @@ class GridListBox(urwid.ListBox):
 
         return super().__init__(self.__grid_contents((grid.cell_width,)))
 
-    def rows(self, size, focus=False):
+    def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return self.__grid.rows(size[:1], focus)
 
-    def render(self, size, focus=False):
+    def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         # 0, if maxcol < cell_width (maxcol = size[0]).
         # Otherwise, number of cells per row.
         ncell = sum(
@@ -93,7 +94,7 @@ class GridListBox(urwid.ListBox):
 
         return super().render(size, focus)
 
-    def __grid_contents(self, size):
+    def __grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
         # The display widget is a `Divider` when the grid is empty
         if not self.__grid.contents:
             return [self.__grid.get_display_widget(size)]
@@ -125,9 +126,9 @@ class Image(urwid.Widget):
     _last_canv = (None, None)
     _grid_cache = {}
 
-    # Set per image from `.main.animate_image()`
+    # Set per image from `.main.animate_image()`.
     # Since only one full-sized (non-grid-cell) image is rendered per time,
-    # there shouldn't be collisions
+    # there shouldn't be collisions.
     _frame_cache = None
 
     _alpha = f"{_ALPHA_THRESHOLD}"[1:]
@@ -135,10 +136,10 @@ class Image(urwid.Widget):
     def __init__(self, image: TermImage):
         self._image = image
 
-    def keypress(self, size, key):
+    def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
 
-    def rows(self, size, focus=False):
+    def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         # Incompetent implementation due to the lack of *maxrows*
         size = self._image._valid_size(
             size[0],
@@ -149,7 +150,7 @@ class Image(urwid.Widget):
         rows = ceil(size[1] / 2)
         return rows
 
-    def render(self, size, focus=False):
+    def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         context = tui_main.get_context()
         image = self._image
 
@@ -242,16 +243,18 @@ class Image(urwid.Widget):
 class ImageCanvas(urwid.Canvas):
     cacheable = False
 
-    def __init__(self, lines, size, image_size):
+    def __init__(
+        self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
+    ):
         super().__init__()
         self.size = size
         self.lines = lines
         self.__image_size = image_size
 
-    def cols(self):
+    def cols(self) -> int:
         return self.size[0]
 
-    def rows(self):
+    def rows(self) -> int:
         return self.size[1]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
@@ -305,10 +308,10 @@ class LineSquare(urwid.LineBox):
         new_middle.contents[2] = (new_middle.contents[2][0], ("given", 1, True))
         self._wrapped_widget.contents[1] = (new_middle, original_middle[1])
 
-    def rows(self, size, focus=False):
+    def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return ceil(size[0] / 2)
 
-    def render(self, size, focus=False):
+    def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         return super().render((size[0], ceil(size[0] / 2)), focus)
 
 
@@ -317,19 +320,19 @@ class LineSquare(urwid.LineBox):
 class LineSquareMiddleColumns(urwid.Columns):
     no_cache = ["render", "rows"]
 
-    def rows(self, size, focus=False):
+    def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return ceil(size[0] / 2) - 2
 
 
 class MenuEntry(urwid.Text):
     _selectable = True
 
-    def keypress(self, size, key):
+    def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
 
 
 class MenuListBox(urwid.ListBox):
-    def keypress(self, size, key):
+    def keypress(self, size: Tuple[int, int], key: str) -> Optional[str]:
         ret = super().keypress(size, key)
         return key if any(key == v[0] for v in nav.values()) else ret
 
@@ -343,7 +346,7 @@ class NoSwitchColumns(urwid.Columns):
 class PlaceHolder(urwid.SolidFill):
     _selectable = True  # Prevents _image_box_ from being completely un-selectable
 
-    def keypress(self, size, key):
+    def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
 
 

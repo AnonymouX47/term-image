@@ -7,7 +7,7 @@ from .exit_codes import codes, FAILURE, INTERRUPTED
 from . import cli
 
 
-def main():
+def main() -> int:
     """CLI execution entry-point"""
     from .config import init_config
 

@@ -25,11 +25,11 @@ from .exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
-_FG_FMT: str = "\033[38;2;%d;%d;%dm"
-_BG_FMT: str = "\033[48;2;%d;%d;%dm"
-_UPPER_PIXEL: str = "\u2580"  # upper-half block element
-_LOWER_PIXEL: str = "\u2584"  # lower-half block element
+_FG_FMT = "\033[38;2;%d;%d;%dm"
+_BG_FMT = "\033[48;2;%d;%d;%dm"
 _RESET = "\033[0m"
+_UPPER_PIXEL = "\u2580"  # upper-half block element
+_LOWER_PIXEL = "\u2584"  # lower-half block element
 _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
@@ -398,9 +398,9 @@ class TermImage:
 
     def draw(
         self,
-        h_align: str = "center",
+        h_align: Optional[str] = None,
         pad_width: Optional[int] = None,
-        v_align: str = "middle",
+        v_align: Optional[str] = None,
         pad_height: Optional[int] = None,
         alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
@@ -412,12 +412,14 @@ class TermImage:
 
         Args:
             h_align: Horizontal alignment ("left"/"<", "center"/"|" or "right"/">").
+              Default: center.
             pad_width: Number of columns within which to align the image.
 
               * Excess columns are filled with spaces.
               * default: terminal width.
 
             v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
+              Default: middle.
             pad_height: Number of lines within which to align the image.
 
               * Excess lines are filled with spaces.
@@ -519,7 +521,7 @@ class TermImage:
     def from_file(
         cls,
         filepath: str,
-        **kwargs,
+        **kwargs: Union[Optional[int], Tuple[float, float]],
     ) -> "TermImage":
         """Creates a :py:class:`TermImage` instance from an image file.
 
@@ -560,7 +562,7 @@ class TermImage:
     def from_url(
         cls,
         url: str,
-        **kwargs,
+        **kwargs: Union[Optional[int], Tuple[float, float]],
     ) -> "TermImage":
         """Creates a :py:class:`TermImage` instance from an image URL.
 
