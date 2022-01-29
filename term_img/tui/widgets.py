@@ -27,7 +27,7 @@ class GridListBox(urwid.ListBox):
         self._grid = grid
         self._prev_ncell = 1
         self._prev_cell_width = grid.cell_width
-        self._grid_hash = hash("")
+        self._grid_hash = None
 
         return super().__init__(self._grid_contents((grid.cell_width,)))
 
@@ -47,7 +47,9 @@ class GridListBox(urwid.ListBox):
             )
         )
 
-        grid_hash = hash(image_grid_box.title_widget.text)
+        # The path takes care of "same directory"
+        # The number of cells takes care of deletions in that directory.
+        grid_hash = hash((image_grid_box.title_widget.text, len(self._grid.cells)))
         if (
             self._grid_hash != grid_hash  # Different grid cells
             or not (ncell or self._prev_ncell)  # maxcol is and was < cell_width

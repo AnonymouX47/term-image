@@ -126,6 +126,7 @@ def display_images(
                 placeholder,
                 ("weight", 1, False),
             )
+            image_box.original_widget = placeholder  # For image animation
             image_box.set_title("Image")
             view.original_widget = image_box
 

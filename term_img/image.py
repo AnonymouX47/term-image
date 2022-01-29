@@ -1004,10 +1004,12 @@ class TermImage:
 
         if alpha is None or image.mode == "RGB":
             try:
-                rgb = tuple(image.convert("RGB").resize((width, height)).getdata())
+                image = image.convert("RGB").resize((width, height))
             except ValueError:
                 raise ValueError("Render size or scale too small") from None
-            a = (255,) * mul(*image.size)
+            rgb = tuple(image.getdata())
+            a = (255,) * (width * height)
+            alpha = None
         else:
             try:
                 image = image.convert("RGBA").resize((width, height))
@@ -1021,12 +1023,14 @@ class TermImage:
                 image = bg
                 alpha = None
             rgb = tuple(image.convert("RGB").getdata())
-            alpha_threshold = round((alpha or 0) * 255)
-            a = [0 if a < alpha_threshold else a for a in image.getdata(3)]
-
-        # To distinguish 0.0 from None, since _alpha_ is used via "truth value testing"
-        if alpha == 0.0:
-            alpha = 0.1
+            if alpha is None:
+                a = (255,) * (width * height)
+            else:
+                alpha = round(alpha * 255)
+                a = [0 if val < alpha else val for val in image.getdata(3)]
+                # To distinguish `0.0` from `None` in truth value tests
+                if alpha == 0.0:
+                    alpha = True
 
         # clean up
         if image is not self._source:
