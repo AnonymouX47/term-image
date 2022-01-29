@@ -5,7 +5,7 @@
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-img/main/docs/source/resources/tui.png">
 
 <p align="center">
-    <img src="https://static.pepy.tech/badge/term-img">
+    <img src="https://static.pepy.tech/badge/term-image">
     <img src="https://badges.frapsoft.com/os/v1/open-source.svg?v=103">
     <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-img">
     <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20the%20terminal%20using%20python&url=https://github.com/AnonymouX47/term-img&hashtags=developers,images,terminal">
@@ -40,7 +40,7 @@
 The package can be installed from PyPI using `pip`:
 
 ```shell
-pip install term-img
+pip install term-image
 ```
 OR
 

@@ -33,7 +33,7 @@ with open("README.md", "r") as fp:
     long_description = fp.read()
 
 setup(
-    name="term-img",
+    name="term-image",
     version=__version__,
     author="Anonymoux47",
     author_email="anonymoux47@gmail.com",

@@ -18,7 +18,7 @@ The package can be installed from `PyPI <https://pypi.python.org/pypi/term-img>`
 
 .. code-block:: shell
 
-   pip install term-img
+   pip install term-image
 
 OR
 

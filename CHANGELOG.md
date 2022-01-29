@@ -6,9 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2022-01-29
+## [0.1.1] - 2022-01-29
 ### Added
 - First official release
 
-[Unreleased]: https://github.com/AnonymouX47/term-img/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/AnonymouX47/term-img/tag/v0.1.0
+[Unreleased]: https://github.com/AnonymouX47/term-img/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/AnonymouX47/term-img/releases/tag/v0.1.1
