@@ -51,7 +51,7 @@ pip install .
 ```
 
 ### Supported Terminal Emulators
-See [here]() for a list of tested terminal emulators.
+See [here](https://term-img.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
 If you've tested `term-img` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-img/discussions/4).
 Also, if you're having an issue with terminal support, also report or view information about it in the discussion linked above.
@@ -242,7 +242,7 @@ Thanks! :heart:
 
 ## TODO
 
-Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](ihttps://term-img.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
+Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-img.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
 
 ## FAQs
 See the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html) section of the docs.

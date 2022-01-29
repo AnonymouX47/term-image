@@ -38,9 +38,11 @@ jobs:
       run: make check-format
     - name: Check imports formatting with isort
       run: make check-imports
-    - name: Test package installation
+    - name: Test package build and installation
       run: |
         pip install --upgrade build
         python -m build
+        pip install dist/*.whl
+        pip install dist/*.tar.gz
     - name: Test with pytest
       run: make test
