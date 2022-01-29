@@ -8,6 +8,10 @@ from typing import Dict, Generator, Iterable, Tuple, Union
 import PIL
 import urwid
 
+from .. import notify
+from ..config import context_keys, expand_key
+from ..image import TermImage
+from ..logging import log_exception
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -15,27 +19,23 @@ from .keys import (
     keys,
     menu_nav,
     no_globals,
-    set_image_view_actions,
     set_image_grid_actions,
+    set_image_view_actions,
     set_menu_actions,
 )
 from .widgets import (
-    info_bar,
     Image,
+    LineSquare,
+    MenuEntry,
     image_box,
     image_grid,
     image_grid_box,
-    LineSquare,
+    info_bar,
     menu,
-    MenuEntry,
     placeholder,
     view,
     viewer,
 )
-from ..config import context_keys, expand_key
-from ..image import TermImage
-from ..logging import log_exception
-from .. import notify
 
 
 def animate_image(image_widget: Image, forced_render: bool = False) -> None:

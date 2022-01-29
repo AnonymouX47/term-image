@@ -9,22 +9,14 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from .config import (
-    config_options,
-    font_ratio,
-    frame_duration,
-    max_pixels,
-    user_dir,
-)
-from .tui.main import scan_dir
-from .tui.widgets import Image
+from . import __version__, notify, set_font_ratio, tui
+from .config import config_options, font_ratio, frame_duration, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
 from .logging import init_log, log, log_exception
-from . import notify
-from . import set_font_ratio, __version__
-from . import tui
+from .tui.main import scan_dir
+from .tui.widgets import Image
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, dict]]]:

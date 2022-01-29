@@ -5,7 +5,7 @@ import sys
 import warnings
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
-from typing import Set, Optional
+from typing import Optional, Set
 
 from . import notify
 

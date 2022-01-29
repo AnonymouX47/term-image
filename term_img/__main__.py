@@ -3,7 +3,7 @@
 import logging as _logging
 import sys
 
-from .exit_codes import codes, FAILURE, INTERRUPTED
+from .exit_codes import FAILURE, INTERRUPTED, codes
 
 
 def main() -> int:
@@ -13,9 +13,7 @@ def main() -> int:
     init_config()  # Must be called before anything else is imported from `.config`.
 
     # Delay loading of other modules till after user-config is loaded
-    from . import cli
-    from . import logging
-    from . import notify
+    from . import cli, logging, notify
     from .tui import main
 
     # Can't use "term_img", since the logger's level is changed.

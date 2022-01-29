@@ -10,27 +10,22 @@ from typing import Tuple
 
 import urwid
 
+from .. import __version__, logging
+from ..config import context_keys, expand_key
+from . import main
 from .widgets import (
+    Image,
     bottom_bar,
     confirmation,
     confirmation_overlay,
     expand,
-    Image,
     image_box,
     image_grid,
     image_grid_box,
     key_bar,
-    main as main_widget,
-    menu,
-    overlay,
-    pile,
-    placeholder,
-    view,
-    viewer,
 )
-from . import main
-from ..config import context_keys, expand_key
-from .. import logging, __version__
+from .widgets import main as main_widget
+from .widgets import menu, overlay, pile, placeholder, view, viewer
 
 # Action Status Modification
 

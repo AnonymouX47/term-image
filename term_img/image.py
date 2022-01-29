@@ -8,21 +8,20 @@ __all__ = ("TermImage",)
 import io
 import os
 import re
-import requests
 import time
 from itertools import cycle
 from math import ceil
 from operator import add, gt, mul, sub, truediv
 from random import randint
 from shutil import get_terminal_size
-
-from PIL import Image, UnidentifiedImageError
-from typing import Any, Optional, Tuple, Union
 from types import FunctionType
+from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
 
-from .exceptions import InvalidSize, TermImageException, URLNotFoundError
+import requests
+from PIL import Image, UnidentifiedImageError
 
+from .exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FG_FMT = "\033[38;2;%d;%d;%dm"

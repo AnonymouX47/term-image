@@ -3,14 +3,12 @@
 from queue import Queue
 from threading import Thread
 from time import sleep
-from typing import Any, Union, Tuple
+from typing import Any, Tuple, Union
 
 import urwid
 
-from .tui import main
-from .tui import widgets
-from . import logging
-from . import tui
+from . import logging, tui
+from .tui import main, widgets
 
 DEBUG = INFO = 0
 WARNING = 1
