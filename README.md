@@ -1,8 +1,8 @@
 <div align="center">
 <h1><b>Term-Img</b></h1>
-<b>Display Images in the terminal with python</b>
+<b>Display Images in the terminal</b>
 <br>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/docs/demo/shot.png">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/main/docs/source/resources/tui.png">
 
 <p align="center">
     <img src="https://static.pepy.tech/badge/term-img">
@@ -33,22 +33,29 @@
 ### Requirements
 - Operating System: Unix / Linux / MacOS X
 - [Python >= 3.6](https://www.python.org/)
-- A Terminal with full Unicode support and ANSI 24-bit color support
-  - Plans are in place to [partially] support terminals not meeting this requirement.
+- A Terminal emulator with full Unicode support and ANSI 24-bit color support
+  - Plans are in place to [partially] support terminals not meeting this requirement (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).
 
 ### Steps
-The package can be installed using `pip`
+The package can be installed from PyPI using `pip`:
 
 ```shell
 pip install term-img
 ```
 OR
 
-Clone this repository using any method, then navigate into the project directory in a terminal and run
+Clone this repository using any method, then navigate into the project directory in a terminal and run:
 
 ```shell
 pip install .
 ```
+
+### Supported Terminal Emulators
+See [here]() for a list of tested terminal emulators.
+
+If you've tested `term-img` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-img/discussions/4).
+Also, if you're having an issue with terminal support, also report or view information about it in the discussion linked above.
+
 
 ## Features
 
@@ -57,10 +64,10 @@ pip install .
   - Basically supports all formats supported by `PIL.Image.open()`
 - Multiple image sources (PIL image, local file, URL)
 - Transparency support (with multiple options)
-- Animated image support (even transparent ones)
+- Animated image support (including transparent ones)
 - Terminal size awareness
 - Variable image size
-- Automatic image sizing, best fit within the terminal window or a given size
+- Automatic image sizing; best fit within the terminal window or a given size
 - Variable image scale
 - Horizontal and vertical alignment/padding
 - Font-ratio adjustment
@@ -71,12 +78,12 @@ pip install .
 - Basically everything the library supports
 - Individual image display
 - Multiple images / Directory / Recursive browsing
-- Image grid
-- Context-based controls
-- Dynamic controls (context actions are disabled and enabled dynamically)
+- Image grid [TUI]
+- Context-based controls [TUI]
+- Dynamic controls (context actions are disabled and enabled dynamically) [TUI]
 - Customizable controls and configuration options
-- Automatic adjustment upon terminal resize (TUI)
-- Image deletion
+- Automatic adjustment upon terminal resize [TUI]
+- Image deletion [TUI]
 - Notification system
 - Detailed logging system
 - ... more coming soon :grin:
@@ -96,7 +103,7 @@ term-img https://www.example.com/image.png
 
 If the image is animated (GIF, WEBP), the animation is infinitely looped but can be stopped with `Ctrl-C`.
 
-**If multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images.**
+**By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images.**
 
 **NOTE:** `python -m term_img` can be used as an alternative to the `term-img` command **(take note of the _underscore_ VS _hyphen_)**.
 
@@ -123,62 +130,62 @@ The library can also be used with PIL images
 from PIL import Image
 from term_img.image import TermImage
 
-img = Image.open("image.png")
+img = Image.open("path/to/image.png")
 image = TermImage(img)
 ```
-The class constructor and helper methods above accept more arguments, please check their docstrings (just for the mean time, the library documentation is coming up soon).
 
 ### Rendering an image
-Rendering an image is simply the process of converting it (per-frame for animated images) into text (a string).
+Rendering an image, in this context, is simply the process of converting it into text (a string).
 There are two ways to render an image:
 
 #### 1. Unformatted
 ```python
 str(image)
 ```
-Renders the image without padding/alignment and with transparency enabled
+Renders the image without padding/alignment and with transparency enabled.
 
 #### 2. Formatted
 ```python
 format(image, "|200.^100#ffffff")
 ```
 Renders the image with:
-- center horizontal alignment
-- a padding width of 200 columns
-- top vertical alignment
-- a padding height of 100 lines
-- transparent background replaced with a white (#ffffff) background
+
+* **center** horizontal alignment
+* a **padding width** of **200** columns
+* **top** vertical alignment
+* a **padding height** of **70** lines
+* transparent background replaced with a **white** (``#ffffff``) background
 
 ```python
 f"{image:>._#.5}"
 ````
 Renders the image with:
-- right horizontal alignment
-- automatic padding width (the current terminal width)
-- bottom vertical alignment
-- automatic padding height (the current terminal height with a 2-line allowance)
-- transparent background with 0.5 alpha threshold
+
+* **right** horizontal alignment
+* **automatic** padding width (the current terminal width minus horizontal allowance)
+* **bottom** vertical alignment
+* **automatic** padding height (the current terminal height minus vertical allowance)
+* transparent background with **0.5** alpha threshold
 
 ```python
 "{:1.1#}".format(image)
 ```
 Renders the image with:
-- center horizontal alignment (default)
-- no horizontal padding, since `1` is less than the image width
-- middle vertical alignment (default)
-- no vertical padding, since `1` is less than the image height
-- transparency disabled (black background)
 
-For the complete format specification, see the description of `TermImage.__format__()` (just for the mean-time, a proper documentation is being worked upon).
+* **center** horizontal alignment (default)
+* **no** horizontal padding, since ``1`` must be less than or equal to the image width
+* **middle** vertical alignment (default)
+* **no** vertical padding, since ``1`` is less than or equal to the image height
+* transparency **disabled** (black background)
 
 ### Drawing/Displaying an image to/in the terminal
 There are two ways to draw an image to the terminal screen.
 
-#### 1. `draw_image()` method
+#### 1. The `draw()` method
 ```python
-image.draw_image()
+image.draw()
 ```
-**NOTE:** `draw_image()` has various parameters for alignment/padding and transparency control.
+**NOTE:** `TermImage.draw()` method has various parameters for **alignment/padding**, **transparency** and **animation** control.
 
 #### 2. Using `print()` with an image render output (i.e printing the rendered string)
 ```python
@@ -189,9 +196,9 @@ OR
 print(f"{image:>200.^100#ffffff}")  # Uses format()
 ```
 
-For animated images, only the first method animates the output, the second only outputs the current frame.
+For animated images, only the first method can animate the output, the second only outputs the current frame.
 
-**NOTE:** All the above examples use automatic sizing and default scale, see `help(TermImage)` for the descriptions of the _width_, _height_ and _scale_ constructor parameters and object properties to set custom image size and scale.
+**NOTE:** All the above examples use **automatic sizing** and default scale.
 
 
 ## Usage
@@ -200,27 +207,29 @@ For animated images, only the first method animates the output, the second only 
 Run `term-img --help` to see full usage info.
 
 ### TUI (Text-based/Terminal User Interface)
-The controls are context-based and displayed at the bottom of the terminal window.
-Pressing the `F1` key (in most contexts) brings up a help menu describing the various controls (called _actions_) in that context.
+The controls are **context-based** and displayed at the bottom of the terminal window.
+Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
 
-The TUI controls can be configured by modifying the config file `~/.term_img/config.json` (more on that coming up in the documentation).
+The TUI controls can be configured by modifying the config file `~/.term_img/config.json`. See the [Configuration](https://term-img.readthedocs.io/en/latest/viewer/config.html) section.
+[Here](https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation).
+*Remember to rename the file to `config.json`.*
 
 ### Library
-See the [examples]() for usage samples and the [documentation]() for full description and details of the available features.
+See the [tutorial](https://term-img.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-img.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
 
-**NOTE:**
-1. **The examples and documentation are in progress**. Please bear with the help messages (for the CLI/TUI) and docstrings (for the library) for now. **Thanks**
-2. The project is currently at a stage where the public API can change without notice.
+_**NOTE:** The project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
 
 
 ## Contribution
 
-If you find any bugs or want to suggest a new feature, please open a new issue with proper description (after browsing through the existing issues and making sure you won't create a duplicate).
+If you've found any bug or want to suggest a new feature, please open a new [issue](https://github.com/AnonymouX47/term-img/issues) with proper description, after browsing/searching through the existing issues and making sure you won't create a duplicate.
 
-For code contributions, please make sure you read the [guidelines](CONTRIBUTING.md).
+For code contributions, please make sure you read through the [guidelines](https://github.com/AnonymouX47/term-img/blob/main/CONTRIBUTING.md).
 
 Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
-If you wish to work on any of these, please open a [discussion](https://github.com/AnonymouX47/term-img/discussions) (if one hasn't been opened yet), so the implementation can be discussed.
+If you wish to work on any of the listed tasks, please go through the [discussions](https://github.com/AnonymouX47/term-img/discussions) tab and join in on an ongoing discussion about a task or create a new discussion if one hasn't been created yet, so that the implementation can be discussed.
+
+Hint: You can filter discussions by *Category* or *label* or simply *search* using the task's name or description.
 
 For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-img/discussions) instead.
 
@@ -228,40 +237,15 @@ Thanks! :heart:
 
 
 ## WIP
-- Documentation (Using [Sphinx](https://www.sphinx-doc.org/en/master/))
-- Unit-testing (using [pytest](https://docs.pytest.org/en/6.2.x/))
+- Performance improvements
 
 
 ## TODO
 
-In no particular order (Will probably create a roadmap soon):
-
-- Performance improvements
-- `AsciiImage` class, renders images in greyscale using ASCII characters only
-- Make urwid widgets for displaying images public
-- Add overlay support to `Image` widgets
-- Theme customization
-- Slideshow
-- Zoom
-- Add modified keys (e.g "ctrl shift a") to valid keys
-- Grid cell animations
-- Animated image iterators
-- Config menu
-- Pattern-based file and directory exclusion
-- Minimum and maximum file size
-- Optionally skipping symlinks
-- ... and more :grin:.
-
+Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](ihttps://term-img.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
 
 ## FAQs
-1. Why?
-   - Why not?
-   - Some of us literally spend our lives in terminals :smiling_face_with_tear: .
-2. What about Windows support?
-   - Firstly, only the new [Windows Terminal](https://github.com/microsoft/terminal) seems to have proper ANSI support and mordern terminal emulator features.
-   - The CLI-only mode currently works on Windows (i.e using CMD or Powershell) if the other requirements are satisfied but can't guarantee it'll always be so.
-   - The TUI doesn't work due to lack of [**urwid**](https://urwid.org) support.
-   - If stuck on Windows, you could use WSL + Windows Terminal.
+See the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html) section of the docs.
 
 * * *
 

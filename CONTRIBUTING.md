@@ -28,21 +28,15 @@ This way, the package and the CLI command are always available in the virtual en
 
 Now that you have created a development environment, you can create a new branch and start making changes (after reading the guidelines below :smiley:) and when done, contribute your changes by opening a [pull request](https://github.com/AnonymouX47/term-img/pulls).
 
-* * *
-
-Nothing is too small... but some things can be too much though, like rewriting the entire package in one pull request. :grin:
-
-Looking forward to your contributions... Thanks :heart:!
-
 
 ## Guidelines
-- For feature additions, please open a new Feature Request in the [issues section](https://github.com/AnonymouX47/term-img/issues) first to discuss how it would be implemented... you should propose your idea there.
+- For feature suggestions, please open a new **Feature Request** in the [issues section](https://github.com/AnonymouX47/term-img/issues) first to discuss how it would be implemented... you should propose your idea there.
 - Every **pull request** should be **from a branch other than the default** (`main`).
 - Try to make sure the package is not [obviously] broken at any commit... can be incomplete but **not broken**, at the same time :point_down:
 - Avoid making too many unique and substantial changes in a single commit.
   - Closely-related or mutually-dependent changes should not be separated into different commits if doing so will cause the package to be broken at any of the commits.
-- Commit messages should be detailed enough, such that a search through the logs with one to three keywords could identify a commit with the changes it made.
-- Try to make pull requests as specific as possible, though a single one could fix multiple **related** issues.
+- Commit messages should be detailed just enough for a search through it with two or three keywords to be able to identify a change made by the commit.
+- Try to make pull requests as specific as possible, though a single one could resolve multiple **related** issues.
 - Always test that everything works as expected before opening a pull request.
 - Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-img/discussions/9).
 
@@ -72,7 +66,7 @@ _The points below apply to the **Python** aspects of this project._
 
 **_GUIDELINES are not LAWS, CONVENTIONS are not RULES but they're good to follow when there's a valid REASON to._**
 
-That said... Please, no one's perfect. So, help point things out or just correct them when something is done otherwise.
+That said... Please, no one's perfect. So, help point things out or just correct things when they're done otherwise.
 Thanks!
 
 
@@ -154,7 +148,7 @@ python -m pytest -v tests
 ```
 if you don't have the `make` utility.
 
-**IMPORTANT: If any of these checks or tests FAILS, please run the corresponding CORRECTION step below or correct it manually (for failed tests).**
+**IMPORTANT: If any of these checks or tests FAILS, please run the corresponding CORRECTION step below or correct it manually (for failed lints or tests).**
 
 
 ## Corrections
@@ -200,3 +194,9 @@ OR
 cd docs; make html; cd ..
 ```
 if you don't have the `make` utility.
+
+* * *
+
+Nothing is too small... but some things can be too much though, like rewriting the entire package in one pull request. :grin:
+
+Looking forward to your contributions... Thanks :heart:!
