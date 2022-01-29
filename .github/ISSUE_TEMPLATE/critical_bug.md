@@ -27,8 +27,8 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information, if applicable):**
 
 - OS: [e.g. Ubuntu]
-- Version [e.g. 20.10]
-- Kernel version [e.g Linux 5.14]
+- Version [e.g. 21.10]
+- Kernel version (if applicable) [e.g Linux 5.14]
 
 **Smartphone (please complete the following information, if applicable):**
 
@@ -39,8 +39,13 @@ If applicable, add screenshots to help explain your problem.
 **Package info:**
 
 - Python version: [e.g 3.9.5]
-- Package version: [e.g 0.0.1]
+- Package version: [e.g 1.2.3]
 - Installation method: [e.g PyPI, from source]
+
+**Terminal Emulator:**
+
+- Name: [e.g Gnome Terminal, Kitty, iTerm2]
+- Version:
 
 **Additional context**
 Add any other context about the problem here.
