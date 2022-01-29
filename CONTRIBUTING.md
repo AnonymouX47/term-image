@@ -55,17 +55,28 @@ _The points below apply to the **Python** aspects of this project._
 - Maximum line length is 88 characters.
 - Endeavour to run the checks and tests (as described in the sections below) before commiting changes.
   - Note that this might not confer compatibility across multiple Python versions, final checks will be done automatically when you push the changes.
-- Always format your code by running `make format` or `black .` from the repository root.
-- All modules, classes and functions should have docstrings (as specified below) and proper annotations, most especially public ones.
+- Always format your code with `black` (see [Code Formatting](#code-formatting) below).
+- All functions or methods should be properly annotated.
+  - **Note:** Currently, annotations are only for better and quicker comprehension of the defined interfaces, by the library users and package developers. So, forgive me, they might not entirely comply with standards.
+- All modules, classes and functions should have docstrings (as specified below).
 - All docstrings should be written according to the [Google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) for the following reasons:
   - Uniformity.
   - The reference sections of the documentation are auto-generated from the modules using the `autodoc` and `napoleon` extensions of [Sphinx](https://www.sphinx-doc.org/en/master/).
   - Google-style docstrings + `napoleon` is used instead of pure reStructuredText docstrings for the sake of readability and to reduce the requirements for contribution.
+- Try to keep things (definitions, names, dict keys, etc...) **sorted** wherever reasonably possible.
+  - Makes finding things faster and easier :smiley:.
 - Please try as much as possible to follow formats or styles already established in the project.
 - Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-img/discussions/7).
 
+* * *
 
-## Pre-commit Checks
+**_GUIDELINES are not LAWS, CONVENTIONS are not RULES but they're good to follow when there's a valid REASON to._**
+
+That said... Please, no one's perfect. So, help point things out or just correct them when something is done otherwise.
+Thanks!
+
+
+## Pre-commit Checks and Tests
 
 Run:
 
@@ -85,7 +96,7 @@ make lint
 OR
 
 ```shell
-flake8 --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics .
+flake8 --count --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics .
 ```
 if you don't have the `make` utility.
 
@@ -93,7 +104,7 @@ if you don't have the `make` utility.
 To simply check the formatting without modifying the files, run:
 
 ```shell
-make format-check
+make check-format
 ```
 OR
 
@@ -102,8 +113,54 @@ black --check --diff --color .
 ```
 if you don't have the `make` utility.
 
+### Check imports formatting
+To simply check the imports without modifying the files, run:
+
+```shell
+make check-imports
+```
+OR
+
+```shell
+isort --check --diff --color .
+```
+if you don't have the `make` utility.
+
+### Run tests without URL-related
+Run:
+
+```shell
+make test-no-url
+```
+OR
+
+```shell
+python -m pytest -v "--ignore-glob=*url*" tests
+```
+if you don't have the `make` utility.
+
+*Tests involving **URL-sourced** images are ignored to help speed up the process and to eliminate the need for internet connection.*
+
+### Run full tests
+Run:
+
+```shell
+make test
+```
+OR
+
+```shell
+python -m pytest -v tests
+```
+if you don't have the `make` utility.
+
+**IMPORTANT: If any of these checks or tests FAILS, please run the corresponding CORRECTION step below or correct it manually (for failed tests).**
+
+
+## Corrections
+
 ### Code formatting
-To re-format wrong formated modules (and write to file), run:
+To re-format wrong formatted modules (and write to file), run:
 
 ```shell
 make format
@@ -115,20 +172,21 @@ black .
 ```
 if you don't have the `make` utility.
 
-### Run tests
-Run:
+### Imports formatting
+To re-format wrong formatted imports (and write to file), run:
 
 ```shell
-make test
+make imports
 ```
 OR
 
 ```shell
-python -m pytest -v "--ignore-glob=*url*" tests
+isort .
 ```
 if you don't have the `make` utility.
 
-*Tests involving **URL-sourced** images are ignored to help speed up the process and to eliminate the need for internet connection.*
+
+## Documentation
 
 ### Build the documentation
 Run:
