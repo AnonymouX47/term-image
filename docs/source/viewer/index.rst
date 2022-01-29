@@ -108,12 +108,26 @@ Known Issues
 
 Planned Features
 ----------------
+In no particular order:
 
 * Performance improvements
 * Overlay support for ``Image`` widgets
+* Open in external viewer
 * Theme customization
 * Grid cell animations
 * Config menu
 * Pattern-based file and directory exclusion
 * Minimum and maximum file size
 * Optionally skipping symlinks
+* Grid cell showing number of subfolders
+* Slideshow
+* Zoom/Pan
+* Frame duration adjustment per animated image
+* Find
+* Filter
+* Alpha backaground adjustment per image
+* Copy:
+   * Image
+   * File/Directory name
+   * Full path
+   * Parent directory path

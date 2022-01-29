@@ -8,7 +8,7 @@ Requirements
 * `Python >= 3.6 <https://www.python.org/>`_
 * A terminal emulator with full Unicode support and ANSI 24-bit color support
 
-  * Plans are in place to [partially] support terminals not meeting this requirement.
+  * Plans are in place to [partially] support terminals not meeting this requirements (see :ref:`library-planned`).
 
 
 Steps

@@ -20,4 +20,4 @@ Why do images look out-of-scale in my terminal?
 
 Why is the TUI unresponsive or slow in drawing images?
    - Drawing (not rendering) speed is **enteirly** dependent on the terminal emulator itself.
-   - Some terminal emulators block upon input, so rapidly repeated input could cause the terminal to be unresponsive. An example of such is `Tilix <https://gnunn1.github.io/tilix-web/>`_.
+   - Some terminal emulators block upon input, so rapidly repeated input could cause the terminal to be unresponsive.

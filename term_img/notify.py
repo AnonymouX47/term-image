@@ -3,7 +3,7 @@
 from queue import Queue
 from threading import Thread
 from time import sleep
-from typing import Any, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import urwid
 
@@ -34,7 +34,7 @@ def clear_notification(
     loop.remove_alarm(_alarms.get())
 
 
-def load(stopped: list[bool]) -> None:
+def load(stopped: List[bool]) -> None:
     """Displays an elipsis-style loading indicator on STDOUT"""
     while not stopped[0]:
         for stage in (".  ", ".. ", "..."):
