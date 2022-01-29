@@ -34,7 +34,7 @@ from .widgets import (
 )
 from ..config import context_keys, expand_key
 from ..image import TermImage
-from .. import logging
+from ..logging import log_exception
 from .. import notify
 
 
@@ -187,7 +187,8 @@ def display_images(
             pos = min(prev_pos, len(items) - 1)
             update_menu(items, top_level, pos)
             yield  # Displaying next image immediately will mess up confirmation overlay
-            info_bar.set_text(f"delete_pos={pos} {info_bar.text}")
+            if DEBUG:
+                info_bar.set_text(f"delete_pos={pos} {info_bar.text}")
             continue
 
         else:
@@ -233,7 +234,7 @@ def display_images(
         pos = yield
         while pos == prev_pos:
             pos = yield
-        if logging.DEBUG:
+        if DEBUG:
             info_bar.set_text(f"pos={pos} {info_bar.text}")
 
     if not top_level:
@@ -254,7 +255,7 @@ def get_prev_context(n: int = 1) -> None:
 
 
 def process_input(key: str) -> bool:
-    if logging.DEBUG:
+    if DEBUG:
         info_bar.set_text(f"{key!r} {info_bar.text}")
 
     found = False
@@ -332,7 +333,7 @@ def scan_dir(
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception:
-                logging.log_exception(f"{realpath(entry)!r} could not be read", logger)
+                log_exception(f"{realpath(entry)!r} could not be read", logger)
                 errors += 1
             else:
                 yield entry, Image(TermImage.from_file(entry))
@@ -358,24 +359,28 @@ def set_context(new_context) -> None:
     """Sets the current context and updates the Key/Action bar"""
     global _context
 
-    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    if DEBUG:
+        info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
     _prev_contexts[1:] = _prev_contexts[:2]  # Right-shift older contexts
     _prev_contexts[0] = _context
     _context = new_context
     display_context_keys(new_context)
-    info_bar.set_text(f"{new_context!r} {_prev_contexts} {info_bar.text}")
+    if DEBUG:
+        info_bar.set_text(f"{new_context!r} {_prev_contexts} {info_bar.text}")
 
 
 def set_prev_context(n: int = 1) -> None:
     """Set the nth previous context as the current context (1 <= n <= 3)"""
     global _context
 
-    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    if DEBUG:
+        info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
     _context = _prev_contexts[n - 1]
     display_context_keys(_context)
     _prev_contexts[:n] = []
     _prev_contexts.extend(["menu"] * n)
-    info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
+    if DEBUG:
+        info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
 def update_menu(
@@ -424,6 +429,9 @@ at_top_level = None
 # Placeholders; Set from `..tui.init()`
 displayer = None
 loop = None
+
+# # Corresponsing to command-line args
+DEBUG = None
 FRAME_DURATION = None
 MAX_PIXELS = None
 NO_ANIMATION = None

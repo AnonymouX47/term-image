@@ -26,6 +26,7 @@ def init(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
+    main.DEBUG = args.debug
     main.FRAME_DURATION = args.frame_duration
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
