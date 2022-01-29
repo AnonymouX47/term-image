@@ -142,7 +142,7 @@ There are two ways to draw an image to the terminal screen:
 
       image.draw()
 
-   **NOTE:** :py:meth:`TermImage.draw() <term_img.image.TermImage.draw>` has various parameters for :term:`alignment`/:term:`padding` and transparency control.
+   **NOTE:** :py:meth:`TermImage.draw() <term_img.image.TermImage.draw>` has various parameters for :term:`alignment`/:term:`padding`, transparency and animation control.
 
 2. Using ``print()`` with an image render output (i.e printing the rendered string)
 

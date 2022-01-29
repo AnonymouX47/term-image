@@ -38,6 +38,8 @@ These are fields whose values control various behaviours of the viewer. They are
   * Any image having more pixels than the specified maximum will be replaced with a placeholder when displayed but can still be forced to display or viewed externally.
   * Note that increasing this will have adverse effects on performance.
 
+.. important:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
+
 
 Key Config
 ----------
@@ -73,6 +75,9 @@ The format of the ``"keys"`` mapping is thus::
 .. note::
 
    The ``navigation`` field is not actually a *context*, instead it's the universal navigation controls configuration from which navigation *actions* in actual *contexts* are updated.
+
+| `Here <https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json>`_ is a pre-configured config with Vim-style key-bindings (majorly navigation).
+| *Remember to rename the file to* ``config.json``.
 
 Below is a list of all **valid** values for *key*::
 
