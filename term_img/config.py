@@ -282,7 +282,7 @@ def update_context_nav_keys(
 
 
 user_dir = os.path.expanduser("~/.term_img")
-version = "0.1"  # For backwards compatibility
+version = "0.1"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(

@@ -9,6 +9,7 @@ import urwid
 from .main import process_input
 from .widgets import Image, info_bar, main as main_widget
 from . import main
+from ..logging import log
 from .. import cli
 
 
@@ -18,8 +19,6 @@ def init(
     contents: dict,
 ) -> None:
     """Initializes the TUI"""
-    from ..logging import log
-
     global is_launched
 
     if cli.args.debug:

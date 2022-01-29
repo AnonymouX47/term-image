@@ -9,10 +9,22 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
+from .config import (
+    config_options,
+    font_ratio,
+    frame_duration,
+    max_pixels,
+    user_dir,
+)
+from .tui.main import scan_dir
+from .tui.widgets import Image
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
+from .logging import init_log, log, log_exception
+from . import notify
 from . import set_font_ratio, __version__
+from . import tui
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, dict]]]:
@@ -97,22 +109,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
 def main() -> None:
     """CLI execution sub-entry-point"""
-    global args, log, log_exception, RECURSIVE, SHOW_HIDDEN
-
-    # Ensure user-config is loaded only when the package is executed as a module,
-    # from the CLI
-    from .config import (
-        config_options,
-        font_ratio,
-        frame_duration,
-        max_pixels,
-        user_dir,
-    )
-    from .tui.main import scan_dir
-    from .tui.widgets import Image
-    from .logging import init_log, log, log_exception
-    from . import notify
-    from . import tui
+    global args, RECURSIVE, SHOW_HIDDEN
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -644,5 +641,3 @@ logger = logging.getLogger(__name__)
 RECURSIVE = None
 SHOW_HIDDEN = None
 args = None  # Imported from within other modules
-log = None
-log_exception = None
