@@ -31,7 +31,7 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / MacOS X
+- Operating System: Unix / Linux / MacOS X / Windows (partial, more info in the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html))
 - [Python >= 3.6](https://www.python.org/)
 - A Terminal emulator with full Unicode support and ANSI 24-bit color support
   - Plans are in place to [partially] support terminals not meeting this requirement (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).

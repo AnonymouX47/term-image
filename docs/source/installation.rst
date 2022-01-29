@@ -34,16 +34,17 @@ Supported Terminal Emulators
 
 Some terminals emulators that have been tested to meet all major requirements are:
 
-- **lib-VTE**-based terminals such as:
+- **libvte**-based terminals such as:
 
   - Gnome Terminal
   - Terminator
+  - Tilix
 
-- Tilix
 - Alacritty
 - Kitty
 - Windows Terminal
 - Termux (on Android)
+- xterm, uxterm *(256 colors)*
 
 .. warning::
    With some of these terminals, there's an issue where the TUI isn't cleared off the terminal screen after exiting.

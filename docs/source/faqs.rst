@@ -8,7 +8,7 @@ Why?
 
 What about Windows support?
    - Firstly, only the new `Windows Terminal <https://github.com/microsoft/terminal>`_ seems to have proper ANSI support and mordern terminal emulator features.
-   - The CLI-only mode currently works on Windows (i.e using CMD or Powershell) if the other requirements are satisfied but can't guarantee it'll always be so.
+   - The library and CLI-only mode currently work on Windows (i.e using CMD or Powershell) if the other requirements are satisfied but can't guarantee it'll always be so.
    - The TUI doesn't work due to lack of `urwid <https://urwid.org>`_ support.
    - If stuck on Windows, you could use WSL + Windows Terminal.
 
