@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+from operator import mul
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
@@ -20,25 +21,25 @@ from .tui.widgets import Image
 
 
 def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, dict]]]:
-    """Scan _dir_ (and sub-directories, if '--recursive' is set)
+    """Scan *dir* (and sub-directories, if '--recursive' is set)
     and build the tree of directories [recursively] containing readable images.
 
     Args:
         - dir: Path to directory to be scanned.
-        - prev_dir: Path to set as working directory after scannning _dir_
-            (default:  parent directory of _dir_).
+        - prev_dir: Path (absolute or relative to *dir*) to set as working directory
+          after scannning *dir* (default:  parent directory of *dir*).
 
     Returns:
-        - `None` if _dir_ contains no readable images [recursively].
-        - A dict representing the resulting directory tree, if _dir_ is "non-empty".
+        - `None` if *dir* contains no readable images [recursively].
+        - A dict representing the resulting directory tree, if *dir* is "non-empty".
 
-    - If '--hidden' is set, hidden (.*) images and subdirectories are considered.
+    - If '--hidden' is set, hidden (.[!.]*) images and subdirectories are considered.
     """
     try:
         os.chdir(dir)
     except OSError:
         log_exception(
-            f"Could not access '{os.path.abspath(dir)}/'", logger, direct=True
+            f"Could not access '{os.path.abspath(dir)}{os.sep}'", logger, direct=True
         )
         return
 
@@ -47,7 +48,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
         entries = os.listdir()
     except OSError:
         log_exception(
-            f"Could not get the contents of '{os.path.abspath('.')}/'",
+            f"Could not get the contents of '{os.path.abspath('.')}{os.sep}'",
             logger,
             direct=True,
         )
@@ -65,6 +66,8 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
                 PIL.Image.open(entry)
                 if empty:
                     empty = False
+                    if not RECURSIVE:
+                        break
             except Exception:
                 pass
         elif RECURSIVE:
@@ -76,21 +79,23 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
                     result = (
                         check_dir(entry, os.getcwd())
                         if (
-                            os.path.exists(entry)
+                            os.path.exists(entry)  # not broken
+                            # not cyclic
                             and not os.getcwd().startswith(os.path.realpath(entry))
                         )
                         else None
                     )
                 else:
                     # The check is only to filter inaccessible files and disallow them
-                    # from being reported as directories within the recursive call
+                    # from being reported as inaccessible directories within the
+                    # recursive call
                     result = check_dir(entry) if os.path.isdir(entry) else None
             except RecursionError:
                 log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
                 # Don't bother checking anything else in the current directory
                 # Could possibly mark the directory as empty even though it contains
-                # image files but at the same time, could be very costly when
-                # there are many subdirectories
+                # image files but at the same time, not doing this could be very costly
+                # when there are many subdirectories
                 break
             if result is not None:
                 content[entry] = result
@@ -128,9 +133,10 @@ NOTES:
   4. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`)
      or there's only one image source.
-  5. Any image having more pixels than the specified maximum will be replaced
-     with a placeholder when displayed but can still be forced to display
-     or viewed externally.
+  5. Any image having more pixels than the specified maximum will be:
+     - skipped, in CLI mode
+     - replaced, in TUI mode, with a placeholder when displayed but can still be forced
+       to display or viewed externally.
      Note that increasing this will have adverse effects on performance.
   6. Any event with a level lower than the specified one is not reported.
   7. Supports all image formats supported by `PIL.Image.open()`.
@@ -563,6 +569,15 @@ or multiple valid sources
         err = False
         for entry in images:
             image = entry[1]._image
+            if mul(*image._original_size) > args.max_pixels:
+                log(
+                    f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
+                    logger,
+                    level=logging.WARNING,
+                    verbose=True,
+                )
+                continue
+
             if not args.no_anim and image._is_animated and len(images) > 1:
                 log(
                     f"Skipping animated image: {entry[0]!r}",
@@ -572,7 +587,7 @@ or multiple valid sources
                 continue
 
             if show_name:
-                print("\n" + os.path.basename(entry[0]) + ":")
+                notify.notify("\n" + os.path.basename(entry[0]) + ":")
             try:
                 image.set_size(
                     args.width,

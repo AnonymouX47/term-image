@@ -34,6 +34,11 @@ def clear_notification(
     loop.remove_alarm(_alarms.get())
 
 
+def is_loading() -> bool:
+    """Returns ``True`` if the loading indicator is active or ``False`` if not."""
+    return not _loading_stopped[0]
+
+
 def load(stopped: List[bool]) -> None:
     """Displays an elipsis-style loading indicator on STDOUT"""
     while not stopped[0]:
@@ -50,7 +55,13 @@ def notify(
     if verbose and not logging.VERBOSE:
         pass
     elif not tui.is_launched:
-        print(f"\033[31m{msg}\033[0m" if level >= ERROR else msg)
+        print(
+            f"\033[33m{msg}\033[0m"
+            if level == WARNING
+            else f"\033[31m{msg}\033[0m"
+            if level >= ERROR
+            else msg
+        )
         if loading:
             start_loading()
     else:

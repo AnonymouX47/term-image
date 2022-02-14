@@ -53,7 +53,7 @@ def animate_image(image_widget: Image, forced_render: bool = False) -> None:
             if forced_render:
                 image_widget._forced_render = True
             n += 1
-            if n == image.n_frames:
+            if n == image._n_frames:
                 n = 0
         else:
             image.seek(0)
