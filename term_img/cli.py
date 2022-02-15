@@ -3,8 +3,11 @@
 import argparse
 import logging
 import os
+import queue
+from multiprocessing import Process, Queue
 from operator import mul
-from typing import Dict, Optional
+from threading import Thread, current_thread
+from typing import Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -102,6 +105,87 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
     os.chdir(prev_dir)
     return None if empty and not content else content
+
+
+def manage_checkers(
+    dir_queue: Queue,
+    contents: Dict[str, Dict],
+    images: List[Tuple[str, Union[Image, Generator]]],
+) -> None:
+    def check(source):
+        current_thread().name = "MainThread"
+        result = False
+        try:
+            result = check_dir(source)
+        except KeyboardInterrupt:
+            pass
+        except Exception:
+            log_exception(f"Checking {source!r} failed", logger)
+        finally:
+            content_queue.put((source, result))
+
+    def process_result(source, result):
+        checker = checkers.pop(source)
+        checker.join()
+        if checker.exitcode:
+            log(
+                f"Checking {source!r} was terminated by signal {-checker.exitcode}",
+                logger,
+                logging.ERROR,
+                direct=False,
+            )
+        log(
+            (
+                f"Checking {source!r} failed"
+                if result is False
+                else f"{source!r} is empty"
+                if result is None
+                else f"Done checking {source!r}"
+            ),
+            logger,
+            logging.ERROR if result is False else logging.INFO,
+        )
+        if False is not result is not None:
+            source = os.path.abspath(source)
+            contents[source] = result
+            images.append((source, scan_dir(source, result, os.getcwd())))
+        checker.close()
+
+    MAX_CHECKERS = max(len(os.sched_getaffinity(0)) - 1, 2)
+    n = 1
+    checkers = {}
+    content_queue = Queue()
+    source = dir_queue.get()
+    try:
+        while source:
+            log(f"Started checking {source!r}", logger)
+            checkers.setdefault(
+                source, Process(target=check, args=(source,), name=f"Checker-{n}")
+            ).start()
+            n += 1
+            while True:
+                if not content_queue.empty():
+                    process_result(*content_queue.get())
+                if not dir_queue.empty() and len(checkers) < MAX_CHECKERS:
+                    source = dir_queue.get()
+                    break
+
+        if checkers:
+            log("Still checking some directories", logger, loading=True)
+            while checkers:
+                if not content_queue.empty():
+                    process_result(*content_queue.get())
+                # Check for externally terminated checkers
+                for source, checker in tuple(checkers.items()):
+                    if checker.exitcode:
+                        process_result(source, False)
+            notify.stop_loading()
+            log("... Done checking all directories!", logger)
+    finally:
+        for checker in checkers.values():
+            checker.kill()
+            checker.join()
+            checker.close()
 
 
 def main() -> None:
@@ -476,6 +560,15 @@ or multiple valid sources
     contents = {}
     absolute_sources = set()
 
+    dir_queue = queue.Queue()
+    check_manager = Thread(
+        target=manage_checkers,
+        args=(dir_queue, contents, images),
+        name="CheckManager",
+        daemon=True,
+    )
+    check_manager.start()
+
     for source in args.sources:
         absolute_source = (
             source if all(urlparse(source)[:3]) else os.path.abspath(source)
@@ -512,7 +605,7 @@ or multiple valid sources
                 log(str(e), logger, logging.ERROR)
             else:
                 notify.stop_loading()
-                log("... Done!", logger)
+                log(f"... Done getting {source!r}!", logger)
         elif os.path.isfile(source):
             try:
                 images.append((source, Image(TermImage.from_file(source))))
@@ -533,24 +626,16 @@ or multiple valid sources
                 )
                 continue
 
-            log(
-                f"Checking directory {source!r}",
-                logger,
-                loading=True,
-            )
-            result = check_dir(source, os.getcwd())
-            notify.stop_loading()
-            log("... Done!", logger)
-            if result is not None:
-                source = os.path.abspath(source)
-                contents[source] = result
-                images.append((source, scan_dir(source, result, os.getcwd())))
+            dir_queue.put(source)
         else:
             log(
                 f"{source!r} is invalid or does not exist",
                 logger,
                 logging.ERROR,
             )
+
+    dir_queue.put(None)  # Signal end of sources
+    check_manager.join()
 
     if not images:
         log("No valid source!", logger)

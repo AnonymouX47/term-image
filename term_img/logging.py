@@ -1,6 +1,7 @@
 """Event logging"""
 
 import logging
+import os
 import sys
 import warnings
 from dataclasses import dataclass
@@ -35,8 +36,8 @@ def init_log(
         level = logging.INFO
 
     FORMAT = (
-        "({process}) "
-        + "({asctime}) "
+        "({instance_id}) ({asctime}) "
+        + "{processName}: {threadName}: " * debug
         + "[{levelname}] {name}: "
         + "{funcName}: " * (debug and stacklevel_is_available)
         + "{message}"
@@ -58,6 +59,11 @@ def init_log(
         )
 
 
+def _log(*args, _extra={"instance_id": os.getpid()}, **kwargs):
+    """Ensures child processes record the PID of the main process"""
+    return _ori_log(*args, **kwargs, extra=_extra)
+
+
 def log(
     msg: str,
     logger: Optional[logging.Logger] = None,
@@ -71,7 +77,8 @@ def log(
     """Report events to various destinations"""
     if loading:
         msg += "..."
-    kwargs = {"stacklevel": 2} if stacklevel_is_available else {}
+    # > log > _log > _ori_log
+    kwargs = {"stacklevel": 3} if stacklevel_is_available else {}
 
     if verbose:
         if VERBOSE:
@@ -96,7 +103,8 @@ def log_exception(msg: str, logger: logging.Logger, *, direct: bool = False) -> 
     NOTE: Should be called from within an exception handler
     i.e from (also possibly in a nested context) within an except or finally clause.
     """
-    kwargs = {"stacklevel": 3} if stacklevel_is_available else {}
+    # > exception-handler > log_exception > _log > _ori_log
+    kwargs = {"stacklevel": 4} if stacklevel_is_available else {}
 
     if DEBUG:
         logger.exception(f"{msg} due to:", **kwargs)
@@ -138,6 +146,10 @@ filter_ = Filter({"PIL", "urllib3"})
 
 # Writing to STDERR messes up output, especially with the TUI
 warnings.showwarning = log_warning
+
+# To ensure child processes record the same PID as the main process
+_ori_log = logging.Logger._log
+logging.Logger._log = _log
 
 # Can't use "term_img", since the logger's level is changed in `.__main__`.
 # Otherwise, it would affect children of "term_img".
