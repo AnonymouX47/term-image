@@ -1,6 +1,7 @@
 """Support for command-line execution using `python -m term-img`"""
 
 import logging as _logging
+import multiprocessing
 import sys
 
 from .exit_codes import FAILURE, INTERRUPTED, codes
@@ -9,6 +10,12 @@ from .exit_codes import FAILURE, INTERRUPTED, codes
 def main() -> int:
     """CLI execution entry-point"""
     from .config import init_config
+
+    # 1. `PIL.Image.open()` seems to cause forked child processes to block when called
+    # in both the parent and the child.
+    # 2. Unifies thing across multiple platforms, since Windows doesn't support
+    # `os.fork()`.
+    multiprocessing.set_start_method("spawn")
 
     init_config()  # Must be called before anything else is imported from `.config`.
 

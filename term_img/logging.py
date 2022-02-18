@@ -1,7 +1,6 @@
 """Event logging"""
 
 import logging
-import os
 import sys
 import warnings
 from dataclasses import dataclass
@@ -36,7 +35,7 @@ def init_log(
         level = logging.INFO
 
     FORMAT = (
-        "({instance_id}) ({asctime}) "
+        "({process}) ({asctime}) "
         + "{processName}: {threadName}: " * debug
         + "[{levelname}] {name}: "
         + "{funcName}: " * (debug and stacklevel_is_available)
@@ -59,11 +58,6 @@ def init_log(
         )
 
 
-def _log(*args, _extra={"instance_id": os.getpid()}, **kwargs):
-    """Ensures child processes record the PID of the main process"""
-    return _ori_log(*args, **kwargs, extra=_extra)
-
-
 def log(
     msg: str,
     logger: Optional[logging.Logger] = None,
@@ -77,20 +71,18 @@ def log(
     """Report events to various destinations"""
     if loading:
         msg += "..."
-    # > log > _log > _ori_log
-    kwargs = {"stacklevel": 3} if stacklevel_is_available else {}
 
     if verbose:
         if VERBOSE:
-            logger.log(level, msg, **kwargs)
+            logger.log(level, msg, **_kwargs)
             notify.notify(
                 msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
             )
         elif VERBOSE_LOG:
-            logger.log(level, msg, **kwargs)
+            logger.log(level, msg, **_kwargs)
     else:
         if file:
-            logger.log(level, msg, **kwargs)
+            logger.log(level, msg, **_kwargs)
         if direct:
             notify.notify(
                 msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
@@ -103,23 +95,24 @@ def log_exception(msg: str, logger: logging.Logger, *, direct: bool = False) -> 
     NOTE: Should be called from within an exception handler
     i.e from (also possibly in a nested context) within an except or finally clause.
     """
-    # > exception-handler > log_exception > _log > _ori_log
-    kwargs = {"stacklevel": 4} if stacklevel_is_available else {}
-
     if DEBUG:
-        logger.exception(f"{msg} due to:", **kwargs)
+        logger.exception(f"{msg} due to:", **_kwargs_exc)
     elif VERBOSE or VERBOSE_LOG:
         exc_type, exc, _ = sys.exc_info()
-        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", **kwargs)
+        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", **_kwargs)
     else:
-        logger.error(msg, **kwargs)
+        logger.error(msg, **_kwargs)
 
     if VERBOSE and direct:
         notify.notify(msg, level=notify.ERROR)
 
 
 # Not annotated because it's not directly used.
-def log_warning(msg, catg, fname, lineno, f=None, line=None):
+def _log_warning(msg, catg, fname, lineno, f=None, line=None):
+    """Redirects warnings to the logging system.
+
+    Intended to replace `warnings.showwarning()`.
+    """
     logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
     notify.notify(
         "Please view the logs for some warning(s).",
@@ -145,11 +138,7 @@ class Filter:
 filter_ = Filter({"PIL", "urllib3"})
 
 # Writing to STDERR messes up output, especially with the TUI
-warnings.showwarning = log_warning
-
-# To ensure child processes record the same PID as the main process
-_ori_log = logging.Logger._log
-logging.Logger._log = _log
+warnings.showwarning = _log_warning
 
 # Can't use "term_img", since the logger's level is changed in `.__main__`.
 # Otherwise, it would affect children of "term_img".
@@ -157,6 +146,13 @@ logger = logging.getLogger("term-img")
 
 # the _stacklevel_ parameter was added in Python 3.8
 stacklevel_is_available = sys.version_info[:3] >= (3, 8, 0)
+if stacklevel_is_available:
+    # > log > logger.log > _log
+    _kwargs = {"stacklevel": 2}
+    # > exception-handler > log_exception > logger.exception > _log
+    _kwargs_exc = {"stacklevel": 3}
+else:
+    _kwargs = _kwargs_exc = {}
 
 # Set from within `init_log()`
 DEBUG = None

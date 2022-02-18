@@ -1,13 +1,15 @@
 """term-img's CLI Implementation"""
 
 import argparse
-import logging
+import logging as _logging
 import os
 import queue
-from multiprocessing import Process, Queue
+import sys
+from multiprocessing import Process
+from multiprocessing import Queue as mp_Queue
 from operator import mul
-from threading import Thread, current_thread
-from typing import Dict, Generator, List, Optional, Tuple
+from threading import Thread
+from typing import Any, Dict, Generator, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import PIL
@@ -42,7 +44,9 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
         os.chdir(dir)
     except OSError:
         log_exception(
-            f"Could not access '{os.path.abspath(dir)}{os.sep}'", logger, direct=True
+            f"Could not access '{os.path.abspath(dir)}{os.sep}'",
+            logger,
+            direct=True,
         )
         return
 
@@ -94,7 +98,7 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
                     # recursive call
                     result = check_dir(entry) if os.path.isdir(entry) else None
             except RecursionError:
-                log(f"Too deep: {os.getcwd()!r}", logger, logging.ERROR)
+                log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
                 # Don't bother checking anything else in the current directory
                 # Could possibly mark the directory as empty even though it contains
                 # image files but at the same time, not doing this could be very costly
@@ -107,22 +111,61 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
     return None if empty and not content else content
 
 
+def check_dirs(
+    source: str,
+    content_queue: mp_Queue,
+    logging_level: int,
+    globals_: Dict[str, Any],
+    logging_: Dict[str, Any],
+):
+    """Checks a directory source in a newly **spawned** child process.
+
+    Intended as the *target* of a **spawned** process to parallelize directory checks.
+    """
+    from traceback import format_exception
+
+    from . import logging
+
+    def redirect_logs(record):
+        attrdict = record.__dict__
+        exc_info = attrdict["exc_info"]
+        if exc_info:
+            # traceback objects cannot be pickled
+            attrdict["msg"] = "\n".join(
+                (attrdict["msg"], "".join(format_exception(*exc_info)))
+            ).rstrip()
+            attrdict["exc_info"] = None
+        log_queue.put(attrdict)
+
+        return False  # Prevent logs from being emitted by spawned processes
+
+    globals().update(globals_)
+    logging.__dict__.update(logging_)
+    logger.setLevel(logging_level)
+    logger.filter = redirect_logs
+
+    result = False
+    try:
+        result = check_dir(source)
+    except KeyboardInterrupt:
+        pass
+    except Exception:
+        log_exception(f"Checking {source!r} failed", logger)
+    finally:
+        content_queue.put((source, result))
+
+
 def manage_checkers(
     dir_queue: queue.Queue,
     contents: Dict[str, Dict],
     images: List[Tuple[str, Generator]],
 ) -> None:
-    def check(source):
-        current_thread().name = "MainThread"
-        result = False
-        try:
-            result = check_dir(source)
-        except KeyboardInterrupt:
-            pass
-        except Exception:
-            log_exception(f"Checking {source!r} failed", logger)
-        finally:
-            content_queue.put((source, result))
+    from . import logging
+
+    def process_log():
+        attrdict = log_queue.get()
+        attrdict["process"] = PID
+        logger.handle(_logging.makeLogRecord(attrdict))
 
     def process_result(source, result):
         checker = checkers.pop(source)
@@ -131,7 +174,7 @@ def manage_checkers(
             log(
                 f"Checking {source!r} was terminated by signal {-checker.exitcode}",
                 logger,
-                logging.ERROR,
+                _logging.ERROR,
                 direct=False,
             )
         log(
@@ -143,27 +186,60 @@ def manage_checkers(
                 else f"Done checking {source!r}"
             ),
             logger,
-            logging.ERROR if result is False else logging.INFO,
+            _logging.ERROR if result is False else _logging.INFO,
+            verbose=result is not False,
         )
         if False is not result is not None:
             source = os.path.abspath(source)
             contents[source] = result
             images.append((source, scan_dir(source, result, os.getcwd())))
-        checker.close()
+        if CLOSE_KILL:
+            checker.close()
 
-    MAX_CHECKERS = max(len(os.sched_getaffinity(0)) - 1, 2)
-    n = 1
+    # Process.close() and Process.kill() were added in Python 3.7
+    CLOSE_KILL = sys.version_info[:2] >= (3, 7)
+
+    MAX_CHECKERS = args.checkers
+    PID = os.getpid()
+
+    n = 0
     checkers = {}
-    content_queue = Queue()
+    content_queue = mp_Queue()
+    log_queue = mp_Queue()
     source = dir_queue.get()
     try:
         while source:
-            log(f"Started checking {source!r}", logger)
-            checkers.setdefault(
-                source, Process(target=check, args=(source,), name=f"Checker-{n}")
-            ).start()
             n += 1
+            log(f"Checking {source!r}", logger, verbose=True)
+
+            checkers.setdefault(
+                source,
+                Process(
+                    name=f"Checker-{n}",
+                    target=check_dirs,
+                    args=(
+                        source,
+                        content_queue,
+                        logger.getEffectiveLevel(),
+                        {
+                            **{"log_queue": log_queue},
+                            **{
+                                name: globals()[name]
+                                for name in ("RECURSIVE", "SHOW_HIDDEN")
+                            },
+                        },
+                        {  # "Constants" from `.logging`
+                            name: value
+                            for name, value in logging.__dict__.items()
+                            if name.isupper()
+                        },
+                    ),
+                ),
+            ).start()
+
             while True:
+                if not log_queue.empty():
+                    process_log()
                 if not content_queue.empty():
                     process_result(*content_queue.get())
                 if not dir_queue.empty() and len(checkers) < MAX_CHECKERS:
@@ -172,6 +248,8 @@ def manage_checkers(
 
         if checkers:
             while checkers:
+                if not log_queue.empty():
+                    process_log()
                 if not content_queue.empty():
                     process_result(*content_queue.get())
                 # Check for externally terminated checkers
@@ -180,9 +258,10 @@ def manage_checkers(
                         process_result(source, False)
     finally:
         for checker in checkers.values():
-            checker.kill()
+            checker.kill() if CLOSE_KILL else checker.terminate()
             checker.join()
-            checker.close()
+            if CLOSE_KILL:
+                checker.close()
 
 
 def get_urls(
@@ -199,11 +278,11 @@ def get_urls(
             )
         # Also handles `ConnectionTimeout`
         except requests.exceptions.ConnectionError:
-            log(f"Unable to get {source!r}", logger, logging.ERROR)
+            log(f"Unable to get {source!r}", logger, _logging.ERROR)
         except URLNotFoundError as e:
-            log(str(e), logger, logging.ERROR)
+            log(str(e), logger, _logging.ERROR)
         except PIL.UnidentifiedImageError as e:
-            log(str(e), logger, logging.ERROR)
+            log(str(e), logger, _logging.ERROR)
         except Exception:
             log_exception(f"Getting {source!r} failed", logger, direct=True)
         else:
@@ -507,6 +586,16 @@ or multiple valid sources
     # Performance
     perf_options = parser.add_argument_group("Performance Options (General)")
     perf_options.add_argument(
+        "--checkers",
+        type=int,
+        metavar="N",
+        default=max(len(os.sched_getaffinity(0)) - 1, 2),
+        help=(
+            "Maximum number of sub-processes for checking directory sources "
+            f"(default: {max(len(os.sched_getaffinity(0)) - 1, 2)})"
+        ),
+    )
+    perf_options.add_argument(
         "--getters",
         type=int,
         metavar="N",
@@ -570,7 +659,7 @@ or multiple valid sources
 
     init_log(
         args.log,
-        getattr(logging, args.log_level),
+        getattr(_logging, args.log_level),
         args.debug,
         args.verbose,
         args.verbose_log,
@@ -636,9 +725,9 @@ or multiple valid sources
             try:
                 file_images.append((source, Image(TermImage.from_file(source))))
             except PIL.UnidentifiedImageError as e:
-                log(str(e), logger, logging.ERROR)
+                log(str(e), logger, _logging.ERROR)
             except OSError as e:
-                log(f"Could not read {source!r}: {e}", logger, logging.ERROR)
+                log(f"Could not read {source!r}: {e}", logger, _logging.ERROR)
             except Exception:
                 log_exception(f"Opening {source!r} failed", logger, direct=True)
             else:
@@ -651,13 +740,12 @@ or multiple valid sources
                     verbose=True,
                 )
                 continue
-
             dir_queue.put(source)
         else:
             log(
                 f"{source!r} is invalid or does not exist",
                 logger,
-                logging.ERROR,
+                _logging.ERROR,
             )
 
     # Signal end of sources
@@ -694,7 +782,7 @@ or multiple valid sources
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
                     logger,
-                    level=logging.WARNING,
+                    level=_logging.WARNING,
                     verbose=True,
                 )
                 continue
@@ -753,7 +841,7 @@ or multiple valid sources
                     notify.notify(str(e), level=notify.ERROR)
                     err = True
                 else:
-                    log(str(e), logger, logging.CRITICAL)
+                    log(str(e), logger, _logging.CRITICAL)
                     return FAILURE
         if err:
             return INVALID_SIZE
@@ -763,7 +851,7 @@ or multiple valid sources
     return SUCCESS
 
 
-logger = logging.getLogger(__name__)
+logger = _logging.getLogger(__name__)
 
 # Set from within `main()`
 RECURSIVE = None
@@ -771,3 +859,6 @@ SHOW_HIDDEN = None
 # # Used in other modules
 args = None
 url_images = None
+
+# Set from within `check_dirs()`. Hence, only set in checker processes.
+log_queue = None
