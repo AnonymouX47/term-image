@@ -290,6 +290,26 @@ def get_urls(
         source = url_queue.get()
 
 
+def open_files(
+    file_queue: queue.Queue,
+    images: List[Tuple[str, Image]],
+) -> None:
+    source = file_queue.get()
+    while source:
+        log(f"Opening {source!r}", logger, verbose=True)
+        try:
+            images.append((source, Image(TermImage.from_file(source))))
+        except PIL.UnidentifiedImageError as e:
+            log(str(e), logger, _logging.ERROR)
+        except OSError as e:
+            log(f"Could not read {source!r}: {e}", logger, _logging.ERROR)
+        except Exception:
+            log_exception(f"Opening {source!r} failed", logger, direct=True)
+        else:
+            log(f"Done opening {source!r}", logger, verbose=True)
+        source = file_queue.get()
+
+
 def main() -> None:
     """CLI execution sub-entry-point"""
     global args, url_images, RECURSIVE, SHOW_HIDDEN
@@ -704,6 +724,15 @@ or multiple valid sources
     for getter in getters:
         getter.start()
 
+    file_queue = queue.Queue()
+    opener = Thread(
+        target=open_files,
+        args=(file_queue, file_images),
+        name="Opener",
+        daemon=True,
+    )
+    opener.start()
+
     log("Processing sources", logger, loading=True)
     for source in args.sources:
         absolute_source = (
@@ -721,17 +750,7 @@ or multiple valid sources
         if all(urlparse(source)[:3]):  # Is valid URL
             url_queue.put(source)
         elif os.path.isfile(source):
-            log(f"Opening {source!r}", logger, verbose=True)
-            try:
-                file_images.append((source, Image(TermImage.from_file(source))))
-            except PIL.UnidentifiedImageError as e:
-                log(str(e), logger, _logging.ERROR)
-            except OSError as e:
-                log(f"Could not read {source!r}: {e}", logger, _logging.ERROR)
-            except Exception:
-                log_exception(f"Opening {source!r} failed", logger, direct=True)
-            else:
-                log(f"Done opening {source!r}", logger, verbose=True)
+            file_queue.put(source)
         elif os.path.isdir(source):
             if args.cli:
                 log(
@@ -751,10 +770,12 @@ or multiple valid sources
     # Signal end of sources
     for _ in range(args.getters):
         url_queue.put(None)
+    file_queue.put(None)
     dir_queue.put(None)
 
     for getter in getters:
         getter.join()
+    opener.join()
     check_manager.join()
 
     notify.stop_loading()
