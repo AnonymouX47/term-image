@@ -10,8 +10,7 @@ from .. import cli
 from ..logging import log
 from . import main
 from .main import process_input
-from .widgets import Image, info_bar
-from .widgets import main as main_widget
+from .widgets import Image, info_bar, main as main_widget
 
 
 def init(

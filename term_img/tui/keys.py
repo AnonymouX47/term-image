@@ -23,9 +23,14 @@ from .widgets import (
     image_grid,
     image_grid_box,
     key_bar,
+    main as main_widget,
+    menu,
+    overlay,
+    pile,
+    placeholder,
+    view,
+    viewer,
 )
-from .widgets import main as main_widget
-from .widgets import menu, overlay, pile, placeholder, view, viewer
 
 # Action Status Modification
 
@@ -541,7 +546,7 @@ def _confirm_delete(entry):
         os.remove(entry)
     except OSError:
         successful = False
-        logging.log_exception(f"Unable to delete {abspath(entry)}", logger)
+        logging.log_exception(f"Unable to delete {abspath(entry)!r}", logger)
         confirmation.set_text(("warning", "Unable to delete! Check the logs for info."))
     else:
         successful = True

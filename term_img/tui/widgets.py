@@ -11,8 +11,7 @@ import urwid
 from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import _ALPHA_THRESHOLD, TermImage
-from . import keys
-from . import main as tui_main
+from . import keys, main as tui_main
 
 command = urwid.Widget._command_map._command_defaults.copy()
 for action, (key, _) in _nav.items():

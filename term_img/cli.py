@@ -5,8 +5,7 @@ import logging as _logging
 import os
 import queue
 import sys
-from multiprocessing import Process
-from multiprocessing import Queue as mp_Queue
+from multiprocessing import Process, Queue as mp_Queue
 from operator import mul
 from threading import Thread
 from typing import Any, Dict, Generator, List, Optional, Tuple
@@ -177,6 +176,7 @@ def manage_checkers(
                 _logging.ERROR,
                 direct=False,
             )
+
         log(
             (
                 f"Checking {source!r} failed"
@@ -189,10 +189,12 @@ def manage_checkers(
             _logging.ERROR if result is False else _logging.INFO,
             verbose=result is not False,
         )
+
         if False is not result is not None:
             source = os.path.abspath(source)
             contents[source] = result
             images.append((source, scan_dir(source, result, os.getcwd())))
+
         if CLOSE_KILL:
             checker.close()
 
@@ -739,11 +741,7 @@ or multiple valid sources
             source if all(urlparse(source)[:3]) else os.path.abspath(source)
         )
         if absolute_source in absolute_sources:
-            log(
-                f"Source repeated: {absolute_source!r}",
-                logger,
-                verbose=True,
-            )
+            log(f"Source repeated: {absolute_source!r}", logger, verbose=True)
             continue
         absolute_sources.add(absolute_source)
 
@@ -753,19 +751,11 @@ or multiple valid sources
             file_queue.put(source)
         elif os.path.isdir(source):
             if args.cli:
-                log(
-                    f"Skipping directory {source!r}",
-                    logger,
-                    verbose=True,
-                )
+                log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
             dir_queue.put(source)
         else:
-            log(
-                f"{source!r} is invalid or does not exist",
-                logger,
-                _logging.ERROR,
-            )
+            log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
     # Signal end of sources
     for _ in range(args.getters):
@@ -789,11 +779,7 @@ or multiple valid sources
     if args.cli or (
         not args.tui and len(images) == 1 and isinstance(images[0][1], Image)
     ):
-        log(
-            "Running in CLI mode",
-            logger,
-            direct=False,
-        )
+        log("Running in CLI mode", logger, direct=False)
 
         show_name = len(args.sources) > 1
         err = False
@@ -809,11 +795,7 @@ or multiple valid sources
                 continue
 
             if not args.no_anim and image._is_animated and len(images) > 1:
-                log(
-                    f"Skipping animated image: {entry[0]!r}",
-                    logger,
-                    verbose=True,
-                )
+                log(f"Skipping animated image: {entry[0]!r}", logger, verbose=True)
                 continue
 
             if show_name:
