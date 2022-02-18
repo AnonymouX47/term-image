@@ -7,7 +7,7 @@ import queue
 from multiprocessing import Process, Queue
 from operator import mul
 from threading import Thread, current_thread
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Generator, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import PIL
@@ -108,9 +108,9 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
 
 def manage_checkers(
-    dir_queue: Queue,
+    dir_queue: queue.Queue,
     contents: Dict[str, Dict],
-    images: List[Tuple[str, Union[Image, Generator]]],
+    images: List[Tuple[str, Generator]],
 ) -> None:
     def check(source):
         current_thread().name = "MainThread"
@@ -171,7 +171,6 @@ def manage_checkers(
                     break
 
         if checkers:
-            log("Still checking some directories", logger, loading=True)
             while checkers:
                 if not content_queue.empty():
                     process_result(*content_queue.get())
@@ -179,8 +178,6 @@ def manage_checkers(
                 for source, checker in tuple(checkers.items()):
                     if checker.exitcode:
                         process_result(source, False)
-            notify.stop_loading()
-            log("... Done checking all directories!", logger)
     finally:
         for checker in checkers.values():
             checker.kill()
@@ -188,9 +185,35 @@ def manage_checkers(
             checker.close()
 
 
+def get_urls(
+    url_queue: queue.Queue,
+    images: List[Tuple[str, Image]],
+) -> None:
+    """Processes URL sources from a/some separate thread(s)"""
+    source = url_queue.get()
+    while source:
+        log(f"Getting image from {source!r}", logger, verbose=True)
+        try:
+            images.append(
+                (os.path.basename(source), Image(TermImage.from_url(source))),
+            )
+        # Also handles `ConnectionTimeout`
+        except requests.exceptions.ConnectionError:
+            log(f"Unable to get {source!r}", logger, logging.ERROR)
+        except URLNotFoundError as e:
+            log(str(e), logger, logging.ERROR)
+        except PIL.UnidentifiedImageError as e:
+            log(str(e), logger, logging.ERROR)
+        except Exception:
+            log_exception(f"Getting {source!r} failed", logger, direct=True)
+        else:
+            log(f"Done getting {source!r}", logger, verbose=True)
+        source = url_queue.get()
+
+
 def main() -> None:
     """CLI execution sub-entry-point"""
-    global args, RECURSIVE, SHOW_HIDDEN
+    global args, url_images, RECURSIVE, SHOW_HIDDEN
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -481,6 +504,16 @@ or multiple valid sources
         ),
     )
 
+    # Performance
+    perf_options = parser.add_argument_group("Performance Options (General)")
+    perf_options.add_argument(
+        "--getters",
+        type=int,
+        metavar="N",
+        default=4,
+        help="Number of threads for downloading images from URL sources (default: 4)",
+    )
+
     # Logging
     log_options_ = parser.add_argument_group(
         "Logging Options",
@@ -556,19 +589,33 @@ or multiple valid sources
 
     set_font_ratio(args.font_ratio)
 
-    images = []
+    file_images, url_images, dir_images = [], [], []
     contents = {}
     absolute_sources = set()
 
     dir_queue = queue.Queue()
     check_manager = Thread(
         target=manage_checkers,
-        args=(dir_queue, contents, images),
+        args=(dir_queue, contents, dir_images),
         name="CheckManager",
         daemon=True,
     )
     check_manager.start()
 
+    url_queue = queue.Queue()
+    getters = [
+        Thread(
+            target=get_urls,
+            args=(url_queue, url_images),
+            name=f"Getter-{n}",
+            daemon=True,
+        )
+        for n in range(1, args.getters + 1)
+    ]
+    for getter in getters:
+        getter.start()
+
+    log("Processing sources", logger, loading=True)
     for source in args.sources:
         absolute_source = (
             source if all(urlparse(source)[:3]) else os.path.abspath(source)
@@ -583,40 +630,19 @@ or multiple valid sources
         absolute_sources.add(absolute_source)
 
         if all(urlparse(source)[:3]):  # Is valid URL
-            log(
-                f"Getting image from {source!r}",
-                logger,
-                loading=True,
-            )
-            try:
-                images.append(
-                    (os.path.basename(source), Image(TermImage.from_url(source))),
-                )
-            # Also handles `ConnectionTimeout`
-            except requests.exceptions.ConnectionError:
-                notify.stop_loading()
-                log(f"Unable to get {source!r}", logger, logging.ERROR)
-
-            except URLNotFoundError as e:
-                notify.stop_loading()
-                log(str(e), logger, logging.ERROR)
-            except PIL.UnidentifiedImageError as e:
-                notify.stop_loading()
-                log(str(e), logger, logging.ERROR)
-            else:
-                notify.stop_loading()
-                log(f"... Done getting {source!r}!", logger)
+            url_queue.put(source)
         elif os.path.isfile(source):
+            log(f"Opening {source!r}", logger, verbose=True)
             try:
-                images.append((source, Image(TermImage.from_file(source))))
+                file_images.append((source, Image(TermImage.from_file(source))))
             except PIL.UnidentifiedImageError as e:
                 log(str(e), logger, logging.ERROR)
             except OSError as e:
-                log(
-                    f"Could not read {source!r}: {e}",
-                    logger,
-                    logging.ERROR,
-                )
+                log(f"Could not read {source!r}: {e}", logger, logging.ERROR)
+            except Exception:
+                log_exception(f"Opening {source!r} failed", logger, direct=True)
+            else:
+                log(f"Done opening {source!r}", logger, verbose=True)
         elif os.path.isdir(source):
             if args.cli:
                 log(
@@ -634,9 +660,19 @@ or multiple valid sources
                 logging.ERROR,
             )
 
-    dir_queue.put(None)  # Signal end of sources
+    # Signal end of sources
+    for _ in range(args.getters):
+        url_queue.put(None)
+    dir_queue.put(None)
+
+    for getter in getters:
+        getter.join()
     check_manager.join()
 
+    notify.stop_loading()
+    log("... Done!", logger)
+
+    images = file_images + url_images + dir_images
     if not images:
         log("No valid source!", logger)
         return NO_VALID_SOURCE
@@ -732,4 +768,6 @@ logger = logging.getLogger(__name__)
 # Set from within `main()`
 RECURSIVE = None
 SHOW_HIDDEN = None
-args = None  # Imported from within other modules
+# # Used in other modules
+args = None
+url_images = None
