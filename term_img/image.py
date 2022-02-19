@@ -97,7 +97,7 @@ class TermImage:
         if self._is_animated:
             self._frame_duration = 0.1
             self._seek_position = 0
-            self._n_frames = image.n_frames
+            self._n_frames = None
 
         # Recognized advanced sizing options.
         # These are initialized here only to avoid `AttributeError`s in case `_size` is
@@ -217,10 +217,24 @@ class TermImage:
         lambda self: self._original_size, doc="Original image size"
     )
 
-    n_frames = property(
-        lambda self: self._n_frames if self._is_animated else 1,
-        doc="The number of frames in the image",
-    )
+    @property
+    def n_frames(self) -> int:
+        """The number of frames in the image
+
+        NOTE: The first invocation of this property might take a while for images
+        with large number of frames but subsequent invocations won't.
+        """
+        if not self._is_animated:
+            return 1
+
+        if not self._n_frames:
+            self._n_frames = (
+                Image.open(self._source)
+                if isinstance(self._source, str)
+                else self._source
+            ).n_frames
+
+        return self._n_frames
 
     rendered_height = property(
         lambda self: ceil(
@@ -444,7 +458,7 @@ class TermImage:
 
         NOTE:
             * Animations, if not disabled, are infinitely looped but can be terminated
-              with ``Ctrl-C`` (``SIGINT`` or "KeyboardInterrupt").
+              with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
             * If :py:meth:`set_size()` was previously used to set the
               :term:`render size` (directly or not), the last values of its
               *check_height*, *h_allow* and *v_allow* parameters are taken into
@@ -628,12 +642,13 @@ class TermImage:
               appropriate type.
 
         Frame numbers start from 0 (zero).
+        NOTE: `image.n_frames` will have to be computed if it hasn't already been.
         """
         if not isinstance(pos, int):
             raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
-        if not 0 <= pos < self._n_frames if self._is_animated else pos:
+        if not 0 <= pos < self.n_frames if self._is_animated else pos:
             raise ValueError(
-                f"Invalid frame number (got: {pos}, n_frames={self.n_frames})"
+                f"Invalid frame number (got: {pos}, n_frames={self._n_frames})"
             )
         if self._is_animated:
             self._seek_position = pos
@@ -848,35 +863,51 @@ class TermImage:
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
-        This is done infinitely but can be terminated with ``Ctrl-C``.
+        NOTE:
+            - This is done indefinitely but can be terminated with ``Ctrl-C``, thereby
+              raising ``KeyboardInterrupt``.
+            - ``image.n_frames`` might also be computed in the course image animation,
+              as an optimization.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
             self.rendered_height,
         )
-        cache = [None] * self._n_frames
+        cache = []
         prev_seek_pos = self._seek_position
         try:
-            # By implication, the first frame is repeated once at the start :D
-            self.seek(0)
-            cache[0] = frame = self._format_render(
-                self._render_image(image, alpha), *fmt
-            )
+            caching = True
             duration = self._frame_duration
-            for n in cycle(range(self._n_frames)):
-                print(frame, end="", flush=True)  # Current frame
+            self._seek_position = 0
+            cache.append(self._format_render(self._render_image(image, alpha), *fmt))
+            while caching:
+                print(cache[-1], end="", flush=True)  # Current frame
 
                 # Render next frame during current frame's duration
                 start = time.time()
+                self._seek_position += 1
                 self._buffer.truncate()  # Clear buffer
-                self.seek(n)
-                if cache[n]:
-                    frame = cache[n]
-                else:
-                    cache[n] = frame = self._format_render(
-                        self._render_image(image, alpha),
-                        *fmt,
+                try:
+                    cache.append(
+                        self._format_render(self._render_image(image, alpha), *fmt)
                     )
+                except EOFError:
+                    self._n_frames = self._seek_position
+                    caching = False
+
+                # Move cursor up to the begining of the first line of the image
+                # Not flushed until the next frame is printed
+                print("\r\033[%dA" % (lines - 1), end="")
+
+                # Left-over of current frame's duration
+                time.sleep(max(0, duration - (time.time() - start)))
+
+            for n in cycle(range(self._n_frames)):
+                print(cache[n], end="", flush=True)  # Current frame
+
+                # Render next frame during current frame's duration
+                start = time.time()
+
                 # Move cursor up to the begining of the first line of the image
                 # Not flushed until the next frame is printed
                 print("\r\033[%dA" % (lines - 1), end="")
@@ -884,7 +915,7 @@ class TermImage:
                 # Left-over of current frame's duration
                 time.sleep(max(0, duration - (time.time() - start)))
         finally:
-            self.seek(prev_seek_pos)
+            self._seek_position = prev_seek_pos
             # Move the cursor to the line after the image
             # Prevents "overlayed" output in the terminal
             print("\033[%dB" % lines, end="", flush=True)

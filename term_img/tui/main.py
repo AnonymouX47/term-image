@@ -63,7 +63,7 @@ def animate_image(image_widget: Image, forced_render: bool = False) -> None:
                 Image._frame_cache = None
 
     image = image_widget._image
-    Image._frame_cache = [None] * image._n_frames
+    Image._frame_cache = [None] * image.n_frames
     image.seek(0)
     n = 1
     last_alarm = loop.set_alarm_in(FRAME_DURATION, change_frame)

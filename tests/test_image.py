@@ -38,7 +38,7 @@ class TestInstantiation:
         assert image._is_animated is True
         assert image._frame_duration == 0.1
         assert image._seek_position == 0
-        assert image._n_frames == image.n_frames
+        assert image._n_frames is None
 
         # Ensure size arguments get through to `set_size()`
         with pytest.raises(ValueError, match=r".* both width and height"):
@@ -127,10 +127,12 @@ class TestProperties:
         assert image.n_frames == 1
 
         image = TermImage(anim_img)
-        assert image.n_frames > 1
+        n_frames = image.n_frames  # On-demand computation
+        assert n_frames > 1
+        assert image.n_frames == image._n_frames == n_frames
 
         with pytest.raises(AttributeError):
-            image.n_frames = 0
+            image.n_frames = 2
 
     def test_rendered_size_height_width(self):
         image = TermImage(python_img)
