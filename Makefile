@@ -5,7 +5,7 @@ check-format:
 	echo
 
 check-imports:
-	isort --check --diff --color --combine-as .
+	isort --check --diff --color .
 	echo
 
 .PHONY: docs
@@ -16,7 +16,7 @@ format:
 	black .
 
 imports:
-	isort --combine-as .
+	isort .
 
 lint:
 	flake8 --count --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics .
