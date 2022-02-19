@@ -48,7 +48,7 @@ def animate_image(image_widget: Image, forced_render: bool = False) -> None:
 
         loop.remove_alarm(last_alarm)
         if image_box.original_widget is image_widget:
-            last_alarm = loop.set_alarm_in(FRAME_DURATION, change_frame)
+            last_alarm = loop.set_alarm_in(frame_duration, change_frame)
             image.seek(n)
             if forced_render:
                 image_widget._forced_render = True
@@ -63,10 +63,11 @@ def animate_image(image_widget: Image, forced_render: bool = False) -> None:
                 Image._frame_cache = None
 
     image = image_widget._image
+    frame_duration = FRAME_DURATION or image._frame_duration
     Image._frame_cache = [None] * image.n_frames
     image.seek(0)
     n = 1
-    last_alarm = loop.set_alarm_in(FRAME_DURATION, change_frame)
+    last_alarm = loop.set_alarm_in(frame_duration, change_frame)
 
 
 def display_images(

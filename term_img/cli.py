@@ -15,7 +15,7 @@ import PIL
 import requests
 
 from . import __version__, notify, set_font_ratio, tui
-from .config import config_options, font_ratio, frame_duration, max_pixels, user_dir
+from .config import config_options, font_ratio, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
@@ -385,10 +385,9 @@ NOTES:
         "--frame-duration",
         type=float,
         metavar="N",
-        default=frame_duration,
         help=(
-            "Specify the time (in seconds) between frames of an animated image "
-            f"(default: {frame_duration})"
+            "Specify the time (in seconds) between frames for all animated images "
+            "(default: Determined per image from it's metadata OR 0.1)"
         ),
     )
     anim_options.add_argument(
@@ -814,7 +813,8 @@ or multiple valid sources
                 image.scale = (
                     (args.scale_x, args.scale_y) if args.scale is None else args.scale
                 )
-                image.frame_duration = args.frame_duration
+                if args.frame_duration:
+                    image.frame_duration = args.frame_duration
 
                 image.draw(
                     *(

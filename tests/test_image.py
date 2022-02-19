@@ -36,7 +36,7 @@ class TestInstantiation:
 
         image = TermImage(anim_img)
         assert image._is_animated is True
-        assert image._frame_duration == 0.1
+        assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
         assert image._seek_position == 0
         assert image._n_frames is None
 
@@ -100,7 +100,7 @@ class TestProperties:
         assert image.frame_duration is None
 
         image = TermImage(anim_img)
-        assert image.frame_duration == 0.1
+        assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
 
         for duration in (0, 1, "0.1", "1", 0.3j):
             with pytest.raises(TypeError):

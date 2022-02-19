@@ -95,7 +95,7 @@ class TermImage:
 
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
         if self._is_animated:
-            self._frame_duration = 0.1
+            self._frame_duration = (image.info.get("duration") or 100) / 1000
             self._seek_position = 0
             self._n_frames = None
 
@@ -184,9 +184,7 @@ class TermImage:
         if not isinstance(value, float):
             raise TypeError(f"Invalid duration type (got: {type(value).__name__})")
         if value <= 0.0:
-            raise ValueError(
-                f"Invalid frame duration (got: {value}, n_frames={self._n_frames})"
-            )
+            raise ValueError(f"Invalid frame duration (got: {value})")
         if self._is_animated:
             self._frame_duration = value
 

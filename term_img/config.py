@@ -156,6 +156,7 @@ def update_config(config: Dict[str, Any], old_version: str):
     # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
     changes = {
         "0.1": [],
+        "0.2": [("['frame duration']", 0.1, None)],
     }
 
     versions = tuple(changes)
@@ -282,7 +283,7 @@ def update_context_nav_keys(
 
 
 user_dir = os.path.expanduser("~/.term_img")
-version = "0.1"  # For config upgrades
+version = "0.2"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
@@ -332,7 +333,6 @@ valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 _cell_width = 30
 _max_pixels = 2 ** 22  # 2048x2048
 _font_ratio = 0.5
-_frame_duration = 0.1
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -430,7 +430,6 @@ _context_keys = {
 cell_width = _cell_width
 max_pixels = _max_pixels
 font_ratio = _font_ratio
-frame_duration = _frame_duration
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
@@ -438,6 +437,5 @@ expand_key = context_keys["global"]["Key Bar"]
 config_options = {
     "cell width": lambda value: isinstance(value, int) and value > 0,
     "font ratio": lambda value: isinstance(value, float) and value > 0.0,
-    "frame duration": lambda value: isinstance(value, float) and value > 0.0,
     "max pixels": lambda value: isinstance(value, int) and value > 0,
 }
