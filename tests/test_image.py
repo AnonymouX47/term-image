@@ -502,7 +502,7 @@ def test_format_spec():
         "#a45gh4",
         " ",
     ):
-        with pytest.raises(ValueError, match=r"Invalid format specifier"):
+        with pytest.raises(ValueError, match=r"Invalid format specification"):
             format(image, spec)
 
     for spec in (

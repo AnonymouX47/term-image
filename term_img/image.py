@@ -3,7 +3,7 @@ Core Library Definitions
 ========================
 """
 
-__all__ = ("TermImage",)
+__all__ = ("TermImage", "ImageIterator")
 
 import io
 import os
@@ -118,33 +118,20 @@ class TermImage:
     def __format__(self, spec):
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
-        match_ = _FORMAT_SPEC.fullmatch(spec)
-        if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
-            raise ValueError("Invalid format specifier")
-
-        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()
-
-        width = width and int(width)
-        height = height and int(height)
+        h_align, width, v_align, height, alpha = self._check_format_spec(spec)
 
         return self._renderer(
             lambda image: self._format_render(
-                self._render_image(
-                    image,
-                    (
-                        threshold_or_bg
-                        and (
-                            "#" + threshold_or_bg
-                            if _HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
-                            else float(threshold_or_bg)
-                        )
-                        if alpha
-                        else _ALPHA_THRESHOLD
-                    ),
-                ),
-                *self._check_formatting(h_align, width, v_align, height),
+                self._render_image(image, alpha),
+                h_align,
+                width,
+                v_align,
+                height,
             )
         )
+
+    def __iter__(self):
+        return ImageIterator(self, 1, "1.1", False)
 
     def __repr__(self):
         return (
@@ -768,6 +755,35 @@ class TermImage:
 
     # Private Methods
 
+    def _check_format_spec(self, spec: str):
+        """Validates a format specification and translates it into the required values.
+
+        Returns:
+            A tuple ``(h_align, width, v_align, height, alpha)`` containing values
+            as required by ``_format_render()`` and ``_render_image()``.
+        """
+        match_ = _FORMAT_SPEC.fullmatch(spec)
+        if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
+            raise ValueError(f"Invalid format specification (got: {spec!r})")
+
+        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()
+
+        return (
+            *self._check_formatting(
+                h_align, width and int(width), v_align, height and int(height)
+            ),
+            (
+                threshold_or_bg
+                and (
+                    "#" + threshold_or_bg
+                    if _HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
+                    else float(threshold_or_bg)
+                )
+                if alpha
+                else _ALPHA_THRESHOLD
+            ),
+        )
+
     def _check_formatting(
         self,
         h_align: Optional[str] = None,
@@ -1323,6 +1339,166 @@ class TermImage:
 
         self._width_compensation = 0.0
         return (width, height)
+
+
+class ImageIterator:
+    """Effeciently iterate over :term:`rendered` frames of an :term:`animated` image
+
+    Args:
+        image: Animated image.
+        repeat: The number of times to go over the entire image. A negative value
+          implies infinite repetition.
+        format: The :ref:`format specification <format-spec>` to be used to format the
+          rendered frames (default: auto).
+        cached: Determines if the :term:`rendered` frames will be cached (for speed up
+          of subsequent renders) or not.
+
+          - If a ``bool``, it directly sets if the frames will be cached or not.
+          - If an ``int``, caching is enabled only if the number of frames in the image
+            is less than or equal to the given number.
+          - If *repeat* equals ``1``, caching is disabled.
+
+    NOTE:
+        - The iterator has immediate response to changes in the image
+          :term:`render size` and :term:`scale`.
+        - If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
+          calculated per frame.
+        - The current frame number reflects on *image* during iteration.
+        - After the iterator is exhauseted, *image* is set to frame `0`.
+    """
+
+    def __init__(
+        self,
+        image: TermImage,
+        repeat: int = -1,
+        format: str = "",
+        cached: Union[bool, int] = 100,
+    ):
+        if not isinstance(image, TermImage):
+            raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
+        if not image._is_animated:
+            raise ValueError("This image is not animated")
+
+        if not isinstance(repeat, int):
+            raise TypeError(f"Invalid type for 'repeat' (got: {type(repeat).__name__})")
+        if not repeat:
+            raise ValueError("'repeat' must be non-zero")
+
+        if not isinstance(format, str):
+            raise TypeError(
+                "Invalid type for 'format' " f"(got: {type(format).__name__})"
+            )
+        *fmt, alpha = image._check_format_spec(format)
+
+        if not isinstance(cached, (bool, int)):
+            raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
+
+        self._image = image
+        self._repeat = repeat
+        self._format = format
+        self._cached = (
+            cached if isinstance(cached, bool) else image.n_frames <= cached
+        ) and repeat != 1
+        self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return next(self._animator)
+        except StopIteration:
+            raise StopIteration(
+                "Iteration has reached the given repeat count or was interruped"
+            ) from None
+
+    def __repr__(self):
+        return "{}(image={!r}, repeat={}, format={!r}, cached={})".format(
+            type(self).__name__,
+            *self.__dict__.values(),
+        )
+
+    def _animate(
+        self,
+        img: Image.Image,
+        alpha: Union[None, float, str],
+        fmt: Tuple[Union[None, str, int]],
+    ) -> None:
+        """Returns a generator that yields rendered and formatted frames of the
+        underlying image.
+
+        NOTE: ``image.n_frames`` might also be computed in the course of iteration,
+          if it hasn't, as an optimization.
+        """
+        image = self._image
+        cached = self._cached
+        repeat = self._repeat
+        if cached:
+            cache = []
+
+        # Size must be set before hashing, since `None` will always
+        # compare equal but doesn't mean the size is the same.
+        unset_size = not image._size
+        if unset_size:
+            image.set_size()
+
+        image._seek_position = 0
+        frame = image._format_render(image._render_image(img, alpha), *fmt)
+        while repeat:
+            if cached:
+                cache.append((frame, hash(image._size)))
+
+            if unset_size:
+                image._size = None
+
+            yield frame
+            image._seek_position += 1
+
+            # Size must be set before hashing, since `None` will always
+            # compare equal but doesn't mean the size is the same.
+            unset_size = not image._size
+            if unset_size:
+                image.set_size()
+
+            try:
+                frame = image._format_render(image._render_image(img, alpha), *fmt)
+            except EOFError:
+                if not image._n_frames:
+                    image._n_frames = image._seek_position
+                image._seek_position = 0
+                repeat -= 1
+                if cached:
+                    cached = False
+                elif repeat:
+                    frame = image._format_render(image._render_image(img, alpha), *fmt)
+
+        if unset_size:
+            image._size = None
+
+        n_frames = image._n_frames
+        while repeat:
+            n = 0
+            while n < n_frames:
+                # Size must be set before hashing, since `None` will always
+                # compare equal but doesn't mean the size is the same.
+                unset_size = not image._size
+                if unset_size:
+                    image.set_size()
+
+                frame, size_hash = cache[n]
+                if hash(image._size) != size_hash:
+                    frame = image._format_render(image._render_image(img, alpha), *fmt)
+                    cache[n] = (frame, hash(image._size))
+
+                if unset_size:
+                    image._size = None
+
+                yield frame
+                n += 1
+                image._seek_position = n
+
+            image._seek_position = 0
+            repeat -= 1
 
 
 # Reserved
