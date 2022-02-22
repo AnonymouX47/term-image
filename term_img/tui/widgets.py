@@ -120,16 +120,13 @@ class Image(urwid.Widget):
 
     _faulty_image = urwid.SolidFill("?")
     _placeholder = urwid.SolidFill(".")
+
     _force_render = False
     _force_render_contexts = {"image", "full-image", "full-grid-image"}
+    _forced_anim_size_hash = None
 
     _last_canv = (None, None)
     _grid_cache = {}
-
-    # Set per image from `.main.animate_image()`.
-    # Since only one full-sized (non-grid-cell) image is rendered per time,
-    # there shouldn't be collisions.
-    _frame_cache = None
 
     _alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
 
@@ -156,20 +153,15 @@ class Image(urwid.Widget):
 
         # Cache retrieval
 
-        if (
-            view.original_widget is image_grid_box
-            and tui_main.get_context() != "full-grid-image"
-        ):
+        if view.original_widget is image_grid_box and context != "full-grid-image":
             canv = self._grid_cache.get(self)
             # Grid render cell-width adjusts when _maxcol_ < _cell_width_.
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
             if canv and size[0] + 2 == image_grid.cell_width:
                 return canv
-        elif not tui_main.NO_ANIMATION and image._is_animated:
-            canv = self._frame_cache[image._seek_position]
-            if canv and canv.size == size:
-                return canv
-        elif self._last_canv[0] == hash((self._image._source, size)):
+        elif not image._is_animated and self._last_canv[0] == hash(
+            (self._image._source, size)
+        ):
             if context in self._force_render_contexts:
                 keys.disable_actions(context, "Force Render")
             return self._last_canv[1]
@@ -178,7 +170,15 @@ class Image(urwid.Widget):
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS:
             if self._force_render:
-                del self._force_render
+                # `.main.animate_image()` deletes `_force_render` when done with an
+                # image to avoid the cost of attribute creation and deletion per frame
+                if image.is_animated:
+                    if image._seek_position == 0:
+                        __class__._forced_anim_size_hash = hash(size)
+                    elif hash(size) != self._forced_anim_size_hash:
+                        self._force_render = False
+                else:
+                    del self._force_render
             else:
                 if context in self._force_render_contexts:
                     keys.enable_actions(context, "Force Render")
@@ -207,34 +207,38 @@ class Image(urwid.Widget):
             # string (as a list though) then generates and yields the complete lines
             # **as needed**. Trimmed padding lines are never generated at all.
             canv = ImageCanvas(
-                format(image, f"1.1{self._alpha}").encode().split(b"\n"),
+                (
+                    next(self._animator)
+                    if image._is_animated and hasattr(self, "_animator")
+                    else format(image, f"1.1{self._alpha}")
+                )
+                .encode()
+                .split(b"\n"),
                 size,
                 image.rendered_size,
             )
         except Exception:
-            logging.log_exception(
-                f"{image._source!r} could not be loaded",
-                logger,
-                direct=(
-                    view.original_widget is image_box
-                    or tui_main.get_context() == "full-grid-image"
-                ),
-            )
+            if not hasattr(self, "_faulty"):
+                # Ensure a fault is logged only once per image, per directory scan
+                self._faulty = None
+                logging.log_exception(
+                    f"{image._source!r} could not be loaded",
+                    logger,
+                    direct=(
+                        view.original_widget is image_box
+                        or context == "full-grid-image"
+                    ),
+                )
             canv = self._faulty_image.render(size, focus)
 
         # Cache storing
 
-        if (
-            view.original_widget is image_grid_box
-            and tui_main.get_context() != "full-grid-image"
-        ):
+        if view.original_widget is image_grid_box and context != "full-grid-image":
             # Grid render cell width adjusts when _maxcols_ < _cell_width_
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             if size[0] + 2 == image_grid.cell_width:
                 __class__._grid_cache[self] = canv
-        elif not tui_main.NO_ANIMATION and image._is_animated:
-            self._frame_cache[image._seek_position] = canv
-        else:
+        elif not image._is_animated:
             __class__._last_canv = (hash((self._image._source, size)), canv)
 
         return canv

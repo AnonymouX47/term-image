@@ -2,6 +2,7 @@
 
 import logging as _logging
 import os
+from operator import mul
 from os.path import basename, isfile, islink, realpath
 from typing import Dict, Generator, Iterable, Tuple, Union
 
@@ -10,7 +11,7 @@ import urwid
 
 from .. import notify
 from ..config import context_keys, expand_key
-from ..image import TermImage
+from ..image import ImageIterator, TermImage
 from ..logging import log_exception
 from .keys import (
     disable_actions,
@@ -38,36 +39,40 @@ from .widgets import (
 )
 
 
-def animate_image(image_widget: Image, forced_render: bool = False) -> None:
+def animate_image(image: Image, forced_render: bool = False) -> None:
     """Changes frames of an animated image"""
-    if NO_ANIMATION:
+    if NO_ANIMATION or (
+        mul(*image._image._original_size) > MAX_PIXELS and not forced_render
+    ):
         return
 
-    def change_frame(*_) -> None:
-        nonlocal last_alarm, n
+    def next_frame(*_) -> None:
+        nonlocal last_alarm
 
         loop.remove_alarm(last_alarm)
-        if image_box.original_widget is image_widget:
-            last_alarm = loop.set_alarm_in(frame_duration, change_frame)
-            image.seek(n)
-            if forced_render:
-                image_widget._forced_render = True
-            n += 1
-            if n == image._n_frames:
-                n = 0
+        if image_box.original_widget is image and (
+            not forced_render or image._force_render
+        ):
+            last_alarm = loop.set_alarm_in(frame_duration, next_frame)
         else:
-            image.seek(0)
-            # Avoid overwriting the frame-cache for a new animated image
-            widget = image_box.original_widget
-            if isinstance(widget, Image) and not widget._image._is_animated:
-                Image._frame_cache = None
+            del image._animator
+            # See `.widgets,Image.render()`
+            if forced_render:
+                del image._force_render
 
-    image = image_widget._image
-    frame_duration = FRAME_DURATION or image._frame_duration
-    Image._frame_cache = [None] * image.n_frames
-    image.seek(0)
-    n = 1
-    last_alarm = loop.set_alarm_in(frame_duration, change_frame)
+    frame_duration = FRAME_DURATION or image._image._frame_duration
+    image._animator = ImageIterator(image._image, -1, f"1.1{image._alpha}")._animator
+
+    # `Image.render()` checks for this. It has to be set here since `ImageIterator`
+    # doesn't set it until the first `next()` is called.
+    image._image._seek_position = 0
+
+    # Only needs to be set once for an animated image, not per frame
+    # See `Image.render()`
+    if forced_render:
+        image._force_render = True
+
+    last_alarm = loop.set_alarm_in(frame_duration, next_frame)
 
 
 def display_images(

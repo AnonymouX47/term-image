@@ -456,7 +456,11 @@ def set_image_grid_actions():
 def force_render_maximized_cell():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
-    image_box._w.contents[1][0].contents[1][0]._force_render = True
+    image = image_box._w.contents[1][0].contents[1][0]
+    if image._image._is_animated:
+        main.animate_image(image, True)
+    else:
+        image._force_render = True
 
 
 # full-image, full-grid-image
@@ -504,7 +508,11 @@ def next_image():
 def force_render():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
-    main.menu_list[menu.focus_position - 1][1]._force_render = True
+    image = main.menu_list[menu.focus_position - 1][1]
+    if image._image._is_animated:
+        main.animate_image(image, True)
+    else:
+        image._force_render = True
 
 
 def set_image_view_actions(context: str = None):
