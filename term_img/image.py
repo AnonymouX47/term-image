@@ -84,7 +84,6 @@ class TermImage:
 
         self._closed = False
         self._source = image
-        self._buffer = io.StringIO()
         self._original_size = image.size
         if width is None is height:
             self._size = None
@@ -378,21 +377,18 @@ class TermImage:
         """Finalizes the instance and releases external resources.
 
         NOTE:
-            * It's not neccesary to explicity call this method, as it's automatically
-              called when neccesary.
+            * In most cases, it's not neccesary to explicity call this method, as it's
+              automatically called when the instance is garbage-collected.
             * This method can be safely called mutiple times.
             * If the instance was initialized with a PIL image, the PIL image is never
               finalized.
         """
         try:
             if not self._closed:
-                self._buffer.close()
-                self._buffer = None
-
                 if (
                     hasattr(self, "_url")
-                    and os.path.exists(self._source)
                     # The file might not exist for whatever reason.
+                    and os.path.exists(self._source)
                 ):
                     os.remove(self._source)
         except AttributeError:
@@ -857,15 +853,18 @@ class TermImage:
         return value
 
     def _display_animated(
-        self, image: Image.Image, alpha: Optional[float], *fmt: Union[None, str, int]
+        self,
+        image: Image.Image,
+        alpha: Union[None, float, str],
+        *fmt: Union[None, str, int],
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
         NOTE:
             - This is done indefinitely but can be terminated with ``Ctrl-C``, thereby
               raising ``KeyboardInterrupt``.
-            - ``image.n_frames`` might also be computed in the course image animation,
-              as an optimization.
+            - ``image.n_frames`` might be computed in the course of image animation,
+              if it hasn't, as an optimization.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
@@ -884,13 +883,13 @@ class TermImage:
                 # Render next frame during current frame's duration
                 start = time.time()
                 self._seek_position += 1
-                self._buffer.truncate()  # Clear buffer
                 try:
                     cache.append(
                         self._format_render(self._render_image(image, alpha), *fmt)
                     )
                 except EOFError:
-                    self._n_frames = self._seek_position
+                    if not self._n_frames:
+                        self._n_frames = self._seek_position
                     caching = False
 
                 # Move cursor up to the begining of the first line of the image
@@ -971,7 +970,7 @@ class TermImage:
 
         return "\n".join(lines)
 
-    def _render_image(self, image: Image.Image, alpha: Optional[float]) -> str:
+    def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
         """Converts image pixel data into a "color-coded" string.
 
         Two pixels per character using FG and BG colors.
@@ -987,7 +986,7 @@ class TermImage:
         # than concatenate and write together.
 
         # Eliminate attribute resolution cost
-        buffer = self._buffer
+        buffer = io.StringIO()
         buf_write = buffer.write
 
         def update_buffer():
@@ -1230,8 +1229,6 @@ class TermImage:
             return renderer(image, *args, **kwargs)
 
         finally:
-            self._buffer.seek(0)  # Reset buffer pointer
-            self._buffer.truncate()  # Clear buffer
             if reset_size:
                 self._size = None
 
