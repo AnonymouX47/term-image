@@ -13,8 +13,7 @@ def main() -> int:
 
     # 1. `PIL.Image.open()` seems to cause forked child processes to block when called
     # in both the parent and the child.
-    # 2. Unifies thing across multiple platforms, since Windows doesn't support
-    # `os.fork()`.
+    # 2. Unifies things across multiple platforms.
     multiprocessing.set_start_method("spawn")
 
     init_config()  # Must be called before anything else is imported from `.config`.

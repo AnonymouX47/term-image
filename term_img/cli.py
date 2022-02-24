@@ -7,7 +7,7 @@ import queue
 import sys
 from multiprocessing import Process, Queue as mp_Queue
 from operator import mul
-from threading import Thread
+from threading import Thread, current_thread
 from typing import Any, Dict, Generator, List, Optional, Tuple
 from urllib.parse import urlparse
 
@@ -158,7 +158,14 @@ def manage_checkers(
     dir_queue: queue.Queue,
     contents: Dict[str, Dict],
     images: List[Tuple[str, Generator]],
+    opener: Thread,
 ) -> None:
+    """Manages the processing of directory sources in parallel using multiple processes.
+
+    If multiprocessing is not supported on the host platform, the sources are processed
+    serially in the current thread of execution, after all file sources have been
+    processed.
+    """
     from . import logging
 
     def process_log():
@@ -167,15 +174,16 @@ def manage_checkers(
         logger.handle(_logging.makeLogRecord(attrdict))
 
     def process_result(source, result):
-        checker = checkers.pop(source)
-        checker.join()
-        if checker.exitcode:
-            log(
-                f"Checking {source!r} was terminated by signal {-checker.exitcode}",
-                logger,
-                _logging.ERROR,
-                direct=False,
-            )
+        if MULTI:
+            checker = checkers.pop(source)
+            checker.join()
+            if checker.exitcode:
+                log(
+                    f"Checking {source!r} was terminated by signal {-checker.exitcode}",
+                    logger,
+                    _logging.ERROR,
+                    direct=False,
+                )
 
         log(
             (
@@ -195,75 +203,103 @@ def manage_checkers(
             contents[source] = result
             images.append((source, scan_dir(source, result, os.getcwd())))
 
-        if CLOSE_KILL:
+        if MULTI and CLOSE_KILL:
             checker.close()
 
-    # Process.close() and Process.kill() were added in Python 3.7
-    CLOSE_KILL = sys.version_info[:2] >= (3, 7)
-
-    MAX_CHECKERS = args.checkers
-    PID = os.getpid()
-
-    n = 0
-    checkers = {}
-    content_queue = mp_Queue()
-    log_queue = mp_Queue()
-    source = dir_queue.get()
     try:
-        while source:
-            n += 1
-            log(f"Checking {source!r}", logger, verbose=True)
+        content_queue = mp_Queue()
+        log_queue = mp_Queue()
+    except ImportError:
+        MULTI = False
+        log(
+            "Multiprocessing not supported on this platform, "
+            "directory sources will be processed serially",
+            logger,
+            _logging.ERROR,
+        )
+    else:
+        MULTI = True
+        MAX_CHECKERS = args.checkers
+        PID = os.getpid()
+        checkers = {}
 
-            checkers.setdefault(
-                source,
-                Process(
-                    name=f"Checker-{n}",
-                    target=check_dirs,
-                    args=(
-                        source,
-                        content_queue,
-                        logger.getEffectiveLevel(),
-                        {
-                            **{"log_queue": log_queue},
-                            **{
-                                name: globals()[name]
-                                for name in ("RECURSIVE", "SHOW_HIDDEN")
+        # Process.close() and Process.kill() were added in Python 3.7
+        CLOSE_KILL = sys.version_info[:2] >= (3, 7)
+
+    source = dir_queue.get()
+    if MULTI:
+        try:
+            n = 0
+            while source:
+                n += 1
+                log(f"Checking {source!r}", logger, verbose=True)
+
+                checkers.setdefault(
+                    source,
+                    Process(
+                        name=f"Checker-{n}",
+                        target=check_dirs,
+                        args=(
+                            source,
+                            content_queue,
+                            logger.getEffectiveLevel(),
+                            {
+                                **{"log_queue": log_queue},
+                                **{
+                                    name: globals()[name]
+                                    for name in ("RECURSIVE", "SHOW_HIDDEN")
+                                },
                             },
-                        },
-                        {  # "Constants" from `.logging`
-                            name: value
-                            for name, value in logging.__dict__.items()
-                            if name.isupper()
-                        },
+                            {  # "Constants" from `.logging`
+                                name: value
+                                for name, value in logging.__dict__.items()
+                                if name.isupper()
+                            },
+                        ),
                     ),
-                ),
-            ).start()
+                ).start()
 
-            while True:
-                if not log_queue.empty():
-                    process_log()
-                if not content_queue.empty():
-                    process_result(*content_queue.get())
-                if not dir_queue.empty() and len(checkers) < MAX_CHECKERS:
-                    source = dir_queue.get()
-                    break
+                while True:
+                    if not log_queue.empty():
+                        process_log()
+                    if not content_queue.empty():
+                        process_result(*content_queue.get())
+                    if not dir_queue.empty() and len(checkers) < MAX_CHECKERS:
+                        source = dir_queue.get()
+                        break
 
-        if checkers:
-            while checkers:
-                if not log_queue.empty():
-                    process_log()
-                if not content_queue.empty():
-                    process_result(*content_queue.get())
-                # Check for externally terminated checkers
-                for source, checker in tuple(checkers.items()):
-                    if checker.exitcode:
-                        process_result(source, False)
-    finally:
-        for checker in checkers.values():
-            checker.kill() if CLOSE_KILL else checker.terminate()
-            checker.join()
-            if CLOSE_KILL:
-                checker.close()
+            if checkers:
+                while checkers:
+                    if not log_queue.empty():
+                        process_log()
+                    if not content_queue.empty():
+                        process_result(*content_queue.get())
+                    # Check for externally terminated checkers
+                    for source, checker in tuple(checkers.items()):
+                        if checker.exitcode:
+                            process_result(source, False)
+        finally:
+            for checker in checkers.values():
+                checker.kill() if CLOSE_KILL else checker.terminate()
+                checker.join()
+                if CLOSE_KILL:
+                    checker.close()
+    else:
+        current_thread.name = "Checker"
+
+        # wait till after file sources are processed, since the working directory
+        # will be changing
+        opener.join()
+
+        while source:
+            result = False
+            try:
+                result = check_dir(source, os.getcwd())
+            except Exception:
+                log_exception(f"Checking {source!r} failed", logger)
+            finally:
+                process_result(source, result)
+            source = dir_queue.get()
 
 
 def get_urls(
@@ -606,14 +642,23 @@ or multiple valid sources
 
     # Performance
     perf_options = parser.add_argument_group("Performance Options (General)")
+    default_checkers = max(
+        (
+            len(os.sched_getaffinity(0))
+            if hasattr(os, "sched_getaffinity")
+            else os.cpu_count() or 0
+        )
+        - 1,
+        2,
+    )
     perf_options.add_argument(
         "--checkers",
         type=int,
         metavar="N",
-        default=max(len(os.sched_getaffinity(0)) - 1, 2),
+        default=default_checkers,
         help=(
             "Maximum number of sub-processes for checking directory sources "
-            f"(default: {max(len(os.sched_getaffinity(0)) - 1, 2)})"
+            f"(default: {default_checkers})"
         ),
     )
     perf_options.add_argument(
@@ -703,15 +748,6 @@ or multiple valid sources
     contents = {}
     absolute_sources = set()
 
-    dir_queue = queue.Queue()
-    check_manager = Thread(
-        target=manage_checkers,
-        args=(dir_queue, contents, dir_images),
-        name="CheckManager",
-        daemon=True,
-    )
-    check_manager.start()
-
     url_queue = queue.Queue()
     getters = [
         Thread(
@@ -734,6 +770,18 @@ or multiple valid sources
     )
     opener.start()
 
+    os_is_unix = sys.platform not in {"win32", "cygwin"}
+
+    if os_is_unix:
+        dir_queue = queue.Queue()
+        check_manager = Thread(
+            target=manage_checkers,
+            args=(dir_queue, contents, dir_images, opener),
+            name="CheckManager",
+            daemon=True,
+        )
+        check_manager.start()
+
     log("Processing sources", logger, loading=True)
     for source in args.sources:
         absolute_source = (
@@ -752,6 +800,9 @@ or multiple valid sources
             if args.cli:
                 log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
+            if not os_is_unix:
+                dir_images = True
+                continue
             dir_queue.put(source)
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
@@ -760,14 +811,25 @@ or multiple valid sources
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    dir_queue.put(None)
+    if os_is_unix:
+        dir_queue.put(None)
 
     for getter in getters:
         getter.join()
     opener.join()
-    check_manager.join()
+    if os_is_unix:
+        check_manager.join()
 
     notify.stop_loading()
+
+    if not os_is_unix and dir_images:
+        log(
+            "Directory sources skipped, not supported on Windows!",
+            logger,
+            _logging.ERROR,
+        )
+        dir_images = []
+
     log("... Done!", logger)
 
     images = file_images + url_images + dir_images
@@ -848,8 +910,11 @@ or multiple valid sources
                     return FAILURE
         if err:
             return INVALID_SIZE
-    else:
+    elif os_is_unix:
         tui.init(args, images, contents)
+    else:
+        log("The TUI is not supported on Windows!", logger, _logging.CRITICAL)
+        return FAILURE
 
     return SUCCESS
 
