@@ -83,18 +83,22 @@ def display_images(
     *,
     top_level: bool = False,
 ) -> Generator[None, int, bool]:
-    """Display images in _dir_ (and sub-directories, if '--recursive' is set)
-    as yielded by `scan_dir(dir)`.
+    """Displays images in _dir_ (and sub-directories, if '--recursive' is set)
+    as yielded by ``scan_dir(dir)``.
 
     Args:
         - dir: Path to directory containing images.
-        - items: An iterator yielding the images in _dir_ and/or similar iterators
-            for sub-directories of _dir_ (such as returned by `scan_dir(dir)`).
+        - items: An iterable of ``(entry, value)`` pairs, such as yielded by
+          ``scan_dir(dir)`` i.e:
+
+          - ``(str, Image)`` for images in *dir*, and
+          - ``(str, Ellipsis)`` for sub-directories of *dir*.
+
         - contents: Tree of directories containing readable images
-            (such as returned by `check_dir(dir)`).
-        - prev_dir: Path to set as working directory after displaying images in _dir_
-            (default:  parent directory of _dir_).
-        - top_level: Specifies if _dir_ is the top level (For internal use only).
+          (such as returned by `check_dir(dir)`).
+        - prev_dir: Path to set as working directory after displaying images in *dir*
+          (default:  parent directory of *dir*).
+        - top_level: Specifies if *dir* is the top level (For internal use only).
     """
     items = sorted(
         items,
@@ -142,21 +146,10 @@ def display_images(
                 # so the program can't be broken.
                 break
 
-            if not value.gi_frame:
-                # The directory has been visited earlier
-                value = scan_dir(
-                    entry,
-                    contents[entry],
-                    # Return to Top-Level Directory, OR
-                    # Return to the link's parent rather than the linked directory's
-                    # parent
-                    os.getcwd() if top_level or islink(entry) else "..",
-                )
-
             logger.debug(f"Going into {realpath(entry)}/")
             empty = yield from display_images(
                 entry,
-                value,
+                scan_dir(entry, contents[entry]),
                 contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
@@ -218,14 +211,7 @@ def display_images(
                         urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
                         image_grid.options(),
                     )
-                    for _, val in scan_dir(
-                        entry,
-                        contents[entry],
-                        # Return to Top-Level Directory, OR
-                        # Return to the link's parent rather than the linked directory's
-                        # parent
-                        os.getcwd() if top_level or islink(entry) else "..",
-                    )
+                    for _, val in scan_dir(entry, contents[entry])
                     if isinstance(val, Image)  # Exclude directories from the grid
                 ]
 
@@ -310,51 +296,45 @@ def process_input(key: str) -> bool:
 
 
 def scan_dir(
-    dir: str, contents: Dict[str, Dict[str, dict]], prev_dir: str = ".."
+    dir: str, contents: Dict[str, Dict[str, dict]]
 ) -> Generator[Tuple[str, Union[Image, Generator]], None, None]:
-    """Scan _dir_ (and sub-directories, if '--recursive' is set) for readable images
-    using a directory tree of the form produced by `.cli.check_dir(dir)`.
+    """Scans *dir* (and sub-directories, if '--recursive' is set) for readable images
+    using a directory tree of the form produced by ``.cli.check_dir(dir)``.
 
     Args:
         - dir: Path to directory to be scanned.
         - contents: Tree of directories containing readable images
-            (as produced by `check_dir(dir)`).
-        - prev_dir: Path to set as working directory after scannning _dir_
-            (default:  parent directory of _dir_).
+            (as produced by ``.cli.check_dir(dir)``).
 
     Yields:
-        - A `term_img.widgets.Image` instance for each image in _dir_.
-        - A similar generator for sub-directories (if '--recursive' is set).
+        A tuple ``(entry, value)``, where *entry* is ``str`` (the item name)
+        and *value* is:
+
+          - ``.tui.widgets.Image``, for images in *dir*, and
+          - `Ellipsis` for sub-directories of *dir* (if '--recursive' is set).
 
     - If '--all' is set, hidden (.*) images and subdirectories are considered.
     """
-    os.chdir(dir)
     errors = 0
-    for entry in os.listdir():
+    full_dir = dir + os.sep
+    for entry in os.listdir(dir):
+        full_entry = full_dir + entry
         if entry.startswith(".") and not SHOW_HIDDEN:
             continue
-        if isfile(entry):
+        if isfile(full_entry):
             try:
-                PIL.Image.open(entry)
+                PIL.Image.open(full_entry)
             except PIL.UnidentifiedImageError:
                 # Reporting will apply to every non-image file :(
                 pass
             except Exception:
-                log_exception(f"{realpath(entry)!r} could not be read", logger)
+                log_exception(f"{realpath(full_entry)!r} could not be read", logger)
                 errors += 1
             else:
-                yield entry, Image(TermImage.from_file(entry))
+                yield entry, Image(TermImage.from_file(full_entry))
         elif RECURSIVE and entry in contents:
-            if islink(entry):  # check_dir() already eliminates bad symlinks
-                # Return to the link's parent rather than the linked directory's parent
-                yield (
-                    entry,
-                    scan_dir(entry, contents[entry], os.getcwd()),
-                )
-            else:
-                yield entry, scan_dir(entry, contents[entry])
-
-    os.chdir(prev_dir)
+            # check_dir() already eliminates bad symlinks
+            yield entry, ...
     if errors:
         notify.notify(
             f"{errors} file(s) could not be read in {realpath(dir)!r}! Check the logs.",
@@ -405,7 +385,7 @@ def update_menu(
     ] + [
         urwid.AttrMap(
             MenuEntry(
-                basename(entry) + "/" * isinstance(value, Generator),
+                basename(entry) + "/" * (value is ...),
                 "left",
                 "clip",
             ),

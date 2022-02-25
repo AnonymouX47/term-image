@@ -5,7 +5,7 @@ import os
 from os.path import abspath, basename
 from shutil import get_terminal_size
 from time import sleep
-from types import FunctionType, GeneratorType
+from types import FunctionType
 from typing import Tuple
 
 import urwid
@@ -364,7 +364,7 @@ def set_menu_actions():
     pos = menu.focus_position - 1
     if pos == -1:
         disable_actions("menu", "Switch Pane", "Delete", "Prev", "Page Up", "Top")
-    elif isinstance(main.menu_list[pos][1], GeneratorType):
+    elif main.menu_list[pos][1] is ...:
         disable_actions("menu", "Delete")
         enable_actions("menu", "Prev", "Page Up", "Top")
     else:
@@ -387,9 +387,7 @@ def set_menu_actions():
 
 @register_key(("menu", "Open"))
 def open():
-    if menu.focus_position == 0 or isinstance(
-        main.menu_list[menu.focus_position - 1][1], GeneratorType
-    ):
+    if menu.focus_position == 0 or main.menu_list[menu.focus_position - 1][1] is ...:
         main.displayer.send(main.OPEN)
     else:
         main.set_context("full-image")
@@ -524,8 +522,7 @@ def set_image_view_actions(context: str = None):
 
     if (
         menu.focus_position == len(main.menu_list)  # Last item
-        # Next item is a directory
-        or isinstance(main.menu_list[menu.focus_position][1], GeneratorType)
+        or main.menu_list[menu.focus_position][1] is ...  # Next item is a directory
     ):
         disable_actions(context, "Next")
     else:
@@ -566,9 +563,8 @@ def _confirm_delete(entry):
 
     if successful:
         next(main.displayer)  # Render next image view
-        if not main.menu_list or isinstance(
-            main.menu_list[menu.focus_position - 1][1], GeneratorType
-        ):  # All menu entries have been deleted OR selected menu item is a directory
+        if not main.menu_list or main.menu_list[menu.focus_position - 1][1] is ...:
+            # All menu entries have been deleted OR selected menu item is a directory
             main_widget.contents[0] = (pile, ("weight", 1))
             viewer.focus_position = 0
             # "confirmation:Confirm" calls `set_prev_context()`

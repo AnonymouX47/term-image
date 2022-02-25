@@ -20,7 +20,6 @@ from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
 from .logging import init_log, log, log_exception
-from .tui.main import scan_dir
 from .tui.widgets import Image
 
 
@@ -211,7 +210,7 @@ def manage_checkers(
         if False is not result is not None:
             source = os.path.abspath(source)
             contents[source] = result
-            images.append((source, scan_dir(source, result, os.getcwd())))
+            images.append((source, ...))
 
     try:
         content_queue = mp_Queue()
