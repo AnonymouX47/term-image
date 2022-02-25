@@ -6,7 +6,7 @@ import os
 import queue
 import sys
 from multiprocessing import Process, Queue as mp_Queue
-from operator import mul
+from operator import mul, setitem
 from threading import Thread, current_thread
 from typing import Any, Dict, Generator, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -111,8 +111,11 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
 
 def check_dirs(
-    source: str,
+    checker_no: int,
     content_queue: mp_Queue,
+    dir_queue: mp_Queue,
+    log_queue: mp_Queue,
+    progress_queue: mp_Queue,
     logging_level: int,
     globals_: Dict[str, Any],
     logging_: Dict[str, Any],
@@ -143,19 +146,27 @@ def check_dirs(
     logger.setLevel(logging_level)
     logger.filter = redirect_logs
 
-    result = False
-    try:
-        result = check_dir(source)
-    except KeyboardInterrupt:
-        pass
-    except Exception:
-        log_exception(f"Checking {source!r} failed", logger)
-    finally:
-        content_queue.put((source, result))
+    logger.debug("Starting")
+    source = dir_queue.get()
+    while source:
+        progress_queue.put((checker_no, source))
+        log(f"Checking {source!r}", logger, verbose=True)
+        result = False
+        try:
+            result = check_dir(source)
+        except KeyboardInterrupt:
+            break
+        except Exception:
+            log_exception(f"Checking {source!r} failed", logger)
+        finally:
+            content_queue.put((source, result))
+        source = dir_queue.get()
+    progress_queue.put((checker_no, None))
+    logger.debug("Exiting")
 
 
 def manage_checkers(
-    dir_queue: queue.Queue,
+    dir_queue: mp_Queue,
     contents: Dict[str, Dict],
     images: List[Tuple[str, Generator]],
     opener: Thread,
@@ -168,18 +179,17 @@ def manage_checkers(
     """
     from . import logging
 
-    def process_log():
+    def process_log() -> None:
         attrdict = log_queue.get()
         attrdict["process"] = PID
         logger.handle(_logging.makeLogRecord(attrdict))
 
-    def process_result(source, result):
+    def process_result(source: str, result: Optional[bool], n: int = -1) -> None:
         if MULTI:
-            checker = checkers.pop(source)
-            checker.join()
-            if checker.exitcode:
+            if n > -1:
                 log(
-                    f"Checking {source!r} was terminated by signal {-checker.exitcode}",
+                    f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
+                    f"while checking {source!r}",
                     logger,
                     _logging.ERROR,
                     direct=False,
@@ -203,12 +213,10 @@ def manage_checkers(
             contents[source] = result
             images.append((source, scan_dir(source, result, os.getcwd())))
 
-        if MULTI and CLOSE_KILL:
-            checker.close()
-
     try:
         content_queue = mp_Queue()
         log_queue = mp_Queue()
+        progress_queue = mp_Queue()
     except ImportError:
         MULTI = False
         log(
@@ -219,78 +227,80 @@ def manage_checkers(
         )
     else:
         MULTI = True
-        MAX_CHECKERS = args.checkers
-        PID = os.getpid()
-        checkers = {}
 
+    if MULTI:
         # Process.close() and Process.kill() were added in Python 3.7
         CLOSE_KILL = sys.version_info[:2] >= (3, 7)
 
-    source = dir_queue.get()
-    if MULTI:
+        MAX_CHECKERS = args.checkers
+        PID = os.getpid()
+        checker_progress = [True] * MAX_CHECKERS
+        logging_level = logger.getEffectiveLevel()
+        globals_ = {
+            **{"log_queue": log_queue},
+            **{name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")},
+        }
+        logging_ = {  # "Constants" from `.logging`
+            name: value for name, value in logging.__dict__.items() if name.isupper()
+        }
+
+        checkers = [
+            Process(
+                name=f"Checker-{n}",
+                target=check_dirs,
+                args=(
+                    n,
+                    content_queue,
+                    dir_queue,
+                    log_queue,
+                    progress_queue,
+                    logging_level,
+                    globals_,
+                    logging_,
+                ),
+            )
+            for n in range(MAX_CHECKERS)
+        ]
+
+        for checker in checkers:
+            checker.start()
+
         try:
-            n = 0
-            while source:
-                n += 1
-                log(f"Checking {source!r}", logger, verbose=True)
+            # Wait until at least one checker starts processing a directory
+            while progress_queue.empty():
+                pass
 
-                checkers.setdefault(
-                    source,
-                    Process(
-                        name=f"Checker-{n}",
-                        target=check_dirs,
-                        args=(
-                            source,
-                            content_queue,
-                            logger.getEffectiveLevel(),
-                            {
-                                **{"log_queue": log_queue},
-                                **{
-                                    name: globals()[name]
-                                    for name in ("RECURSIVE", "SHOW_HIDDEN")
-                                },
-                            },
-                            {  # "Constants" from `.logging`
-                                name: value
-                                for name, value in logging.__dict__.items()
-                                if name.isupper()
-                            },
-                        ),
-                    ),
-                ).start()
-
-                while True:
-                    if not log_queue.empty():
-                        process_log()
-                    if not content_queue.empty():
-                        process_result(*content_queue.get())
-                    if not dir_queue.empty() and len(checkers) < MAX_CHECKERS:
-                        source = dir_queue.get()
-                        break
-
-            if checkers:
-                while checkers:
-                    if not log_queue.empty():
-                        process_log()
-                    if not content_queue.empty():
-                        process_result(*content_queue.get())
-                    # Check for externally terminated checkers
-                    for source, checker in tuple(checkers.items()):
-                        if checker.exitcode:
-                            process_result(source, False)
+            while not interrupted.is_set() and not (
+                not any(checker_progress)
+                and log_queue.empty()
+                and content_queue.empty()
+            ):
+                if not log_queue.empty():
+                    process_log()
+                if not content_queue.empty():
+                    process_result(*content_queue.get())
+                for n, checker in enumerate(checkers):
+                    if not checker.is_alive() and checker_progress[n]:
+                        # Ensure it's actually the last source processed by the dead
+                        # process that's taken into account.
+                        while not progress_queue.empty():
+                            setitem(checker_progress, *progress_queue.get())
+                        if checker_progress[n]:  # Externally terminated
+                            process_result(checker_progress[n], False, n)
+                            checker_progress[n] = None
         finally:
-            for checker in checkers.values():
+            for checker in checkers:
                 checker.kill() if CLOSE_KILL else checker.terminate()
                 checker.join()
                 if CLOSE_KILL:
                     checker.close()
     else:
         current_thread.name = "Checker"
-
         # wait till after file sources are processed, since the working directory
         # will be changing
         opener.join()
 
+        source = dir_queue.get()
         while source:
             result = False
             try:
@@ -308,7 +318,7 @@ def get_urls(
 ) -> None:
     """Processes URL sources from a/some separate thread(s)"""
     source = url_queue.get()
-    while source:
+    while not interrupted.is_set() and source:
         log(f"Getting image from {source!r}", logger, verbose=True)
         try:
             images.append(
@@ -333,7 +343,7 @@ def open_files(
     images: List[Tuple[str, Image]],
 ) -> None:
     source = file_queue.get()
-    while source:
+    while not interrupted.is_set() and source:
         log(f"Opening {source!r}", logger, verbose=True)
         try:
             images.append((source, Image(TermImage.from_file(source))))
@@ -773,7 +783,7 @@ or multiple valid sources
     os_is_unix = sys.platform not in {"win32", "cygwin"}
 
     if os_is_unix:
-        dir_queue = queue.Queue()
+        dir_queue = mp_Queue()
         check_manager = Thread(
             target=manage_checkers,
             args=(dir_queue, contents, dir_images, opener),
@@ -812,7 +822,8 @@ or multiple valid sources
         url_queue.put(None)
     file_queue.put(None)
     if os_is_unix:
-        dir_queue.put(None)
+        for _ in range(args.checkers):
+            dir_queue.put(None)
 
     for getter in getters:
         getter.join()
@@ -913,7 +924,11 @@ or multiple valid sources
     elif os_is_unix:
         tui.init(args, images, contents)
     else:
-        log("The TUI is not supported on Windows!", logger, _logging.CRITICAL)
+        log(
+            "The TUI is not supported on Windows! Try with `--cli`.",
+            logger,
+            _logging.CRITICAL,
+        )
         return FAILURE
 
     return SUCCESS
@@ -921,12 +936,12 @@ or multiple valid sources
 
 logger = _logging.getLogger(__name__)
 
+# Set from within `.__main__.main()`
+interrupted = None
+
 # Set from within `main()`
 RECURSIVE = None
 SHOW_HIDDEN = None
 # # Used in other modules
 args = None
 url_images = None
-
-# Set from within `check_dirs()`. Hence, only set in checker processes.
-log_queue = None

@@ -3,6 +3,7 @@
 import logging as _logging
 import multiprocessing
 import sys
+from threading import Event
 
 from .exit_codes import FAILURE, INTERRUPTED, codes
 
@@ -27,10 +28,12 @@ def main() -> int:
     logger = _logging.getLogger("term-img")
     logger.setLevel(_logging.INFO)
 
+    cli.interrupted = Event()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
         notify.stop_loading()  # Ensure loading stops, if ongoing.
+        cli.interrupted.set()  # Signal interruption to other threads.
         logging.log(
             "Session interrupted",
             logger,
