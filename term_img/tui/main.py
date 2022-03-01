@@ -25,6 +25,7 @@ from .keys import (
     set_image_grid_actions,
     set_image_view_actions,
     set_menu_actions,
+    set_menu_count,
 )
 from .widgets import (
     Image,
@@ -441,6 +442,7 @@ def scan_dir_menu(update_pipe: int) -> None:
                             "focused entry",
                         )
                     )
+                    set_menu_count()
                     update_screen()
             elif RECURSIVE and entry in contents:
                 # check_dir() already eliminates bad symlinks
@@ -452,6 +454,7 @@ def scan_dir_menu(update_pipe: int) -> None:
                         "focused entry",
                     )
                 )
+                set_menu_count()
                 update_screen()
         else:
             menu_scan_done.set()
@@ -536,6 +539,7 @@ def update_menu(
     ]
     menu.focus_position = pos + 1 + (at_top_level and pos == -1)
     set_menu_actions()
+    set_menu_count()
 
 
 logger = _logging.getLogger(__name__)

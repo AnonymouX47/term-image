@@ -25,6 +25,7 @@ from .widgets import (
     key_bar,
     main as main_widget,
     menu,
+    menu_box,
     overlay,
     pile,
     placeholder,
@@ -359,6 +360,7 @@ def menu_nav():
     main.displayer.send(menu.focus_position - 1)
     if not main.at_top_level or main.menu_list:
         set_menu_actions()
+        set_menu_count()
 
 
 def set_menu_actions():
@@ -384,6 +386,10 @@ def set_menu_actions():
         disable_actions("menu", "Next", "Page Down", "Bottom")
     else:
         enable_actions("menu", "Next", "Page Down", "Bottom")
+
+
+def set_menu_count():
+    menu_box.set_title(f"{menu.focus_position} of {len(main.menu_list)}")
 
 
 @register_key(("menu", "Open"))
@@ -487,6 +493,7 @@ def prev_image():
         menu.focus_position -= 1
         main.displayer.send(menu.focus_position - 1)
     set_image_view_actions()
+    set_menu_count()
 
 
 @register_key(("image", "Next"), ("full-image", "Next"))
@@ -501,6 +508,7 @@ def next_image():
         main.displayer.send(menu.focus_position - 1)
 
     set_image_view_actions()
+    set_menu_count()
 
 
 @register_key(("image", "Force Render"), ("full-image", "Force Render"))
