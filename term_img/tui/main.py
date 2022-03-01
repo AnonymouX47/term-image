@@ -6,7 +6,7 @@ from operator import mul
 from os.path import basename, isfile, islink, realpath
 from queue import Queue
 from threading import Event
-from typing import Dict, Generator, Iterable, List, Tuple, Union
+from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import PIL
 import urwid
@@ -330,15 +330,17 @@ def process_input(key: str) -> bool:
 
 
 def scan_dir(
-    dir: str, contents: Dict[str, Dict[str, dict]]
-) -> Generator[Tuple[str, Union[Image, type(...)]], None, None]:
+    dir: str, contents: Dict[str, Dict[str, dict]], *, notify_errors: bool = False
+) -> Generator[Tuple[str, Union[Image, type(...)]], None, int]:
     """Scans *dir* (and sub-directories, if '--recursive' was set) for readable images
     using a directory tree of the form produced by ``.cli.check_dir(dir)``.
 
     Args:
         - dir: Path to directory to be scanned.
         - contents: Tree of directories containing readable images
-            (as produced by ``.cli.check_dir(dir)``).
+          (as produced by ``.cli.check_dir(dir)``).
+        - notify_errors: Determines if a notification showing the number of unreadable
+          files will be displayed.
 
     Yields:
         A tuple ``(entry, value)``, where *entry* is ``str`` (the item name)
@@ -346,6 +348,9 @@ def scan_dir(
 
           - ``.tui.widgets.Image``, for images in *dir*, and
           - `Ellipsis` for sub-directories of *dir* (if '--recursive' is set).
+
+    Returns:
+        The number of unreadable files in *dir*.
 
     - If '--all' was set, hidden (.*) images and subdirectories are included.
     - Items are grouped into images and directories, sorted lexicographically and
@@ -360,28 +365,48 @@ def scan_dir(
     errors = 0
     full_dir = dir + os.sep
     for entry in entries:
-        full_entry = full_dir + entry
-        if entry.startswith(".") and not SHOW_HIDDEN:
+        result = scan_dir_entry(entry, contents, full_dir + entry)
+        if result == HIDDEN:
             continue
-        if isfile(full_entry):
-            try:
-                PIL.Image.open(full_entry)
-            except PIL.UnidentifiedImageError:
-                # Reporting will apply to every non-image file :(
-                pass
-            except Exception:
-                log_exception(f"{realpath(full_entry)!r} could not be read", logger)
-                errors += 1
-            else:
-                yield entry, Image(TermImage.from_file(full_entry))
-        elif RECURSIVE and entry in contents:
-            # check_dir() already eliminates bad symlinks
+        if result == UNREADABLE:
+            errors += 1
+        if result == IMAGE:
+            yield entry, Image(TermImage.from_file(full_dir + entry))
+        elif result == DIR:
             yield entry, ...
-    if errors:
+    if notify_errors and errors:
         notify.notify(
             f"{errors} file(s) could not be read in {realpath(dir)!r}! Check the logs.",
             level=notify.ERROR,
         )
+
+    return errors
+
+
+def scan_dir_entry(
+    entry: str, contents: Dict[str, Dict[str, dict]], full_entry: Optional[str] = None
+) -> int:
+    """Scans a single directory entry and returns a flag indicating its kind."""
+    if entry.startswith(".") and not SHOW_HIDDEN:
+        return HIDDEN
+    if isfile(full_entry or entry):
+        try:
+            PIL.Image.open(full_entry or entry)
+        except PIL.UnidentifiedImageError:
+            # Reporting will apply to every non-image file :(
+            pass
+        except Exception:
+            log_exception(
+                f"{realpath(full_entry or entry)!r} could not be read", logger
+            )
+            return UNREADABLE
+        else:
+            return IMAGE
+    if RECURSIVE and entry in contents:
+        # `.cli.check_dir()` already eliminates bad symlinks
+        return DIR
+
+    return -1
 
 
 def scan_dir_menu(update_pipe: int) -> None:
@@ -396,15 +421,11 @@ def scan_dir_menu(update_pipe: int) -> None:
           to trigger screen updates from threads other than the one in which the loop
           is running.
 
-    For each valid entry, it appends a tuple ``(entry, value)``, like in ``scan_dir``,
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
     to ``.tui.main.menu_list`` and adds a corresponding entry to the menu widget,
     then updates the screen.
 
-    - If '--all' was set, hidden (.*) images and subdirectories are included.
-    - Items are grouped into images and directories, sorted lexicographically and
-      case-insensitively. Any preceding '.'s (dots) are ignored when sorting.
-    - If a dotted entry has the same main-name as another entry, the dotted one comes
-      first.
+    Grouping and sorting are the same as for ``scan_dir()``.
     """
 
     def update_screen():
@@ -446,34 +467,28 @@ def scan_dir_menu(update_pipe: int) -> None:
         for entry in entries:
             if menu_change.is_set() or interrupted.is_set() or quitting.is_set():
                 break
-            if entry.startswith(".") and not SHOW_HIDDEN:
+
+            result = scan_dir_entry(entry, contents)
+            if result == HIDDEN:
                 continue
-            if isfile(entry):
-                try:
-                    PIL.Image.open(entry)
-                except PIL.UnidentifiedImageError:
-                    # Reporting will apply to every non-image file :(
-                    pass
-                except Exception:
-                    log_exception(f"{realpath(entry)!r} could not be read", logger)
-                    errors += 1
-                else:
-                    items.append((entry, Image(TermImage.from_file(entry))))
-                    menu_body.append(
-                        urwid.AttrMap(
-                            MenuEntry(entry, "left", "clip"),
-                            "default",
-                            "focused entry",
-                        )
+            if result == UNREADABLE:
+                errors += 1
+            if result == IMAGE:
+                items.append((entry, Image(TermImage.from_file(entry))))
+                menu_body.append(
+                    urwid.AttrMap(
+                        MenuEntry(entry, "left", "clip"),
+                        "default",
+                        "focused entry",
                     )
-                    set_menu_count()
-                    update_screen()
-            elif RECURSIVE and entry in contents:
-                # check_dir() already eliminates bad symlinks
+                )
+                set_menu_count()
+                update_screen()
+            elif result == DIR:
                 items.append((entry, ...))
                 menu_body.append(
                     urwid.AttrMap(
-                        MenuEntry(f"{basename(entry)}/", "left", "clip"),
+                        MenuEntry(entry + "/", "left", "clip"),
                         "default",
                         "focused entry",
                     )
@@ -570,15 +585,22 @@ logger = _logging.getLogger(__name__)
 menu_change = Event()
 menu_scan_done = Event()
 next_menu = Queue(1)
+quitting = Event()
 
 # For Context Management
 _prev_contexts = ["menu"] * 3
 _context = "menu"  # To avoid a NameError the first time set_context() is called.
 
-# Constants for `display_images()`
+# FLAGS for `display_images()`
 OPEN = -2
 BACK = -3
 DELETE = -4
+
+# FLAGS for `scan_dir*()`
+HIDDEN = 0
+UNREADABLE = 1
+IMAGE = 2
+DIR = 3
 
 # Set by `update_menu()`
 menu_list = None
@@ -588,7 +610,6 @@ at_top_level = None
 displayer = None
 interrupted = None
 loop = None
-quitting = Event()
 
 # # Corresponsing to command-line args
 DEBUG = None
