@@ -125,6 +125,8 @@ class Image(urwid.Widget):
     _force_render_contexts = {"image", "full-image", "full-grid-image"}
     _forced_anim_size_hash = None
 
+    _frame = _frame_changed = _frame_size_hash = None
+
     _last_canv = (None, None)
     _grid_cache = {}
 
@@ -172,11 +174,14 @@ class Image(urwid.Widget):
             if self._force_render:
                 # `.main.animate_image()` deletes `_force_render` when done with an
                 # image to avoid the cost of attribute creation and deletion per frame
-                if image.is_animated:
+                if image._is_animated:
                     if image._seek_position == 0:
-                        __class__._forced_anim_size_hash = hash(size)
+                        self._forced_anim_size_hash = hash(size)
                     elif hash(size) != self._forced_anim_size_hash:
                         self._force_render = False
+                        if context in self._force_render_contexts:
+                            keys.enable_actions(context, "Force Render")
+                        return self._placeholder.render(size, focus)
                 else:
                     del self._force_render
             else:
@@ -200,6 +205,17 @@ class Image(urwid.Widget):
         # Rendering
 
         try:
+            if hasattr(self, "_animator"):
+                if self._frame_changed:
+                    self._frame = next(self._animator)
+                    self._frame_changed = False
+                    self._frame_size_hash = hash(size)
+
+                # If size changed, re-render the current frame the usual way,
+                # with the new size
+                if hash(size) != self._frame_size_hash:
+                    self._frame = None
+
             # Using `TermImage` for padding will use more memory since all the
             # spaces will be in the render output string, and theoretically more time
             # with all the checks and string splitting & joining.
@@ -207,11 +223,7 @@ class Image(urwid.Widget):
             # string (as a list though) then generates and yields the complete lines
             # **as needed**. Trimmed padding lines are never generated at all.
             canv = ImageCanvas(
-                (
-                    next(self._animator)
-                    if image._is_animated and hasattr(self, "_animator")
-                    else format(image, f"1.1{self._alpha}")
-                )
+                (self._frame or format(image, f"1.1{self._alpha}"))
                 .encode()
                 .split(b"\n"),
                 size,
