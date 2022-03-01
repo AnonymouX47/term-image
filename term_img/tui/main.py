@@ -181,8 +181,6 @@ def display_images(
             )
 
             if empty:  # All entries in the exited directory have been deleted
-            # Menu change already signaled by the BACK action from the exited directory
-
                 del items[prev_pos]
                 del contents[entry]
                 pos = min(prev_pos, len(items) - 1)

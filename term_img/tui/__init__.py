@@ -58,14 +58,19 @@ def init(
     menu_scanner.start()
 
     try:
+        print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
         log("Exited TUI normally", logger, direct=False)
+    except (KeyboardInterrupt, Exception):
+        main.interrupted.set()  # Signal interruption to other threads.
+        raise
     finally:
+        # urwid fails to restore the normal buffer on some terminals
+        print("\033[?1049l", end="", flush=True)  # Switch back to the normal buffer
         main.displayer.close()
         is_launched = False
         os.close(update_pipe)
-        main.quitting.set()  # Signal termination to other threads.
         menu_scanner.join()
 
 
