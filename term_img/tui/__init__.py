@@ -2,14 +2,16 @@
 
 import argparse
 import logging
+import os
+from os.path import basename
+from threading import Thread
 from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
 
-from .. import cli
 from ..logging import log
 from . import main
-from .main import process_input
+from .main import process_input, scan_dir_menu, sort_key_lexi
 from .widgets import Image, info_bar, main as main_widget
 
 
@@ -21,7 +23,7 @@ def init(
     """Initializes the TUI"""
     global is_launched
 
-    if cli.args.debug:
+    if args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
@@ -33,7 +35,14 @@ def init(
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
+
+    images.sort(
+        key=lambda x: sort_key_lexi(basename(x[0]), x[0]),
+    )
     main.displayer = main.display_images(".", images, contents, top_level=True)
+
+    update_pipe = main.loop.watch_pipe(lambda _: None)
+    menu_scanner = Thread(target=scan_dir_menu, args=(update_pipe,), name="MenuScanner")
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)
@@ -46,6 +55,7 @@ def init(
     log("Launching TUI", logger, direct=False)
     main.set_context("menu")
     is_launched = True
+    menu_scanner.start()
 
     try:
         next(main.displayer)
@@ -54,6 +64,9 @@ def init(
     finally:
         main.displayer.close()
         is_launched = False
+        os.close(update_pipe)
+        main.quitting.set()  # Signal termination to other threads.
+        menu_scanner.join()
 
 
 class Loop(urwid.MainLoop):

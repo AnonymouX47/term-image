@@ -28,7 +28,7 @@ def main() -> int:
     logger = _logging.getLogger("term-img")
     logger.setLevel(_logging.INFO)
 
-    cli.interrupted = Event()
+    cli.interrupted = main.interrupted = Event()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
@@ -48,6 +48,7 @@ def main() -> int:
         return INTERRUPTED
     except Exception as e:
         notify.stop_loading()  # Ensure loading stops, if ongoing.
+        cli.interrupted.set()  # Signal interruption to other threads.
         logging.log(
             f"Session not ended successfully: ({type(e).__name__}) {e}",
             logger,

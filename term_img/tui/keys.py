@@ -288,6 +288,7 @@ keys = {context: {} for context in context_keys}
 # global
 @register_key(("global", "Quit"))
 def quit():
+    main.quitting.set()
     raise urwid.ExitMainLoop()
 
 
@@ -379,7 +380,7 @@ def set_menu_actions():
     else:
         enable_actions("menu", "Back")
 
-    if pos == len(main.menu_list) - 1:
+    if main.menu_scan_done.is_set() and pos == len(main.menu_list) - 1:
         disable_actions("menu", "Next", "Page Down", "Bottom")
     else:
         enable_actions("menu", "Next", "Page Down", "Bottom")
@@ -521,8 +522,11 @@ def set_image_view_actions(context: str = None):
         disable_actions(context, "Prev")
 
     if (
-        menu.focus_position == len(main.menu_list)  # Last item
-        or main.menu_list[menu.focus_position][1] is ...  # Next item is a directory
+        # Last item
+        main.menu_scan_done.is_set()
+        and menu.focus_position == len(main.menu_list)
+        # Next item is a directory
+        or main.menu_list[menu.focus_position][1] is ...
     ):
         disable_actions(context, "Next")
     else:

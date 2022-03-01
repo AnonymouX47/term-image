@@ -4,7 +4,9 @@ import logging as _logging
 import os
 from operator import mul
 from os.path import basename, isfile, islink, realpath
-from typing import Dict, Generator, Iterable, Tuple, Union
+from queue import Queue
+from threading import Event
+from typing import Dict, Generator, Iterable, List, Tuple, Union
 
 import PIL
 import urwid
@@ -12,7 +14,7 @@ import urwid
 from .. import notify
 from ..config import context_keys, expand_key
 from ..image import ImageIterator, TermImage
-from ..logging import log_exception
+from ..logging import log, log_exception
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -77,8 +79,8 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
 
 def display_images(
     dir: str,
-    items: Iterable[Tuple[str, Union[Image, Generator]]],
-    contents: dict,
+    items: List[Tuple[str, Union[Image, type(...)]]],
+    contents: Dict[str, Dict[str, dict]],
     prev_dir: str = "..",
     *,
     top_level: bool = False,
@@ -100,26 +102,19 @@ def display_images(
           (default:  parent directory of *dir*).
         - top_level: Specifies if *dir* is the top level (For internal use only).
     """
-    items = sorted(
-        items,
-        key=(
-            (
-                lambda x: (
-                    basename(x[0]).upper()
-                    if isinstance(x[1], Image)
-                    else basename(x[0]).lower()
-                )
-            )
-            if top_level
-            else (lambda x: x[0].upper() if isinstance(x[1], Image) else x[0].lower())
-        ),
-    )
+    os.chdir(dir)
+
+    menu_change.set()  # Signal change of menu
+    while menu_change.is_set():  # Wait for the signal to be acknowledged
+        pass
+    # MenuScanner has halted scanning
+
     update_menu(items, top_level)
 
-    entry = prev_pos = value = None  # Silence linter's `F821`
-    pos = 0
+    next_menu.put((items, contents, items[-1][0] if items else None, top_level))
 
-    os.chdir(dir)
+    entry = prev_pos = value = None  # Silence linter's `F821`
+    pos = 0 if top_level else -1
 
     while True:
         if pos == -1:  # Cursor on top menu item ("..")
@@ -143,13 +138,15 @@ def display_images(
         elif pos == OPEN:  # Implements "menu::Open" action (for non-image entries)
             if prev_pos == -1:
                 # prev_pos can never be -1 at top level (See `pos == -1` branch above),
-                # so the program can't be broken.
-                break
+                # and even if it could `pos == BACK` still guards against it.
+                pos = BACK
+                continue
 
+            menu_is_complete = menu_scan_done.is_set()
             logger.debug(f"Going into {realpath(entry)}/")
             empty = yield from display_images(
                 entry,
-                scan_dir(entry, contents[entry]),
+                [],
                 contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
@@ -157,6 +154,8 @@ def display_images(
             )
 
             if empty:  # All entries in the exited directory have been deleted
+            # Menu change already signaled by the BACK action from the exited directory
+
                 del items[prev_pos]
                 del contents[entry]
                 pos = min(prev_pos, len(items) - 1)
@@ -171,12 +170,22 @@ def display_images(
                 update_menu(items, top_level, prev_pos)
                 pos = prev_pos
 
+            next_menu.put(
+                (items, contents, items[-1][0] if items else None, menu_is_complete)
+            )
             continue  # Skip `yield`
 
         elif pos == BACK:  # Implements "menu::Back" action
             if not top_level:
+                # Ensure directory scanning is halted before WD is changed to avoid
+                # unnecessary `FileNotFoundError`s
+                menu_change.set()  # Signal change of menu
+                while menu_change.is_set():  # Wait for the signal to be acknowledged
+                    pass
+                # MenuScanner has halted scanning
                 break
-            # Since the execution context is not exited at top-level, ensure pos
+
+            # Since the execution context is not exited at the top-level, ensure pos
             # (and indirectly, prev_pos) always corresponds to a valid menu position.
             # By implication, this prevents an `IndexError` or rendering the wrong image
             # when coming out of a directory that was entered when prev_pos < -1.
@@ -297,8 +306,8 @@ def process_input(key: str) -> bool:
 
 def scan_dir(
     dir: str, contents: Dict[str, Dict[str, dict]]
-) -> Generator[Tuple[str, Union[Image, Generator]], None, None]:
-    """Scans *dir* (and sub-directories, if '--recursive' is set) for readable images
+) -> Generator[Tuple[str, Union[Image, type(...)]], None, None]:
+    """Scans *dir* (and sub-directories, if '--recursive' was set) for readable images
     using a directory tree of the form produced by ``.cli.check_dir(dir)``.
 
     Args:
@@ -313,11 +322,19 @@ def scan_dir(
           - ``.tui.widgets.Image``, for images in *dir*, and
           - `Ellipsis` for sub-directories of *dir* (if '--recursive' is set).
 
-    - If '--all' is set, hidden (.*) images and subdirectories are considered.
+    - If '--all' was set, hidden (.*) images and subdirectories are included.
+    - Items are grouped into images and directories, sorted lexicographically and
+      case-insensitively. Any preceding '.'s (dots) are ignored when sorting.
+    - If a dotted entry has the same main-name as another entry, the dotted one comes
+      first.
     """
+    entries = os.listdir(dir)
+    entries.sort(
+        key=sort_key_lexi,
+    )
     errors = 0
     full_dir = dir + os.sep
-    for entry in os.listdir(dir):
+    for entry in entries:
         full_entry = full_dir + entry
         if entry.startswith(".") and not SHOW_HIDDEN:
             continue
@@ -340,6 +357,114 @@ def scan_dir(
             f"{errors} file(s) could not be read in {realpath(dir)!r}! Check the logs.",
             level=notify.ERROR,
         )
+
+
+def scan_dir_menu(update_pipe: int) -> None:
+    """Scans the current working directory (and it's sub-directories, if '--recursive'
+    was set) for readable images using a directory tree of the form produced by
+    ``.cli.check_dir(dir)``.
+    This is designed to be executed in a separate thread, while certain menu details
+    are passed in using the `next_menu` queue.
+
+    Args:
+        - update_pipe: A file descriptor being watched by the TUI's event loop, used
+          to trigger screen updates from threads other than the one in which the loop
+          is running.
+
+    For each valid entry, it appends a tuple ``(entry, value)``, like in ``scan_dir``,
+    to ``.tui.main.menu_list`` and adds a corresponding entry to the menu widget,
+    then updates the screen.
+
+    - If '--all' was set, hidden (.*) images and subdirectories are included.
+    - Items are grouped into images and directories, sorted lexicographically and
+      case-insensitively. Any preceding '.'s (dots) are ignored when sorting.
+    - If a dotted entry has the same main-name as another entry, the dotted one comes
+      first.
+    """
+
+    def update_screen():
+        os.write(update_pipe, b" ")
+
+    logger.debug("Starting")
+
+    menu_body = menu.body
+    last_entry = None
+    while not (interrupted.is_set() or quitting.is_set()):
+        while True:
+            if menu_change.wait(0.05) or interrupted.is_set() or quitting.is_set():
+                break
+        if interrupted.is_set() or quitting.is_set():
+            return
+
+        # Has to be cleared before `update_menu()` is called, since it calls
+        # `.tui.keys.set_menu_actions()`
+        menu_scan_done.clear()
+
+        menu_change.clear()  # Acknowledge the signal
+
+        items, contents, last_entry, menu_is_complete = next_menu.get()
+        if menu_is_complete:
+            menu_scan_done.set()
+            continue
+
+        entries = os.listdir()
+        entries.sort(
+            key=sort_key_lexi,
+        )
+        entries = iter(entries)
+        if last_entry:
+            for entry in entries:
+                if entry == last_entry:
+                    break
+
+        errors = 0
+        for entry in entries:
+            if menu_change.is_set() or interrupted.is_set() or quitting.is_set():
+                break
+            if entry.startswith(".") and not SHOW_HIDDEN:
+                continue
+            if isfile(entry):
+                try:
+                    PIL.Image.open(entry)
+                except PIL.UnidentifiedImageError:
+                    # Reporting will apply to every non-image file :(
+                    pass
+                except Exception:
+                    log_exception(f"{realpath(entry)!r} could not be read", logger)
+                    errors += 1
+                else:
+                    items.append((entry, Image(TermImage.from_file(entry))))
+                    menu_body.append(
+                        urwid.AttrMap(
+                            MenuEntry(entry, "left", "clip"),
+                            "default",
+                            "focused entry",
+                        )
+                    )
+                    update_screen()
+            elif RECURSIVE and entry in contents:
+                # check_dir() already eliminates bad symlinks
+                items.append((entry, ...))
+                menu_body.append(
+                    urwid.AttrMap(
+                        MenuEntry(f"{basename(entry)}/", "left", "clip"),
+                        "default",
+                        "focused entry",
+                    )
+                )
+                update_screen()
+        else:
+            menu_scan_done.set()
+            log(f"Done scanning {os.getcwd()!r}!", logger, verbose=True)
+            update_screen()
+            if errors:
+                notify.notify(
+                    f"{errors} file(s) could not be read in {os.getcwd()!r}! "
+                    "Check the logs.",
+                    level=notify.ERROR,
+                )
+
+    logger.debug("Exiting")
 
 
 def set_context(new_context) -> None:
@@ -370,10 +495,25 @@ def set_prev_context(n: int = 1) -> None:
         info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
+def sort_key_lexi(name, path=None):
+    """Lexicographic sort key function.
+
+    Compatible with ``list.sort()`` and ``sorted()``.
+    """
+    # The first part groups into files and directories
+    # The seconds sorts within the group
+    # The third, between hidden and non-hidden of the same name
+    return (
+        "\0" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
+        if isfile(path or name)
+        else "\1" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
+    )
+
+
 def update_menu(
     items: Iterable[Tuple[str, Union[Image, Generator]]],
     top_level: bool = False,
-    pos: int = 0,
+    pos: int = -1,
 ) -> None:
     global menu_list, at_top_level
     menu_list, at_top_level = items, top_level
@@ -385,7 +525,7 @@ def update_menu(
     ] + [
         urwid.AttrMap(
             MenuEntry(
-                basename(entry) + "/" * (value is ...),
+                (basename(entry) if at_top_level else entry) + "/" * (value is ...),
                 "left",
                 "clip",
             ),
@@ -394,11 +534,14 @@ def update_menu(
         )
         for entry, value in items
     ]
-    menu.focus_position = pos + 1
+    menu.focus_position = pos + 1 + (at_top_level and pos == -1)
     set_menu_actions()
 
 
 logger = _logging.getLogger(__name__)
+menu_change = Event()
+menu_scan_done = Event()
+next_menu = Queue(1)
 
 # For Context Management
 _prev_contexts = ["menu"] * 3
@@ -415,7 +558,9 @@ at_top_level = None
 
 # Placeholders; Set from `..tui.init()`
 displayer = None
+interrupted = None
 loop = None
+quitting = Event()
 
 # # Corresponsing to command-line args
 DEBUG = None
