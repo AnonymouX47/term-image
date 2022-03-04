@@ -107,7 +107,7 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
 def display_images(
     dir: str,
     items: List[Tuple[str, Union[Image, type(...)]]],
-    contents: Dict[str, Dict[str, dict]],
+    contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
     prev_dir: str = "..",
     *,
     top_level: bool = False,
@@ -330,7 +330,10 @@ def process_input(key: str) -> bool:
 
 
 def scan_dir(
-    dir: str, contents: Dict[str, Dict[str, dict]], *, notify_errors: bool = False
+    dir: str,
+    contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
+    *,
+    notify_errors: bool = False,
 ) -> Generator[Tuple[str, Union[Image, type(...)]], None, int]:
     """Scans *dir* (and sub-directories, if '--recursive' was set) for readable images
     using a directory tree of the form produced by ``.cli.check_dir(dir)``.
@@ -384,20 +387,24 @@ def scan_dir(
 
 
 def scan_dir_entry(
-    entry: str, contents: Dict[str, Dict[str, dict]], full_entry: Optional[str] = None
+    entry: str,
+    contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
+    entry_path: Optional[str] = None,
 ) -> int:
     """Scans a single directory entry and returns a flag indicating its kind."""
     if entry.startswith(".") and not SHOW_HIDDEN:
         return HIDDEN
-    if isfile(full_entry or entry):
+    if isfile(entry_path or entry):
+        if not contents["/"]:
+            return -1
         try:
-            PIL.Image.open(full_entry or entry)
+            PIL.Image.open(entry_path or entry)
         except PIL.UnidentifiedImageError:
             # Reporting will apply to every non-image file :(
             pass
         except Exception:
             log_exception(
-                f"{realpath(full_entry or entry)!r} could not be read", logger
+                f"{realpath(entry_path or entry)!r} could not be read", logger
             )
             return UNREADABLE
         else:

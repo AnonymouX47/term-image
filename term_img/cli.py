@@ -8,7 +8,7 @@ import sys
 from multiprocessing import Process, Queue as mp_Queue
 from operator import mul, setitem
 from threading import Thread, current_thread
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -23,7 +23,9 @@ from .logging import init_log, log, log_exception
 from .tui.widgets import Image
 
 
-def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, dict]]]:
+def check_dir(
+    dir: str, prev_dir: str = ".."
+) -> Optional[Dict[str, Union[bool, Dict[str, Union[bool, dict]]]]]:
     """Scan *dir* (and sub-directories, if '--recursive' is set)
     and build the tree of directories [recursively] containing readable images.
 
@@ -34,7 +36,10 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
 
     Returns:
         - `None` if *dir* contains no readable images [recursively].
-        - A dict representing the resulting directory tree, if *dir* is "non-empty".
+        - A dict representing the resulting directory tree whose items are:
+          - a "/" key mapped to a bool. indicating if *dir* contains image files or not
+          - a directory name mapped to a dict of the same structure, for each non-empty
+            sub-directory of *dir*.
 
     - If '--hidden' is set, hidden (.[!.]*) images and subdirectories are considered.
     """
@@ -105,8 +110,13 @@ def check_dir(dir: str, prev_dir: str = "..") -> Optional[Dict[str, Dict[str, di
             if result is not None:
                 content[entry] = result
 
+    # '/' is an invalid file/directory name on major platforms.
+    # On platforms with root directory '/', it can never be the content of a directory.
+    if not empty or content:
+        content["/"] = not empty
+
     os.chdir(prev_dir)
-    return None if empty and not content else content
+    return content or None
 
 
 def check_dirs(
