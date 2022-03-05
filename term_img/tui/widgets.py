@@ -50,8 +50,9 @@ class GridListBox(urwid.ListBox):
 
         # The path takes care of "same directory"
         # The number of cells takes care of deletions in that directory.
-        grid_path = image_grid_box.title_widget.text
+        grid_path = tui_main.grid_path
         ncontent = len(self._grid.contents)
+
         if (
             self._grid_path != grid_path  # Different grids
             or self._ncontent != ncontent  # Different no of cells

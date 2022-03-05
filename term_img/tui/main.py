@@ -147,7 +147,7 @@ def display_images(
     update_menu(items, top_level)
     next_menu.put((items, contents, menu_is_complete))
 
-    last_grid_entry = None
+    last_non_empty_grid_entry = None
     entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0 if top_level else -1
 
@@ -277,9 +277,9 @@ def display_images(
 
                 next_grid.put((entry, contents[entry]))
 
-                if entry != last_grid_entry and contents[entry]["/"]:
+                if contents[entry]["/"] and entry != last_non_empty_grid_entry:
                     Image._grid_cache.clear()
-                    last_grid_entry = entry
+                    last_non_empty_grid_entry = entry
                 image_grid_box.set_title(f"{realpath(entry)}/")
                 view.original_widget = image_grid_box
                 image_grid_box.base_widget._invalidate()
@@ -469,12 +469,13 @@ def scan_dir_grid() -> None:
 
     Grouping and sorting are the same as for ``scan_dir()``.
     """
-    global grid_list
+    global grid_list, grid_path
 
     grid_contents = image_grid.contents
     while True:
         dir, contents = next_grid.get()
         grid_list = []
+        grid_path = realpath(dir)
         image_grid.contents.clear()
 
         grid_acknowledge.set()  # Cleared grid contents
@@ -511,6 +512,10 @@ def scan_dir_grid() -> None:
                 break
         else:
             grid_scan_done.set()
+            # There is a possibility that `grid_scan_done` is read as "cleared"
+            # in-between the end of the last iteration an here :)
+            if not grid_active.is_set():
+                grid_acknowledge.set()
 
 
 def scan_dir_menu() -> None:
@@ -684,6 +689,7 @@ quitting = Event()
 grid_acknowledge = Event()
 grid_active = Event()
 grid_list = None
+grid_path = None
 grid_scan_done = Event()
 next_grid = Queue(1)
 
