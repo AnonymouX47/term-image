@@ -11,7 +11,7 @@ import urwid
 
 from ..logging import log
 from . import main
-from .main import process_input, scan_dir_menu, sort_key_lexi
+from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .widgets import Image, info_bar, main as main_widget
 
 
@@ -41,8 +41,9 @@ def init(
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
-    update_pipe = main.loop.watch_pipe(lambda _: None)
-    menu_scanner = Thread(target=scan_dir_menu, args=(update_pipe,), name="MenuScanner")
+    main.update_pipe = main.loop.watch_pipe(lambda _: None)
+    menu_scanner = Thread(target=scan_dir_menu, name="MenuScanner")
+    grid_scanner = Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)
@@ -56,6 +57,7 @@ def init(
     main.set_context("menu")
     is_launched = True
     menu_scanner.start()
+    grid_scanner.start()
 
     try:
         print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
@@ -70,7 +72,7 @@ def init(
         print("\033[?1049l", end="", flush=True)  # Switch back to the normal buffer
         main.displayer.close()
         is_launched = False
-        os.close(update_pipe)
+        os.close(main.update_pipe)
         menu_scanner.join()
 
 

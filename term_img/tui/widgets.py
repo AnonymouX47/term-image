@@ -3,6 +3,7 @@
 import logging as _logging
 from math import ceil
 from operator import floordiv, mul, sub
+from os.path import basename
 from shutil import get_terminal_size
 from typing import List, Optional, Tuple
 
@@ -26,7 +27,8 @@ class GridListBox(urwid.ListBox):
         self._grid = grid
         self._prev_ncell = 1
         self._prev_cell_width = grid.cell_width
-        self._grid_hash = None
+        self._grid_path = None
+        self._ncontent = 0
 
         return super().__init__(self._grid_contents((grid.cell_width,)))
 
@@ -48,9 +50,11 @@ class GridListBox(urwid.ListBox):
 
         # The path takes care of "same directory"
         # The number of cells takes care of deletions in that directory.
-        grid_hash = hash((image_grid_box.title_widget.text, len(self._grid.cells)))
+        grid_path = image_grid_box.title_widget.text
+        ncontent = len(self._grid.contents)
         if (
-            self._grid_hash != grid_hash  # Different grid cells
+            self._grid_path != grid_path  # Different grids
+            or self._ncontent != ncontent  # Different no of cells
             or not (ncell or self._prev_ncell)  # maxcol is and was < cell_width
             or ncell != self._prev_ncell  # Number of cells per row changed
             or self._prev_cell_width != self._grid.cell_width  # cell_width changed
@@ -60,12 +64,12 @@ class GridListBox(urwid.ListBox):
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
 
             # Old and new grids are both non-empty
-            both_non_empty = self._grid.cells and (
+            both_non_empty = len(self._grid.contents) and (
                 len(self.body) > 1 or isinstance(self.body[0], urwid.Columns)
             )
             # Conditions for transferring row focus position
             transfer_row_focus = (
-                self._grid_hash == grid_hash
+                self._grid_path == grid_path
                 and both_non_empty
                 and ncell
                 and self._prev_ncell
@@ -75,7 +79,7 @@ class GridListBox(urwid.ListBox):
                 col_focus_position = self.focus.focus_position
 
             self.body[:] = self._grid_contents(size[:1])
-            if self._grid_hash == grid_hash:
+            if self._grid_path == grid_path:
                 # Ensure focus-position is not out-of-bounds
                 self.focus_position = min(len(self.body) - 1, self.focus_position)
             else:
@@ -88,7 +92,8 @@ class GridListBox(urwid.ListBox):
             elif isinstance(self.focus, urwid.Columns):
                 self.focus.focus_position = 0
 
-            self._grid_hash = grid_hash
+            self._grid_path = grid_path
+            self._ncontent = ncontent
             self._prev_ncell = ncell
             self._prev_cell_width = self._grid.cell_width
 
@@ -97,13 +102,13 @@ class GridListBox(urwid.ListBox):
     def _grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
         # The display widget is a `Divider` when the grid is empty
         if not self._grid.contents:
-            return [self._grid.get_display_widget(size)]
+            return [self._grid.generate_display_widget(size)]
 
         contents = [
             content[0] if isinstance(content[0], urwid.Divider)
             # `.original_widget` gets rid of an unnecessary padding
             else content[0].original_widget
-            for content in self._grid.get_display_widget(size).contents
+            for content in self._grid.generate_display_widget(size).contents
         ]
 
         for content in contents:
@@ -156,7 +161,7 @@ class Image(urwid.Widget):
         # Cache retrieval
 
         if view.original_widget is image_grid_box and context != "full-grid-image":
-            canv = self._grid_cache.get(self)
+            canv = __class__._grid_cache.get(basename(image._source))
             # Grid render cell-width adjusts when _maxcol_ < _cell_width_.
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
             if canv and size[0] + 2 == image_grid.cell_width:
@@ -249,7 +254,7 @@ class Image(urwid.Widget):
             # Grid render cell width adjusts when _maxcols_ < _cell_width_
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             if size[0] + 2 == image_grid.cell_width:
-                __class__._grid_cache[self] = canv
+                __class__._grid_cache[basename(image._source)] = canv
         elif not image._is_animated:
             __class__._last_canv = (hash((self._image._source, size)), canv)
 

@@ -121,13 +121,22 @@ def display_images(
           ``scan_dir(dir)`` i.e:
 
           - ``(str, Image)`` for images in *dir*, and
-          - ``(str, Ellipsis)`` for sub-directories of *dir*.
+          - ``(str, Ellipsis)`` for sub-directories of *dir*
 
         - contents: Tree of directories containing readable images
-          (such as returned by `check_dir(dir)`).
+          (such as returned by `check_dir(dir)`)
         - prev_dir: Path to set as working directory after displaying images in *dir*
-          (default:  parent directory of *dir*).
-        - top_level: Specifies if *dir* is the top level (For internal use only).
+          (default:  parent directory of *dir*)
+        - top_level: Specifies if *dir* is the top level (For internal use only)
+
+    Returns:
+        The empty status of the (current) directory being exited i.e ``True`` if empty,
+        otherwise ``False``.
+
+    Receives:
+        Via .send(), either:
+          - a menu item position (-1 and above)
+          - a flag denoting a certain action
     """
     os.chdir(dir)
 
@@ -139,7 +148,7 @@ def display_images(
     update_menu(items, top_level)
 
     next_menu.put((items, contents, items[-1][0] if items else None, top_level))
-
+    last_grid_entry = None
     entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0 if top_level else -1
 
@@ -154,6 +163,7 @@ def display_images(
                     continue
                 else:
                     set_context("global")
+            grid_active.clear()  # Grid not in view
             image_box._w.contents[1][0].contents[1] = (
                 placeholder,
                 ("weight", 1, False),
@@ -169,11 +179,18 @@ def display_images(
                 pos = BACK
                 continue
 
+            # Ensure grid scanning is halted to avoid updating `grid_list` which is
+            # used as the next `menu_list` as is and to avoid `FileNotFoundError`s
+            if not grid_scan_done.is_set():
+                grid_acknowledge.clear()
+                grid_active.clear()  # Grid not in view
+                grid_acknowledge.wait()
+
             menu_is_complete = menu_scan_done.is_set()
             logger.debug(f"Going into {realpath(entry)}/")
             empty = yield from display_images(
                 entry,
-                [],
+                grid_list,
                 contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
@@ -205,6 +222,14 @@ def display_images(
                 # Ensure directory scanning is halted before WD is changed to avoid
                 # unnecessary `FileNotFoundError`s
                 menu_change.set()  # Signal change of menu
+
+                # Ensure grid scanning is halted before WD is changed to avoid
+                # `FileNotFoundError`s
+                if grid_active.is_set() and not grid_scan_done.is_set():
+                    grid_acknowledge.clear()
+                    grid_active.clear()  # Grid not in view
+                    grid_acknowledge.wait()
+
                 while menu_change.is_set():  # Wait for the signal to be acknowledged
                     pass
                 # MenuScanner has halted scanning
@@ -228,6 +253,7 @@ def display_images(
         else:
             entry, value = items[pos]
             if isinstance(value, Image):
+                grid_active.clear()  # Grid not in view
                 image_box._w.contents[1][0].contents[1] = (value, ("weight", 1, False))
                 image_box.set_title(entry)
                 view.original_widget = image_box
@@ -235,27 +261,29 @@ def display_images(
                 if value._image._is_animated:
                     animate_image(value)
             else:  # Directory
-                # For some reason, the `GridListBox` renders the cached canvas whenever
-                # the previous grid is empty
-                if not image_grid.cells:
-                    image_grid_box.base_widget._invalidate()
+                grid_acknowledge.clear()
+                grid_active.set()  # Grid is in view
 
-                image_grid.contents[:] = [
-                    (
-                        urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
-                        image_grid.options(),
-                    )
-                    for _, val in scan_dir(entry, contents[entry])
-                    if isinstance(val, Image)  # Exclude directories from the grid
-                ]
+                next_grid.put((entry, contents[entry]))
 
+                if entry != last_grid_entry and contents[entry]["/"]:
+                    Image._grid_cache.clear()
+                    last_grid_entry = entry
                 image_grid_box.set_title(f"{realpath(entry)}/")
                 view.original_widget = image_grid_box
-                Image._grid_cache.clear()
-                if image_grid.cells:
+                image_grid_box.base_widget._invalidate()
+
+                if contents[entry]["/"]:
                     enable_actions("menu", "Switch Pane")
                 else:
                     disable_actions("menu", "Switch Pane")
+
+                # Wait for GridScanner to clear grid contents.
+                # Not waiting could result in an `IndexError` raised by
+                # `GridFlow.focus_position` in `GridFlow.generate_display_widget()`
+                # when it meets the grid non-empty but it's then cleared by
+                # GridScanner in the course of generating the display widget.
+                grid_acknowledge.wait()
 
         prev_pos = pos
         pos = yield
@@ -268,7 +296,7 @@ def display_images(
         logger.debug(f"Going back to {realpath(prev_dir)}/")
         os.chdir(prev_dir)
 
-    return not len(items)
+    return not items
 
 
 def get_context() -> None:
@@ -416,17 +444,71 @@ def scan_dir_entry(
     return -1
 
 
-def scan_dir_menu(update_pipe: int) -> None:
+def scan_dir_grid() -> None:
+    """Scans a given directory (and it's sub-directories, if '--recursive'
+    was set) for readable images using a directory tree of the form produced by
+    ``.cli.check_dir(dir)``.
+
+    This is designed to be executed in a separate thread, while certain grid details
+    are passed in using the ``next_grid`` queue.
+
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
+    to ``.tui.main.grid_list`` and adds a corresponding entry to the grid widget
+    (for image entries only), then updates the screen.
+
+    Grouping and sorting are the same as for ``scan_dir()``.
+    """
+    global grid_list
+
+    grid_contents = image_grid.contents
+    while True:
+        dir, contents = next_grid.get()
+        grid_list = []
+        image_grid.contents.clear()
+
+        grid_acknowledge.set()  # Cleared grid contents
+        grid_scan_done.clear()
+
+        entries = os.listdir(dir)
+        entries.sort(
+            key=lambda x: sort_key_lexi(x, os.path.join(dir, x)),
+        )
+
+        for entry in entries:
+            entry_path = os.path.join(dir, entry)
+            result = scan_dir_entry(entry, contents, entry_path)
+            if result == HIDDEN:
+                continue
+            if result == IMAGE:
+                val = Image(TermImage.from_file(entry_path))
+                grid_list.append((entry, val))
+                grid_contents.append(
+                    (
+                        urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
+                        image_grid.options(),
+                    )
+                )
+                image_grid_box.base_widget._invalidate()
+                update_screen()
+            elif result == DIR:
+                grid_list.append((entry, ...))
+
+            if not next_grid.empty():
+                break
+            if not grid_active.is_set():
+                grid_acknowledge.set()
+                break
+        else:
+            grid_scan_done.set()
+
+
+def scan_dir_menu() -> None:
     """Scans the current working directory (and it's sub-directories, if '--recursive'
     was set) for readable images using a directory tree of the form produced by
     ``.cli.check_dir(dir)``.
-    This is designed to be executed in a separate thread, while certain menu details
-    are passed in using the `next_menu` queue.
 
-    Args:
-        - update_pipe: A file descriptor being watched by the TUI's event loop, used
-          to trigger screen updates from threads other than the one in which the loop
-          is running.
+    This is designed to be executed in a separate thread, while certain menu details
+    are passed in using the ``next_menu`` queue.
 
     For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
     to ``.tui.main.menu_list`` and adds a corresponding entry to the menu widget,
@@ -434,10 +516,6 @@ def scan_dir_menu(update_pipe: int) -> None:
 
     Grouping and sorting are the same as for ``scan_dir()``.
     """
-
-    def update_screen():
-        os.write(update_pipe, b" ")
-
     logger.debug("Starting")
 
     menu_body = menu.body
@@ -588,9 +666,24 @@ def update_menu(
     set_menu_count()
 
 
+def update_screen():
+    """Triggers a screeen redraw.
+
+    Meant to be called from threads other than the thread in which the MainLoop is
+    running.
+    """
+    if not (interrupted.is_set() or quitting.is_set()):
+        os.write(update_pipe, b" ")
+
+
 logger = _logging.getLogger(__name__)
+grid_acknowledge = Event()
+grid_active = Event()
+grid_list = None
+grid_scan_done = Event()
 menu_change = Event()
 menu_scan_done = Event()
+next_grid = Queue(1)
 next_menu = Queue(1)
 quitting = Event()
 
@@ -617,6 +710,7 @@ at_top_level = None
 displayer = None
 interrupted = None
 loop = None
+update_pipe = None
 
 # # Corresponsing to command-line args
 DEBUG = None
