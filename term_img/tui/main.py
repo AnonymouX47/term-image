@@ -140,14 +140,13 @@ def display_images(
     """
     os.chdir(dir)
 
-    menu_change.set()  # Signal change of menu
-    while menu_change.is_set():  # Wait for the signal to be acknowledged
-        pass
-    # MenuScanner has halted scanning
+    # For `.tui.keys.set_menu_actions()`
+    menu_is_complete = top_level or grid_scan_done.is_set()
+    menu_scan_done.set() if menu_is_complete else menu_scan_done.clear()
 
     update_menu(items, top_level)
+    next_menu.put((items, contents, menu_is_complete))
 
-    next_menu.put((items, contents, items[-1][0] if items else None, top_level))
     last_grid_entry = None
     entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0 if top_level else -1
@@ -179,14 +178,24 @@ def display_images(
                 pos = BACK
                 continue
 
+            # Ensure menu scanning is halted before WD is changed to prevent
+            # `FileNotFoundError`s
+            if not menu_scan_done.is_set():
+                menu_acknowledge.clear()
+                menu_change.set()
+                menu_acknowledge.wait()
+                menu_change.clear()
+
             # Ensure grid scanning is halted to avoid updating `grid_list` which is
-            # used as the next `menu_list` as is and to avoid `FileNotFoundError`s
+            # used as the next `menu_list` as is and to prevent `FileNotFoundError`s
             if not grid_scan_done.is_set():
                 grid_acknowledge.clear()
                 grid_active.clear()  # Grid not in view
                 grid_acknowledge.wait()
 
+            # To restore the menu on the way back
             menu_is_complete = menu_scan_done.is_set()
+
             logger.debug(f"Going into {realpath(entry)}/")
             empty = yield from display_images(
                 entry,
@@ -196,6 +205,10 @@ def display_images(
                 # to the link's parent instead of the linked directory's parent
                 os.getcwd() if top_level or islink(entry) else "..",
             )
+            # Menu change already signaled by the BACK action from the exited directory
+
+            # For `.tui.keys.set_menu_actions()`
+            menu_scan_done.set() if menu_is_complete else menu_scan_done.clear()
 
             if empty:  # All entries in the exited directory have been deleted
                 del items[prev_pos]
@@ -204,7 +217,6 @@ def display_images(
                 # Restore the menu and view pane for the previous (this) directory,
                 # while removing the empty directory entry.
                 update_menu(items, top_level, pos)
-
                 logger.debug(f"Removed empty directory entry '{entry}/' from the menu")
                 notify.notify(f"Removed empty directory entry '{entry}/' from the menu")
             else:
@@ -212,27 +224,26 @@ def display_images(
                 update_menu(items, top_level, prev_pos)
                 pos = prev_pos
 
-            next_menu.put(
-                (items, contents, items[-1][0] if items else None, menu_is_complete)
-            )
+            next_menu.put((items, contents, menu_is_complete))
             continue  # Skip `yield`
 
         elif pos == BACK:  # Implements "menu::Back" action
             if not top_level:
-                # Ensure directory scanning is halted before WD is changed to avoid
-                # unnecessary `FileNotFoundError`s
-                menu_change.set()  # Signal change of menu
+                # Ensure menu scanning is halted before WD is changed to prevent
+                # `FileNotFoundError`s
+                if not menu_scan_done.is_set():
+                    menu_acknowledge.clear()
+                    menu_change.set()
+                    menu_acknowledge.wait()
+                    menu_change.clear()
 
-                # Ensure grid scanning is halted before WD is changed to avoid
+                # Ensure grid scanning is halted before WD is changed to prevent
                 # `FileNotFoundError`s
                 if grid_active.is_set() and not grid_scan_done.is_set():
                     grid_acknowledge.clear()
                     grid_active.clear()  # Grid not in view
                     grid_acknowledge.wait()
 
-                while menu_change.is_set():  # Wait for the signal to be acknowledged
-                    pass
-                # MenuScanner has halted scanning
                 break
 
             # Since the execution context is not exited at the top-level, ensure pos
@@ -516,26 +527,10 @@ def scan_dir_menu() -> None:
 
     Grouping and sorting are the same as for ``scan_dir()``.
     """
-    logger.debug("Starting")
-
     menu_body = menu.body
-    last_entry = None
-    while not (interrupted.is_set() or quitting.is_set()):
-        while True:
-            if menu_change.wait(0.05) or interrupted.is_set() or quitting.is_set():
-                break
-        if interrupted.is_set() or quitting.is_set():
-            return
-
-        # Has to be cleared before `update_menu()` is called, since it calls
-        # `.tui.keys.set_menu_actions()`
-        menu_scan_done.clear()
-
-        menu_change.clear()  # Acknowledge the signal
-
-        items, contents, last_entry, menu_is_complete = next_menu.get()
+    while True:
+        items, contents, menu_is_complete = next_menu.get()
         if menu_is_complete:
-            menu_scan_done.set()
             continue
 
         entries = os.listdir()
@@ -543,6 +538,7 @@ def scan_dir_menu() -> None:
             key=sort_key_lexi,
         )
         entries = iter(entries)
+        last_entry = items[-1][0] if items else None
         if last_entry:
             for entry in entries:
                 if entry == last_entry:
@@ -550,9 +546,6 @@ def scan_dir_menu() -> None:
 
         errors = 0
         for entry in entries:
-            if menu_change.is_set() or interrupted.is_set() or quitting.is_set():
-                break
-
             result = scan_dir_entry(entry, contents)
             if result == HIDDEN:
                 continue
@@ -580,8 +573,16 @@ def scan_dir_menu() -> None:
                 )
                 set_menu_count()
                 update_screen()
+
+            if menu_change.is_set():
+                menu_acknowledge.set()
+                break
         else:
             menu_scan_done.set()
+            # There is a possibility that `menu_scan_done` is read as "cleared"
+            # in-between the end of the last iteration an here :)
+            if menu_change.is_set():
+                menu_acknowledge.set()
             log(f"Done scanning {os.getcwd()!r}!", logger, verbose=True)
             update_screen()
             if errors:
@@ -590,8 +591,6 @@ def scan_dir_menu() -> None:
                     "Check the logs.",
                     level=notify.ERROR,
                 )
-
-    logger.debug("Exiting")
 
 
 def set_context(new_context) -> None:
@@ -630,6 +629,8 @@ def sort_key_lexi(name, path=None):
     # The first part groups into files and directories
     # The seconds sorts within the group
     # The third, between hidden and non-hidden of the same name
+    #   - '\0' makes the key for the non-hidden longer without affecting it's order
+    #     relative to other entries.
     return (
         "\0" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
         if isfile(path or name)
@@ -677,15 +678,20 @@ def update_screen():
 
 
 logger = _logging.getLogger(__name__)
+quitting = Event()
+
+# For grid scanning/display
 grid_acknowledge = Event()
 grid_active = Event()
 grid_list = None
 grid_scan_done = Event()
+next_grid = Queue(1)
+
+# For menu scanning/listing
+menu_acknowledge = Event()
 menu_change = Event()
 menu_scan_done = Event()
-next_grid = Queue(1)
 next_menu = Queue(1)
-quitting = Event()
 
 # For Context Management
 _prev_contexts = ["menu"] * 3
@@ -702,17 +708,21 @@ UNREADABLE = 1
 IMAGE = 2
 DIR = 3
 
+# Placeholders
+
 # Set by `update_menu()`
 menu_list = None
 at_top_level = None
 
-# Placeholders; Set from `..tui.init()`
-displayer = None
+# # Set from `.__main__.main()`
 interrupted = None
+
+# # Set from `..tui.init()`
+displayer = None
 loop = None
 update_pipe = None
 
-# # Corresponsing to command-line args
+# # # Corresponsing to command-line args
 DEBUG = None
 FRAME_DURATION = None
 MAX_PIXELS = None

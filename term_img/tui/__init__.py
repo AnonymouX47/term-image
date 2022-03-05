@@ -42,7 +42,7 @@ def init(
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
-    menu_scanner = Thread(target=scan_dir_menu, name="MenuScanner")
+    menu_scanner = Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
     grid_scanner = Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
 
     main.loop.screen.clear()
@@ -73,7 +73,6 @@ def init(
         main.displayer.close()
         is_launched = False
         os.close(main.update_pipe)
-        menu_scanner.join()
 
 
 class Loop(urwid.MainLoop):
