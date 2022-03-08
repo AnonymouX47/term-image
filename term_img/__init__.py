@@ -19,7 +19,7 @@ Copyright (c) 2022
 
 __all__ = ("set_font_ratio", "get_font_ratio")
 
-version_info = (0, 1, 1)
+version_info = (0, 2, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
 
 
