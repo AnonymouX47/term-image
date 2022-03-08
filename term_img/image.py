@@ -535,15 +535,16 @@ class TermImage:
 
         # Intentionally propagates `IsADirectoryError` since the message is OK
         try:
-            Image.open(filepath)
+            new = cls(Image.open(filepath), **kwargs)
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
         except UnidentifiedImageError as e:
             e.args = (f"Could not identify {filepath!r} as an image",)
             raise
 
-        new = cls(Image.open(filepath), **kwargs)
-        new._source = os.path.realpath(filepath)
+        # Absolute paths work better with symlinks, as opposed to real paths:
+        # less confusing, Filename is as expected, helps in path comparisons
+        new._source = os.path.abspath(filepath)
         return new
 
     @classmethod
@@ -601,7 +602,7 @@ class TermImage:
         if not os.path.isdir(basedir):
             os.makedirs(basedir)
 
-        filepath = os.path.join(basedir, os.path.basename(urlparse(url).path))
+        filepath = os.path.join(basedir, os.path.basename(url))
         while os.path.exists(filepath):
             filepath += str(randint(0, 9))
         with open(filepath, "wb") as image_writer:

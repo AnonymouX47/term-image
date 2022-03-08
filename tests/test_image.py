@@ -256,14 +256,27 @@ class TestProperties:
         assert image.size is image.height is image.width is None
 
     def test_source(self):
+        import sys
+
         image = TermImage(python_img)
         assert image.source is python_img
 
         image = TermImage.from_file(python_image)
-        assert image.source == os.path.realpath(python_image)
+        assert image.source == os.path.abspath(python_image)
 
         with pytest.raises(AttributeError):
             image.source = None
+
+        if sys.platform == "linux":
+            # Symlinked image file
+            linked_image = "tests/images/python_sym.png"
+            image = TermImage.from_file(linked_image)
+            assert os.path.basename(image.source) == "python_sym.png"
+            assert (
+                image.source
+                == os.path.abspath(linked_image)
+                != os.path.realpath(linked_image)
+            )
 
 
 def test_set_size():
