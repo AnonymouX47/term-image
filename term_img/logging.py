@@ -50,8 +50,8 @@ def init_log(
         level=level,
     )
 
-    logger.info("Starting a new session")
-    logger.info(f"Logging level set to {logging.getLevelName(level)}")
+    _logger.info("Starting a new session")
+    _logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
     if debug and not stacklevel_is_available:
         warnings.warn(
@@ -63,7 +63,10 @@ def init_log(
     except ImportError:
         MULTI = False
     else:
+        from .logging_multi import multi_logger
+
         MULTI = not no_multi
+        multi_logger.start()
 
 
 def log(
@@ -121,7 +124,7 @@ def _log_warning(msg, catg, fname, lineno, f=None, line=None):
 
     Intended to replace `warnings.showwarning()`.
     """
-    logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
+    _logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
     notify.notify(
         "Please view the logs for some warning(s).",
         level=notify.WARNING,
@@ -150,7 +153,7 @@ warnings.showwarning = _log_warning
 
 # Can't use "term_img", since the logger's level is changed in `.__main__`.
 # Otherwise, it would affect children of "term_img".
-logger = logging.getLogger("term-img")
+_logger = logging.getLogger("term-img")
 
 # the _stacklevel_ parameter was added in Python 3.8
 stacklevel_is_available = sys.version_info[:3] >= (3, 8, 0)

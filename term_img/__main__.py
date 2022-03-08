@@ -23,6 +23,13 @@ def main() -> int:
     from . import cli, logging, notify
     from .tui import main
 
+    def finish_multi_logging():
+        if logging.MULTI:
+            from .logging_multi import _log_queue, multi_logger
+
+            _log_queue.put(None)  # End of logs
+            multi_logger.join()
+
     # Can't use "term_img", since the logger's level is changed.
     # Otherwise, it would affect children of "term_img".
     logger = _logging.getLogger("term-img")
@@ -34,6 +41,7 @@ def main() -> int:
     except KeyboardInterrupt:
         notify.stop_loading()  # Ensure loading stops, if ongoing.
         cli.interrupted.set()  # Signal interruption to other threads.
+        finish_multi_logging()
         logging.log(
             "Session interrupted",
             logger,
@@ -49,6 +57,7 @@ def main() -> int:
     except Exception as e:
         notify.stop_loading()  # Ensure loading stops, if ongoing.
         cli.interrupted.set()  # Signal interruption to other threads.
+        finish_multi_logging()
         logging.log(
             f"Session not ended successfully: ({type(e).__name__}) {e}",
             logger,
@@ -60,6 +69,7 @@ def main() -> int:
             raise
         return FAILURE
     else:
+        finish_multi_logging()
         logger.info(f"Session ended with return-code {exit_code} ({codes[exit_code]})")
         return exit_code
     finally:

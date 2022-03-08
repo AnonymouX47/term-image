@@ -123,37 +123,17 @@ def check_dirs(
     checker_no: int,
     content_queue: mp_Queue,
     dir_queue: mp_Queue,
-    log_queue: mp_Queue,
     progress_queue: mp_Queue,
-    logging_level: int,
     globals_: Dict[str, Any],
-    logging_: Dict[str, Any],
 ):
     """Checks a directory source in a newly **spawned** child process.
 
     Intended as the *target* of a **spawned** process to parallelize directory checks.
     """
-    from traceback import format_exception
-
-    from . import logging
-
-    def redirect_logs(record):
-        attrdict = record.__dict__
-        exc_info = attrdict["exc_info"]
-        if exc_info:
-            # traceback objects cannot be pickled
-            attrdict["msg"] = "\n".join(
-                (attrdict["msg"], "".join(format_exception(*exc_info)))
-            ).rstrip()
-            attrdict["exc_info"] = None
-        log_queue.put(attrdict)
-
-        return False  # Prevent logs from being emitted by spawned processes
+    from .logging_multi import redirect_logs
 
     globals().update(globals_)
-    logging.__dict__.update(logging_)
-    logger.setLevel(logging_level)
-    logger.filter = redirect_logs
+    redirect_logs(logger)
 
     logger.debug("Starting")
     source = dir_queue.get()
@@ -187,11 +167,6 @@ def manage_checkers(
     processed.
     """
     from . import logging
-
-    def process_log() -> None:
-        attrdict = log_queue.get()
-        attrdict["process"] = PID
-        logger.handle(_logging.makeLogRecord(attrdict))
 
     def process_result(source: str, result: Optional[bool], n: int = -1) -> None:
         if logging.MULTI:
@@ -227,19 +202,10 @@ def manage_checkers(
         CLOSE_KILL = sys.version_info[:2] >= (3, 7)
 
         content_queue = mp_Queue()
-        log_queue = mp_Queue()
         progress_queue = mp_Queue()
         MAX_CHECKERS = args.checkers
-        PID = os.getpid()
         checker_progress = [True] * MAX_CHECKERS
-        logging_level = logger.getEffectiveLevel()
-        globals_ = {
-            **{"log_queue": log_queue},
-            **{name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")},
-        }
-        logging_ = {  # "Constants" from `.logging`
-            name: value for name, value in logging.__dict__.items() if name.isupper()
-        }
+        globals_ = {name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")}
 
         checkers = [
             Process(
@@ -249,11 +215,8 @@ def manage_checkers(
                     n,
                     content_queue,
                     dir_queue,
-                    log_queue,
                     progress_queue,
-                    logging_level,
                     globals_,
-                    logging_,
                 ),
             )
             for n in range(MAX_CHECKERS)
@@ -268,12 +231,8 @@ def manage_checkers(
                 pass
 
             while not interrupted.is_set() and not (
-                not any(checker_progress)
-                and log_queue.empty()
-                and content_queue.empty()
+                not any(checker_progress) and content_queue.empty()
             ):
-                if not log_queue.empty():
-                    process_log()
                 if not content_queue.empty():
                     process_result(*content_queue.get())
                 for n, checker in enumerate(checkers):
