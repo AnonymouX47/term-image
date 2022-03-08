@@ -194,7 +194,7 @@ def manage_checkers(
         logger.handle(_logging.makeLogRecord(attrdict))
 
     def process_result(source: str, result: Optional[bool], n: int = -1) -> None:
-        if MULTI:
+        if logging.MULTI:
             if n > -1:
                 log(
                     f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
@@ -222,25 +222,13 @@ def manage_checkers(
             contents[source] = result
             images.append((source, ...))
 
-    try:
-        content_queue = mp_Queue()
-        log_queue = mp_Queue()
-        progress_queue = mp_Queue()
-    except ImportError:
-        MULTI = False
-        log(
-            "Multiprocessing not supported on this platform, "
-            "directory sources will be processed serially",
-            logger,
-            _logging.ERROR,
-        )
-    else:
-        MULTI = True
-
-    if MULTI:
+    if logging.MULTI:
         # Process.close() and Process.kill() were added in Python 3.7
         CLOSE_KILL = sys.version_info[:2] >= (3, 7)
 
+        content_queue = mp_Queue()
+        log_queue = mp_Queue()
+        progress_queue = mp_Queue()
         MAX_CHECKERS = args.checkers
         PID = os.getpid()
         checker_progress = [True] * MAX_CHECKERS
@@ -305,12 +293,21 @@ def manage_checkers(
                     checker.close()
     else:
         current_thread.name = "Checker"
+        log(
+            "Multiprocessing not supported on this platform or has been disabled, "
+            "directory sources will be processed serially after file sources have been "
+            "processed!",
+            logger,
+            _logging.ERROR,
+        )
+
         # wait till after file sources are processed, since the working directory
         # will be changing
         opener.join()
 
         source = dir_queue.get()
         while source:
+            log(f"Checking {source!r}", logger, verbose=True)
             result = False
             try:
                 result = check_dir(source, os.getcwd())
@@ -687,6 +684,11 @@ or multiple valid sources
         default=4,
         help="Number of threads for downloading images from URL sources (default: 4)",
     )
+    perf_options.add_argument(
+        "--no-multi",
+        action="store_true",
+        help="Disable multiprocessing",
+    )
 
     # Logging
     log_options_ = parser.add_argument_group(
@@ -746,6 +748,7 @@ or multiple valid sources
         args.log,
         getattr(_logging, args.log_level),
         args.debug,
+        args.no_multi,
         args.verbose,
         args.verbose_log,
     )

@@ -14,11 +14,12 @@ def init_log(
     logfile: str,
     level: int,
     debug: bool,
+    no_multi: bool,
     verbose: bool = False,
     verbose_log: bool = False,
 ) -> None:
     """Initialize application event logging"""
-    global DEBUG, VERBOSE, VERBOSE_LOG
+    global DEBUG, MULTI, VERBOSE, VERBOSE_LOG
 
     handler = RotatingFileHandler(
         logfile,
@@ -56,6 +57,13 @@ def init_log(
         warnings.warn(
             "Please upgrade to Python 3.8 or later to get more detailed logs."
         )
+
+    try:
+        import multiprocessing.synchronize  # noqa: F401
+    except ImportError:
+        MULTI = False
+    else:
+        MULTI = not no_multi
 
 
 def log(
@@ -156,5 +164,6 @@ else:
 
 # Set from within `init_log()`
 DEBUG = None
+MULTI = None
 VERBOSE = None
 VERBOSE_LOG = None
