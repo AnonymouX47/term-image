@@ -55,6 +55,10 @@ def redirect_logs(logger: _logging.Logger) -> None:
     log_manager = LogManager(("", 54321))
     log_manager.connect()
 
+    # Ensure details have been uploaded by MultiLogger
+    while not log_manager.get_logging_details()._getvalue():
+        pass
+
     logging_level, constants = log_manager.get_logging_details()._getvalue()
     log_queue = log_manager.get_log_queue()
 

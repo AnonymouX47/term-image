@@ -253,7 +253,7 @@ def manage_checkers(
     else:
         current_thread.name = "Checker"
         log(
-            "Multiprocessing not supported on this platform or has been disabled, "
+            "Multiprocessing is not supported on this platform or has been disabled, "
             "directory sources will be processed serially after file sources have been "
             "processed!",
             logger,

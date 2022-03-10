@@ -68,6 +68,8 @@ def init_log(
         from .logging_multi import multi_logger
 
         MULTI = not no_multi
+
+    if MULTI:
         multi_logger.start()
 
 
