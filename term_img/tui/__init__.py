@@ -1,7 +1,7 @@
 """Term-Img's Terminal User Interface"""
 
 import argparse
-import logging
+import logging as _logging
 import os
 from os.path import basename
 from threading import Thread
@@ -9,9 +9,15 @@ from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
 
+# Importing `.notify` prevents circular imports in spawned sub-processes loading this
+# sub-package (`.tui`), particularly those with their target functions defined within
+# `.tui` or its submodules.
+# This is due to the different order of loading modules.
+from .. import notify  # noqa: F401; Must be loaded before `.logging`
 from ..logging import log
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
+from .render import manage_grid_renders
 from .widgets import Image, info_bar, main as main_widget
 
 
@@ -30,6 +36,7 @@ def init(
 
     main.DEBUG = args.debug
     main.FRAME_DURATION = args.frame_duration
+    main.GRID_RENDERERS = args.grid_renderers
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
     main.RECURSIVE = args.recursive
@@ -44,6 +51,12 @@ def init(
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
     menu_scanner = Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
     grid_scanner = Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
+    grid_render_manager = Thread(
+        target=manage_grid_renders,
+        args=(args.grid_renderers,),
+        name="GridRenderManager",
+        daemon=True,
+    )
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)
@@ -52,17 +65,20 @@ def init(
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
     )
 
-    logger = logging.getLogger(__name__)
+    logger = _logging.getLogger(__name__)
     log("Launching TUI", logger, direct=False)
     main.set_context("menu")
     is_launched = True
     menu_scanner.start()
     grid_scanner.start()
+    grid_render_manager.start()
 
     try:
         print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
+        main.grid_active.set()  # Allow GridRenderManager to receive quitting signal
+        grid_render_manager.join()
         log("Exited TUI normally", logger, direct=False)
     except (KeyboardInterrupt, Exception):
         main.interrupted.set()  # Signal interruption to other threads.

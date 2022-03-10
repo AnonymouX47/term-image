@@ -644,6 +644,13 @@ or multiple valid sources
         help="Number of threads for downloading images from URL sources (default: 4)",
     )
     perf_options.add_argument(
+        "--grid-renderers",
+        type=int,
+        metavar="N",
+        default=1,
+        help="Number of subprocesses for rendering grid cells (default: 2)",
+    )
+    perf_options.add_argument(
         "--no-multi",
         action="store_true",
         help="Disable multiprocessing",

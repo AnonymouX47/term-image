@@ -416,11 +416,26 @@ def maximize():
 
 
 # image-grid
+@register_key(("image-grid", "Size-"))
+def cell_width_dec():
+    if image_grid.cell_width > 30:
+        image_grid.cell_width -= 2
+        main.grid_render_queue.put(None)  # Mark the start of a new grid
+        main.grid_change.set()
+        # Wait till GridRenderManager clears the cache
+        while main.grid_change.is_set():
+            pass
+
+
 @register_key(("image-grid", "Size+"))
 def cell_width_inc():
     if image_grid.cell_width < 50:
         image_grid.cell_width += 2
-        Image._grid_cache.clear()
+        main.grid_render_queue.put(None)  # Mark the start of a new grid
+        main.grid_change.set()
+        # Wait till GridRenderManager clears the cache
+        while main.grid_change.is_set():
+            pass
 
 
 @register_key(("image-grid", "Open"))
@@ -440,13 +455,6 @@ def maximize_cell():
     image_box.original_widget = image  # For image animation
     if image._image._is_animated:
         main.animate_image(image)
-
-
-@register_key(("image-grid", "Size-"))
-def cell_width_dec():
-    if image_grid.cell_width > 30:
-        image_grid.cell_width -= 2
-        Image._grid_cache.clear()
 
 
 def set_image_grid_actions():

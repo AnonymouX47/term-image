@@ -3,7 +3,7 @@
 import logging as _logging
 import os
 from operator import mul
-from os.path import basename, isfile, islink, realpath
+from os.path import abspath, basename, isfile, islink
 from queue import Queue
 from threading import Event
 from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
@@ -27,6 +27,7 @@ from .keys import (
     set_menu_actions,
     set_menu_count,
 )
+from .render import grid_render_queue
 from .widgets import (
     Image,
     LineSquare,
@@ -138,6 +139,8 @@ def display_images(
           - a menu item position (-1 and above)
           - a flag denoting a certain action
     """
+    global grid_list, grid_path, last_non_empty_grid_path
+
     os.chdir(dir)
 
     # For `.tui.keys.set_menu_actions()`
@@ -147,7 +150,6 @@ def display_images(
     update_menu(items, top_level)
     next_menu.put((items, contents, menu_is_complete))
 
-    last_non_empty_grid_entry = None
     entry = prev_pos = value = None  # Silence linter's `F821`
     pos = 0 if top_level else -1
 
@@ -196,7 +198,7 @@ def display_images(
             # To restore the menu on the way back
             menu_is_complete = menu_scan_done.is_set()
 
-            logger.debug(f"Going into {realpath(entry)}/")
+            logger.debug(f"Going into {abspath(entry)}/")
             empty = yield from display_images(
                 entry,
                 grid_list,
@@ -276,11 +278,21 @@ def display_images(
                 grid_active.set()  # Grid is in view
 
                 next_grid.put((entry, contents[entry]))
+                # No need to wait for acknowledgement since this is a new list instance
+                grid_list = []
+                # Absolute paths work fine with symlinked images and directories,
+                # as opposed to real paths, especially in path comparisons
+                # e.g in `.tui.render.manage_grid_renders()`.
+                grid_path = abspath(entry)
 
-                if contents[entry]["/"] and entry != last_non_empty_grid_entry:
-                    Image._grid_cache.clear()
-                    last_non_empty_grid_entry = entry
-                image_grid_box.set_title(f"{realpath(entry)}/")
+                if contents[entry]["/"] and grid_path != last_non_empty_grid_path:
+                    grid_render_queue.put(None)  # Mark the start of a new grid
+                    grid_change.set()
+                    # Wait till GridRenderManager clears the cache
+                    while grid_change.is_set():
+                        pass
+                    last_non_empty_grid_path = grid_path
+                image_grid_box.set_title(grid_path + "/")
                 view.original_widget = image_grid_box
                 image_grid_box.base_widget._invalidate()
 
@@ -304,7 +316,7 @@ def display_images(
             info_bar.set_text(f"pos={pos} {info_bar.text}")
 
     if not top_level:
-        logger.debug(f"Going back to {realpath(prev_dir)}/")
+        logger.debug(f"Going back to {abspath(prev_dir)}/")
         os.chdir(prev_dir)
 
     return not items
@@ -418,7 +430,7 @@ def scan_dir(
             yield entry, ...
     if notify_errors and errors:
         notify.notify(
-            f"{errors} file(s) could not be read in {realpath(dir)!r}! Check the logs.",
+            f"{errors} file(s) could not be read in {abspath(dir)!r}! Check the logs.",
             level=notify.ERROR,
         )
 
@@ -442,9 +454,7 @@ def scan_dir_entry(
             # Reporting will apply to every non-image file :(
             pass
         except Exception:
-            log_exception(
-                f"{realpath(entry_path or entry)!r} could not be read", logger
-            )
+            log_exception(f"{abspath(entry_path or entry)!r} could not be read", logger)
             return UNREADABLE
         else:
             return IMAGE
@@ -469,15 +479,10 @@ def scan_dir_grid() -> None:
 
     Grouping and sorting are the same as for ``scan_dir()``.
     """
-    global grid_list, grid_path
-
     grid_contents = image_grid.contents
     while True:
         dir, contents = next_grid.get()
-        grid_list = []
-        grid_path = realpath(dir)
         image_grid.contents.clear()
-
         grid_acknowledge.set()  # Cleared grid contents
         grid_scan_done.clear()
 
@@ -688,9 +693,11 @@ quitting = Event()
 # For grid scanning/display
 grid_acknowledge = Event()
 grid_active = Event()
+grid_change = Event()
 grid_list = None
 grid_path = None
 grid_scan_done = Event()
+last_non_empty_grid_path = None
 next_grid = Queue(1)
 
 # For menu scanning/listing
@@ -716,7 +723,7 @@ DIR = 3
 
 # Placeholders
 
-# Set by `update_menu()`
+# # Set by `update_menu()`
 menu_list = None
 at_top_level = None
 
@@ -731,6 +738,7 @@ update_pipe = None
 # # # Corresponsing to command-line args
 DEBUG = None
 FRAME_DURATION = None
+GRID_RENDERERS = None
 MAX_PIXELS = None
 NO_ANIMATION = None
 RECURSIVE = None

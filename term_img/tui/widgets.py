@@ -13,6 +13,7 @@ from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import _ALPHA_THRESHOLD, TermImage
 from . import keys, main as tui_main
+from .render import grid_render_queue
 
 command = urwid.Widget._command_map._command_defaults.copy()
 for action, (key, _) in _nav.items():
@@ -125,6 +126,7 @@ class Image(urwid.Widget):
     no_cache = ["render", "rows"]
 
     _faulty_image = urwid.SolidFill("?")
+    _large_image = urwid.SolidFill("!")
     _placeholder = urwid.SolidFill(".")
 
     _force_render = False
@@ -161,14 +163,13 @@ class Image(urwid.Widget):
 
         # Cache retrieval
 
-        if view.original_widget is image_grid_box and context != "full-grid-image":
-            canv = __class__._grid_cache.get(basename(image._source))
-            # Grid render cell-width adjusts when _maxcol_ < _cell_width_.
-            # `+2` cos `LineSquare` subtracts the columns for surrounding lines.
-            if canv and size[0] + 2 == image_grid.cell_width:
-                return canv
-        elif not image._is_animated and self._last_canv[0] == hash(
-            (self._image._source, size)
+        if (
+            (not image._is_animated or tui_main.NO_ANIMATION)
+            and (
+                view.original_widget is not image_grid_box
+                or context == "full-grid-image"
+            )
+            and self._last_canv[0] == hash((image._source, size))
         ):
             if context in self._force_render_contexts:
                 keys.disable_actions(context, "Force Render")
@@ -187,15 +188,43 @@ class Image(urwid.Widget):
                         self._force_render = False
                         if context in self._force_render_contexts:
                             keys.enable_actions(context, "Force Render")
-                        return self._placeholder.render(size, focus)
+                        return __class__._large_image.render(size, focus)
                 else:
                     del self._force_render
             else:
                 if context in self._force_render_contexts:
                     keys.enable_actions(context, "Force Render")
-                return self._placeholder.render(size, focus)
+                return __class__._large_image.render(size, focus)
         if context in self._force_render_contexts:
             keys.disable_actions(context, "Force Render")
+
+        # Grid cells
+
+        if (
+            view.original_widget is image_grid_box
+            and context != "full-grid-image"
+            # Grid render cell width adjusts when _maxcols_ < _cell_width_
+            # `+2` cos `LineSquare` subtracts the columns for surrounding lines
+            and size[0] + 2 == image_grid.cell_width
+        ):
+            canv = __class__._grid_cache.get(basename(image._source))
+            if not canv:
+                grid_render_queue.put(
+                    (
+                        (
+                            image._source
+                            if logging.MULTI and tui_main.GRID_RENDERERS > 0
+                            else image
+                        ),
+                        size,
+                        self._alpha,
+                    )
+                )
+                __class__._grid_cache[basename(image._source)] = ...
+                canv = __class__._placeholder.render(size, focus)
+            elif canv is ...:
+                canv = __class__._placeholder.render(size, focus)
+            return canv
 
         # Size augmentation and setting
 
@@ -229,9 +258,7 @@ class Image(urwid.Widget):
             # string (as a list though) then generates and yields the complete lines
             # **as needed**. Trimmed padding lines are never generated at all.
             canv = ImageCanvas(
-                (self._frame or format(image, f"1.1{self._alpha}"))
-                .encode()
-                .split(b"\n"),
+                (self._frame or f"{image:1.1{self._alpha}}").encode().split(b"\n"),
                 size,
                 image.rendered_size,
             )
@@ -247,17 +274,14 @@ class Image(urwid.Widget):
                         or context == "full-grid-image"
                     ),
                 )
-            canv = self._faulty_image.render(size, focus)
+            canv = __class__._faulty_image.render(size, focus)
 
         # Cache storing
 
-        if view.original_widget is image_grid_box and context != "full-grid-image":
-            # Grid render cell width adjusts when _maxcols_ < _cell_width_
-            # `+2` cos `LineSquare` subtracts the columns for surrounding lines
-            if size[0] + 2 == image_grid.cell_width:
-                __class__._grid_cache[basename(image._source)] = canv
-        elif not image._is_animated:
-            __class__._last_canv = (hash((self._image._source, size)), canv)
+        if (not image._is_animated or tui_main.NO_ANIMATION) and (
+            view.original_widget is not image_grid_box or context == "full-grid-image"
+        ):
+            __class__._last_canv = (hash((image._source, size)), canv)
 
         return canv
 
