@@ -156,7 +156,12 @@ def update_config(config: Dict[str, Any], old_version: str):
     # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
     changes = {
         "0.1": [],
-        "0.2": [("['frame duration']", 0.1, None)],
+        "0.2": [
+            ("['frame duration']", 0.1, None),
+            ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
+            ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
+            ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
+        ],
     }
 
     versions = tuple(changes)
@@ -371,7 +376,7 @@ _context_keys = {
         "Next": ["right", "", "Move to the next image"],
         "Force Render": [
             "F",
-            "F",
+            "\u21e7F",
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
         "Maximize": ["f", "f", "Maximize the current image"],
@@ -398,7 +403,7 @@ _context_keys = {
         "Next": ["right", "", "Move to the next image"],
         "Force Render": [
             "F",
-            "F",
+            "\u21e7F",
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
         "Delete": ["d", "d", "Delete current image"],
@@ -407,7 +412,7 @@ _context_keys = {
         "Back": ["esc", "\u238b", "Back to grid view"],
         "Force Render": [
             "F",
-            "F",
+            "\u21e7F",
             "Force an image, with more pixels than the set maximum, to be displayed",
         ],
     },
