@@ -1461,10 +1461,11 @@ class ImageIterator:
                 if not image._n_frames:
                     image._n_frames = image._seek_position
                 image._seek_position = 0
-                repeat -= 1
+                if repeat > 0:  # Avoid infinitely large negative numbers
+                    repeat -= 1
                 if cached:
-                    cached = False
-                elif repeat:
+                    break
+                if repeat:
                     frame = image._format_render(image._render_image(img, alpha), *fmt)
 
         if unset_size:
@@ -1493,7 +1494,8 @@ class ImageIterator:
                 image._seek_position = n
 
             image._seek_position = 0
-            repeat -= 1
+            if repeat > 0:  # Avoid infinitely large negative numbers
+                repeat -= 1
 
 
 # Reserved
