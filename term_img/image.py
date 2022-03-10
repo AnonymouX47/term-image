@@ -1354,12 +1354,8 @@ class ImageIterator:
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not.
 
-          - If a ``bool``, it directly sets if the frames will be cached or not.
-          - If an ``int``, caching is enabled only if the number of frames in the image
-            is less than or equal to the given number.
-          - If *repeat* equals ``1``, caching is disabled.
-
     NOTE:
+        - If *repeat* equals ``1``, caching is disabled.
         - The iterator has immediate response to changes in the image
           :term:`render size` and :term:`scale`.
         - If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
@@ -1373,7 +1369,7 @@ class ImageIterator:
         image: TermImage,
         repeat: int = -1,
         format: str = "",
-        cached: Union[bool, int] = 100,
+        cached: bool = False,
     ):
         if not isinstance(image, TermImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
@@ -1391,15 +1387,13 @@ class ImageIterator:
             )
         *fmt, alpha = image._check_format_spec(format)
 
-        if not isinstance(cached, (bool, int)):
+        if not isinstance(cached, bool):
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
 
         self._image = image
         self._repeat = repeat
         self._format = format
-        self._cached = (
-            cached if isinstance(cached, bool) else image.n_frames <= cached
-        ) and repeat != 1
+        self._cached = cached and repeat != 1
         self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
 
     def __iter__(self):
