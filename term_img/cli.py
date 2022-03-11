@@ -884,6 +884,7 @@ or multiple valid sources
                         else args.alpha_bg and "#" + args.alpha_bg or args.alpha
                     ),
                     animate=not args.no_anim,
+                    cached=os.stat(image._source).st_size <= 2097152,
                     ignore_oversize=args.oversize,
                 )
 

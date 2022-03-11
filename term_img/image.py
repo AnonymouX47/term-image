@@ -9,7 +9,6 @@ import io
 import os
 import re
 import time
-from itertools import cycle
 from math import ceil
 from operator import add, gt, mul, sub, truediv
 from random import randint
@@ -393,6 +392,8 @@ class TermImage:
         alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
         animate: bool = True,
+        repeat: int = -1,
+        cached: bool = False,
         ignore_oversize: bool = False,
     ) -> None:
         """Draws/Displays an image in the terminal, with optional :term:`alignment` and
@@ -422,7 +423,11 @@ class TermImage:
                 should be replaced.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
-              an :term:`animated` image.
+              an animated image.
+            repeat: The number of times to go over all frames of an animated image.
+              A negative value implies infinite repetition.
+            cached: Determines if :term:`rendered` frames of an animated image will be
+              cached (for speed up of subsequent renders of the same frame) or not.
             ignore_oversize: If ``True``, do not verify if the image will fit into
               the :term:`available terminal size <available size>` with it's currently
               set :term:`render size`.
@@ -438,20 +443,20 @@ class TermImage:
               <available size>`.
 
         NOTE:
-            * Animations, if not disabled, are infinitely looped but can be terminated
+            * Animations, by **default**, are infinitely looped and can be terminated
               with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
             * If :py:meth:`set_size()` was previously used to set the
               :term:`render size` (directly or not), the last values of its
               *check_height*, *h_allow* and *v_allow* parameters are taken into
               consideration, with *check_height* applying to only non-animated images.
+            * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
+              These arguments are simply ignored for non-animated images.
             * For animated images, when *animate* is ``True``:
 
               * :term:`Render size` and :term:`padding height` are always validated.
               * *ignore_oversize* has no effect.
         """
-        h_align, pad_width, v_align, pad_height = self._check_formatting(
-            h_align, pad_width, v_align, pad_height
-        )
+        fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
         if (
             animate
@@ -475,34 +480,29 @@ class TermImage:
                     "'alpha' must be `None` or of type `float` or `str` "
                     f"(got: {type(alpha).__name__})"
                 )
-        if not isinstance(animate, bool):
+        if self._is_animated and not isinstance(animate, bool):
             raise TypeError("'animate' must be a boolean")
         if not isinstance(ignore_oversize, bool):
             raise TypeError("'ignore_oversize' must be a boolean")
 
+        # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
+
         def render(image) -> None:
+            print("\033[?25l", end="")  # Hide the cursor
             try:
-                if animate and self._is_animated:
-                    self._display_animated(
-                        image, alpha, h_align, pad_width, v_align, pad_height
-                    )
+                if self._is_animated and animate:
+                    self._display_animated(image, alpha, fmt, repeat, cached)
                 else:
                     print(
-                        self._format_render(
-                            self._render_image(image, alpha),
-                            h_align,
-                            pad_width,
-                            v_align,
-                            pad_height,
-                        ),
+                        self._format_render(self._render_image(image, alpha), *fmt),
                         end="",
                         flush=True,
                     )
             finally:
-                print("\033[0m")  # Always reset color
+                print("\033[0m\033[?25h")  # Reset color and show the cursor
 
         self._renderer(
-            render, check_size=animate and self._is_animated or not ignore_oversize
+            render, check_size=self._is_animated and animate or not ignore_oversize
         )
 
     @classmethod
@@ -871,9 +871,11 @@ class TermImage:
 
     def _display_animated(
         self,
-        image: Image.Image,
+        img: Image.Image,
         alpha: Union[None, float, str],
-        *fmt: Union[None, str, int],
+        fmt: Tuple[Union[None, str, int]],
+        repeat: int,
+        cached: bool,
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
@@ -887,37 +889,18 @@ class TermImage:
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
             self.rendered_height,
         )
-        cache = []
         prev_seek_pos = self._seek_position
+        image_it = ImageIterator(self, repeat, "", cached)
+        del image_it._animator
+
         try:
-            caching = True
             duration = self._frame_duration
-            self._seek_position = 0
-            cache.append(self._format_render(self._render_image(image, alpha), *fmt))
-            while caching:
-                print(cache[-1], end="", flush=True)  # Current frame
-
-                # Render next frame during current frame's duration
-                start = time.time()
-                self._seek_position += 1
-                try:
-                    cache.append(
-                        self._format_render(self._render_image(image, alpha), *fmt)
-                    )
-                except EOFError:
-                    if not self._n_frames:
-                        self._n_frames = self._seek_position
-                    caching = False
-
-                # Move cursor up to the begining of the first line of the image
-                # Not flushed until the next frame is printed
-                print("\r\033[%dA" % (lines - 1), end="")
+            start = time.time()
+            for frame in image_it._animate(img, alpha, fmt):
+                print(frame, end="", flush=True)  # Current frame
 
                 # Left-over of current frame's duration
                 time.sleep(max(0, duration - (time.time() - start)))
-
-            for n in cycle(range(self._n_frames)):
-                print(cache[n], end="", flush=True)  # Current frame
 
                 # Render next frame during current frame's duration
                 start = time.time()
@@ -925,14 +908,13 @@ class TermImage:
                 # Move cursor up to the begining of the first line of the image
                 # Not flushed until the next frame is printed
                 print("\r\033[%dA" % (lines - 1), end="")
-
-                # Left-over of current frame's duration
-                time.sleep(max(0, duration - (time.time() - start)))
         finally:
+            if img is not self._source:
+                img.close()
             self._seek_position = prev_seek_pos
             # Move the cursor to the line after the image
             # Prevents "overlayed" output in the terminal
-            print("\033[%dB" % lines, end="", flush=True)
+            print("\033[%dB" % lines, end="")
 
     def _format_render(
         self,
