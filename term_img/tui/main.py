@@ -11,10 +11,9 @@ from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 import PIL
 import urwid
 
-from .. import notify
+from .. import logging, notify
 from ..config import context_keys, expand_key
 from ..image import ImageIterator, TermImage
-from ..logging import log, log_exception
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -459,7 +458,9 @@ def scan_dir_entry(
             # Reporting will apply to every non-image file :(
             pass
         except Exception:
-            log_exception(f"{abspath(entry_path or entry)!r} could not be read", logger)
+            logging.log_exception(
+                f"{abspath(entry_path or entry)!r} could not be read", logger
+            )
             return UNREADABLE
         else:
             return IMAGE

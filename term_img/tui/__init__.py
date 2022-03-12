@@ -9,12 +9,7 @@ from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
 
-# Importing `.notify` prevents circular imports in spawned sub-processes loading this
-# sub-package (`.tui`), particularly those with their target functions defined within
-# `.tui` or its submodules.
-# This is due to the different order of loading modules.
-from .. import notify  # noqa: F401; Must be loaded before `.logging`
-from ..logging import log
+from .. import logging
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .render import manage_grid_renders
@@ -66,7 +61,7 @@ def init(
     )
 
     logger = _logging.getLogger(__name__)
-    log("Launching TUI", logger, direct=False)
+    logging.log("Launching TUI", logger, direct=False)
     main.set_context("menu")
     is_launched = True
     menu_scanner.start()
@@ -79,7 +74,7 @@ def init(
         main.loop.run()
         main.grid_active.set()  # Allow GridRenderManager to receive quitting signal
         grid_render_manager.join()
-        log("Exited TUI normally", logger, direct=False)
+        logging.log("Exited TUI normally", logger, direct=False)
     except (KeyboardInterrupt, Exception):
         main.interrupted.set()  # Signal interruption to other threads.
         raise

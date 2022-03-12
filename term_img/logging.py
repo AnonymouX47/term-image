@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Set
 
-# NOTE: `.notify` must always be loaded before this module, `.logging`.
-# Failure to do so will result in a circular imports.
 from . import notify
 
 

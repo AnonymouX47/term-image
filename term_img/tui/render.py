@@ -7,8 +7,7 @@ from queue import Empty, Queue
 from threading import Thread
 from typing import Union
 
-from .. import get_font_ratio, set_font_ratio
-from ..logging import log, log_exception
+from .. import get_font_ratio, logging, set_font_ratio
 from ..logging_multi import redirect_logs
 
 
@@ -21,7 +20,6 @@ def manage_grid_renders(n_renderers: int):
     subprocesses to render the cells and handles their proper termination.
     Otherwise, it starts a single new thread to render the cells.
     """
-    from .. import logging
     from . import main
     from .main import grid_active, grid_change, quitting, update_screen
     from .widgets import Image, ImageCanvas, image_grid
@@ -148,7 +146,7 @@ def render_grid_images(
     except KeyboardInterrupt:
         logger.debug("Interrupted")
     except Exception:
-        log_exception("Aborted", logger)
+        logging.log_exception("Aborted", logger)
     else:
         logger.debug("Exiting")
 
