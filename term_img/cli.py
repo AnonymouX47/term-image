@@ -3,10 +3,10 @@
 import argparse
 import logging as _logging
 import os
-import queue
 import sys
 from multiprocessing import Process, Queue as mp_Queue
 from operator import mul, setitem
+from queue import Queue
 from threading import Thread, current_thread
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import __version__, notify, set_font_ratio, tui
+from . import __version__, logging, notify, set_font_ratio, tui
 from .config import config_options, font_ratio, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
@@ -155,7 +155,7 @@ def check_dirs(
 
 
 def manage_checkers(
-    dir_queue: mp_Queue,
+    dir_queue: Union[Queue, mp_Queue],
     contents: Dict[str, Dict],
     images: List[Tuple[str, Generator]],
     opener: Thread,
@@ -278,7 +278,7 @@ def manage_checkers(
 
 
 def get_urls(
-    url_queue: queue.Queue,
+    url_queue: Queue,
     images: List[Tuple[str, Image]],
 ) -> None:
     """Processes URL sources from a/some separate thread(s)"""
@@ -304,7 +304,7 @@ def get_urls(
 
 
 def open_files(
-    file_queue: queue.Queue,
+    file_queue: Queue,
     images: List[Tuple[str, Image]],
 ) -> None:
     source = file_queue.get()
@@ -736,7 +736,7 @@ or multiple valid sources
     contents = {}
     absolute_sources = set()
 
-    url_queue = queue.Queue()
+    url_queue = Queue()
     getters = [
         Thread(
             target=get_urls,
@@ -749,7 +749,7 @@ or multiple valid sources
     for getter in getters:
         getter.start()
 
-    file_queue = queue.Queue()
+    file_queue = Queue()
     opener = Thread(
         target=open_files,
         args=(file_queue, file_images),
@@ -761,7 +761,7 @@ or multiple valid sources
     os_is_unix = sys.platform not in {"win32", "cygwin"}
 
     if os_is_unix:
-        dir_queue = mp_Queue()
+        dir_queue = mp_Queue() if logging.MULTI else Queue()
         check_manager = Thread(
             target=manage_checkers,
             args=(dir_queue, contents, dir_images, opener),
