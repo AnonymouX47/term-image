@@ -598,8 +598,6 @@ def scan_dir_menu() -> None:
             # in-between the end of the last iteration an here :)
             if menu_change.is_set():
                 menu_acknowledge.set()
-            log(f"Done scanning {os.getcwd()!r}!", logger, verbose=True)
-            update_screen()
             if errors:
                 notify.notify(
                     f"{errors} file(s) could not be read in {os.getcwd()!r}! "

@@ -146,7 +146,7 @@ def render_grid_images(
             except Exception:
                 output.put((image._source, None, size, image.rendered_size))
     except KeyboardInterrupt:
-        log("Interrupted", logger, _logging.ERROR)
+        logger.debug("Interrupted")
     except Exception:
         log_exception("Aborted", logger)
     else:
