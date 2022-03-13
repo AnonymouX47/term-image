@@ -25,10 +25,11 @@ def main() -> int:
 
     def finish_multi_logging():
         if logging.MULTI:
-            from .logging_multi import _log_queue, multi_logger
+            from .logging_multi import log_queue
 
-            _log_queue.put(None)  # End of logs
-            multi_logger.join()
+            if log_queue:  # Multi-logging has been successfully initialized
+                log_queue.put(None)  # End of logs
+                log_queue.join()
 
     # Can't use "term_img", since the logger's level is changed.
     # Otherwise, it would affect children of "term_img".

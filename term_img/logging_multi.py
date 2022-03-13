@@ -1,19 +1,17 @@
 """Extension of `.logging` for multiprocessing support"""
 
-# Helps to avoid circular imports when the LogManager server process is starting
-
 import logging as _logging
 import os
 from multiprocessing.managers import BaseManager
-from threading import Thread
 from traceback import format_exception
 
 
-def create_queue():
+def create_objects():
     from queue import Queue
 
-    global _log_queue
+    global _log_queue, _logging_details
     _log_queue = Queue()
+    _logging_details = []
 
 
 def get_log_queue():
@@ -26,18 +24,19 @@ def get_logging_details():
 
 def redirect_logs(logger: _logging.Logger) -> None:
     """Sets up the logging system to redirect records produced by *logger* in a
-    sub-process to the main process.
+    subprocess, to the main process to be emitted.
 
     Args:
         logger: The `logging.Logger` instance of the module from which this function is
           called.
 
     NOTE:
-        - The function is meant to be called from within the sub-process,
-        - The redirected records are automatically handled by the "MultiLogger" thread
-          of the main process, running `process_logs()`.
+        - This function is meant to be called from within the subprocess,
+        - The redirected records are automatically handled by `process_logs()`, running
+          in the MultiLogger thread of the main process.
     """
     from . import logging
+    from .config import user_dir
 
     def log_redirector(record):
         attrdict = record.__dict__
@@ -52,12 +51,12 @@ def redirect_logs(logger: _logging.Logger) -> None:
 
     LogManager.register("get_logging_details")
     LogManager.register("get_log_queue")
-    log_manager = LogManager(("", 54321))
-    log_manager.connect()
 
-    # Ensure details have been uploaded by MultiLogger
-    while not log_manager.get_logging_details()._getvalue():
-        pass
+    with open(os.path.join(user_dir, "temp", "addresses", str(os.getppid()))) as f:
+        port = int(f.read())
+
+    log_manager = LogManager(("127.0.0.1", port))
+    log_manager.connect()
 
     logging_level, constants = log_manager.get_logging_details()._getvalue()
     log_queue = log_manager.get_log_queue()
@@ -67,43 +66,37 @@ def redirect_logs(logger: _logging.Logger) -> None:
     logger.filter = log_redirector
 
 
-def process_multi_logs() -> None:
-    """Emits logs redirected from sub-processes.
+def process_multi_logs(log_manager: "LogManager") -> None:
+    """Emits logs redirected from subprocesses.
 
     Intended to be executed in a separate thread of the main process.
     """
-    from . import logging
+    from .config import user_dir
 
-    LogManager.register("get_logging_details", get_logging_details)
-    LogManager.register("get_log_queue", get_log_queue)
-    log_manager = LogManager(("", 54321))
-    log_manager.start(create_queue)
-
-    log_manager.get_logging_details().extend(
-        [
-            _logging.getLogger().getEffectiveLevel(),
-            # Constants defined in `.logging`
-            {name: value for name, value in logging.__dict__.items() if name.isupper()},
-        ]
-    )
+    global log_queue
 
     PID = os.getpid()
-    # _log_queue is used in `.__main__.main()`.
-    globals()["_log_queue"] = log_queue = log_manager.get_log_queue()
+    log_queue = log_manager.get_log_queue()
 
     attrdict = log_queue.get()
     while attrdict:
         attrdict["process"] = PID
         _logger.handle(_logging.makeLogRecord(attrdict))
+        log_queue.task_done()
         attrdict = log_queue.get()
+    os.remove(os.path.join(user_dir, "temp", "addresses", str(PID)))
+    log_queue.task_done()
 
 
 class LogManager(BaseManager):
     pass
 
 
-multi_logger = Thread(target=process_multi_logs, name="MultiLogger")
-
 _logger = _logging.getLogger("term-img")
+
+# Set from `process_multi_logs()` in the MultiLogger thread, only in the main process
+log_queue = None
+
+# Set from `create_objects()`, only in the manager process
 _log_queue = None
-_logging_details = []
+_logging_details = None
