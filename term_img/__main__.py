@@ -59,6 +59,7 @@ def main() -> int:
         notify.stop_loading()  # Ensure loading stops, if ongoing.
         cli.interrupted.set()  # Signal interruption to other threads.
         finish_multi_logging()
+        logger.exception("Session terminated due to:")
         logging.log(
             f"Session not ended successfully: ({type(e).__name__}) {e}",
             logger,
