@@ -353,7 +353,7 @@ NOTES:
      Animated images are displayed only when animation is disabled (with `--no-anim`)
      or there's only one image source.
   5. Any image having more pixels than the specified maximum will be:
-     - skipped, in CLI mode
+     - skipped, in CLI mode, if '--max-pixels-cli' is specified.
      - replaced, in TUI mode, with a placeholder when displayed but can still be forced
        to display or viewed externally.
      Note that increasing this will have adverse effects on performance.
@@ -543,6 +543,11 @@ NOTES:
         default=1.0,
         help="y-axis scale of the image to be rendered (default: 1.0) [2]",
     )
+    cli_options.add_argument(
+        "--max-pixels-cli",
+        action="store_true",
+        help=("Apply '--max-pixels' in CLI mode"),
+    )
 
     align_options = parser.add_argument_group("Alignment Options (CLI-only)")
     align_options.add_argument(
@@ -604,7 +609,10 @@ or multiple valid sources
         action="store_true",
         help="Scan for local images recursively",
     )
-    tui_options.add_argument(
+
+    # Performance
+    perf_options = parser.add_argument_group("Performance Options (General)")
+    perf_options.add_argument(
         "--max-pixels",
         type=int,
         metavar="N",
@@ -615,8 +623,6 @@ or multiple valid sources
         ),
     )
 
-    # Performance
-    perf_options = parser.add_argument_group("Performance Options (General)")
     default_checkers = max(
         (
             len(os.sched_getaffinity(0))
@@ -835,7 +841,7 @@ or multiple valid sources
         err = False
         for entry in images:
             image = entry[1]._image
-            if mul(*image._original_size) > args.max_pixels:
+            if args.max_pixels_cli and mul(*image._original_size) > args.max_pixels:
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
                     logger,
