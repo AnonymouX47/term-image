@@ -19,7 +19,7 @@ imports:
 	isort .
 
 lint:
-	flake8 --count --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics .
+	flake8 .
 	echo
 
 test:

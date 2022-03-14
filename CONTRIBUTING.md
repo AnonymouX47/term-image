@@ -90,7 +90,7 @@ make lint
 OR
 
 ```shell
-flake8 --count --max-line-length 88 --extend-ignore E203 --extend-exclude build/ --show-source --statistics .
+flake8 .
 ```
 if you don't have the `make` utility.
 
