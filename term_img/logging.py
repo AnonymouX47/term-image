@@ -72,6 +72,7 @@ def init_log(
         from random import randint
         from threading import Thread
 
+        from . import logging_multi
         from .config import user_dir
         from .logging_multi import (
             LogManager,
@@ -129,6 +130,9 @@ def init_log(
         Thread(
             target=process_multi_logs, args=(log_manager,), name="MultiLogger"
         ).start()
+
+        while not logging_multi.log_queue:  # Wait till MultiLogger has started
+            pass
 
         _logger.debug("Successfully initialized the multi-process logging system.")
 

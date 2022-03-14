@@ -8,7 +8,7 @@ from multiprocessing import Process, Queue as mp_Queue
 from operator import mul, setitem
 from queue import Queue
 from threading import Thread, current_thread
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -17,7 +17,7 @@ import requests
 from . import __version__, logging, notify, set_font_ratio, tui
 from .config import config_options, font_ratio, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
-from .exit_codes import FAILURE, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
+from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
 from .logging import init_log, log, log_exception
 from .tui.widgets import Image
@@ -326,6 +326,14 @@ def open_files(
 def main() -> None:
     """CLI execution sub-entry-point"""
     global args, url_images, RECURSIVE, SHOW_HIDDEN
+
+    def check_arg(name: str, check: Callable[[Any], bool], msg: str):
+        """Performs generic argument value checks"""
+        value = getattr(args, name)
+        if not check(value):
+            notify.notify(f"{msg} (got: {value!r})", level=notify.ERROR)
+            return False
+        return True
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -654,7 +662,7 @@ or multiple valid sources
         type=int,
         metavar="N",
         default=1,
-        help="Number of subprocesses for rendering grid cells (default: 2)",
+        help="Number of subprocesses for rendering grid cells (default: 1)",
     )
     perf_options.add_argument(
         "--no-multi",
@@ -725,6 +733,18 @@ or multiple valid sources
         args.verbose_log,
     )
 
+    for details in (
+        ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
+        (
+            "grid_renderers",
+            lambda x: x >= 0,
+            "Number of grid renderers must be non-negative",
+        ),
+        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
+    ):
+        if not check_arg(*details):
+            return INVALID_ARG
+
     for name, is_valid in config_options.items():
         var_name = name.replace(" ", "_")
         value = getattr(args, var_name, None)
@@ -734,7 +754,7 @@ or multiple valid sources
                 f"Invalid {name} (got: {value})... Using config value.",
                 level=notify.ERROR,
             )
-            setattr(args, var_name, locals()[var_name])
+            setattr(args, var_name, globals()[var_name])
 
     set_font_ratio(args.font_ratio)
 
