@@ -256,8 +256,6 @@ class TestProperties:
         assert image.size is image.height is image.width is None
 
     def test_source(self):
-        import sys
-
         image = TermImage(python_img)
         assert image.source is python_img
 
@@ -267,9 +265,11 @@ class TestProperties:
         with pytest.raises(AttributeError):
             image.source = None
 
-        if sys.platform == "linux":
-            # Symlinked image file
-            linked_image = "tests/images/python_sym.png"
+        # Symlinked image file
+        linked_image = "tests/images/python_sym.png"
+        # The file might not be a symlink if it is on or has passed through a
+        # filesystem not supporting symlinks
+        if os.path.islink(linked_image):
             image = TermImage.from_file(linked_image)
             assert os.path.basename(image.source) == "python_sym.png"
             assert (
