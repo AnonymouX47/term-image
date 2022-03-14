@@ -147,7 +147,7 @@ def display_images(
 
     os.chdir(dir)
 
-    # For `.tui.keys.set_menu_actions()`
+    # For `.tui.keys.set_menu_actions()`, called by `update_menu()`
     menu_is_complete = top_level or grid_scan_done.is_set()
     menu_scan_done.set() if menu_is_complete else menu_scan_done.clear()
 
@@ -213,7 +213,7 @@ def display_images(
             )
             # Menu change already signaled by the BACK action from the exited directory
 
-            # For `.tui.keys.set_menu_actions()`
+            # For `.tui.keys.set_menu_actions()`, called by `update_menu()`
             menu_scan_done.set() if menu_is_complete else menu_scan_done.clear()
 
             if empty:  # All entries in the exited directory have been deleted
@@ -323,7 +323,7 @@ def display_images(
         logger.debug(f"Going back to {abspath(prev_dir)}/")
         os.chdir(prev_dir)
 
-    return not items
+    return menu_scan_done.is_set() and not items
 
 
 def get_context() -> None:
