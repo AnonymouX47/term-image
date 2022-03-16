@@ -280,7 +280,7 @@ class TestProperties:
 
 
 def test_set_size():
-    image = TermImage(python_img)
+    image = TermImage(python_img)  # Square
     h_image = TermImage.from_file("tests/images/hori.jpg")
     v_image = TermImage.from_file("tests/images/vert.jpg")
 
@@ -326,82 +326,88 @@ def test_set_size():
         with pytest.raises(ValueError, match="'maxsize' must contain .*"):
             image.set_size(maxsize=value)
 
-    # check_width and check_height
-    for value in (1, 1.0, "1", (), []):
-        with pytest.raises(TypeError, match=".* booleans"):
-            image.set_size(check_width=value)
-        with pytest.raises(TypeError, match=".* booleans"):
-            image.set_size(check_height=value)
+    # fit_to_width and fit_to_height
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        image.set_size(fit_to_width=True, fit_to_height=True)
+    for arg in ("fit_to_width", "fit_to_height"):
+        for value in (1, 1.0, "1", (), []):
+            with pytest.raises(TypeError, match=f"{arg!r} .* boolean"):
+                image.set_size(**{arg: value})
+        with pytest.raises(ValueError, match=f"{arg!r} .* 'width' is given"):
+            image.set_size(width=1, **{arg: True})
+        with pytest.raises(ValueError, match=f"{arg!r} .* 'height' is given"):
+            image.set_size(height=1, **{arg: True})
+        with pytest.raises(ValueError, match=f"{arg!r} .* 'maxsize' is given"):
+            image.set_size(maxsize=(1, 1), **{arg: True})
 
     # Size computation errors
-    with pytest.raises(InvalidSize, match=".* too small: .*"):
+    with pytest.raises(InvalidSize, match="too small"):
         h_image.set_size(width=1)
-    with pytest.raises(InvalidSize, match=".* too small: .*"):
+    with pytest.raises(InvalidSize, match="too small"):
         v_image.set_size(height=1)
-    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
-        image.set_size(_size + 1)
+    # # Cannot exceed maxsize
+    with pytest.raises(InvalidSize, match="will not fit into"):
+        image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
+    with pytest.raises(InvalidSize, match="will not fit into"):
+        image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
+    with pytest.raises(InvalidSize, match="will not fit into"):
+        image.set_size(height=101, maxsize=(200, 50))  # Exceeds Vertically
+    # # # Horizontal image in a square space, controlled by height
+    with pytest.raises(InvalidSize, match="will not fit into"):
+        h_image.set_size(height=100, maxsize=(100, 50))
+    # # # Vertical image in a square space, controlled by width
+    with pytest.raises(InvalidSize, match="will not fit into"):
+        v_image.set_size(width=100, maxsize=(100, 50))
 
-    # Controlling the size by the axis with a larger fraction, will cause the image not
-    # to fit on the other axis
-
-    ori_width, ori_height = h_image._original_size
-    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
-        if columns / ori_width > (rows - 4) / ori_height:
-            h_image.set_size(width=columns)
-        else:
-            h_image.set_size(height=rows - 4)
-
-    ori_width, ori_height = v_image._original_size
-    with pytest.raises(InvalidSize, match=".* will not fit into .*"):
-        if columns / ori_width > (rows - 4) / ori_height:
-            v_image.set_size(width=columns)
-        else:
-            v_image.set_size(height=rows - 4)
+    # Can exceed available terminal size
+    image.set_size(width=columns + 10)
+    assert image.size == (columns + 10,) * 2
+    image.set_size(height=rows + 10)
+    assert image.size == (rows + 10,) * 2
 
     # Proportionality
     image.set_size(width=_size)
-    assert image._size == (_size,) * 2
+    assert image.size == (_size,) * 2
     image.set_size(height=_size)
-    assert image._size == (_size,) * 2
+    assert image.size == (_size,) * 2
 
     h_image.set_size(width=_size)
     ori_width, ori_height = h_image._original_size
-    assert h_image._size == (_size, round(ori_height * _size / ori_width))
+    assert h_image.size == (_size, round(ori_height * _size / ori_width))
 
     v_image.set_size(height=_size)
     ori_width, ori_height = v_image._original_size
-    assert v_image._size == (round(ori_width * _size / ori_height), _size)
+    assert v_image.size == (round(ori_width * _size / ori_height), _size)
 
-    # Proportionality with oversized axes
-    h_image.set_size(check_width=False)
+    # Proportionality with fitted axes
+    h_image.set_size(fit_to_height=True)
+    assert h_image.height == rows - 4
     ori_width, ori_height = h_image._original_size
-    assert h_image._size[0] == round(ori_width * (rows - 4) / ori_height)
+    assert h_image.width == round(ori_width * (rows - 4) / ori_height)
 
-    v_image.set_size(check_height=False)
+    v_image.set_size(fit_to_width=True)
+    assert v_image.width == columns
     ori_width, ori_height = v_image._original_size
-    assert v_image._size[1] == round(ori_height * columns / ori_width)
-
-    image.set_size(max(columns + 1, rows), check_width=False, check_height=False)
-    assert image._size == (max(columns + 1, rows),) * 2
+    assert v_image.height == round(ori_height * columns / ori_width)
 
     # Allowance
-    image.set_size(check_height=False)
+    image.set_size(fit_to_width=True)
     assert image._size[0] == columns
 
-    image.set_size(check_width=False)
+    image.set_size(fit_to_height=True)
     assert image._size[0] == rows - 4
 
-    image.set_size(h_allow=2, check_height=False)
+    image.set_size(h_allow=2, fit_to_width=True)
     assert image._size[0] == columns - 2
 
-    image.set_size(v_allow=3, check_width=False)
+    image.set_size(v_allow=3, fit_to_height=True)
     assert image._size[0] == rows - 6
 
-    # Maxsize (+ allowance nullification)
+    # maxsize + allowance nullification
     image.set_size(h_allow=2, v_allow=3, maxsize=(100, 55))
-    assert image._size == (100, 100)  # Square image
+    assert image._size == (100, 100)
     image.set_size(h_allow=2, v_allow=3, maxsize=(110, 50))
-    assert image._size == (100, 100)  # Square image
+    assert image._size == (100, 100)
 
 
 def test_render():
