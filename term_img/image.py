@@ -391,17 +391,17 @@ class TermImage:
         pad_height: Optional[int] = None,
         alpha: Optional[float] = _ALPHA_THRESHOLD,
         *,
+        scroll: bool = False,
         animate: bool = True,
         repeat: int = -1,
         cached: bool = False,
-        ignore_oversize: bool = False,
+        check_size: bool = True,
     ) -> None:
-        """Draws/Displays an image in the terminal, with optional :term:`alignment` and
-        :term:`padding`.
+        """Draws/Displays an image in the terminal.
 
         Args:
-            h_align: Horizontal alignment ("left"/"<", "center"/"|" or "right"/">").
-              Default: center.
+            h_align: Horizontal alignment ("left" / "<", "center" / "|" or
+              "right" / ">"). Default: center.
             pad_width: Number of columns within which to align the image.
 
               * Excess columns are filled with spaces.
@@ -419,8 +419,16 @@ class TermImage:
               * If ``None``, transparency is disabled (i.e black background).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
                 **above** which pixels are taken as *opaque*.
-              * If a string, specifies a **hex color** with which transparent background
-                should be replaced.
+              * If a string, specifies a **hex color** with which transparent
+                background should be replaced.
+
+            scroll: Only applies to non-animations. If ``True``:
+
+              * and the :term:`render size` is set, allows the image's
+                :term:`rendered height` to be greater than the
+                :term:`available terminal height <available height>`.
+              * and the :term:`render size` is :ref:`unset <unset-size>`, the image is
+                drawn to fit the terminal width.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
               an animated image.
@@ -428,45 +436,36 @@ class TermImage:
               A negative value implies infinite repetition.
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
-            ignore_oversize: If ``True``, do not verify if the image will fit into
-              the :term:`available terminal size <available size>` with it's currently
-              set :term:`render size`.
+            check_size: If ``False``, does not perform size validation for
+              non-animations.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument has an unexpected/invalid value.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
             ValueError: :term:`Render size` or :term:`scale` too small.
-            term_img.exceptions.InvalidSize: The terminal has been resized in such a
-              way that the previously set size can no longer fit into it.
-            term_img.exceptions.InvalidSize: The image is :term:`animated` and the
-              previously set size won't fit into the :term:`available terminal size
-              <available size>`.
+            term_img.exceptions.InvalidSize: The image's :term:`rendered size` can not
+              fit into the :term:`available terminal size <available size>`.
 
-        NOTE:
-            * Animations, by **default**, are infinitely looped and can be terminated
+        .. note::
+            * Animations, **by default**, are infinitely looped and can be terminated
               with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
-            * If :py:meth:`set_size()` was previously used to set the
+            * If :py:meth:`set_size` was previously used to set the
               :term:`render size` (directly or not), the last values of its
-              *check_height*, *h_allow* and *v_allow* parameters are taken into
-              consideration, with *check_height* applying to only non-animated images.
+              *fit_to_width*, *h_allow* and *v_allow* parameters are taken into
+              consideration, with *fit_to_width* applying to only non-animations.
+            * If the render size was set with the *fit_to_width* paramter of
+              :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
             * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
-              These arguments are simply ignored for non-animated images.
-            * For animated images, when *animate* is ``True``:
+              They are simply ignored for non-animated images.
+            * For animations (i.e animated images with *animate* set to ``True``):
 
-              * :term:`Render size` and :term:`padding height` are always validated.
-              * *ignore_oversize* has no effect.
+              * :term:`Render size` and :term:`padding height` are always validated,
+                if set.
+              * *scroll* is taken as ``False`` when render size is
+                :ref:`unset <unset-size>`.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
-
-        if (
-            animate
-            and self._is_animated
-            and None is not pad_height > get_terminal_size()[1]
-        ):
-            raise ValueError(
-                "Padding height can not be greater than the terminal height for "
-                "animated images"
-            )
 
         if alpha is not None:
             if isinstance(alpha, float):
@@ -480,10 +479,23 @@ class TermImage:
                     "'alpha' must be `None` or of type `float` or `str` "
                     f"(got: {type(alpha).__name__})"
                 )
+
         if self._is_animated and not isinstance(animate, bool):
             raise TypeError("'animate' must be a boolean")
-        if not isinstance(ignore_oversize, bool):
-            raise TypeError("'ignore_oversize' must be a boolean")
+
+        if (
+            self._is_animated
+            and animate
+            and None is not pad_height > get_terminal_size()[1]
+        ):
+            raise ValueError(
+                "Padding height can not be greater than the terminal height for "
+                "animations"
+            )
+
+        for arg in ("scroll", "check_size"):
+            if not isinstance(locals()[arg], bool):
+                raise TypeError(f"{arg!r} must be a boolean")
 
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
@@ -502,7 +514,10 @@ class TermImage:
                 print("\033[0m\033[?25h")  # Reset color and show the cursor
 
         self._renderer(
-            render, check_size=self._is_animated and animate or not ignore_oversize
+            render,
+            scroll=scroll,
+            check_size=check_size,
+            animated=self._is_animated and animate,
         )
 
     @classmethod
