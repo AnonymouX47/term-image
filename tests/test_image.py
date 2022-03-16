@@ -1,4 +1,6 @@
+import io
 import os
+import sys
 from math import ceil
 from operator import gt, lt
 from random import random
@@ -18,6 +20,13 @@ _size = min(columns, rows - 4)
 python_image = "tests/images/python.png"
 python_img = Image.open(python_image)
 anim_img = Image.open("tests/images/anim.webp")
+
+stdout = io.StringIO()
+
+
+def clear_stdout():
+    stdout.seek(0)
+    stdout.truncate()
 
 
 class TestInstantiation:
@@ -680,6 +689,7 @@ def test_formatting():
 
 
 def test_draw():
+    sys.stdout = stdout
     image = TermImage(python_img, width=_size)
     anim_image = TermImage(anim_img, width=_size)
 
@@ -698,24 +708,101 @@ def test_draw():
         with pytest.raises(ValueError, match="Invalid hex color .*"):
             image.draw(alpha=value)
 
-    image._size = (image.width, rows - 3)
-    with pytest.raises(InvalidSize, match=".* terminal has been resized .*"):
+    # Non-animations
+
+    # # Size validation
+
+    image._size = (columns, rows - 3)
+    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
         image.draw()
 
-    # `check_height == False` is overriden when displaying animated images
-    anim_image.set_size(check_height=False)
+    # # # Horizontal Allowance
+    image.set_size(h_allow=2)
+    image._size = (columns, rows - 4)
+    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        image.draw()
+
+    # # # vertical Allowance
+    image.set_size(v_allow=4)
+    image._size = (columns, rows - 4)
+    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        image.draw()
+
+    # # fit_to_width=True
+    image.set_size(fit_to_width=True)
+    image._size = (image.width, rows)
+    image.draw()
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # # scroll=True
+    image.size = None
+    image._size = (columns, rows)
+    image.draw(scroll=True)
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # # check_size=False
+    image.size = None
+    image._size = (columns + 1, rows)
+    image.draw(check_size=False)
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # # Animated image + animate=False
+
+    # # # fit_to_width=True
+    anim_image.set_size(fit_to_width=True)
+    anim_image._size = (anim_image.width, rows)
+    anim_image.draw(animate=False)
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # # # scroll=True
+    anim_image.size = None
+    anim_image._size = (columns, rows)
+    anim_image.draw(scroll=True, animate=False)
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # # # check_size=False
+    anim_image.size = None
+    anim_image._size = (columns + 1, rows)
+    anim_image.draw(animate=False, check_size=False)
+    assert stdout.getvalue().count("\n") == lines
+    clear_stdout()
+
+    # Animations
+
+    # # `fit_to_width=True` is overriden
+    anim_image.set_size(fit_to_width=True)
+    # `+1` since fit_to_width nullifies vertical allowance
     anim_image._size = (anim_image.width, rows + 1)
-    with pytest.raises(InvalidSize, match=".* image height .* animated images"):
+    with pytest.raises(InvalidSize, match="rendered height .* animations"):
         anim_image.draw()
 
-    # `ignore_oversize == True` is overriden when displaying animated images
-    anim_image.set_size()
-    anim_image._size = (anim_image.width, rows - 3)
-    with pytest.raises(InvalidSize, match=".* terminal has been resized .*"):
-        anim_image.draw(ignore_oversize=True)
+    # # `scroll=True` is overriden
+    anim_image.size = None
+    anim_image._size = (columns, rows)
+    with pytest.raises(InvalidSize, match="rendered height .* animations"):
+        anim_image.draw(scroll=True)
 
-    # Both of the above combined
-    anim_image.set_size(check_height=False)
+    # # Both of the above combined
+    anim_image.set_size(fit_to_width=True)
+    # `+1` since fit_to_width nullifies vertical allowance
     anim_image._size = (anim_image.width, rows + 1)
-    with pytest.raises(InvalidSize, match=".* image height .* animated images"):
-        anim_image.draw(ignore_oversize=True)
+    with pytest.raises(InvalidSize, match="rendered height .* animations"):
+        anim_image.draw(scroll=True)
+
+    # # `check_size=False` is overriden
+    anim_image.size = None
+    anim_image._size = (columns + 1, rows)
+    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+        anim_image.draw(check_size=False)
+
+    # # All of the above combined
+    anim_image.set_size(fit_to_width=True)
+    # `+1` since fit_to_width nullifies vertical allowance
+    anim_image._size = (anim_image.width + 1, rows + 1)
+    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+        anim_image.draw(scroll=True, check_size=False)
