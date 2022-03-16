@@ -664,12 +664,12 @@ def test_formatting():
     assert format(image).count("\n") + 1 == lines - 2
 
     # # Vertical allowance nullified
-    image.set_size(h_allow=2, v_allow=3, check_height=False)
+    image.set_size(h_allow=2, v_allow=3, fit_to_width=True)
     assert format(image).partition("\n")[0].count(" ") == columns - 2
     assert format(image).count("\n") + 1 == lines
 
     # # Horizontal allowance nullified
-    image.set_size(h_allow=2, v_allow=3, check_width=False)
+    image.set_size(h_allow=2, v_allow=3, fit_to_height=True)
     assert format(image).partition("\n")[0].count(" ") == columns
     assert format(image).count("\n") + 1 == lines - 3
 
