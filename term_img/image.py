@@ -1184,19 +1184,30 @@ class TermImage:
         return buffer.getvalue()
 
     def _renderer(
-        self, renderer: FunctionType, *args: Any, check_size: bool = False, **kwargs
+        self,
+        renderer: FunctionType,
+        *args: Any,
+        scroll: bool = False,
+        check_size: bool = False,
+        animated: bool = False,
+        **kwargs,
     ) -> Any:
         """Performs common render preparations and a rendering operation.
 
         Args:
             renderer: The function to perform the specifc rendering operation for the
-              caller of this method (``_renderer()``).
+              caller of this method, ``_renderer()``.
               This function must accept at least one positional argument, the
               ``PIL.Image.Image`` instance corresponding to the source.
             args: Positional arguments to pass on to *renderer*, after the
               ``PIL.Image.Image`` instance.
-            check_size: Determines whether or not the image's set size (if any) is
-              checked to see if it still fits into the *avaliable* terminal size.
+            scroll: See *scroll* in ``draw()``.
+            check_size: See *check_size* in ``draw()``.
+            animated: If ``True`` and render size is:
+
+              * set, ignore *scroll* and *check_size* and validate the size.
+              * unset, scroll is taken as ``False``.
+
             kwargs: Keyword arguments to pass on to *renderer*.
 
         Returns:
@@ -1204,11 +1215,15 @@ class TermImage:
 
         Raises:
             ValueError: Render size or scale too small.
+            term_img.exceptions.InvalidSize: *check_size* or *animated* is ``True`` and
+              the image's :term:`rendered size` can not fit into the :term:`available
+              terminal size <available size>`.
+            term_img.exceptions.TermImageException: The image has been finalized.
 
         NOTE:
             * If the ``set_size()`` method was previously used to set the *render size*,
-              (directly or not), the last value of its *check_height* parameter
-              is taken into consideration, for non-animated images.
+              (directly or not), the last value of its *fit_to_width* parameter
+              is taken into consideration, for non-animations.
         """
         if self._closed:
             raise TermImageException("This image has been finalized")
@@ -1216,12 +1231,12 @@ class TermImage:
         try:
             reset_size = False
             if not self._size:  # Size is unset
-                self.set_size()
+                self.set_size(fit_to_width=scroll and not animated)
                 reset_size = True
 
             # If the set size is larger than the available terminal size but the scale
             # makes it fit in, then it's all good.
-            elif check_size:
+            elif check_size or animated:
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
@@ -1231,24 +1246,29 @@ class TermImage:
                 if any(
                     map(
                         gt,
-                        # the compared height will be 0 when `_check_height` is `False`
-                        # and the terminal height should never be < 0
-                        map(mul, self.rendered_size, (1, self._check_height)),
+                        # the compared height will be 0 if *_fit_to_width* or *scroll*
+                        # is `True`. So, the height comparison will always be `False`
+                        # since the terminal height should never be < 0.
+                        map(
+                            mul,
+                            self.rendered_size,
+                            (1, not (self._fit_to_width or scroll)),
+                        ),
                         (columns, lines),
                     )
                 ):
                     raise InvalidSize(
-                        "Seems the terminal has been resized or font ratio has been "
-                        "changed since the image render size was set and the image "
-                        "can no longer fit into the available terminal size"
+                        "The "
+                        + ("animation" if animated else "image")
+                        + " cannot fit into the available terminal size"
                     )
 
-                # Reaching here means it's either valid or `_check_height` is `False`.
-                # Hence, there's no need to check `_check_height`.
-                if self._is_animated and self.rendered_height > lines:
+                # Reaching here means it's either valid or *_fit_to_width* and/or
+                # *scroll* is/are `True`.
+                if animated and self.rendered_height > lines:
                     raise InvalidSize(
-                        "The image height cannot be greater than the terminal height "
-                        "for animated images"
+                        "The rendered height cannot be greater than the terminal "
+                        "height for animations"
                     )
 
             image = (
