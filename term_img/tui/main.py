@@ -491,11 +491,10 @@ def scan_dir_grid() -> None:
         image_grid.contents.clear()
         grid_acknowledge.set()  # Cleared grid contents
         grid_scan_done.clear()
+        notify.start_loading()
 
         entries = os.listdir(dir)
-        entries.sort(
-            key=lambda x: sort_key_lexi(x, os.path.join(dir, x)),
-        )
+        entries.sort(key=lambda x: sort_key_lexi(x, os.path.join(dir, x)))
 
         for entry in entries:
             entry_path = os.path.join(dir, entry)
@@ -527,6 +526,7 @@ def scan_dir_grid() -> None:
             # in-between the end of the last iteration an here :)
             if not grid_active.is_set():
                 grid_acknowledge.set()
+        notify.stop_loading()
 
 
 def scan_dir_menu() -> None:
@@ -548,11 +548,10 @@ def scan_dir_menu() -> None:
         items, contents, menu_is_complete = next_menu.get()
         if menu_is_complete:
             continue
+        notify.start_loading()
 
         entries = os.listdir()
-        entries.sort(
-            key=sort_key_lexi,
-        )
+        entries.sort(key=sort_key_lexi)
         entries = iter(entries)
         last_entry = items[-1][0] if items else None
         if last_entry:
@@ -605,6 +604,7 @@ def scan_dir_menu() -> None:
                     "Check the logs.",
                     level=notify.ERROR,
                 )
+        notify.stop_loading()
 
 
 def set_context(new_context) -> None:
