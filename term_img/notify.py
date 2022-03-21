@@ -1,9 +1,10 @@
 """Issuing user notifications in the TUI and on STDOUT"""
 
+import logging as _logging
 from queue import Queue
-from threading import Thread
+from threading import Event, Thread
 from time import sleep
-from typing import Any, List, Tuple, Union
+from typing import Any, Tuple, Union
 
 import urwid
 
@@ -17,7 +18,7 @@ CRITICAL = 3
 
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
-    """Adds a message to the TUI notification bar"""
+    """Adds a message to the TUI notification bar."""
     if _alarms.qsize() == MAX_NOTIFICATIONS:
         clear_notification(main.loop, None)
     widgets.notifications.contents.insert(
@@ -29,29 +30,85 @@ def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
 def clear_notification(
     loop: Union[urwid.MainLoop, urwid.main_loop.EventLoop], data: Any
 ) -> None:
-    """Removes the oldest message in the TUI notification bar"""
+    """Removes the oldest message in the TUI notification bar."""
     widgets.notifications.contents.pop()
     loop.remove_alarm(_alarms.get())
 
 
+def end_loading() -> None:
+    """Signals the end of all progressive operations for the current mode."""
+    global _n_loading
+
+    _n_loading = -1
+    _loading.set()
+
+
 def is_loading() -> bool:
     """Returns ``True`` if the loading indicator is active or ``False`` if not."""
-    return not _loading_stopped[0]
+    return _loading.is_set()
 
 
-def load(stopped: List[bool]) -> None:
-    """Displays an elipsis-style loading indicator on STDOUT"""
-    while not stopped[0]:
-        for stage in (".  ", ".. ", "..."):
-            print(stage, end="")
-            print("\b" * 3, end="", flush=True)
-            sleep(0.25)
+def load() -> None:
+    """Displays a loading indicator.
+
+    - elipsis-style for the CLI
+    - braille-style for the TUI
+    """
+    from .tui.main import update_screen
+    from .tui.widgets import loading
+
+    global _n_loading
+
+    _loading.wait()
+    logger.debug("Starting")
+
+    while _n_loading > -1:
+        while _n_loading > 0:
+            for stage in (".  ", ".. ", "..."):
+                print(stage + "\b" * 3, end="", flush=True)
+                if _n_loading <= 0:
+                    break
+                sleep(0.25)
+        print(" " * 3 + "\b" * 3, end="", flush=True)
+        if _n_loading > -1:
+            _loading.clear()
+            _loading.wait()
+
+    logger.debug("Switching to the TUI")
+
+    _n_loading = 0
+    _loading.clear()
+    _loading.wait()
+    while _n_loading > -1:
+        while _n_loading > 0:
+            for stage in (
+                "\u28bf",
+                "\u28fb",
+                "\u28fd",
+                "\u28fe",
+                "\u28f7",
+                "\u28ef",
+                "\u28df",
+                "\u287f",
+            ):
+                loading.set_text(stage)
+                update_screen()
+                if _n_loading <= 0:
+                    break
+                sleep(0.25)
+        loading.set_text("")
+        update_screen()
+        if _n_loading > -1:
+            _loading.clear()
+            _loading.wait()
+
+    logger.debug("Exiting")
 
 
 def notify(
     msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
 ) -> None:
-    """Displays a message in the TUI's notification bar or on STDOUT"""
+    """Displays a message in the TUI's notification bar or on STDOUT."""
     if verbose and not logging.VERBOSE:
         pass
     elif not tui.is_launched:
@@ -71,26 +128,25 @@ def notify(
 
 
 def start_loading() -> None:
-    """Starts a thread to display a loading indicator on STDOUT"""
-    global _loading_thread
+    """Signals the start of a progressive operation."""
+    global _n_loading
 
-    stop_loading()  # Ensure previous loading has stopped, if any.
-    _loading_stopped[0] = False
-    _loading_thread = Thread(target=load, args=(_loading_stopped,))
-    _loading_thread.start()
+    _n_loading += 1
+    _loading.set()
 
 
 def stop_loading() -> None:
-    """Stops the thread displaying a loading indicator on STDOUT"""
-    global _loading_thread
+    """Signals the end of a progressive operation."""
+    global _n_loading
 
-    if not _loading_stopped[0]:
-        _loading_stopped[0] = True
-        _loading_thread.join()
-        _loading_thread = None
+    _n_loading -= 1
 
+
+logger = _logging.getLogger(__name__)
 
 MAX_NOTIFICATIONS = 2
 _alarms = Queue(MAX_NOTIFICATIONS)
-_loading_thread = None
-_loading_stopped = [True]
+
+_loading = Event()
+_n_loading = 0
+loading_indicator = Thread(target=load, name="LoadingIndicator")
