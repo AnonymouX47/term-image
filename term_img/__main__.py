@@ -23,6 +23,14 @@ def main() -> int:
     from . import cli, logging, notify
     from .tui import main
 
+    def finish_loading():
+        notify.end_loading()
+        if not main.loop:  # TUI not yet launched
+            while notify.is_loading():
+                pass
+            notify.end_loading()
+        notify.loading_indicator.join()
+
     def finish_multi_logging():
         if logging.MULTI:
             from .logging_multi import log_queue
@@ -37,11 +45,12 @@ def main() -> int:
     logger.setLevel(_logging.INFO)
 
     cli.interrupted = main.interrupted = Event()
+    notify.loading_indicator.start()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
-        notify.stop_loading()  # Ensure loading stops, if ongoing.
         cli.interrupted.set()  # Signal interruption to other threads.
+        finish_loading()
         finish_multi_logging()
         logging.log(
             "Session interrupted",
@@ -56,8 +65,8 @@ def main() -> int:
             raise
         return INTERRUPTED
     except Exception as e:
-        notify.stop_loading()  # Ensure loading stops, if ongoing.
         cli.interrupted.set()  # Signal interruption to other threads.
+        finish_loading()
         finish_multi_logging()
         logger.exception("Session terminated due to:")
         logging.log(
@@ -71,6 +80,7 @@ def main() -> int:
             raise
         return FAILURE
     else:
+        finish_loading()
         finish_multi_logging()
         logger.info(f"Session ended with return-code {exit_code} ({codes[exit_code]})")
         return exit_code

@@ -7,7 +7,7 @@ from queue import Empty, Queue
 from threading import Thread
 from typing import Union
 
-from .. import get_font_ratio, logging, set_font_ratio
+from .. import get_font_ratio, logging, notify, set_font_ratio
 from ..logging_multi import redirect_logs
 
 
@@ -47,10 +47,14 @@ def manage_grid_renders(n_renderers: int):
     faulty_image = Image._faulty_image
     grid_cache = Image._grid_cache
     new_grid = False
-    while not quitting.is_set():
-        while not grid_active.wait(0.1):
-            if quitting.is_set():
-                break
+
+    while True:
+        while not (
+            grid_active.wait(0.1) or quitting.is_set() or not grid_render_out.empty()
+        ):
+            pass
+        if quitting.is_set():
+            break
 
         if new_grid or grid_change.is_set():  # New grid
             grid_cache.clear()
@@ -60,8 +64,10 @@ def manage_grid_renders(n_renderers: int):
                     pass
             while not grid_render_in.empty():
                 grid_render_in.get()
+                notify.stop_loading()
             while not grid_render_out.empty():
                 grid_render_out.get()
+                notify.stop_loading()
             cell_width = image_grid.cell_width
             grid_path = main.grid_path
             new_grid = False
@@ -69,15 +75,17 @@ def manage_grid_renders(n_renderers: int):
         if grid_change.is_set():
             continue
 
-        try:
-            image_info = grid_render_queue.get(timeout=0.02)
-        except Empty:
-            pass
-        else:
-            if not image_info:  # Start of a new grid
-                new_grid = True
-                continue
-            grid_render_in.put(image_info)
+        if grid_active.is_set():
+            try:
+                image_info = grid_render_queue.get(timeout=0.02)
+            except Empty:
+                pass
+            else:
+                if not image_info:  # Start of a new grid
+                    new_grid = True
+                    continue
+                grid_render_in.put(image_info)
+                notify.start_loading()
 
         if grid_change.is_set():
             continue
@@ -100,7 +108,9 @@ def manage_grid_renders(n_renderers: int):
                     if image
                     else faulty_image.render(size)
                 )
-                update_screen()
+                if grid_active.is_set():
+                    update_screen()
+            notify.stop_loading()
 
     while not grid_render_in.empty():
         grid_render_in.get()

@@ -758,6 +758,8 @@ or multiple valid sources
 
     set_font_ratio(args.font_ratio)
 
+    log("Processing sources", logger, loading=True)
+
     file_images, url_images, dir_images = [], [], []
     contents = {}
     absolute_sources = set()
@@ -796,7 +798,6 @@ or multiple valid sources
         )
         check_manager.start()
 
-    log("Processing sources", logger, loading=True)
     for source in args.sources:
         absolute_source = (
             source if all(urlparse(source)[:3]) else os.path.abspath(source)
@@ -836,6 +837,8 @@ or multiple valid sources
         check_manager.join()
 
     notify.stop_loading()
+    while notify.is_loading():
+        pass
 
     if not os_is_unix and dir_images:
         log(
@@ -927,6 +930,7 @@ or multiple valid sources
         if err:
             return INVALID_SIZE
     elif os_is_unix:
+        notify.end_loading()
         tui.init(args, images, contents)
     else:
         log(
