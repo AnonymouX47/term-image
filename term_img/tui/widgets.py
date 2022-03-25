@@ -245,11 +245,11 @@ class Image(urwid.Widget):
                     self._frame = next(self._animator)
                     self._frame_changed = False
                     self._frame_size_hash = hash(size)
-
-                # If size changed, re-render the current frame the usual way,
-                # with the new size
-                if hash(size) != self._frame_size_hash:
-                    self._frame = None
+                elif hash(size) != self._frame_size_hash:
+                    # If size changed, re-render the current frame the usual way,
+                    # with the new size
+                    self._frame = f"{image:1.1{self._alpha}}"
+                    self._frame_size_hash = hash(size)
 
             # Using `TermImage` for padding will use more memory since all the
             # spaces will be in the render output string, and theoretically more time
