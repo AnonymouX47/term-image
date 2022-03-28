@@ -12,7 +12,7 @@ import urwid
 from .. import logging
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .render import manage_grid_renders
+from .render import image_render_queue, manage_grid_renders, manage_image_renders
 from .widgets import Image, info_bar, main as main_widget
 
 
@@ -52,6 +52,11 @@ def init(
         name="GridRenderManager",
         daemon=True,
     )
+    image_render_manager = Thread(
+        target=manage_image_renders,
+        name="ImageRenderManager",
+        daemon=True,
+    )
 
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2 ** 24)
@@ -67,13 +72,15 @@ def init(
     menu_scanner.start()
     grid_scanner.start()
     grid_render_manager.start()
+    image_render_manager.start()
 
     try:
         print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
-        main.grid_active.set()  # Allow GridRenderManager to receive quitting signal
         grid_render_manager.join()
+        image_render_queue.put((None,) * 3)
+        image_render_manager.join()
         logging.log("Exited TUI normally", logger, direct=False)
     except (KeyboardInterrupt, Exception):
         main.interrupted.set()  # Signal interruption to other threads.

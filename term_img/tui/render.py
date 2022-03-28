@@ -11,6 +11,72 @@ from .. import get_font_ratio, logging, notify, set_font_ratio
 from ..logging_multi import redirect_logs
 
 
+def manage_image_renders():
+    from .widgets import Image, ImageCanvas, image_box
+
+    multi = logging.MULTI
+    image_render_in = (mp_Queue if multi else Queue)()
+    image_render_out = (mp_Queue if multi else Queue)()
+    renderer = (Process if multi else Thread)(
+        target=render_images,
+        args=(
+            image_render_in,
+            image_render_out,
+            get_font_ratio(),
+            multi,
+            False,
+        ),
+        name="ImageRenderer",
+    )
+    renderer.start()
+    faulty_image = Image._faulty_image
+    last_image_w = image_box.original_widget
+    # To prevent an `AttributeError` with the first deletion, while avoiding `hasattr()`
+    last_image_w._canv = None
+
+    while True:
+        image_w, size, alpha = image_render_queue.get()
+        if not image_w:
+            break
+        if image_w is not image_box.original_widget:
+            continue
+
+        # Stored at this point to prevent an incorrect *rendered_size* for the
+        # Imagecanvas, since the image's size might've changed by the time the canvas is
+        # being created.
+        rendered_size = image_w._image.rendered_size
+
+        Image._rendering_image_info = (image_w, size, alpha)
+        image_render_in.put(
+            (image_w._image._source if multi else image_w._image, size, alpha)
+        )
+        notify.start_loading()
+        render = image_render_out.get()
+        Image._rendering_image_info = (None,) * 3
+
+        if image_w is image_box.original_widget:
+            del last_image_w._canv
+            if render:
+                image_w._canv = ImageCanvas(
+                    render.encode().split(b"\n"), size, rendered_size
+                )
+            else:
+                image_w._canv = faulty_image.render(size)
+                if not image_w._faulty:
+                    # Ensure a fault is logged only once per image, per directory scan
+                    image_w._faulty = True
+                    logging.log_exception(
+                        f"{image_w._image._source!r} could not be loaded",
+                        logger,
+                        direct=True,
+                    )
+            last_image_w = image_w
+        notify.stop_loading()
+
+    image_render_in.put((None,) * 3)
+    renderer.join()
+
+
 def manage_grid_renders(n_renderers: int):
     """Manages grid cell rendering.
 
@@ -182,3 +248,4 @@ def render_images(
 
 logger = _logging.getLogger(__name__)
 grid_render_queue = Queue()
+image_render_queue = Queue()
