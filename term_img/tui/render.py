@@ -29,12 +29,13 @@ def manage_grid_renders(n_renderers: int):
     grid_render_out = (mp_Queue if multi else Queue)()
     renderers = [
         (Process if multi else Thread)(
-            target=render_grid_images,
+            target=render_images,
             args=(
                 grid_render_in,
                 grid_render_out,
                 get_font_ratio(),
                 multi,
+                True,
             ),
             name="GridRenderer" + f"-{n}" * multi,
         )
@@ -115,21 +116,24 @@ def manage_grid_renders(n_renderers: int):
     while not grid_render_in.empty():
         grid_render_in.get()
     for renderer in renderers:
-        grid_render_in.put((None, None, None))
+        grid_render_in.put((None,) * 3)
     for renderer in renderers:
         renderer.join()
 
 
-def render_grid_images(
+def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     font_ratio: float,
     multi: bool,
+    out_extras: bool,
 ):
-    """Renders grid cells.
+    """Renders images.
 
+    Args:
+        multi: True if being executed in a subprocess and False if in a thread.
+        out_extras: If True, image details other than the render output are passed out.
     Intended to be executed in a subprocess or thread.
-    *multi* should be True if being executed in a subprocess and False if in a thread.
     """
     from ..image import TermImage
 
@@ -147,14 +151,29 @@ def render_grid_images(
             if multi:
                 image = TermImage.from_file(image)
             image.set_size(maxsize=size)
+
+            # Using `TermImage` for padding will use more memory since all the
+            # spaces will be in the render output string, and theoretically more time
+            # with all the checks and string splitting & joining.
+            # While `ImageCanvas` is better since it only stores the main image render
+            # string (as a list though) then generates and yields the complete lines
+            # **as needed**. Trimmed padding lines are never generated at all.
             try:
                 output.put(
                     (image._source, f"{image:1.1{alpha}}", size, image.rendered_size)
+                    if out_extras
+                    else f"{image:1.1{alpha}}"
                 )
             except Exception:
-                output.put((image._source, None, size, image.rendered_size))
+                output.put(
+                    (image._source, None, size, image.rendered_size)
+                    if out_extras
+                    else None
+                )
     except KeyboardInterrupt:
-        logger.debug("Interrupted")
+        # Logging here could potentially result in an exception if MultiLogger has ended
+        # and the associated manager process has shutdown.
+        pass
     except Exception:
         logging.log_exception("Aborted", logger)
     else:
