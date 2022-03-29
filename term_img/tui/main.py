@@ -484,18 +484,14 @@ def scan_dir_entry(
 
 
 def scan_dir_grid() -> None:
-    """Scans a given directory (and it's sub-directories, if '--recursive'
-    was set) for readable images using a directory tree of the form produced by
-    ``.cli.check_dir(dir)``.
+    """Updates the image grid using ``scan_dir()``.
 
     This is designed to be executed in a separate thread, while certain grid details
     are passed in using the ``next_grid`` queue.
 
-    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
-    to ``.tui.main.grid_list`` and adds a corresponding entry to the grid widget
-    (for image entries only), then updates the screen.
-
-    Grouping and sorting are the same as for ``scan_dir()``.
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir()``,
+    is appended to ``.tui.main.grid_list`` and adds the *value* to the
+    grid widget (for image entries only), then updates the screen.
     """
     grid_contents = image_grid.contents
     while True:
@@ -505,27 +501,21 @@ def scan_dir_grid() -> None:
         grid_scan_done.clear()
         notify.start_loading()
 
-        entries = os.listdir(dir)
-        entries.sort(key=lambda x: sort_key_lexi(x, os.path.join(dir, x)))
-
-        for entry in entries:
-            entry_path = os.path.join(dir, entry)
-            result = scan_dir_entry(entry, contents, entry_path)
-            if result == HIDDEN:
-                continue
+        for result, item in scan_dir(dir, contents):
             if result == IMAGE:
-                val = Image(TermImage.from_file(entry_path))
-                grid_list.append((entry, val))
+                grid_list.append(item)
                 grid_contents.append(
                     (
-                        urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
+                        urwid.AttrMap(
+                            LineSquare(item[1]), "unfocused box", "focused box"
+                        ),
                         image_grid.options(),
                     )
                 )
                 image_grid_box.base_widget._invalidate()
                 update_screen()
             elif result == DIR:
-                grid_list.append((entry, ...))
+                grid_list.append(item)
 
             if not next_grid.empty():
                 break
@@ -542,18 +532,14 @@ def scan_dir_grid() -> None:
 
 
 def scan_dir_menu() -> None:
-    """Scans the current working directory (and it's sub-directories, if '--recursive'
-    was set) for readable images using a directory tree of the form produced by
-    ``.cli.check_dir(dir)``.
+    """Updates the menu list using ``scan_dir()``.
 
     This is designed to be executed in a separate thread, while certain menu details
     are passed in using the ``next_menu`` queue.
 
-    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
-    to ``.tui.main.menu_list`` and adds a corresponding entry to the menu widget,
-    then updates the screen.
-
-    Grouping and sorting are the same as for ``scan_dir()``.
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir()``,
+    is appended to ``.tui.main.menu_list`` and appends a ``MenuEntry`` widget to the
+    menu widget, then updates the screen.
     """
     menu_body = menu.body
     while True:
@@ -562,27 +548,14 @@ def scan_dir_menu() -> None:
             continue
         notify.start_loading()
 
-        entries = os.listdir()
-        entries.sort(key=sort_key_lexi)
-        entries = iter(entries)
-        last_entry = items[-1][0] if items else None
-        if last_entry:
-            for entry in entries:
-                if entry == last_entry:
-                    break
-
-        errors = 0
-        for entry in entries:
-            result = scan_dir_entry(entry, contents)
-            if result == HIDDEN:
-                continue
-            if result == UNREADABLE:
-                errors += 1
+        for result, item in scan_dir(
+            ".", contents, items[-1][0] if items else None, notify_errors=True
+        ):
             if result == IMAGE:
-                items.append((entry, Image(TermImage.from_file(entry))))
+                items.append(item)
                 menu_body.append(
                     urwid.AttrMap(
-                        MenuEntry(entry, "left", "clip"),
+                        MenuEntry(item[0], "left", "clip"),
                         "default",
                         "focused entry",
                     )
@@ -590,10 +563,10 @@ def scan_dir_menu() -> None:
                 set_menu_count()
                 update_screen()
             elif result == DIR:
-                items.append((entry, ...))
+                items.append(item)
                 menu_body.append(
                     urwid.AttrMap(
-                        MenuEntry(entry + "/", "left", "clip"),
+                        MenuEntry(item[0] + "/", "left", "clip"),
                         "default",
                         "focused entry",
                     )
@@ -610,12 +583,6 @@ def scan_dir_menu() -> None:
             # in-between the end of the last iteration an here :)
             if menu_change.is_set():
                 menu_acknowledge.set()
-            if errors:
-                notify.notify(
-                    f"{errors} file(s) could not be read in {os.getcwd()!r}! "
-                    "Check the logs.",
-                    level=notify.ERROR,
-                )
         notify.stop_loading()
 
 
