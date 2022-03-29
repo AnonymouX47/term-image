@@ -3,7 +3,8 @@
 import logging as _logging
 import os
 from operator import mul
-from os.path import abspath, basename, isfile, islink
+from os.path import abspath, basename, islink
+from pathlib import Path
 from queue import Queue
 from threading import Event
 from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
@@ -442,33 +443,29 @@ def scan_dir(
 
 
 def scan_dir_entry(
-    entry: str,
+    entry: Union[os.DirEntry, Path],
     contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
     entry_path: Optional[str] = None,
 ) -> int:
     """Scans a single directory entry and returns a flag indicating its kind."""
-    if entry.startswith(".") and not SHOW_HIDDEN:
+    if not SHOW_HIDDEN and entry.name.startswith("."):
         return HIDDEN
-    if isfile(entry_path or entry):
-        if not contents["/"]:
-            return -1
+    if contents["/"] and entry.is_file():
         try:
-            PIL.Image.open(entry_path or entry)
+            PIL.Image.open(abspath(entry))
         except PIL.UnidentifiedImageError:
             # Reporting will apply to every non-image file :(
-            pass
+            return UNKNOWN
         except Exception:
-            logging.log_exception(
-                f"{abspath(entry_path or entry)!r} could not be read", logger
-            )
+            logging.log_exception(f"{abspath(entry)!r} could not be read", logger)
             return UNREADABLE
         else:
             return IMAGE
-    if RECURSIVE and entry in contents:
-        # `.cli.check_dir()` already eliminates bad symlinks
+    if RECURSIVE and entry.name in contents:
+        # `.cli.check_dir()` already eliminated bad symlinks
         return DIR
 
-    return -1
+    return UNKNOWN
 
 
 def scan_dir_grid() -> None:
@@ -635,7 +632,7 @@ def set_prev_context(n: int = 1) -> None:
         info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
-def sort_key_lexi(name, path=None):
+def sort_key_lexi(entry: Union[os.DirEntry, Path]):
     """Lexicographic sort key function.
 
     Compatible with ``list.sort()`` and ``sorted()``.
@@ -645,9 +642,10 @@ def sort_key_lexi(name, path=None):
     # The third, between hidden and non-hidden of the same name
     #   - '\0' makes the key for the non-hidden longer without affecting it's order
     #     relative to other entries.
+    name = entry.name
     return (
         "\0" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
-        if isfile(path or name)
+        if entry.is_file()
         else "\1" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
     )
 
@@ -720,6 +718,7 @@ BACK = -3
 DELETE = -4
 
 # FLAGS for `scan_dir*()`
+UNKNOWN = -1
 HIDDEN = 0
 UNREADABLE = 1
 IMAGE = 2
