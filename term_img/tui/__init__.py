@@ -54,7 +54,7 @@ def init(
     )
 
     main.loop.screen.clear()
-    main.loop.screen.set_terminal_properties(2 ** 24)
+    main.loop.screen.set_terminal_properties(2**24)
 
     Image._alpha = (
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
