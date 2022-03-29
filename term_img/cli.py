@@ -6,6 +6,7 @@ import os
 import sys
 from multiprocessing import Process, Queue as mp_Queue
 from operator import mul, setitem
+from os.path import abspath, basename, isdir, isfile, realpath
 from queue import Queue
 from threading import Thread, current_thread
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
@@ -47,7 +48,7 @@ def check_dir(
         os.chdir(dir)
     except OSError:
         log_exception(
-            f"Could not access '{os.path.abspath(dir)}{os.sep}'",
+            f"Could not access '{abspath(dir)}{os.sep}'",
             logger,
             direct=True,
         )
@@ -58,7 +59,7 @@ def check_dir(
         entries = os.scandir()
     except OSError:
         log_exception(
-            f"Could not get the contents of '{os.path.abspath('.')}{os.sep}'",
+            f"Could not get the contents of '{abspath('.')}{os.sep}'",
             logger,
             direct=True,
         )
@@ -90,7 +91,7 @@ def check_dir(
                         if (
                             entry.is_dir()  # not broken
                             # not cyclic
-                            and not os.getcwd().startswith(os.path.realpath(entry))
+                            and not os.getcwd().startswith(realpath(entry))
                         )
                         else None
                     )
@@ -195,7 +196,7 @@ def manage_checkers(
         )
 
         if False is not result is not None:
-            source = os.path.abspath(source)
+            source = abspath(source)
             contents[source] = result
             images.append((source, ...))
 
@@ -288,9 +289,7 @@ def get_urls(
     while not interrupted.is_set() and source:
         log(f"Getting image from {source!r}", logger, verbose=True)
         try:
-            images.append(
-                (os.path.basename(source), Image(TermImage.from_url(source))),
-            )
+            images.append((basename(source), Image(TermImage.from_url(source))))
         # Also handles `ConnectionTimeout`
         except requests.exceptions.ConnectionError:
             log(f"Unable to get {source!r}", logger, _logging.ERROR)
@@ -800,9 +799,7 @@ or multiple valid sources
         check_manager.start()
 
     for source in args.sources:
-        absolute_source = (
-            source if all(urlparse(source)[:3]) else os.path.abspath(source)
-        )
+        absolute_source = source if all(urlparse(source)[:3]) else abspath(source)
         if absolute_source in absolute_sources:
             log(f"Source repeated: {absolute_source!r}", logger, verbose=True)
             continue
@@ -810,9 +807,9 @@ or multiple valid sources
 
         if all(urlparse(source)[:3]):  # Is valid URL
             url_queue.put(source)
-        elif os.path.isfile(source):
+        elif isfile(source):
             file_queue.put(source)
-        elif os.path.isdir(source):
+        elif isdir(source):
             if args.cli:
                 log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
@@ -879,7 +876,7 @@ or multiple valid sources
                 continue
 
             if show_name:
-                notify.notify("\n" + os.path.basename(entry[0]) + ":")
+                notify.notify("\n" + basename(entry[0]) + ":")
             try:
                 image.set_size(
                     args.width,
