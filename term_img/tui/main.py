@@ -7,7 +7,7 @@ from os.path import abspath, basename, islink
 from pathlib import Path
 from queue import Queue
 from threading import Event
-from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import PIL
 import urwid
@@ -388,17 +388,23 @@ def process_input(key: str) -> bool:
 def scan_dir(
     dir: str,
     contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
+    last_entry: Optional[str] = None,
+    sort_key: Optional[Callable] = None,
     *,
     notify_errors: bool = False,
 ) -> Generator[Tuple[str, Union[Image, type(...)]], None, int]:
-    """Scans *dir* (and sub-directories, if '--recursive' was set) for readable images
-    using a directory tree of the form produced by ``.cli.check_dir(dir)``.
+    """Scans *dir* for readable images (and sub-directories containing such,
+    if '--recursive' was set).
 
     Args:
         - dir: Path to directory to be scanned.
         - contents: Tree of directories containing readable images
           (as produced by ``.cli.check_dir(dir)``).
-        - notify_errors: Determines if a notification showing the number of unreadable
+        - last_entry: The entry after which scanning should start, if ``None`` or
+          not found, all entries in the directory are scanned.
+        - sort_key: A callable to generate values to be used in sorting the directory
+          entries.
+        - notify_errors: If True, a notification showing the number of unreadable
           files will be displayed.
 
     Yields:
@@ -417,22 +423,31 @@ def scan_dir(
     - If a dotted entry has the same main-name as another entry, the dotted one comes
       first.
     """
-    entries = os.listdir(dir)
-    entries.sort(
-        key=sort_key_lexi,
-    )
+    _entries = sorted(os.scandir(dir), key=sort_key or sort_key_lexi)
+    entries = iter(_entries)
+    if last_entry:
+        for entry in entries:
+            if entry.name == last_entry:
+                break
+        else:  # Start from the beginning if *last_entry* isn't found
+            entries = _entries
+
     errors = 0
-    full_dir = dir + os.sep
     for entry in entries:
-        result = scan_dir_entry(entry, contents, full_dir + entry)
-        if result == HIDDEN:
-            continue
+        result = scan_dir_entry(entry, contents)
         if result == UNREADABLE:
             errors += 1
-        if result == IMAGE:
-            yield entry, Image(TermImage.from_file(full_dir + entry))
-        elif result == DIR:
-            yield entry, ...
+        yield result, (
+            entry.name,
+            (
+                Image(TermImage.from_file(entry.path))
+                if result == IMAGE
+                else ...
+                if result == DIR
+                else None
+            ),
+        )
+
     if notify_errors and errors:
         notify.notify(
             f"{errors} file(s) could not be read in {abspath(dir)!r}! Check the logs.",
