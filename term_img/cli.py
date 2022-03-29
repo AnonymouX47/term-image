@@ -55,41 +55,40 @@ def check_dir(
 
     # Some directories can be changed to but cannot be listed
     try:
-        entries = os.listdir()
+        entries = os.scandir()
     except OSError:
         log_exception(
             f"Could not get the contents of '{os.path.abspath('.')}{os.sep}'",
             logger,
             direct=True,
         )
-        return os.chdir(prev_dir)
+        os.chdir(prev_dir)
+        return
 
     empty = True
     content = {}
     for entry in entries:
-        if entry.startswith(".") and not SHOW_HIDDEN:
+        if not SHOW_HIDDEN and entry.name.startswith("."):
             continue
-        if os.path.isfile(entry):
-            if not empty:
-                continue
-            try:
-                PIL.Image.open(entry)
-                if empty:
+        if entry.is_file():
+            if empty:
+                try:
+                    PIL.Image.open(entry.name)
                     empty = False
                     if not RECURSIVE:
                         break
-            except Exception:
-                pass
+                except Exception:
+                    pass
         elif RECURSIVE:
             try:
-                if os.path.islink(entry):
+                if entry.is_symlink():
                     # Eliminate broken and cyclic symlinks
                     # Return to the link's parent rather than the linked directory's
                     # parent
                     result = (
-                        check_dir(entry, os.getcwd())
+                        check_dir(entry.name, os.getcwd())
                         if (
-                            os.path.exists(entry)  # not broken
+                            entry.is_dir()  # not broken
                             # not cyclic
                             and not os.getcwd().startswith(os.path.realpath(entry))
                         )
@@ -99,7 +98,7 @@ def check_dir(
                     # The check is only to filter inaccessible files and disallow them
                     # from being reported as inaccessible directories within the
                     # recursive call
-                    result = check_dir(entry) if os.path.isdir(entry) else None
+                    result = check_dir(entry.name) if entry.is_dir() else None
             except RecursionError:
                 log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
                 # Don't bother checking anything else in the current directory
@@ -107,8 +106,11 @@ def check_dir(
                 # image files but at the same time, not doing this could be very costly
                 # when there are many subdirectories
                 break
+            except OSError:  # Can be raised by `os.DirEntry.is_dir()`
+                result = None
+
             if result is not None:
-                content[entry] = result
+                content[entry.name] = result
 
     # '/' is an invalid file/directory name on major platforms.
     # On platforms with root directory '/', it can never be the content of a directory.
