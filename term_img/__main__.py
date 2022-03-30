@@ -36,7 +36,7 @@ def main() -> int:
             from .logging_multi import log_queue
 
             if log_queue:  # Multi-logging has been successfully initialized
-                log_queue.put(None)  # End of logs
+                log_queue.put((None,) * 2)  # End of logs
                 log_queue.join()
 
     # Can't use "term_img", since the logger's level is changed.
