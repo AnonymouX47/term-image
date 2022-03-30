@@ -32,11 +32,6 @@ Now that you have created a development environment, you can create a new branch
 ## Guidelines
 - For feature suggestions, please open a new **Feature Request** in the [issues section](https://github.com/AnonymouX47/term-img/issues) first to discuss how it would be implemented... you should propose your idea there.
 - Every **pull request** should be **from a branch other than the default** (`main`).
-- Try to make sure the package is not [obviously] broken at any commit... can be incomplete but **not broken**, at the same time :point_down:
-- Avoid making too many unique and substantial changes in a single commit.
-  - Closely-related or mutually-dependent changes should not be separated into different commits if doing so will cause the package to be broken at any of the commits.
-- Commit messages should be detailed just enough for a search through it with two or three keywords to be able to identify a change made by the commit.
-- Try to make pull requests as specific as possible, though a single one could resolve multiple **related** issues.
 - Always test that everything works as expected before opening a pull request.
 - Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-img/discussions/9).
 
@@ -48,10 +43,11 @@ _The points below apply to the **Python** aspects of this project._
 
 - Maximum line length is 88 characters.
 - Endeavour to run the checks and tests (as described in the sections below) before commiting changes.
-  - Note that this might not confer compatibility across multiple Python versions, final checks will be done automatically when you push the changes.
-- Always format your code with `black` (see [Code Formatting](#code-formatting) below).
-- All functions or methods should be properly annotated.
-  - **Note:** Currently, annotations are only for better and quicker comprehension of the defined interfaces, by the library users and package developers. So, forgive me, they might not entirely comply with standards.
+  - Note that this might not confer compatibility across multiple Python versions or platforms, final checks will be done automatically when you push the changes or open a PR.
+- Format your code with `black` (see [Code Formatting](#code-formatting) below).
+- All functions or methods should be annotated.
+  - **Note:** Currently, annotations are only for better and quicker comprehension of the defined interfaces, by the library users and package developers.
+  - So, forgive me, they might not entirely comply with standards.
 - All modules, classes and functions should have docstrings (as specified below).
 - All docstrings should be written according to the [Google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) for the following reasons:
   - Uniformity.

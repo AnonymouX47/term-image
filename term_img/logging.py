@@ -23,7 +23,7 @@ def init_log(
 
     handler = RotatingFileHandler(
         logfile,
-        maxBytes=2 ** 20,  # 1 MiB
+        maxBytes=2**20,  # 1 MiB
         backupCount=1,
     )
     handler.addFilter(filter_)

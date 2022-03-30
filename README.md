@@ -227,9 +227,9 @@ If you've found any bug or want to suggest a new feature, please open a new [iss
 For code contributions, please make sure you read through the [guidelines](https://github.com/AnonymouX47/term-img/blob/main/CONTRIBUTING.md).
 
 Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
-If you wish to work on any of the listed tasks, please go through the [discussions](https://github.com/AnonymouX47/term-img/discussions) tab and join in on an ongoing discussion about a task or create a new discussion if one hasn't been created yet, so that the implementation can be discussed.
+If you wish to work on any of the listed tasks, please go through the [issues](https://github.com/AnonymouX47/term-img/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
 
-Hint: You can filter discussions by *Category* or *label* or simply *search* using the task's name or description.
+Hint: You can filter issues by *label* or simply *search* using the task's name or description.
 
 For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-img/discussions) instead.
 

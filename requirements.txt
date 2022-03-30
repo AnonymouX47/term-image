@@ -1,7 +1,7 @@
-Pillow==9.0.0
-black==21.12b0
+Pillow==9.0.1
+black==22.3.0
 flake8==4.0.1
 isort[colors]==5.10.1
 pytest==6.2.5
-requests==2.23.0
+requests==2.27.1
 urwid==2.1.2

@@ -353,20 +353,16 @@ NOTES:
      specified, which allows the image height to go beyond the terminal height.
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
-  3. If `-S` is used without `-w` or `-h`, the size is automatically calculated such
-     that the *rendered width* is exactly the *available* terminal width, assuming the
-     *scale* equals 1, regardless of the font ratio.
-     Also, `--v-allow` has no effect i.e vertical allowance is overriden.
-  4. In CLI mode, only image sources are used, directory sources are skipped.
+  3. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`)
      or there's only one image source.
-  5. Any image having more pixels than the specified maximum will be:
+  4. Any image having more pixels than the specified maximum will be:
      - skipped, in CLI mode, if '--max-pixels-cli' is specified.
      - replaced, in TUI mode, with a placeholder when displayed but can still be forced
        to display or viewed externally.
      Note that increasing this will have adverse effects on performance.
-  6. Any event with a level lower than the specified one is not reported.
-  7. Supports all image formats supported by `PIL.Image.open()`.
+  5. Any event with a level lower than the specified one is not reported.
+  6. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -424,7 +420,7 @@ NOTES:
         action="store_true",
         help=(
             "Do not the launch the TUI, instead draw all image sources "
-            "to the terminal directly [4]"
+            "to the terminal directly [3]"
         ),
     )
     mode_options.add_argument(
@@ -509,14 +505,17 @@ NOTES:
         "-S",
         "--scroll",
         action="store_true",
-        help=("Allow the image height to go beyond the terminal height [3]"),
+        help=(
+            "Allow the image height to go beyond the terminal height. "
+            "Not needed when `--fit-to-width` is specified."
+        ),
     )
     size_options.add_argument(
         "--fit-to-width",
         action="store_true",
         help=(
-            "Automatically fit the image to the available terminal width "
-            "(Equivalent to using `-S` without `-w` or `-h`)."
+            "Automatically fit the image to the available terminal width. "
+            "`--v-allow` has no effect i.e vertical allowance is overriden."
         ),
     )
     cli_options.add_argument(
@@ -627,7 +626,7 @@ or multiple valid sources
         default=max_pixels,
         help=(
             "Maximum amount of pixels in images to be displayed "
-            f"(default: {max_pixels}) [5]"
+            f"(default: {max_pixels}) [4]"
         ),
     )
 
@@ -692,7 +691,7 @@ or multiple valid sources
         default="WARNING",
         help=(
             "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
-            "(default: WARNING) [6]"
+            "(default: WARNING) [5]"
         ),
     )
     log_options.add_argument(
@@ -885,10 +884,7 @@ or multiple valid sources
                     args.height,
                     args.h_allow,
                     args.v_allow,
-                    check_height=not (
-                        args.fit_to_width or args.scroll or args.oversize
-                    ),
-                    check_width=not args.oversize,
+                    fit_to_width=args.fit_to_width,
                 )
                 image.scale = (
                     (args.scale_x, args.scale_y) if args.scale is None else args.scale
@@ -912,9 +908,10 @@ or multiple valid sources
                         if args.no_alpha
                         else args.alpha_bg and "#" + args.alpha_bg or args.alpha
                     ),
+                    scroll=args.scroll,
                     animate=not args.no_anim,
                     cached=os.stat(image._source).st_size <= 2097152,
-                    ignore_oversize=args.oversize,
+                    check_size=not args.oversize,
                 )
 
             # Handles `ValueError` and `.exceptions.InvalidSize`

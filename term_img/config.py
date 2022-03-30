@@ -336,7 +336,7 @@ valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
 _cell_width = 30
-_max_pixels = 2 ** 22  # 2048x2048
+_max_pixels = 2**22  # 2048x2048
 _font_ratio = 0.5
 
 _nav = {
