@@ -22,20 +22,22 @@ def get_logging_details():
     return _logging_details
 
 
-def redirect_logs(logger: _logging.Logger) -> None:
-    """Sets up the logging system to redirect records produced by *logger* in a
-    subprocess, to the main process to be emitted.
+def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
+    """Sets up the logging system to redirect records produced by *logger*,
+    (and optionally notifcations) in a subprocess, to the main process to be emitted.
 
     Args:
         logger: The `logging.Logger` instance of the module from which this function is
           called.
+        notifs: If `True`, notifications are redirected also.
 
     NOTE:
         - This function is meant to be called from within the subprocess,
-        - The redirected records are automatically handled by `process_logs()`, running
-          in the MultiLogger thread of the main process.
+        - Only TUI notifications need to be redirected.
+        - The redirected records and notifcations are automatically handled by
+          `process_logs()`, running in the MultiLogger thread of the main process.
     """
-    from . import logging
+    from . import logging, notify
     from .config import user_dir
 
     def log_redirector(record):
@@ -47,7 +49,10 @@ def redirect_logs(logger: _logging.Logger) -> None:
                 (attrdict["msg"], "".join(format_exception(*exc_info)))
             ).rstrip()
             attrdict["exc_info"] = None
-        log_queue.put(attrdict)
+        log_queue.put((LOG, attrdict))
+
+    def notif_redirector(*args, loading: bool = False, **kwargs):
+        log_queue.put((NOTIF, (args, kwargs)))
 
     LogManager.register("get_logging_details")
     LogManager.register("get_log_queue")
@@ -61,16 +66,27 @@ def redirect_logs(logger: _logging.Logger) -> None:
     logging_level, constants = log_manager.get_logging_details()._getvalue()
     log_queue = log_manager.get_log_queue()
 
+    # Logs
+    _logging.getLogger().setLevel(logging_level)
     logging.__dict__.update(constants)
-    logger.setLevel(logging_level)
     logger.filter = log_redirector
+
+    # # Warnings
+    logger = _logging.getLogger("term-img")
+    logger.setLevel(_logging.INFO)
+    logger.filter = log_redirector
+
+    # Notifications
+    if notifs:
+        notify.notify = notif_redirector
 
 
 def process_multi_logs(log_manager: "LogManager") -> None:
-    """Emits logs redirected from subprocesses.
+    """Emits logs and notifications redirected from subprocesses.
 
     Intended to be executed in a separate thread of the main process.
     """
+    from . import notify
     from .config import user_dir
 
     global log_queue
@@ -78,12 +94,16 @@ def process_multi_logs(log_manager: "LogManager") -> None:
     PID = os.getpid()
     log_queue = log_manager.get_log_queue()
 
-    attrdict = log_queue.get()
-    while attrdict:
-        attrdict["process"] = PID
-        _logger.handle(_logging.makeLogRecord(attrdict))
+    log_type, data = log_queue.get()
+    while data:
+        if log_type == LOG:
+            data["process"] = PID
+            _logger.handle(_logging.makeLogRecord(data))
+        else:
+            args, kwargs = data
+            notify.notify(*args, **kwargs)
         log_queue.task_done()
-        attrdict = log_queue.get()
+        log_type, data = log_queue.get()
     os.remove(os.path.join(user_dir, "temp", "addresses", str(PID)))
     log_queue.task_done()
 
@@ -93,6 +113,9 @@ class LogManager(BaseManager):
 
 
 _logger = _logging.getLogger("term-img")
+
+LOG = 0
+NOTIF = 1
 
 # Set from `process_multi_logs()` in the MultiLogger thread, only in the main process
 log_queue = None
