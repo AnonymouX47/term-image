@@ -61,10 +61,15 @@ def redirect_logs(logger: _logging.Logger) -> None:
     logging_level, constants = log_manager.get_logging_details()._getvalue()
     log_queue = log_manager.get_log_queue()
 
+    # Logs
+    _logging.getLogger().setLevel(logging_level)
     logging.__dict__.update(constants)
-    logger.setLevel(logging_level)
     logger.filter = log_redirector
 
+    # # Warnings
+    logger = _logging.getLogger("term-img")
+    logger.setLevel(_logging.INFO)
+    logger.filter = log_redirector
 
 def process_multi_logs(log_manager: "LogManager") -> None:
     """Emits logs redirected from subprocesses.
