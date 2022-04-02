@@ -144,7 +144,7 @@ def display_images(
           - a menu item position (-1 and above)
           - a flag denoting a certain action
     """
-    global grid_list, grid_path, last_non_empty_grid_path
+    global _grid_list, grid_path, last_non_empty_grid_path
 
     os.chdir(dir)
 
@@ -193,7 +193,7 @@ def display_images(
                 menu_acknowledge.wait()
                 menu_change.clear()
 
-            # Ensure grid scanning is halted to avoid updating `grid_list` which is
+            # Ensure grid scanning is halted to avoid updating `_grid_list` which is
             # used as the next `menu_list` as is and to prevent `FileNotFoundError`s
             if not grid_scan_done.is_set():
                 grid_acknowledge.clear()
@@ -206,7 +206,7 @@ def display_images(
             logger.debug(f"Going into {abspath(entry)}/")
             empty = yield from display_images(
                 entry,
-                grid_list,
+                _grid_list,
                 contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
@@ -284,7 +284,7 @@ def display_images(
 
                 next_grid.put((entry, contents[entry]))
                 # No need to wait for acknowledgement since this is a new list instance
-                grid_list = []
+                _grid_list = []
                 # Absolute paths work fine with symlinked images and directories,
                 # as opposed to real paths, especially in path comparisons
                 # e.g in `.tui.render.manage_grid_renders()`.
@@ -490,12 +490,13 @@ def scan_dir_grid() -> None:
     are passed in using the ``next_grid`` queue.
 
     For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir()``,
-    is appended to ``.tui.main.grid_list`` and adds the *value* to the
+    is appended to ``.tui.main._grid_list`` and adds the *value* to the
     grid widget (for image entries only), then updates the screen.
     """
     grid_contents = image_grid.contents
     while True:
         dir, contents = next_grid.get()
+        grid_list = _grid_list
         image_grid.contents.clear()
         grid_acknowledge.set()  # Cleared grid contents
         grid_scan_done.clear()
@@ -678,7 +679,7 @@ quitting = Event()
 grid_acknowledge = Event()
 grid_active = Event()
 grid_change = Event()
-grid_list = None
+_grid_list = None
 grid_path = None
 grid_scan_done = Event()
 last_non_empty_grid_path = None
