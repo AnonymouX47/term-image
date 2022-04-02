@@ -2,6 +2,7 @@
 
 import logging as _logging
 from queue import Queue
+from sys import stderr, stdout
 from threading import Event, Thread
 from time import sleep
 from typing import Any, Tuple, Union
@@ -113,11 +114,14 @@ def notify(
         pass
     elif not tui.is_launched:
         print(
-            f"\033[33m{msg}\033[0m"
-            if level == WARNING
-            else f"\033[31m{msg}\033[0m"
-            if level >= ERROR
-            else msg
+            (
+                f"\033[33m{msg}\033[0m"
+                if level == WARNING
+                else f"\033[31m{msg}\033[0m"
+                if level >= ERROR
+                else msg
+            ),
+            file=stderr if level >= ERROR else stdout,
         )
         if loading:
             start_loading()

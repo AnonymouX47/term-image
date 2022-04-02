@@ -21,11 +21,11 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
 
 
 def error(msg: str) -> None:
-    print(f"\033[33m{msg}\033[0m")
+    print(f"\033[33m{msg}\033[0m", file=sys.stderr)
 
 
 def fatal(msg: str) -> None:
-    print(f"\033[31m{msg}\033[0m")
+    print(f"\033[31m{msg}\033[0m", file=sys.stderr)
 
 
 def init_config() -> None:
