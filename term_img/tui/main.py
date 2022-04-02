@@ -289,7 +289,7 @@ def display_images(
                 # e.g in `.tui.render.manage_grid_renders()`.
                 grid_path = abspath(entry)
 
-                if contents[entry]["/"] and grid_path != last_non_empty_grid_path:
+                if contents[entry].get("/") and grid_path != last_non_empty_grid_path:
                     grid_render_queue.put(None)  # Mark the start of a new grid
                     grid_change.set()
                     # Wait till GridRenderManager clears the cache
@@ -300,7 +300,7 @@ def display_images(
                 view.original_widget = image_grid_box
                 image_grid_box.base_widget._invalidate()
 
-                if contents[entry]["/"]:
+                if contents[entry].get("/"):
                     enable_actions("menu", "Switch Pane")
                 else:
                     disable_actions("menu", "Switch Pane")
@@ -450,7 +450,7 @@ def scan_dir_entry(
     if entry.startswith(".") and not SHOW_HIDDEN:
         return HIDDEN
     if isfile(entry_path or entry):
-        if not contents["/"]:
+        if not contents.get("/"):
             return -1
         try:
             PIL.Image.open(entry_path or entry)

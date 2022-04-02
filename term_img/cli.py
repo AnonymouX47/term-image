@@ -25,7 +25,7 @@ from .tui.widgets import Image
 
 
 def check_dir(
-    dir: str, prev_dir: str = ".."
+    dir: str, prev_dir: str = "..", *, _branch_off: bool = True
 ) -> Optional[Dict[str, Union[bool, Dict[str, Union[bool, dict]]]]]:
     """Scan *dir* (and sub-directories, if '--recursive' is set)
     and build the tree of directories [recursively] containing readable images.
@@ -71,7 +71,12 @@ def check_dir(
     for entry in entries:
         if not SHOW_HIDDEN and entry.name.startswith("."):
             continue
-        if entry.is_file():
+        try:
+            is_file = entry.is_file()
+        except OSError:
+            continue
+
+        if is_file:
             if empty:
                 try:
                     PIL.Image.open(entry.name)
@@ -82,12 +87,17 @@ def check_dir(
                     pass
         elif RECURSIVE:
             try:
+                # Cannot branch-off at a symlink (or at any of its subdirectories)
+                # because it will be difficult to process the results for its
+                # sub-directories i.e to locate where to insert the resulting
+                # sub-content in the original source's content.
+
                 if entry.is_symlink():
                     # Eliminate broken and cyclic symlinks
                     # Return to the link's parent rather than the linked directory's
                     # parent
                     result = (
-                        check_dir(entry.name, os.getcwd())
+                        check_dir(entry.name, os.getcwd(), _branch_off=False)
                         if (
                             entry.is_dir()  # not broken
                             # not cyclic
@@ -96,10 +106,18 @@ def check_dir(
                         else None
                     )
                 else:
+                    if _source and _branch_off and _free_checkers.value:
+                        _dir_queue.put((_source, abspath(entry)))
+                        continue
+
                     # The check is only to filter inaccessible files and disallow them
                     # from being reported as inaccessible directories within the
                     # recursive call
-                    result = check_dir(entry.name) if entry.is_dir() else None
+                    result = (
+                        check_dir(entry.name, _branch_off=_branch_off)
+                        if entry.is_dir()
+                        else None
+                    )
             except RecursionError:
                 log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
                 # Don't bother checking anything else in the current directory
@@ -115,8 +133,8 @@ def check_dir(
 
     # '/' is an invalid file/directory name on major platforms.
     # On platforms with root directory '/', it can never be the content of a directory.
-    if not empty or content:
-        content["/"] = not empty
+    if not empty:
+        content["/"] = True
 
     os.chdir(prev_dir)
     return content or None
@@ -943,6 +961,11 @@ logger = _logging.getLogger(__name__)
 
 # Set from within `.__main__.main()`
 interrupted = None
+
+# Set from within `check_dirs()`; Hence, only set in "Checker-?" processes
+_dir_queue = None
+_free_checkers = None
+_source = None
 
 # Set from within `main()`
 RECURSIVE = None
