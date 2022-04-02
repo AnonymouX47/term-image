@@ -4,10 +4,10 @@ import argparse
 import logging as _logging
 import os
 import sys
-from multiprocessing import Process, Queue as mp_Queue
+from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, isdir, isfile, realpath
-from queue import Queue
+from queue import Empty, Queue
 from threading import Thread, current_thread
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -143,8 +143,11 @@ def check_dir(
 def check_dirs(
     checker_no: int,
     content_queue: mp_Queue,
+    content_updated: mp_Event,
     dir_queue: mp_Queue,
     progress_queue: mp_Queue,
+    progress_updated: mp_Event,
+    free_checkers: Value,
     globals_: Dict[str, Any],
 ):
     """Checks a directory source in a newly **spawned** child process.
@@ -153,31 +156,60 @@ def check_dirs(
     """
     from .logging_multi import redirect_logs
 
-    globals().update(globals_)
+    global _source
+
+    globals().update(globals_, _free_checkers=free_checkers, _dir_queue=dir_queue)
     redirect_logs(logger)
 
     logger.debug("Starting")
-    source = dir_queue.get()
-    while source:
-        progress_queue.put((checker_no, source))
-        log(f"Checking {source!r}", logger, verbose=True)
-        result = False
+
+    while True:
         try:
-            result = check_dir(source)
+            source, subdir = dir_queue.get_nowait()
+        except Empty:
+            progress_updated.wait()
+            progress_queue.put((checker_no, (None,) * 2))
+            with free_checkers:
+                free_checkers.value += 1
+            try:
+                source, subdir = dir_queue.get()
+            except KeyboardInterrupt:
+                return
+            finally:
+                with free_checkers:
+                    free_checkers.value -= 1
         except KeyboardInterrupt:
+            progress_queue.put((checker_no, (None,) * 2))
+            return
+
+        if not subdir:
             break
+
+        _source = source or subdir
+        if not source:
+            log(f"Checking {subdir!r}", logger, verbose=True)
+
+        progress_updated.wait()
+        progress_queue.put((checker_no, (source, subdir)))
+        try:
+            result = check_dir(subdir)
+        except KeyboardInterrupt:
+            result = False  # Will be retried by another Checker
+            return
         except Exception:
-            log_exception(f"Checking {source!r} failed", logger)
+            log_exception(f"Checking {subdir!r} failed", logger)
+            result = None  # Treat as empty
         finally:
-            content_queue.put((source, result))
-        source = dir_queue.get()
+            content_updated.wait()
+            content_queue.put((source, subdir, result))
+
     progress_queue.put((checker_no, None))
     logger.debug("Exiting")
 
 
 def manage_checkers(
     dir_queue: Union[Queue, mp_Queue],
-    contents: Dict[str, Dict],
+    contents: Dict[str, Union[bool, Dict]],
     images: List[Tuple[str, Generator]],
     opener: Thread,
 ) -> None:
@@ -187,45 +219,39 @@ def manage_checkers(
     serially in the current thread of execution, after all file sources have been
     processed.
     """
-    from . import logging
 
-    def process_result(source: str, result: Optional[bool], n: int = -1) -> None:
-        if logging.MULTI:
-            if n > -1:
-                log(
-                    f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
-                    f"while checking {source!r}",
-                    logger,
-                    _logging.ERROR,
-                    direct=False,
-                )
+    def process_result(
+        source: str,
+        subdir: str,
+        result: Union[None, bool, Dict[str, Union[bool, Dict]]],
+        n: int = -1,
+    ):
+        if n > -1:
+            log(
+                f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
+                + (f"while checking {subdir!r}" if subdir else ""),
+                logger,
+                _logging.ERROR,
+                direct=False,
+            )
 
-        log(
-            (
-                f"Checking {source!r} failed"
-                if result is False
-                else f"{source!r} is empty"
-                if result is None
-                else f"Done checking {source!r}"
-            ),
-            logger,
-            _logging.ERROR if result is False else _logging.INFO,
-            verbose=result is not False,
-        )
-
-        if False is not result is not None:
-            source = abspath(source)
-            contents[source] = result
-            images.append((source, ...))
+        if result:
+            if source not in contents:
+                contents[source] = {}
+            update_contents(source, contents[source], subdir, result)
+        elif result is False:
+            dir_queue.put((source, subdir))
+        elif not source and subdir not in contents:
+            # Marks a potentially empty source
+            # If the source is actually empty the dict stays empty
+            contents[subdir] = {}
 
     if logging.MULTI:
-        # Process.close() and Process.kill() were added in Python 3.7
-        CLOSE_KILL = sys.version_info[:2] >= (3, 7)
-
         content_queue = mp_Queue()
+        content_updated = mp_Event()
         progress_queue = mp_Queue()
-        MAX_CHECKERS = args.checkers
-        checker_progress = [True] * MAX_CHECKERS
+        progress_updated = mp_Event()
+        free_checkers = Value("i")
         globals_ = {name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")}
 
         checkers = [
@@ -235,42 +261,67 @@ def manage_checkers(
                 args=(
                     n,
                     content_queue,
+                    content_updated,
                     dir_queue,
                     progress_queue,
+                    progress_updated,
+                    free_checkers,
                     globals_,
                 ),
             )
-            for n in range(MAX_CHECKERS)
+            for n in range(args.checkers)
         ]
 
         for checker in checkers:
             checker.start()
 
         try:
+            contents[""] = contents
+            content_updated.set()
+            checks_in_progress = [True] * args.checkers
+            progress_updated.set()
             # Wait until at least one checker starts processing a directory
-            while progress_queue.empty():
-                pass
+            setitem(checks_in_progress, *progress_queue.get())
 
-            while not interrupted.is_set() and not (
-                not any(checker_progress) and content_queue.empty()
+            while not interrupted.is_set() and (
+                any(check and check != (None, None) for check in checks_in_progress)
+                or not progress_queue.empty()
+                or not content_queue.empty()
             ):
-                if not content_queue.empty():
+                content_updated.clear()
+                while not content_queue.empty():
                     process_result(*content_queue.get())
+                content_updated.set()
+
+                progress_updated.clear()
+                while not progress_queue.empty():
+                    setitem(checks_in_progress, *progress_queue.get())
+                progress_updated.set()
+
                 for n, checker in enumerate(checkers):
-                    if not checker.is_alive() and checker_progress[n]:
+                    if checks_in_progress[n] and not checker.is_alive():
                         # Ensure it's actually the last source processed by the dead
                         # process that's taken into account.
+                        progress_updated.clear()
                         while not progress_queue.empty():
-                            setitem(checker_progress, *progress_queue.get())
-                        if checker_progress[n]:  # Externally terminated
-                            process_result(checker_progress[n], False, n)
-                            checker_progress[n] = None
+                            setitem(checks_in_progress, *progress_queue.get())
+                        progress_updated.set()
+
+                        if checks_in_progress[n]:  # Externally terminated
+                            process_result(*checks_in_progress[n], False, n)
+                            checks_in_progress[n] = None
         finally:
+            for _ in range(args.checkers):
+                dir_queue.put((None, None))
             for checker in checkers:
-                checker.kill() if CLOSE_KILL else checker.terminate()
                 checker.join()
-                if CLOSE_KILL:
-                    checker.close()
+            del contents[""]
+            for source, result in tuple(contents.items()):
+                if result:
+                    images.append((source, ...))
+                else:
+                    del contents[source]
+                    logging.log(f"{source!r} is empty", logger)
     else:
         current_thread.name = "Checker"
         log(
@@ -285,7 +336,7 @@ def manage_checkers(
         # will be changing
         opener.join()
 
-        source = dir_queue.get()
+        _, source = dir_queue.get()
         while source:
             log(f"Checking {source!r}", logger, verbose=True)
             result = False
@@ -294,8 +345,54 @@ def manage_checkers(
             except Exception:
                 log_exception(f"Checking {source!r} failed", logger)
             finally:
-                process_result(source, result)
-            source = dir_queue.get()
+                if result:
+                    source = abspath(source)
+                    contents[source] = result
+                    images.append((source, ...))
+                elif result is None:
+                    log(f"{source!r} is empty", logger)
+            _, source = dir_queue.get()
+
+
+def update_contents(
+    dir: str,
+    contents: Dict[str, Union[bool, Dict]],
+    subdir: str,
+    subcontents: Dict[str, Union[bool, Dict]],
+):
+    """Updates a directory's content tree with the content tree of a subdirectory."""
+
+    def update_dict(base: dict, update: dict):
+        for key in update:
+            if key in base:
+                try:
+                    update_dict(base[key], update[key])
+                except RecursionError:
+                    leftovers.put((base[key], update[key]))
+            else:
+                base[key] = update[key]
+
+    path = subdir[len(realpath(dir)) + 1 :].split(os.sep) if dir else [subdir]
+    target = path.pop()
+
+    path_iter = iter(path)
+    for branch in path_iter:
+        try:
+            contents = contents[branch]
+        except KeyError:
+            contents[branch] = {}
+            contents = contents[branch]
+            break
+    for branch in path_iter:
+        contents[branch] = {}
+        contents = contents[branch]
+    if target in contents:
+        leftovers = Queue()
+        update_dict(contents[target], subcontents)
+        while not leftovers.empty():
+            update_dict(*leftovers.get())
+    else:
+        contents[target] = subcontents
 
 
 def get_urls(
@@ -618,9 +715,10 @@ NOTES:
     # TUI-only
     tui_options = parser.add_argument_group(
         "TUI-only Options",
-        """These options apply only when there is at least one valid directory source \
-or multiple valid sources
-""",
+        (
+            "These options apply only when there is at least one valid directory source"
+            "or multiple valid sources"
+        ),
     )
 
     tui_options.add_argument(
@@ -834,7 +932,7 @@ or multiple valid sources
             if not os_is_unix:
                 dir_images = True
                 continue
-            dir_queue.put(source)
+            dir_queue.put(("", absolute_source))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
@@ -842,9 +940,8 @@ or multiple valid sources
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    if os_is_unix:
-        for _ in range(args.checkers):
-            dir_queue.put(None)
+    if os_is_unix and not logging.MULTI:
+        dir_queue.put((None,) * 2)
 
     for getter in getters:
         getter.join()
