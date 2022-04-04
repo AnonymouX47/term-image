@@ -45,7 +45,6 @@ def main() -> int:
     logger.setLevel(_logging.INFO)
 
     cli.interrupted = main.interrupted = Event()
-    notify.loading_indicator.start()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:

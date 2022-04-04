@@ -731,6 +731,7 @@ or multiple valid sources
         args.verbose,
         args.verbose_log,
     )
+    notify.loading_indicator.start()
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),

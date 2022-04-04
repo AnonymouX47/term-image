@@ -75,11 +75,10 @@ def load() -> None:
             _loading.clear()
             _loading.wait()
 
-    logger.debug("Switching to the TUI")
-
     _n_loading = 0
     _loading.clear()
     _loading.wait()
+
     while _n_loading > -1:
         while _n_loading > 0:
             for stage in (
