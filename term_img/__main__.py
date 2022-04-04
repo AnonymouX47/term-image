@@ -4,6 +4,7 @@ import logging as _logging
 import multiprocessing
 import sys
 from threading import Event
+from time import sleep
 
 from .exit_codes import FAILURE, INTERRUPTED, codes
 
@@ -33,9 +34,13 @@ def main() -> int:
 
     def finish_multi_logging():
         if logging.MULTI:
-            from .logging_multi import log_queue
+            from multiprocessing import active_children
+
+            from .logging_multi import log_queue, pids
 
             if log_queue:  # Multi-logging has been successfully initialized
+                while pids.intersection({proc.pid for proc in active_children()}):
+                    sleep(0.005)
                 log_queue.put((None,) * 2)  # End of logs
                 log_queue.join()
 

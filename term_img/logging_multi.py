@@ -9,9 +9,10 @@ from traceback import format_exception
 def create_objects():
     from queue import Queue
 
-    global _log_queue, _logging_details
+    global _log_queue, _logging_details, _pids
     _log_queue = Queue()
     _logging_details = []
+    _pids = set()
 
 
 def get_log_queue():
@@ -20,6 +21,10 @@ def get_log_queue():
 
 def get_logging_details():
     return _logging_details
+
+
+def get_pids():
+    return _pids
 
 
 def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
@@ -56,6 +61,7 @@ def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
 
     LogManager.register("get_logging_details")
     LogManager.register("get_log_queue")
+    LogManager.register("get_pids")
 
     with open(os.path.join(user_dir, "temp", "addresses", str(os.getppid()))) as f:
         port = int(f.read())
@@ -65,13 +71,14 @@ def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
 
     logging_level, constants = log_manager.get_logging_details()._getvalue()
     log_queue = log_manager.get_log_queue()
+    log_manager.get_pids().add(os.getpid())
 
     # Logs
     _logging.getLogger().setLevel(logging_level)
     logging.__dict__.update(constants)
     logger.filter = log_redirector
 
-    # # Warnings
+    # # Warnings and session-level logs
     logger = _logging.getLogger("term-img")
     logger.setLevel(_logging.INFO)
     logger.filter = log_redirector
@@ -89,10 +96,11 @@ def process_multi_logs(log_manager: "LogManager") -> None:
     from . import notify
     from .config import user_dir
 
-    global log_queue
+    global log_queue, pids
 
     PID = os.getpid()
     log_queue = log_manager.get_log_queue()
+    pids = log_manager.get_pids()
 
     log_type, data = log_queue.get()
     while data:
@@ -119,7 +127,9 @@ NOTIF = 1
 
 # Set from `process_multi_logs()` in the MultiLogger thread, only in the main process
 log_queue = None
+pids = None
 
 # Set from `create_objects()`, only in the manager process
 _log_queue = None
 _logging_details = None
+_pids = None

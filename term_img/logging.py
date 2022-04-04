@@ -74,16 +74,11 @@ def init_log(
 
         from . import logging_multi
         from .config import user_dir
-        from .logging_multi import (
-            LogManager,
-            create_objects,
-            get_log_queue,
-            get_logging_details,
-            process_multi_logs,
-        )
+        from .logging_multi import LogManager, create_objects, process_multi_logs
 
-        LogManager.register("get_logging_details", get_logging_details)
-        LogManager.register("get_log_queue", get_log_queue)
+        for name, value in vars(logging_multi).items():
+            if name.startswith("get_"):
+                LogManager.register(name, value)
 
         # Get a port that's not in use
         # Allows multiple sessions of `term-img` on the same machine at the same time
