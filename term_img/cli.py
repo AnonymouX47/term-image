@@ -9,6 +9,7 @@ from operator import mul, setitem
 from os.path import abspath, basename, isdir, isfile, realpath
 from queue import Empty, Queue
 from threading import Thread, current_thread
+from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -191,19 +192,18 @@ def check_dirs(
 
         progress_updated.wait()
         progress_queue.put((checker_no, (source, subdir)))
+        result = None
         try:
             result = check_dir(subdir)
         except KeyboardInterrupt:
-            result = False  # Will be retried by another Checker
+            # Will be re-checked by another checker since this checker dies
             return
         except Exception:
-            log_exception(f"Checking {subdir!r} failed", logger)
-            result = None  # Treat as empty
+            log_exception(f"Checking {subdir!r} failed", logger, direct=True)
         finally:
             content_updated.wait()
             content_queue.put((source, subdir, result))
 
-    progress_queue.put((checker_no, None))
     logger.debug("Exiting")
 
 
@@ -285,6 +285,8 @@ def manage_checkers(
 
             while not interrupted.is_set() and (
                 any(check and check != (None, None) for check in checks_in_progress)
+                or not dir_queue.sources_finished
+                or not dir_queue.empty()
                 or not progress_queue.empty()
                 or not content_queue.empty()
             ):
@@ -310,9 +312,12 @@ def manage_checkers(
                         if checks_in_progress[n]:  # Externally terminated
                             process_result(*checks_in_progress[n], False, n)
                             checks_in_progress[n] = None
+
+                sleep(0.01)  # Allow queue sizes to be updated
         finally:
-            for _ in range(args.checkers):
-                dir_queue.put((None, None))
+            for check in checks_in_progress:
+                if check:
+                    dir_queue.put((None, None))
             for checker in checkers:
                 checker.join()
             del contents[""]
@@ -343,7 +348,7 @@ def manage_checkers(
             try:
                 result = check_dir(source, os.getcwd())
             except Exception:
-                log_exception(f"Checking {source!r} failed", logger)
+                log_exception(f"Checking {source!r} failed", logger, direct=True)
             finally:
                 if result:
                     source = abspath(source)
@@ -364,10 +369,16 @@ def update_contents(
 
     def update_dict(base: dict, update: dict):
         for key in update:
-            if key in base:
+            # "/" can be in *base* if the directory's parent was re-checked
+            if key in base and key != "/":
                 try:
                     update_dict(base[key], update[key])
                 except RecursionError:
+                    # Will have to step back a few stack frames before `put()` can be
+                    # successful.
+                    # So, the dict that'll be put in the end will be a parent of the one
+                    # in the frame where the RecursionError originated from.
+                    # Costly but gets the job done.
                     leftovers.put((base[key], update[key]))
             else:
                 base[key] = update[key]
@@ -906,6 +917,7 @@ NOTES:
 
     if os_is_unix:
         dir_queue = mp_Queue() if logging.MULTI else Queue()
+        dir_queue.sources_finished = False
         check_manager = Thread(
             target=manage_checkers,
             args=(dir_queue, contents, dir_images, opener),
@@ -940,8 +952,11 @@ NOTES:
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    if os_is_unix and not logging.MULTI:
-        dir_queue.put((None,) * 2)
+    if os_is_unix:
+        if logging.MULTI:
+            dir_queue.sources_finished = True
+        else:
+            dir_queue.put((None,) * 2)
 
     for getter in getters:
         getter.join()
