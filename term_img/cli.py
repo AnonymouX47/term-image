@@ -133,7 +133,7 @@ def check_dirs(
     from .logging_multi import redirect_logs
 
     globals().update(globals_)
-    redirect_logs(logger)
+    redirect_logs()
 
     logger.debug("Starting")
     source = dir_queue.get()

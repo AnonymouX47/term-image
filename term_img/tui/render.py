@@ -134,7 +134,7 @@ def render_grid_images(
     from ..image import TermImage
 
     if multi:
-        redirect_logs(logger)
+        redirect_logs()
         set_font_ratio(font_ratio)
 
     logger.debug("Starting")
