@@ -6,7 +6,7 @@ import os
 import sys
 from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
 from operator import mul, setitem
-from os.path import abspath, basename, isdir, isfile, realpath
+from os.path import abspath, basename, exists, isdir, isfile, realpath
 from queue import Empty, Queue
 from threading import Thread, current_thread
 from time import sleep
@@ -211,7 +211,6 @@ def manage_checkers(
     dir_queue: Union[Queue, mp_Queue],
     contents: Dict[str, Union[bool, Dict]],
     images: List[Tuple[str, Generator]],
-    opener: Thread,
 ) -> None:
     """Manages the processing of directory sources in parallel using multiple processes.
 
@@ -329,17 +328,6 @@ def manage_checkers(
                     logging.log(f"{source!r} is empty", logger)
     else:
         current_thread.name = "Checker"
-        log(
-            "Multiprocessing is not supported on this platform or has been disabled, "
-            "directory sources will be processed serially after file sources have been "
-            "processed!",
-            logger,
-            _logging.ERROR,
-        )
-
-        # wait till after file sources are processed, since the working directory
-        # will be changing
-        opener.join()
 
         _, source = dir_queue.get()
         while source:
@@ -445,8 +433,6 @@ def open_files(
             log(f"Could not read {source!r}: {e}", logger, _logging.ERROR)
         except Exception:
             log_exception(f"Opening {source!r} failed", logger, direct=True)
-        else:
-            log(f"Done opening {source!r}", logger, verbose=True)
         source = file_queue.get()
 
 
@@ -889,7 +875,8 @@ NOTES:
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
-    absolute_sources = set()
+    sources = [abspath(source) if exists(source) else source for source in args.sources]
+    unique_sources = set()
 
     url_queue = Queue()
     getters = [
@@ -920,18 +907,17 @@ NOTES:
         dir_queue.sources_finished = False
         check_manager = Thread(
             target=manage_checkers,
-            args=(dir_queue, contents, dir_images, opener),
+            args=(dir_queue, contents, dir_images),
             name="CheckManager",
             daemon=True,
         )
         check_manager.start()
 
-    for source in args.sources:
-        absolute_source = source if all(urlparse(source)[:3]) else abspath(source)
-        if absolute_source in absolute_sources:
-            log(f"Source repeated: {absolute_source!r}", logger, verbose=True)
+    for source in sources:
+        if source in unique_sources:
+            log(f"Source repeated: {source!r}", logger, verbose=True)
             continue
-        absolute_sources.add(absolute_source)
+        unique_sources.add(source)
 
         if all(urlparse(source)[:3]):  # Is valid URL
             url_queue.put(source)
@@ -944,7 +930,7 @@ NOTES:
             if not os_is_unix:
                 dir_images = True
                 continue
-            dir_queue.put(("", absolute_source))
+            dir_queue.put(("", source))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
