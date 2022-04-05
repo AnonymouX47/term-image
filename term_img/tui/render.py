@@ -202,7 +202,7 @@ def render_images(
     from ..image import TermImage
 
     if multi:
-        redirect_logs(logger, notifs=True)
+        redirect_logs(notifs=True)
         set_font_ratio(font_ratio)
 
     logger.debug("Starting")

@@ -161,7 +161,7 @@ def check_dirs(
     global _depth, _source
 
     globals().update(globals_, _free_checkers=free_checkers, _dir_queue=dir_queue)
-    redirect_logs(logger)
+    redirect_logs()
 
     logger.debug("Starting")
 
