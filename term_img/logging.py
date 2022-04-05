@@ -90,7 +90,7 @@ def init_log(
         while True:
             port = randint(50000, 60000)
             try:
-                with Listener(("127.0.0.1", 0)):
+                with Listener(("127.0.0.1", port)):
                     pass
             except OSError as e:
                 if not errorcode[e.errno].endswith("EADDRINUSE"):
@@ -107,11 +107,6 @@ def init_log(
             else:
                 break
 
-        address_dir = os.path.join(user_dir, "temp", "addresses")
-        os.makedirs(address_dir, exist_ok=True)
-        with open(os.path.join(address_dir, str(os.getpid())), "w") as f:
-            f.write(str(port))
-
         log_manager = LogManager(("127.0.0.1", port))
         log_manager.start(create_objects)
         log_manager.get_logging_details().extend(
@@ -121,6 +116,11 @@ def init_log(
                 {name: value for name, value in globals().items() if name.isupper()},
             ]
         )
+
+        address_dir = os.path.join(user_dir, "temp", "addresses")
+        os.makedirs(address_dir, exist_ok=True)
+        with open(os.path.join(address_dir, str(os.getpid())), "w") as f:
+            f.write(str(port))
 
         Thread(
             target=process_multi_logs, args=(log_manager,), name="MultiLogger"
