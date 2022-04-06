@@ -910,7 +910,6 @@ or multiple valid sources
                     ),
                     scroll=args.scroll,
                     animate=not args.no_anim,
-                    cached=os.stat(image._source).st_size <= 2097152,
                     check_size=not args.oversize,
                 )
 

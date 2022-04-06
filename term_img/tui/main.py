@@ -89,12 +89,7 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
                 del image._forced_anim_size_hash
 
     frame_duration = FRAME_DURATION or image._image._frame_duration
-    image._animator = ImageIterator(
-        image._image,
-        -1,
-        f"1.1{image._alpha}",
-        os.stat(image._image._source).st_size <= 2097152,
-    )._animator
+    image._animator = ImageIterator(image._image, -1, f"1.1{image._alpha}")._animator
 
     # `Image.render()` checks for this. It has to be set here since `ImageIterator`
     # doesn't set it until the first `next()` is called.

@@ -390,7 +390,7 @@ class TermImage:
         scroll: bool = False,
         animate: bool = True,
         repeat: int = -1,
-        cached: bool = False,
+        cached: Union[bool, int] = 100,
         check_size: bool = True,
     ) -> None:
         """Draws/Displays an image in the terminal.
@@ -432,6 +432,11 @@ class TermImage:
               A negative value implies infinite repetition.
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
+
+                - If ``bool``, it directly sets if the frames will be cached or not.
+                - If ``int``, caching is enabled only if the framecount of the image
+                  is less than or equal to the given number.
+
             check_size: If ``False``, does not perform size validation for
               non-animations.
 
@@ -917,7 +922,7 @@ class TermImage:
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
-        cached: bool,
+        cached: Union[bool, int],
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
@@ -1387,6 +1392,10 @@ class ImageIterator:
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not.
 
+          - If ``bool``, it directly sets if the frames will be cached or not.
+          - If ``int``, caching is enabled only if the framecount of the image
+            is less than or equal to the given number.
+
     NOTE:
         - If *repeat* equals ``1``, caching is disabled.
         - The iterator has immediate response to changes in the image
@@ -1402,7 +1411,7 @@ class ImageIterator:
         image: TermImage,
         repeat: int = -1,
         format: str = "",
-        cached: bool = False,
+        cached: Union[bool, int] = 100,
     ):
         if not isinstance(image, TermImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
@@ -1420,13 +1429,17 @@ class ImageIterator:
             )
         *fmt, alpha = image._check_format_spec(format)
 
-        if not isinstance(cached, bool):
+        if not isinstance(cached, (bool, int)):
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
+        if False is not cached <= 0:
+            raise ValueError("'cached' must be a boolean or a positive integer")
 
         self._image = image
         self._repeat = repeat
         self._format = format
-        self._cached = cached and repeat != 1
+        self._cached = (
+            cached if isinstance(cached, bool) else image.n_frames <= cached
+        ) and repeat != 1
         self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
 
     def __iter__(self):
