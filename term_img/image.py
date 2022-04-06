@@ -202,11 +202,7 @@ class TermImage:
 
     @property
     def n_frames(self) -> int:
-        """The number of frames in the image
-
-        NOTE: The first invocation of this property might take a while for images
-        with large number of frames but subsequent invocations won't.
-        """
+        """The number of frames in the image"""
         if not self._is_animated:
             return 1
 
@@ -639,7 +635,6 @@ class TermImage:
               appropriate type.
 
         Frame numbers start from 0 (zero).
-        NOTE: `image.n_frames` will have to be computed if it hasn't already been.
         """
         if not isinstance(pos, int):
             raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
@@ -926,11 +921,8 @@ class TermImage:
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
-        NOTE:
-            - This is done indefinitely but can be terminated with ``Ctrl-C``, thereby
-              raising ``KeyboardInterrupt``.
-            - ``image.n_frames`` might be computed in the course of image animation,
-              if it hasn't, as an optimization.
+        NOTE: This is done indefinitely but can be terminated with ``Ctrl-C``
+          (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
@@ -1462,9 +1454,6 @@ class ImageIterator:
     ) -> None:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
-
-        NOTE: ``image.n_frames`` might also be computed in the course of iteration,
-          if it hasn't, as an optimization.
         """
         image = self._image
         cached = self._cached
@@ -1499,8 +1488,6 @@ class ImageIterator:
             try:
                 frame = image._format_render(image._render_image(img, alpha), *fmt)
             except EOFError:
-                if not image._n_frames:
-                    image._n_frames = image._seek_position
                 image._seek_position = 0
                 if repeat > 0:  # Avoid infinitely large negative numbers
                     repeat -= 1
@@ -1512,7 +1499,7 @@ class ImageIterator:
         if unset_size:
             image._size = None
 
-        n_frames = image._n_frames
+        n_frames = image.n_frames
         while repeat:
             n = 0
             while n < n_frames:
