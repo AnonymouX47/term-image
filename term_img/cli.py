@@ -6,7 +6,7 @@ import os
 import sys
 from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
 from operator import mul, setitem
-from os.path import abspath, basename, exists, isdir, isfile, realpath
+from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
 from queue import Empty, Queue
 from threading import Thread, current_thread
 from time import sleep
@@ -26,7 +26,7 @@ from .tui.widgets import Image
 
 
 def check_dir(
-    dir: str, prev_dir: str = "..", *, _branch_off: bool = True
+    dir: str, prev_dir: str = "..", *, _links: List[Tuple[str]] = None
 ) -> Optional[Dict[str, Union[bool, Dict[str, Union[bool, dict]]]]]:
     """Scan *dir* (and sub-directories, if '--recursive' is set)
     and build the tree of directories [recursively] containing readable images.
@@ -35,13 +35,14 @@ def check_dir(
         - dir: Path to directory to be scanned.
         - prev_dir: Path (absolute or relative to *dir*) to set as working directory
           after scannning *dir* (default:  parent directory of *dir*).
+        - _links: Tracks all symlinks from a *source* up **till** a subdirectory.
 
     Returns:
         - `None` if *dir* contains no readable images [recursively].
         - A dict representing the resulting directory tree whose items are:
-          - a "/" key mapped to a bool. indicating if *dir* contains image files or not
+          - a "/" key mapped to a ``True``. if *dir* contains image files
           - a directory name mapped to a dict of the same structure, for each non-empty
-            sub-directory of *dir*.
+            sub-directory of *dir*
 
     - If '--hidden' is set, hidden (.[!.]*) images and subdirectories are considered.
     """
@@ -74,6 +75,7 @@ def check_dir(
             continue
         try:
             is_file = entry.is_file()
+            is_dir = entry.is_dir()
         except OSError:
             continue
 
@@ -86,39 +88,32 @@ def check_dir(
                         break
                 except Exception:
                     pass
-        elif RECURSIVE:
+        elif RECURSIVE and is_dir:
+            result = None
             try:
-                # Cannot branch-off at a symlink (or at any of its subdirectories)
-                # because it will be difficult to process the results for its
-                # sub-directories i.e to locate where to insert the resulting
-                # sub-content in the original source's content.
-
                 if entry.is_symlink():
-                    # Eliminate broken and cyclic symlinks
-                    # Return to the link's parent rather than the linked directory's
-                    # parent
-                    result = (
-                        check_dir(entry.name, os.getcwd(), _branch_off=False)
-                        if (
-                            entry.is_dir()  # not broken
-                            # not cyclic
-                            and not os.getcwd().startswith(realpath(entry))
-                        )
-                        else None
-                    )
-                else:
-                    if _source and _branch_off and _free_checkers.value:
-                        _dir_queue.put((_source, abspath(entry)))
+                    path = realpath(entry)
+
+                    # Eliminate cyclic symlinks
+                    if os.getcwd().startswith(path) or (
+                        _links and any(link[0].startswith(path) for link in _links)
+                    ):
                         continue
 
-                    # The check is only to filter inaccessible files and disallow them
-                    # from being reported as inaccessible directories within the
-                    # recursive call
-                    result = (
-                        check_dir(entry.name, _branch_off=_branch_off)
-                        if entry.is_dir()
-                        else None
-                    )
+                    if _source and _free_checkers.value:
+                        _dir_queue.put((_source, _links.copy(), abspath(entry)))
+                    else:
+                        _links.append((abspath(entry), path))
+                        del path
+                        # Return to the link's parent rather than the linked directory's
+                        # parent
+                        result = check_dir(entry.name, os.getcwd(), _links=_links)
+                        _links.pop()
+                else:
+                    if _source and _free_checkers.value:
+                        _dir_queue.put((_source, _links.copy(), abspath(entry)))
+                    else:
+                        result = check_dir(entry.name, _links=_links)
             except RecursionError:
                 log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
                 # Don't bother checking anything else in the current directory
@@ -126,8 +121,8 @@ def check_dir(
                 # image files but at the same time, not doing this could be very costly
                 # when there are many subdirectories
                 break
-            except OSError:  # Can be raised by `os.DirEntry.is_dir()`
-                result = None
+            except OSError:
+                pass
 
             if result is not None:
                 content[entry.name] = result
@@ -150,7 +145,7 @@ def check_dirs(
     progress_updated: mp_Event,
     free_checkers: Value,
     globals_: Dict[str, Any],
-):
+) -> None:
     """Checks a directory source in a newly **spawned** child process.
 
     Intended as the *target* of a **spawned** process to parallelize directory checks.
@@ -166,14 +161,14 @@ def check_dirs(
 
     while True:
         try:
-            source, subdir = dir_queue.get_nowait()
+            source, links, subdir = dir_queue.get_nowait()
         except Empty:
             progress_updated.wait()
             progress_queue.put((checker_no, (None,) * 2))
             with free_checkers:
                 free_checkers.value += 1
             try:
-                source, subdir = dir_queue.get()
+                source, links, subdir = dir_queue.get()
             except KeyboardInterrupt:
                 return
             finally:
@@ -190,21 +185,64 @@ def check_dirs(
         if not source:
             log(f"Checking {subdir!r}", logger, verbose=True)
 
+        content_path = get_content_path(source, links, subdir)
+        if islink(subdir):
+            links.append((subdir, realpath(subdir)))
         progress_updated.wait()
-        progress_queue.put((checker_no, (source, subdir)))
+        progress_queue.put((checker_no, (source, content_path)))
         result = None
         try:
-            result = check_dir(subdir)
+            result = check_dir(subdir, _links=links)
         except KeyboardInterrupt:
             # Will be re-checked by another checker since this checker dies
             return
         except Exception:
-            log_exception(f"Checking {subdir!r} failed", logger, direct=True)
+            log_exception(f"Checking {content_path!r} failed", logger, direct=True)
         finally:
             content_updated.wait()
-            content_queue.put((source, subdir, result))
+            content_queue.put((source, content_path, result))
 
     logger.debug("Exiting")
+
+
+def get_content_path(source: str, links: List[Tuple[str]], subdir: str) -> str:
+    """Returns the original path from *source* to *subdir*, collapsing all symlinks
+    in-between.
+    """
+    if not (source and links):
+        return subdir
+
+    links = iter(links)
+    absolute, prev_real = next(links)
+    path = source + absolute[len(source) :]
+    for absolute, real in links:
+        path += absolute[len(prev_real) :]
+        prev_real = real
+    path += subdir[len(prev_real) :]
+
+    return path
+
+
+def get_links(source: str, subdir: str) -> List[Tuple[str, str]]:
+    """Returns a list of all symlinks (and the directories they point to) between
+    *source* and *subdir*.
+    """
+    if not source:
+        return [(subdir, realpath(subdir))] if islink(subdir) else []
+
+    links = [(source, realpath(source))] if islink(source) else []
+    # Strips off the basename in case it's a link
+    path = os.path.dirname(subdir[len(source) + 1 :])
+    if path:
+        cwd = os.getcwd()
+        os.chdir(source)
+        for dir in path.split(os.sep):
+            if islink(dir):
+                links.append((abspath(dir), realpath(dir)))
+            os.chdir(dir)
+        os.chdir(cwd)
+
+    return links
 
 
 def manage_checkers(
@@ -224,7 +262,7 @@ def manage_checkers(
         subdir: str,
         result: Union[None, bool, Dict[str, Union[bool, Dict]]],
         n: int = -1,
-    ):
+    ) -> None:
         if n > -1:
             log(
                 f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
@@ -233,13 +271,21 @@ def manage_checkers(
                 _logging.ERROR,
                 direct=False,
             )
+            if not subdir:
+                return
 
         if result:
             if source not in contents:
                 contents[source] = {}
             update_contents(source, contents[source], subdir, result)
         elif result is False:
-            dir_queue.put((source, subdir))
+            dir_queue.put(
+                (
+                    source,
+                    get_links(source, subdir),
+                    os.path.join(realpath(os.path.dirname(subdir)), basename(subdir)),
+                )
+            )
         elif not source and subdir not in contents:
             # Marks a potentially empty source
             # If the source is actually empty the dict stays empty
@@ -277,7 +323,7 @@ def manage_checkers(
         try:
             contents[""] = contents
             content_updated.set()
-            checks_in_progress = [True] * args.checkers
+            checks_in_progress = [(None,) * 2] * args.checkers
             progress_updated.set()
             # Wait until at least one checker starts processing a directory
             setitem(checks_in_progress, *progress_queue.get())
@@ -316,7 +362,7 @@ def manage_checkers(
         finally:
             for check in checks_in_progress:
                 if check:
-                    dir_queue.put((None, None))
+                    dir_queue.put((None,) * 3)
             for checker in checkers:
                 checker.join()
             del contents[""]
@@ -329,12 +375,14 @@ def manage_checkers(
     else:
         current_thread.name = "Checker"
 
-        _, source = dir_queue.get()
+        _, links, source = dir_queue.get()
         while source:
             log(f"Checking {source!r}", logger, verbose=True)
+            if islink(source):
+                links.append((source, realpath(source)))
             result = False
             try:
-                result = check_dir(source, os.getcwd())
+                result = check_dir(source, os.getcwd(), _links=links)
             except Exception:
                 log_exception(f"Checking {source!r} failed", logger, direct=True)
             finally:
@@ -344,7 +392,7 @@ def manage_checkers(
                     images.append((source, ...))
                 elif result is None:
                     log(f"{source!r} is empty", logger)
-            _, source = dir_queue.get()
+            _, links, source = dir_queue.get()
 
 
 def update_contents(
@@ -371,7 +419,7 @@ def update_contents(
             else:
                 base[key] = update[key]
 
-    path = subdir[len(realpath(dir)) + 1 :].split(os.sep) if dir else [subdir]
+    path = subdir[len(dir) + 1 :].split(os.sep) if dir else [subdir]
     target = path.pop()
 
     path_iter = iter(path)
@@ -930,7 +978,7 @@ NOTES:
             if not os_is_unix:
                 dir_images = True
                 continue
-            dir_queue.put(("", source))
+            dir_queue.put(("", [], source))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
@@ -942,7 +990,7 @@ NOTES:
         if logging.MULTI:
             dir_queue.sources_finished = True
         else:
-            dir_queue.put((None,) * 2)
+            dir_queue.put((None,) * 3)
 
     for getter in getters:
         getter.join()
