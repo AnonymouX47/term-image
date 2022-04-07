@@ -53,12 +53,16 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
         nonlocal last_alarm
 
         loop.remove_alarm(last_alarm)
-        if image_box.original_widget is image and (
-            not forced_render or image._force_render
+        if (
+            image_box.original_widget is image
+            # In case you switch from and back to the image within one frame duration
+            and image._animator is animator
+            and (not forced_render or image._force_render)
         ):
             image._frame_changed = True
             last_alarm = loop.set_alarm_in(frame_duration, next_frame)
-        else:
+        # In case you switch from and back to the image within one frame duration
+        elif image._animator is animator:
             # When you switch back and forth between an animated image and another
             # image rapidly, all within one frame duration and the other image ends up
             # as the current image, the last alarm from the first animation of the
