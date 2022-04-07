@@ -394,7 +394,7 @@ NOTES:
         ),
     )
 
-    anim_options = general.add_mutually_exclusive_group()
+    anim_options = parser.add_argument_group("Animation Options (General)")
     anim_options.add_argument(
         "-f",
         "--frame-duration",
@@ -403,6 +403,17 @@ NOTES:
         help=(
             "Specify the time (in seconds) between frames for all animated images "
             "(default: Determined per image from it's metadata OR 0.1)"
+        ),
+    )
+    anim_options.add_argument(
+        "-R",
+        "--repeat",
+        type=int,
+        default=-1,
+        metavar="N",
+        help=(
+            "Number of times to repeat all frames of an animated image; A negative "
+            "count implies an infinite loop (default: -1)"
         ),
     )
     anim_options.add_argument(
@@ -740,6 +751,7 @@ or multiple valid sources
             "Number of grid renderers must be non-negative",
         ),
         ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
+        ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
     ):
         if not check_arg(*details):
             return INVALID_ARG
@@ -910,6 +922,7 @@ or multiple valid sources
                     ),
                     scroll=args.scroll,
                     animate=not args.no_anim,
+                    repeat=args.repeat,
                     check_size=not args.oversize,
                 )
 

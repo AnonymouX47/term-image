@@ -34,6 +34,7 @@ def init(
     main.GRID_RENDERERS = args.grid_renderers
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
+    main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)

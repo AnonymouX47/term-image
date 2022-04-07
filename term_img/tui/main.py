@@ -57,6 +57,8 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
             image_box.original_widget is image
             # In case you switch from and back to the image within one frame duration
             and image._animator is animator
+            # The animator is not yet exhausted; repeat count is not yet zero
+            and image._animator.gi_frame
             and (not forced_render or image._force_render)
         ):
             image._frame_changed = True
@@ -93,7 +95,9 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
                 del image._forced_anim_size_hash
 
     frame_duration = FRAME_DURATION or image._image._frame_duration
-    image._animator = ImageIterator(image._image, -1, f"1.1{image._alpha}")._animator
+    animator = image._animator = ImageIterator(
+        image._image, REPEAT, f"1.1{image._alpha}"
+    )._animator
 
     # `Image.render()` checks for this. It has to be set here since `ImageIterator`
     # doesn't set it until the first `next()` is called.
@@ -744,5 +748,6 @@ FRAME_DURATION = None
 GRID_RENDERERS = None
 MAX_PIXELS = None
 NO_ANIMATION = None
+REPEAT = None
 RECURSIVE = None
 SHOW_HIDDEN = None
