@@ -29,6 +29,9 @@ def init(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
+    main.ANIM_CACHED = not args.cache_no_anim and (
+        args.cache_all_anim or args.anim_cache
+    )
     main.DEBUG = args.debug
     main.FRAME_DURATION = args.frame_duration
     main.GRID_RENDERERS = args.grid_renderers

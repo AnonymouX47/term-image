@@ -96,7 +96,7 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
 
     frame_duration = FRAME_DURATION or image._image._frame_duration
     animator = image._animator = ImageIterator(
-        image._image, REPEAT, f"1.1{image._alpha}"
+        image._image, REPEAT, f"1.1{image._alpha}", ANIM_CACHED
     )._animator
 
     # `Image.render()` checks for this. It has to be set here since `ImageIterator`
@@ -743,6 +743,7 @@ loop = None
 update_pipe = None
 
 # # # Corresponsing to command-line args
+ANIM_CACHED = None
 DEBUG = None
 FRAME_DURATION = None
 GRID_RENDERERS = None
