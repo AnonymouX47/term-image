@@ -695,10 +695,16 @@ or multiple valid sources
         ),
     )
     log_options.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="No notifications, except fatal errors",
+    )
+    log_options.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        help="More detailed event reporting. Also implies --log-level=INFO",
+        help="More detailed event reporting. Also sets logging level to INFO",
     )
     log_options.add_argument(
         "--verbose-log",
@@ -728,10 +734,12 @@ or multiple valid sources
         getattr(_logging, args.log_level),
         args.debug,
         args.no_multi,
+        args.quiet,
         args.verbose,
         args.verbose_log,
     )
-    notify.loading_indicator.start()
+    if not logging.QUIET:
+        notify.loading_indicator.start()
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),

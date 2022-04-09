@@ -24,6 +24,8 @@ def main() -> int:
     from .tui import main
 
     def finish_loading():
+        if logging.QUIET:
+            return
         notify.end_loading()
         if not main.loop:  # TUI not yet launched
             while notify.is_loading():

@@ -15,11 +15,12 @@ def init_log(
     level: int,
     debug: bool,
     no_multi: bool,
-    verbose: bool = False,
-    verbose_log: bool = False,
+    quiet: bool,
+    verbose: bool,
+    verbose_log: bool,
 ) -> None:
     """Initialize application event logging"""
-    global DEBUG, MULTI, VERBOSE, VERBOSE_LOG
+    global DEBUG, MULTI, QUIET, VERBOSE, VERBOSE_LOG
 
     handler = RotatingFileHandler(
         logfile,
@@ -28,7 +29,7 @@ def init_log(
     )
     handler.addFilter(filter_)
 
-    VERBOSE, VERBOSE_LOG = verbose or debug, verbose_log
+    QUIET, VERBOSE, VERBOSE_LOG = quiet, verbose or debug, verbose_log
     DEBUG = debug = debug or level == logging.DEBUG
     if debug:
         level = logging.DEBUG
@@ -168,7 +169,9 @@ def log(
             )
 
 
-def log_exception(msg: str, logger: logging.Logger, *, direct: bool = False) -> None:
+def log_exception(
+    msg: str, logger: logging.Logger, *, direct: bool = False, fatal: bool = False
+) -> None:
     """Report an error with the exception reponsible
 
     NOTE: Should be called from within an exception handler
@@ -183,7 +186,7 @@ def log_exception(msg: str, logger: logging.Logger, *, direct: bool = False) -> 
         logger.error(msg, **_kwargs)
 
     if VERBOSE and direct:
-        notify.notify(msg, level=notify.ERROR)
+        notify.notify(msg, level=notify.CRITICAL if fatal else notify.ERROR)
 
 
 # Not annotated because it's not directly used.
@@ -236,5 +239,6 @@ else:
 # Set from within `init_log()`
 DEBUG = None
 MULTI = None
+QUIET = None
 VERBOSE = None
 VERBOSE_LOG = None

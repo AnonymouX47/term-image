@@ -13,7 +13,7 @@ from .. import logging
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .render import manage_grid_renders
-from .widgets import Image, info_bar, main as main_widget
+from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
 
 
 def init(
@@ -24,6 +24,8 @@ def init(
     """Initializes the TUI"""
     global is_launched
 
+    if not logging.QUIET:
+        pile.contents.append((notif_bar, ("given", 2)))
     if args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))

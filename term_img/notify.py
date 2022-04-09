@@ -109,9 +109,10 @@ def notify(
     msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
 ) -> None:
     """Displays a message in the TUI's notification bar or on STDOUT."""
-    if verbose and not logging.VERBOSE:
-        pass
-    elif not tui.is_launched:
+    if logging.QUIET and level < CRITICAL or verbose and not logging.VERBOSE:
+        return
+
+    if not tui.is_launched:
         print(
             (
                 f"\033[33m{msg}\033[0m"
