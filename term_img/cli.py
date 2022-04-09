@@ -327,13 +327,47 @@ def main() -> None:
     """CLI execution sub-entry-point"""
     global args, url_images, RECURSIVE, SHOW_HIDDEN
 
-    def check_arg(name: str, check: Callable[[Any], bool], msg: str):
-        """Performs generic argument value checks"""
+    def check_arg(
+        name: str,
+        check: Callable[[Any], Any],
+        msg: str,
+        exceptions: Tuple[Exception] = None,
+        *,
+        fatal: bool = True,
+    ) -> bool:
+        """Performs generic argument value checks and outputs the given message if the
+        argument value is invalid.
+
+        Returns:
+            ``True`` if valid, otherwise ``False``.
+
+        If *exceptions* is :
+          - not given or ``None``, the argument is invalid only if ``check(arg)``
+            returns a falsy value.
+          - given, the argument is invalid if ``check(arg)`` raises one of the given
+            exceptions. It's also invalid if it raises any other exception but the
+            error message is different.
+        """
         value = getattr(args, name)
-        if not check(value):
-            notify.notify(f"{msg} (got: {value!r})", level=notify.ERROR)
-            return False
-        return True
+        if exceptions:
+            valid = False
+            try:
+                check(value)
+                valid = True
+            except exceptions:
+                pass
+            except Exception:
+                log_exception(f"--{name.replace('_', '-')}: Invalid! See the logs")
+        else:
+            valid = check(value)
+
+        if not valid:
+            notify.notify(
+                f"--{name.replace('_', '-')}: {msg} (got: {value!r})",
+                level=notify.CRITICAL if fatal else notify.ERROR,
+            )
+
+        return bool(valid)
 
     parser = argparse.ArgumentParser(
         prog="term-img",
@@ -919,7 +953,7 @@ or multiple valid sources
             # or padding width/height checks.
             except ValueError as e:
                 if isinstance(e, InvalidSize):
-                    notify.notify(str(e), level=notify.ERROR)
+                    notify.notify(str(e), level=notify.CRITICAL)
                     err = True
                 else:
                     log(str(e), logger, _logging.CRITICAL)
