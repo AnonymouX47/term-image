@@ -299,7 +299,7 @@ def manage_checkers(
             # If the source is actually empty the dict stays empty
             contents[subdir] = {}
 
-    if logging.MULTI:
+    if logging.MULTI and args.checkers > 1:
         content_queue = mp_Queue()
         content_updated = mp_Event()
         progress_queue = mp_Queue()
@@ -1008,7 +1008,7 @@ NOTES:
     os_is_unix = sys.platform not in {"win32", "cygwin"}
 
     if os_is_unix:
-        dir_queue = mp_Queue() if logging.MULTI else Queue()
+        dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
             target=manage_checkers,
@@ -1044,7 +1044,7 @@ NOTES:
         url_queue.put(None)
     file_queue.put(None)
     if os_is_unix:
-        if logging.MULTI:
+        if logging.MULTI and args.checkers > 1:
             dir_queue.sources_finished = True
         else:
             dir_queue.put((None,) * 4)
