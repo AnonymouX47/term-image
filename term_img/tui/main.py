@@ -616,20 +616,17 @@ def set_prev_context(n: int = 1) -> None:
 
 
 def sort_key_lexi(entry: Union[os.DirEntry, Path]):
-    """Lexicographic sort key function.
+    """Lexicographic ordering key function.
 
-    Compatible with ``list.sort()`` and ``sorted()``.
+    Compatible with ``list.sort()``, ``sorted()``, etc.
     """
-    # The first part groups into files and directories
-    # The seconds sorts within the group
-    # The third, between hidden and non-hidden of the same name
-    #   - '\0' makes the key for the non-hidden longer without affecting it's order
-    #     relative to other entries.
     name = entry.name
     return (
-        "\0" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
-        if entry.is_file()
-        else "\1" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
+        chr(entry.is_file())  # group directories before files
+        + name.lstrip(".").casefold()  # sorts within each group
+        # '\0' makes the key for the non-hidden longer without affecting it's order
+        # relative to other entries.
+        + "\0" * (not name.startswith("."))  # hidden before non-hidden of the same name
     )
 
 
