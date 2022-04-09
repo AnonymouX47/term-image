@@ -28,7 +28,7 @@ from .tui.widgets import Image
 def check_dir(
     dir: str, prev_dir: str = "..", *, _links: List[Tuple[str]] = None
 ) -> Optional[Dict[str, Union[bool, Dict[str, Union[bool, dict]]]]]:
-    """Scan *dir* (and sub-directories, if '--recursive' is set)
+    """Scan *dir* (and sub-directories, if '--recursive' was specified)
     and build the tree of directories [recursively] containing readable images.
 
     Args:
@@ -44,8 +44,15 @@ def check_dir(
           - a directory name mapped to a dict of the same structure, for each non-empty
             sub-directory of *dir*
 
-    - If '--hidden' is set, hidden (.[!.]*) images and subdirectories are considered.
+    NOTE:
+        - If '--hidden' was specified, hidden (.[!.]*) images and subdirectories are
+          considered.
+        - `_depth` should always be initialized, at the module level, before calling
+          this function.
     """
+    global _depth
+
+    _depth += 1
     try:
         os.chdir(dir)
     except OSError:
@@ -89,6 +96,11 @@ def check_dir(
                 except Exception:
                     pass
         elif RECURSIVE and is_dir:
+            if _depth > MAX_DEPTH:
+                if not empty:
+                    break
+                continue
+
             result = None
             try:
                 if entry.is_symlink():
@@ -101,7 +113,7 @@ def check_dir(
                         continue
 
                     if _source and _free_checkers.value:
-                        _dir_queue.put((_source, _links.copy(), abspath(entry)))
+                        _dir_queue.put((_source, _links.copy(), abspath(entry), _depth))
                     else:
                         _links.append((abspath(entry), path))
                         del path
@@ -111,20 +123,13 @@ def check_dir(
                         _links.pop()
                 else:
                     if _source and _free_checkers.value:
-                        _dir_queue.put((_source, _links.copy(), abspath(entry)))
+                        _dir_queue.put((_source, _links.copy(), abspath(entry), _depth))
                     else:
                         result = check_dir(entry.name, _links=_links)
-            except RecursionError:
-                log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
-                # Don't bother checking anything else in the current directory
-                # Could possibly mark the directory as empty even though it contains
-                # image files but at the same time, not doing this could be very costly
-                # when there are many subdirectories
-                break
             except OSError:
                 pass
 
-            if result is not None:
+            if result:
                 content[entry.name] = result
 
     # '/' is an invalid file/directory name on major platforms.
@@ -133,6 +138,7 @@ def check_dir(
         content["/"] = True
 
     os.chdir(prev_dir)
+    _depth -= 1
     return content or None
 
 
@@ -152,7 +158,7 @@ def check_dirs(
     """
     from .logging_multi import redirect_logs
 
-    global _source
+    global _depth, _source
 
     globals().update(globals_, _free_checkers=free_checkers, _dir_queue=dir_queue)
     redirect_logs(logger)
@@ -161,14 +167,14 @@ def check_dirs(
 
     while True:
         try:
-            source, links, subdir = dir_queue.get_nowait()
+            source, links, subdir, _depth = dir_queue.get_nowait()
         except Empty:
             progress_updated.wait()
             progress_queue.put((checker_no, (None,) * 2))
             with free_checkers:
                 free_checkers.value += 1
             try:
-                source, links, subdir = dir_queue.get()
+                source, links, subdir, _depth = dir_queue.get()
             except KeyboardInterrupt:
                 return
             finally:
@@ -189,7 +195,7 @@ def check_dirs(
         if islink(subdir):
             links.append((subdir, realpath(subdir)))
         progress_updated.wait()
-        progress_queue.put((checker_no, (source, content_path)))
+        progress_queue.put((checker_no, (source, content_path, _depth)))
         result = None
         try:
             result = check_dir(subdir, _links=links)
@@ -256,6 +262,7 @@ def manage_checkers(
     serially in the current thread of execution, after all file sources have been
     processed.
     """
+    global _depth
 
     def process_result(
         source: str,
@@ -271,21 +278,22 @@ def manage_checkers(
                 _logging.ERROR,
                 direct=False,
             )
-            if not subdir:
-                return
+            if subdir:
+                dir_queue.put(
+                    (
+                        source,
+                        get_links(source, subdir),
+                        os.path.join(
+                            realpath(os.path.dirname(subdir)), basename(subdir)
+                        ),
+                    )
+                )
+            return
 
         if result:
             if source not in contents:
                 contents[source] = {}
             update_contents(source, contents[source], subdir, result)
-        elif result is False:
-            dir_queue.put(
-                (
-                    source,
-                    get_links(source, subdir),
-                    os.path.join(realpath(os.path.dirname(subdir)), basename(subdir)),
-                )
-            )
         elif not source and subdir not in contents:
             # Marks a potentially empty source
             # If the source is actually empty the dict stays empty
@@ -297,7 +305,9 @@ def manage_checkers(
         progress_queue = mp_Queue()
         progress_updated = mp_Event()
         free_checkers = Value("i")
-        globals_ = {name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")}
+        globals_ = {
+            name: globals()[name] for name in ("MAX_DEPTH", "RECURSIVE", "SHOW_HIDDEN")
+        }
 
         checkers = [
             Process(
@@ -320,16 +330,18 @@ def manage_checkers(
         for checker in checkers:
             checker.start()
 
+        ALL_NONE = (None,) * 2
         try:
             contents[""] = contents
             content_updated.set()
-            checks_in_progress = [(None,) * 2] * args.checkers
+            checks_in_progress = [ALL_NONE] * args.checkers
             progress_updated.set()
+
             # Wait until at least one checker starts processing a directory
             setitem(checks_in_progress, *progress_queue.get())
 
             while not interrupted.is_set() and (
-                any(check and check != (None, None) for check in checks_in_progress)
+                any(check and check != ALL_NONE for check in checks_in_progress)
                 or not dir_queue.sources_finished
                 or not dir_queue.empty()
                 or not progress_queue.empty()
@@ -355,14 +367,14 @@ def manage_checkers(
                         progress_updated.set()
 
                         if checks_in_progress[n]:  # Externally terminated
-                            process_result(*checks_in_progress[n], False, n)
+                            process_result(*checks_in_progress[n], n)
                             checks_in_progress[n] = None
 
                 sleep(0.01)  # Allow queue sizes to be updated
         finally:
             for check in checks_in_progress:
                 if check:
-                    dir_queue.put((None,) * 3)
+                    dir_queue.put(ALL_NONE * 2)
             for checker in checkers:
                 checker.join()
             del contents[""]
@@ -375,7 +387,7 @@ def manage_checkers(
     else:
         current_thread.name = "Checker"
 
-        _, links, source = dir_queue.get()
+        _, links, source, _depth = dir_queue.get()
         while source:
             log(f"Checking {source!r}", logger, verbose=True)
             if islink(source):
@@ -392,7 +404,7 @@ def manage_checkers(
                     images.append((source, ...))
                 elif result is None:
                     log(f"{source!r} is empty", logger)
-            _, links, source = dir_queue.get()
+            _, links, source, _depth = dir_queue.get()
 
 
 def update_contents(
@@ -407,15 +419,7 @@ def update_contents(
         for key in update:
             # "/" can be in *base* if the directory's parent was re-checked
             if key in base and key != "/":
-                try:
-                    update_dict(base[key], update[key])
-                except RecursionError:
-                    # Will have to step back a few stack frames before `put()` can be
-                    # successful.
-                    # So, the dict that'll be put in the end will be a parent of the one
-                    # in the frame where the RecursionError originated from.
-                    # Costly but gets the job done.
-                    leftovers.put((base[key], update[key]))
+                update_dict(base[key], update[key])
             else:
                 base[key] = update[key]
 
@@ -434,10 +438,7 @@ def update_contents(
         contents[branch] = {}
         contents = contents[branch]
     if target in contents:
-        leftovers = Queue()
         update_dict(contents[target], subcontents)
-        while not leftovers.empty():
-            update_dict(*leftovers.get())
     else:
         contents[target] = subcontents
 
@@ -486,7 +487,7 @@ def open_files(
 
 def main() -> None:
     """CLI execution sub-entry-point"""
-    global args, url_images, RECURSIVE, SHOW_HIDDEN
+    global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
 
     def check_arg(
         name: str,
@@ -812,6 +813,14 @@ NOTES:
         action="store_true",
         help="Scan for local images recursively",
     )
+    tui_options.add_argument(
+        "-d",
+        "--max-depth",
+        type=int,
+        metavar="N",
+        default=sys.getrecursionlimit() - 50,
+        help=f"Maximum recursion depth (default: {sys.getrecursionlimit() - 50})",
+    )
 
     # Performance
     perf_options = parser.add_argument_group("Performance Options (General)")
@@ -916,6 +925,7 @@ NOTES:
     )
 
     args = parser.parse_args()
+    MAX_DEPTH = args.max_depth
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
 
@@ -930,12 +940,25 @@ NOTES:
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
+        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
         (
             "grid_renderers",
             lambda x: x >= 0,
             "Number of grid renderers must be non-negative",
         ),
-        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
+        (
+            "max_depth",
+            lambda x: x > 0,
+            "Maximum recursion depth must be greater than zero",
+        ),
+        (
+            "max_depth",
+            lambda x: (
+                x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
+            ),
+            "Maximum recursion depth too high",
+            (RecursionError, OverflowError),
+        ),
     ):
         if not check_arg(*details):
             return INVALID_ARG
@@ -1012,7 +1035,7 @@ NOTES:
             if not os_is_unix:
                 dir_images = True
                 continue
-            dir_queue.put(("", [], source))
+            dir_queue.put(("", [], source, 0))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
@@ -1024,7 +1047,7 @@ NOTES:
         if logging.MULTI:
             dir_queue.sources_finished = True
         else:
-            dir_queue.put((None,) * 3)
+            dir_queue.put((None,) * 4)
 
     for getter in getters:
         getter.join()
@@ -1142,12 +1165,16 @@ logger = _logging.getLogger(__name__)
 # Set from within `.__main__.main()`
 interrupted = None
 
+# Used by `check_dir()`
+_depth = None
+
 # Set from within `check_dirs()`; Hence, only set in "Checker-?" processes
 _dir_queue = None
 _free_checkers = None
 _source = None
 
 # Set from within `main()`
+MAX_DEPTH = None
 RECURSIVE = None
 SHOW_HIDDEN = None
 # # Used in other modules
