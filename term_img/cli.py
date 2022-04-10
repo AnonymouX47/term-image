@@ -557,8 +557,10 @@ NOTES:
      - replaced, in TUI mode, with a placeholder when displayed but can still be forced
        to display or viewed externally.
      Note that increasing this will have adverse effects on performance.
-  5. Any event with a level lower than the specified one is not reported.
-  6. Supports all image formats supported by `PIL.Image.open()`.
+  5. Frames will not be cached for any animation with more frames than this value.
+     Memory usage depends on the frame count per image, not this maximum count.
+  6. Any event with a level lower than the specified one is not reported.
+  7. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
         allow_abbrev=False,  # Allow clustering of short options in 3.7
@@ -590,7 +592,7 @@ NOTES:
         ),
     )
 
-    anim_options = general.add_mutually_exclusive_group()
+    anim_options = parser.add_argument_group("Animation Options (General)")
     anim_options.add_argument(
         "-f",
         "--frame-duration",
@@ -601,6 +603,43 @@ NOTES:
             "(default: Determined per image from it's metadata OR 0.1)"
         ),
     )
+    anim_options.add_argument(
+        "-R",
+        "--repeat",
+        type=int,
+        default=-1,
+        metavar="N",
+        help=(
+            "Number of times to repeat all frames of an animated image; A negative "
+            "count implies an infinite loop (default: -1)"
+        ),
+    )
+
+    anim_cache_options = anim_options.add_mutually_exclusive_group()
+    anim_cache_options.add_argument(
+        "--anim-cache",
+        type=int,
+        default=100,
+        metavar="N",
+        help=(
+            "Maximum frame count for animation frames to be cached (Better performance "
+            "at the cost of memory) (default: 100) [5]"
+        ),
+    )
+    anim_cache_options.add_argument(
+        "--cache-all-anim",
+        action="store_true",
+        help=(
+            "Cache frames for all animations (Beware, uses up a lot of memory for "
+            "animated images with very high frame count)"
+        ),
+    )
+    anim_cache_options.add_argument(
+        "--cache-no-anim",
+        action="store_true",
+        help="Disable frame caching (Less memory usage but reduces performance)",
+    )
+
     anim_options.add_argument(
         "--no-anim",
         action="store_true",
@@ -896,7 +935,7 @@ NOTES:
         default="WARNING",
         help=(
             "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
-            "(default: WARNING) [5]"
+            "(default: WARNING) [6]"
         ),
     )
     log_options.add_argument(
@@ -959,6 +998,8 @@ NOTES:
             "Maximum recursion depth too high",
             (RecursionError, OverflowError),
         ),
+        ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
+        ("anim_cache", lambda x: x > 0, "Frame count must be greater than zero"),
     ):
         if not check_arg(*details):
             return INVALID_ARG
@@ -1130,7 +1171,11 @@ NOTES:
                     ),
                     scroll=args.scroll,
                     animate=not args.no_anim,
-                    cached=os.stat(image._source).st_size <= 2097152,
+                    repeat=args.repeat,
+                    cached=(
+                        not args.cache_no_anim
+                        and (args.cache_all_anim or args.anim_cache)
+                    ),
                     check_size=not args.oversize,
                 )
 

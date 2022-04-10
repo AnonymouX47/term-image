@@ -3,7 +3,7 @@
 import argparse
 import logging as _logging
 import os
-from os.path import basename
+from pathlib import Path
 from threading import Thread
 from typing import Iterable, Iterator, Tuple, Union
 
@@ -29,18 +29,20 @@ def init(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
+    main.ANIM_CACHED = not args.cache_no_anim and (
+        args.cache_all_anim or args.anim_cache
+    )
     main.DEBUG = args.debug
     main.FRAME_DURATION = args.frame_duration
     main.GRID_RENDERERS = args.grid_renderers
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
+    main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
 
-    images.sort(
-        key=lambda x: sort_key_lexi(basename(x[0]), x[0]),
-    )
+    images.sort(key=lambda x: sort_key_lexi(Path(x[0])))
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
