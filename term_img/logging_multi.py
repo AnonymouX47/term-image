@@ -77,7 +77,7 @@ def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
     logger.filter = log_redirector
 
     # Notifications
-    if notifs:
+    if notifs and not logging.QUIET:
         notify.notify = notif_redirector
 
 

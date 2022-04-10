@@ -24,6 +24,8 @@ def main() -> int:
     from .tui import main
 
     def finish_loading():
+        if logging.QUIET:
+            return
         notify.end_loading()
         if not main.loop:  # TUI not yet launched
             while notify.is_loading():
@@ -45,7 +47,6 @@ def main() -> int:
     logger.setLevel(_logging.INFO)
 
     cli.interrupted = main.interrupted = Event()
-    notify.loading_indicator.start()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
