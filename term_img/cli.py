@@ -342,7 +342,7 @@ def manage_checkers(
             # Wait until at least one checker starts processing a directory
             setitem(checks_in_progress, *progress_queue.get())
 
-            while not interrupted.is_set() and (
+            while any(checks_in_progress) and (
                 any(check and check != NO_CHECK for check in checks_in_progress)
                 or not dir_queue.sources_finished
                 or not dir_queue.empty()
@@ -374,6 +374,15 @@ def manage_checkers(
 
                 sleep(0.01)  # Allow queue sizes to be updated
         finally:
+            if not any(checks_in_progress):
+                logging.log(
+                    "Checking directory sources failed; all checkers were terminated",
+                    logger,
+                    _logging.ERROR,
+                )
+                contents.clear()
+                return
+
             for check in checks_in_progress:
                 if check:
                     dir_queue.put((None,) * 4)
