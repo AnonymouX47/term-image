@@ -11,6 +11,72 @@ from .. import get_font_ratio, logging, notify, set_font_ratio
 from ..logging_multi import redirect_logs
 
 
+def manage_image_renders():
+    from .widgets import Image, ImageCanvas, image_box
+
+    multi = logging.MULTI
+    image_render_in = (mp_Queue if multi else Queue)()
+    image_render_out = (mp_Queue if multi else Queue)()
+    renderer = (Process if multi else Thread)(
+        target=render_images,
+        args=(
+            image_render_in,
+            image_render_out,
+            get_font_ratio(),
+            multi,
+            False,
+        ),
+        name="ImageRenderer",
+    )
+    renderer.start()
+    faulty_image = Image._faulty_image
+    last_image_w = image_box.original_widget
+    # To prevent an `AttributeError` with the first deletion, while avoiding `hasattr()`
+    last_image_w._canv = None
+
+    while True:
+        image_w, size, alpha = image_render_queue.get()
+        if not image_w:
+            break
+        if image_w is not image_box.original_widget:
+            continue
+
+        # Stored at this point to prevent an incorrect *rendered_size* for the
+        # Imagecanvas, since the image's size might've changed by the time the canvas is
+        # being created.
+        rendered_size = image_w._image.rendered_size
+
+        Image._rendering_image_info = (image_w, size, alpha)
+        image_render_in.put(
+            (image_w._image._source if multi else image_w._image, size, alpha)
+        )
+        notify.start_loading()
+        render = image_render_out.get()
+        Image._rendering_image_info = (None,) * 3
+
+        if image_w is image_box.original_widget:
+            del last_image_w._canv
+            if render:
+                image_w._canv = ImageCanvas(
+                    render.encode().split(b"\n"), size, rendered_size
+                )
+            else:
+                image_w._canv = faulty_image.render(size)
+                if not image_w._faulty:
+                    # Ensure a fault is logged only once per image, per directory scan
+                    image_w._faulty = True
+                    logging.log_exception(
+                        f"{image_w._image._source!r} could not be loaded",
+                        logger,
+                        direct=True,
+                    )
+            last_image_w = image_w
+        notify.stop_loading()
+
+    image_render_in.put((None,) * 3)
+    renderer.join()
+
+
 def manage_grid_renders(n_renderers: int):
     """Manages grid cell rendering.
 
@@ -29,12 +95,13 @@ def manage_grid_renders(n_renderers: int):
     grid_render_out = (mp_Queue if multi else Queue)()
     renderers = [
         (Process if multi else Thread)(
-            target=render_grid_images,
+            target=render_images,
             args=(
                 grid_render_in,
                 grid_render_out,
                 get_font_ratio(),
                 multi,
+                True,
             ),
             name="GridRenderer" + f"-{n}" * multi,
         )
@@ -115,26 +182,29 @@ def manage_grid_renders(n_renderers: int):
     while not grid_render_in.empty():
         grid_render_in.get()
     for renderer in renderers:
-        grid_render_in.put((None, None, None))
+        grid_render_in.put((None,) * 3)
     for renderer in renderers:
         renderer.join()
 
 
-def render_grid_images(
+def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     font_ratio: float,
     multi: bool,
+    out_extras: bool,
 ):
-    """Renders grid cells.
+    """Renders images.
 
+    Args:
+        multi: True if being executed in a subprocess and False if in a thread.
+        out_extras: If True, image details other than the render output are passed out.
     Intended to be executed in a subprocess or thread.
-    *multi* should be True if being executed in a subprocess and False if in a thread.
     """
     from ..image import TermImage
 
     if multi:
-        redirect_logs(logger)
+        redirect_logs(logger, notifs=True)
         set_font_ratio(font_ratio)
 
     logger.debug("Starting")
@@ -147,14 +217,29 @@ def render_grid_images(
             if multi:
                 image = TermImage.from_file(image)
             image.set_size(maxsize=size)
+
+            # Using `TermImage` for padding will use more memory since all the
+            # spaces will be in the render output string, and theoretically more time
+            # with all the checks and string splitting & joining.
+            # While `ImageCanvas` is better since it only stores the main image render
+            # string (as a list though) then generates and yields the complete lines
+            # **as needed**. Trimmed padding lines are never generated at all.
             try:
                 output.put(
                     (image._source, f"{image:1.1{alpha}}", size, image.rendered_size)
+                    if out_extras
+                    else f"{image:1.1{alpha}}"
                 )
             except Exception:
-                output.put((image._source, None, size, image.rendered_size))
+                output.put(
+                    (image._source, None, size, image.rendered_size)
+                    if out_extras
+                    else None
+                )
     except KeyboardInterrupt:
-        logger.debug("Interrupted")
+        # Logging here could potentially result in an exception if MultiLogger has ended
+        # and the associated manager process has shutdown.
+        pass
     except Exception:
         logging.log_exception("Aborted", logger)
     else:
@@ -163,3 +248,4 @@ def render_grid_images(
 
 logger = _logging.getLogger(__name__)
 grid_render_queue = Queue()
+image_render_queue = Queue()

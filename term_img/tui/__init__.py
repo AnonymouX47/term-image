@@ -3,7 +3,7 @@
 import argparse
 import logging as _logging
 import os
-from os.path import basename
+from pathlib import Path
 from threading import Thread
 from typing import Iterable, Iterator, Tuple, Union
 
@@ -12,7 +12,7 @@ import urwid
 from .. import logging
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .render import manage_grid_renders
+from .render import image_render_queue, manage_grid_renders, manage_image_renders
 from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
 
 
@@ -31,18 +31,20 @@ def init(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
+    main.ANIM_CACHED = not args.cache_no_anim and (
+        args.cache_all_anim or args.anim_cache
+    )
     main.DEBUG = args.debug
     main.FRAME_DURATION = args.frame_duration
     main.GRID_RENDERERS = args.grid_renderers
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
+    main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
 
-    images.sort(
-        key=lambda x: sort_key_lexi(basename(x[0]), x[0]),
-    )
+    images.sort(key=lambda x: sort_key_lexi(Path(x[0])))
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
@@ -52,6 +54,11 @@ def init(
         target=manage_grid_renders,
         args=(args.grid_renderers,),
         name="GridRenderManager",
+        daemon=True,
+    )
+    image_render_manager = Thread(
+        target=manage_image_renders,
+        name="ImageRenderManager",
         daemon=True,
     )
 
@@ -69,13 +76,15 @@ def init(
     menu_scanner.start()
     grid_scanner.start()
     grid_render_manager.start()
+    image_render_manager.start()
 
     try:
         print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
-        main.grid_active.set()  # Allow GridRenderManager to receive quitting signal
         grid_render_manager.join()
+        image_render_queue.put((None,) * 3)
+        image_render_manager.join()
         logging.log("Exited TUI normally", logger, direct=False)
     except (KeyboardInterrupt, Exception):
         main.interrupted.set()  # Signal interruption to other threads.

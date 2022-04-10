@@ -23,11 +23,11 @@
             ],
             "Page Up": [
                 "ctrl b",
-                "^B"
+                "^b"
             ],
             "Page Down": [
                 "ctrl f",
-                "^F"
+                "^f"
             ],
             "Home": [
                 "g",

@@ -13,7 +13,7 @@ from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import _ALPHA_THRESHOLD, TermImage
 from . import keys, main as tui_main
-from .render import grid_render_queue
+from .render import grid_render_queue, image_render_queue
 
 command = urwid.Widget._command_map._command_defaults.copy()
 for action, (key, _) in _nav.items():
@@ -135,7 +135,10 @@ class Image(urwid.Widget):
 
     _frame = _frame_changed = _frame_size_hash = None
 
-    _last_canv = (None, None)
+    _faulty = False
+    _canv = None
+    _rendering_image_info = (None,) * 3
+
     _grid_cache = {}
 
     _alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
@@ -161,23 +164,13 @@ class Image(urwid.Widget):
         context = tui_main.get_context()
         image = self._image
 
-        # Cache retrieval
-
-        if (
-            (not image._is_animated or tui_main.NO_ANIMATION)
-            and (
-                view.original_widget is not image_grid_box
-                or context == "full-grid-image"
-            )
-            and self._last_canv[0] == hash((image._source, size))
-        ):
-            if context in self._force_render_contexts:
-                keys.disable_actions(context, "Force Render")
-            return self._last_canv[1]
-
         # Forced render
 
-        if mul(*image._original_size) > tui_main.MAX_PIXELS:
+        if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
+            self._canv
+            and self._canv.size == size
+            or (self, size, self._alpha) == __class__._rendering_image_info
+        ):
             if self._force_render:
                 # `.main.animate_image()` deletes `_force_render` when done with an
                 # image to avoid the cost of attribute creation and deletion per frame
@@ -195,6 +188,7 @@ class Image(urwid.Widget):
                 if context in self._force_render_contexts:
                     keys.enable_actions(context, "Force Render")
                 return __class__._large_image.render(size, focus)
+
         if context in self._force_render_contexts:
             keys.disable_actions(context, "Force Render")
 
@@ -239,49 +233,38 @@ class Image(urwid.Widget):
 
         # Rendering
 
-        try:
-            if hasattr(self, "_animator"):
-                if self._frame_changed:
+        if hasattr(self, "_animator"):
+            if self._frame_changed:
+                try:
                     self._frame = next(self._animator)
-                    self._frame_changed = False
-                    self._frame_size_hash = hash(size)
-
+                except StopIteration:
+                    canv = __class__._placeholder.render(size)
+                self._frame_changed = False
+                self._frame_size_hash = hash(size)
+            elif hash(size) != self._frame_size_hash:
                 # If size changed, re-render the current frame the usual way,
                 # with the new size
-                if hash(size) != self._frame_size_hash:
-                    self._frame = None
-
-            # Using `TermImage` for padding will use more memory since all the
-            # spaces will be in the render output string, and theoretically more time
-            # with all the checks and string splitting & joining.
-            # While `ImageCanvas` is better since it only stores the main image render
-            # string (as a list though) then generates and yields the complete lines
-            # **as needed**. Trimmed padding lines are never generated at all.
+                self._frame = f"{image:1.1{self._alpha}}"
+                self._frame_size_hash = hash(size)
             canv = ImageCanvas(
-                (self._frame or f"{image:1.1{self._alpha}}").encode().split(b"\n"),
-                size,
-                image.rendered_size,
+                self._frame.encode().split(b"\n"), size, image.rendered_size
             )
-        except Exception:
-            if not hasattr(self, "_faulty"):
-                # Ensure a fault is logged only once per image, per directory scan
-                self._faulty = None
-                logging.log_exception(
-                    f"{image._source!r} could not be loaded",
-                    logger,
-                    direct=(
-                        view.original_widget is image_box
-                        or context == "full-grid-image"
-                    ),
+        elif view.original_widget is image_grid_box and context != "full-grid-image":
+            # When the grid render cell width adjusts; when _maxcols_ < _cell_width_
+            try:
+                canv = ImageCanvas(
+                    f"{image:1.1{self._alpha}}".encode().split(b"\n"),
+                    size,
+                    image.rendered_size,
                 )
-            canv = __class__._faulty_image.render(size, focus)
-
-        # Cache storing
-
-        if (not image._is_animated or tui_main.NO_ANIMATION) and (
-            view.original_widget is not image_grid_box or context == "full-grid-image"
-        ):
-            __class__._last_canv = (hash((image._source, size)), canv)
+            except Exception:
+                canv = __class__._faulty_image.render(size, focus)
+        elif self._canv and self._canv.size == size:
+            canv = self._canv
+        else:
+            if (self, size, self._alpha) != __class__._rendering_image_info:
+                image_render_queue.put((self, size, self._alpha))
+            canv = __class__._placeholder.render(size)
 
         return canv
 
