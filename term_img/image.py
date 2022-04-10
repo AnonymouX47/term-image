@@ -202,11 +202,7 @@ class TermImage:
 
     @property
     def n_frames(self) -> int:
-        """The number of frames in the image
-
-        NOTE: The first invocation of this property might take a while for images
-        with large number of frames but subsequent invocations won't.
-        """
+        """The number of frames in the image"""
         if not self._is_animated:
             return 1
 
@@ -394,7 +390,7 @@ class TermImage:
         scroll: bool = False,
         animate: bool = True,
         repeat: int = -1,
-        cached: bool = False,
+        cached: Union[bool, int] = 100,
         check_size: bool = True,
     ) -> None:
         """Draws/Displays an image in the terminal.
@@ -436,6 +432,11 @@ class TermImage:
               A negative value implies infinite repetition.
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
+
+                - If ``bool``, it directly sets if the frames will be cached or not.
+                - If ``int``, caching is enabled only if the framecount of the image
+                  is less than or equal to the given number.
+
             check_size: If ``False``, does not perform size validation for
               non-animations.
 
@@ -639,7 +640,6 @@ class TermImage:
               appropriate type.
 
         Frame numbers start from 0 (zero).
-        NOTE: `image.n_frames` will have to be computed if it hasn't already been.
         """
         if not isinstance(pos, int):
             raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
@@ -922,15 +922,12 @@ class TermImage:
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
-        cached: bool,
+        cached: Union[bool, int],
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
-        NOTE:
-            - This is done indefinitely but can be terminated with ``Ctrl-C``, thereby
-              raising ``KeyboardInterrupt``.
-            - ``image.n_frames`` might be computed in the course of image animation,
-              if it hasn't, as an optimization.
+        NOTE: This is done indefinitely but can be terminated with ``Ctrl-C``
+          (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
@@ -1395,6 +1392,10 @@ class ImageIterator:
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not.
 
+          - If ``bool``, it directly sets if the frames will be cached or not.
+          - If ``int``, caching is enabled only if the framecount of the image
+            is less than or equal to the given number.
+
     NOTE:
         - If *repeat* equals ``1``, caching is disabled.
         - The iterator has immediate response to changes in the image
@@ -1410,7 +1411,7 @@ class ImageIterator:
         image: TermImage,
         repeat: int = -1,
         format: str = "",
-        cached: bool = False,
+        cached: Union[bool, int] = 100,
     ):
         if not isinstance(image, TermImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
@@ -1428,13 +1429,17 @@ class ImageIterator:
             )
         *fmt, alpha = image._check_format_spec(format)
 
-        if not isinstance(cached, bool):
+        if not isinstance(cached, (bool, int)):
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
+        if False is not cached <= 0:
+            raise ValueError("'cached' must be a boolean or a positive integer")
 
         self._image = image
         self._repeat = repeat
         self._format = format
-        self._cached = cached and repeat != 1
+        self._cached = (
+            cached if isinstance(cached, bool) else image.n_frames <= cached
+        ) and repeat != 1
         self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
 
     def __iter__(self):
@@ -1462,9 +1467,6 @@ class ImageIterator:
     ) -> None:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
-
-        NOTE: ``image.n_frames`` might also be computed in the course of iteration,
-          if it hasn't, as an optimization.
         """
         image = self._image
         cached = self._cached
@@ -1499,8 +1501,6 @@ class ImageIterator:
             try:
                 frame = image._format_render(image._render_image(img, alpha), *fmt)
             except EOFError:
-                if not image._n_frames:
-                    image._n_frames = image._seek_position
                 image._seek_position = 0
                 if repeat > 0:  # Avoid infinitely large negative numbers
                     repeat -= 1
@@ -1512,7 +1512,8 @@ class ImageIterator:
         if unset_size:
             image._size = None
 
-        n_frames = image._n_frames
+        if cached:
+            n_frames = len(cache)
         while repeat:
             n = 0
             while n < n_frames:

@@ -54,12 +54,18 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
         nonlocal last_alarm
 
         loop.remove_alarm(last_alarm)
-        if image_box.original_widget is image and (
-            not forced_render or image._force_render
+        if (
+            image_box.original_widget is image
+            # In case you switch from and back to the image within one frame duration
+            and image._animator is animator
+            # The animator is not yet exhausted; repeat count is not yet zero
+            and image._animator.gi_frame
+            and (not forced_render or image._force_render)
         ):
             image._frame_changed = True
             last_alarm = loop.set_alarm_in(frame_duration, next_frame)
-        else:
+        # In case you switch from and back to the image within one frame duration
+        elif image._animator is animator:
             # When you switch back and forth between an animated image and another
             # image rapidly, all within one frame duration and the other image ends up
             # as the current image, the last alarm from the first animation of the
@@ -90,11 +96,8 @@ def animate_image(image: Image, forced_render: bool = False) -> None:
                 del image._forced_anim_size_hash
 
     frame_duration = FRAME_DURATION or image._image._frame_duration
-    image._animator = ImageIterator(
-        image._image,
-        -1,
-        f"1.1{image._alpha}",
-        os.stat(image._image._source).st_size <= 2097152,
+    animator = image._animator = ImageIterator(
+        image._image, REPEAT, f"1.1{image._alpha}", ANIM_CACHED
     )._animator
 
     # `Image.render()` checks for this. It has to be set here since `ImageIterator`
@@ -719,10 +722,12 @@ loop = None
 update_pipe = None
 
 # # # Corresponsing to command-line args
+ANIM_CACHED = None
 DEBUG = None
 FRAME_DURATION = None
 GRID_RENDERERS = None
 MAX_PIXELS = None
 NO_ANIMATION = None
+REPEAT = None
 RECURSIVE = None
 SHOW_HIDDEN = None

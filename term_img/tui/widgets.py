@@ -235,7 +235,10 @@ class Image(urwid.Widget):
 
         if hasattr(self, "_animator"):
             if self._frame_changed:
-                self._frame = next(self._animator)
+                try:
+                    self._frame = next(self._animator)
+                except StopIteration:
+                    canv = __class__._placeholder.render(size)
                 self._frame_changed = False
                 self._frame_size_hash = hash(size)
             elif hash(size) != self._frame_size_hash:
