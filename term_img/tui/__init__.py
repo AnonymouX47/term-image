@@ -44,7 +44,9 @@ def init(
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
 
-    images.sort(key=lambda x: sort_key_lexi(Path(x[0])))
+    images.sort(
+        key=lambda x: sort_key_lexi(Path(x[0] if x[1] is ... else x[1]._image._source))
+    )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
