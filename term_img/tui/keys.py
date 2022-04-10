@@ -14,7 +14,6 @@ from .. import __version__, logging
 from ..config import context_keys, expand_key
 from . import main
 from .widgets import (
-    Image,
     bottom_bar,
     confirmation,
     confirmation_overlay,
@@ -497,9 +496,14 @@ def restore():
 # image, full-image
 @register_key(("image", "Prev"), ("full-image", "Prev"))
 def prev_image():
-    if menu.focus_position > 1:
+    if (
+        menu.focus_position > 1
+        # Don't scroll through directory items in image views
+        and main.menu_list[menu.focus_position - 2][1] is not ...  # Previous item
+    ):
         menu.focus_position -= 1
         main.displayer.send(menu.focus_position - 1)
+
     set_image_view_actions()
     set_menu_count()
 
@@ -507,11 +511,7 @@ def prev_image():
 @register_key(("image", "Next"), ("full-image", "Next"))
 def next_image():
     # `menu_list` is one item less than `menu` (at it's beginning), hence no `len - 1`
-    if (
-        menu.focus_position < len(main.menu_list)
-        # Don't scroll through directory items in image views
-        and isinstance(main.menu_list[menu.focus_position][1], Image)  # Next item
-    ):
+    if menu.focus_position < len(main.menu_list):
         menu.focus_position += 1
         main.displayer.send(menu.focus_position - 1)
 
@@ -532,17 +532,19 @@ def force_render():
 
 def set_image_view_actions(context: str = None):
     context = context or main.get_context()
-    if menu.focus_position > 1:
-        enable_actions(context, "Prev")
-    else:
+    if (
+        menu.focus_position < 2
+        # Previous item is a directory
+        or main.menu_list[menu.focus_position - 2][1] is ...
+    ):
         disable_actions(context, "Prev")
+    else:
+        enable_actions(context, "Prev")
 
     if (
         # Last item
         main.menu_scan_done.is_set()
         and menu.focus_position == len(main.menu_list)
-        # Next item is a directory
-        or main.menu_list[menu.focus_position][1] is ...
     ):
         disable_actions(context, "Next")
     else:
