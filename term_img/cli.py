@@ -170,7 +170,7 @@ def check_dirs(
             source, links, subdir, _depth = dir_queue.get_nowait()
         except Empty:
             progress_updated.wait()
-            progress_queue.put((checker_no, (None,) * 2))
+            progress_queue.put((checker_no, NO_CHECK))
             with free_checkers:
                 free_checkers.value += 1
             try:
@@ -181,7 +181,7 @@ def check_dirs(
                 with free_checkers:
                     free_checkers.value -= 1
         except KeyboardInterrupt:
-            progress_queue.put((checker_no, (None,) * 2))
+            progress_queue.put((checker_no, NO_CHECK))
             return
 
         if not subdir:
@@ -271,8 +271,10 @@ def manage_checkers(
         n: int = -1,
     ) -> None:
         if n > -1:
+            exitcode = -checkers[n].exitcode
             log(
-                f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
+                f"Checker-{n} was terminated "
+                + (f"by signal {exitcode} " if exitcode else "")
                 + (f"while checking {subdir!r}" if subdir else ""),
                 logger,
                 _logging.ERROR,
@@ -286,6 +288,7 @@ def manage_checkers(
                         os.path.join(
                             realpath(os.path.dirname(subdir)), basename(subdir)
                         ),
+                        result,
                     )
                 )
             return
@@ -330,18 +333,17 @@ def manage_checkers(
         for checker in checkers:
             checker.start()
 
-        ALL_NONE = (None,) * 2
         try:
             contents[""] = contents
             content_updated.set()
-            checks_in_progress = [ALL_NONE] * args.checkers
+            checks_in_progress = [NO_CHECK] * args.checkers
             progress_updated.set()
 
             # Wait until at least one checker starts processing a directory
             setitem(checks_in_progress, *progress_queue.get())
 
             while not interrupted.is_set() and (
-                any(check and check != ALL_NONE for check in checks_in_progress)
+                any(check and check != NO_CHECK for check in checks_in_progress)
                 or not dir_queue.sources_finished
                 or not dir_queue.empty()
                 or not progress_queue.empty()
@@ -374,7 +376,7 @@ def manage_checkers(
         finally:
             for check in checks_in_progress:
                 if check:
-                    dir_queue.put(ALL_NONE * 2)
+                    dir_queue.put((None,) * 4)
             for checker in checkers:
                 checker.join()
             del contents[""]
@@ -1218,6 +1220,7 @@ NOTES:
     return SUCCESS
 
 
+NO_CHECK = (None,) * 3
 logger = _logging.getLogger(__name__)
 
 # Set from within `.__main__.main()`
