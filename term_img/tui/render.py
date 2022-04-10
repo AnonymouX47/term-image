@@ -12,6 +12,7 @@ from ..logging_multi import redirect_logs
 
 
 def manage_image_renders():
+    from .main import update_screen
     from .widgets import Image, ImageCanvas, image_box
 
     multi = logging.MULTI
@@ -70,6 +71,7 @@ def manage_image_renders():
                         logger,
                         direct=True,
                     )
+            update_screen()
             last_image_w = image_w
         notify.stop_loading()
 
