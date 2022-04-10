@@ -519,7 +519,11 @@ def main() -> None:
             except exceptions:
                 pass
             except Exception:
-                log_exception(f"--{name.replace('_', '-')}: Invalid! See the logs")
+                log_exception(
+                    f"--{name.replace('_', '-')}: Invalid! See the logs",
+                    direct=True,
+                    fatal=True,
+                )
         else:
             valid = check(value)
 
