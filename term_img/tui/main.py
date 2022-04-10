@@ -3,10 +3,11 @@
 import logging as _logging
 import os
 from operator import mul
-from os.path import abspath, basename, isfile, islink
+from os.path import abspath, basename, islink
+from pathlib import Path
 from queue import Queue
 from threading import Event
-from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import PIL
 import urwid
@@ -143,7 +144,7 @@ def display_images(
           - a menu item position (-1 and above)
           - a flag denoting a certain action
     """
-    global grid_list, grid_path, last_non_empty_grid_path
+    global _grid_list, grid_path, last_non_empty_grid_path
 
     os.chdir(dir)
 
@@ -192,7 +193,7 @@ def display_images(
                 menu_acknowledge.wait()
                 menu_change.clear()
 
-            # Ensure grid scanning is halted to avoid updating `grid_list` which is
+            # Ensure grid scanning is halted to avoid updating `_grid_list` which is
             # used as the next `menu_list` as is and to prevent `FileNotFoundError`s
             if not grid_scan_done.is_set():
                 grid_acknowledge.clear()
@@ -205,7 +206,7 @@ def display_images(
             logger.debug(f"Going into {abspath(entry)}/")
             empty = yield from display_images(
                 entry,
-                grid_list,
+                _grid_list,
                 contents[entry],
                 # Return to Top-Level Directory, OR
                 # to the link's parent instead of the linked directory's parent
@@ -283,7 +284,7 @@ def display_images(
 
                 next_grid.put((entry, contents[entry]))
                 # No need to wait for acknowledgement since this is a new list instance
-                grid_list = []
+                _grid_list = []
                 # Absolute paths work fine with symlinked images and directories,
                 # as opposed to real paths, especially in path comparisons
                 # e.g in `.tui.render.manage_grid_renders()`.
@@ -387,17 +388,23 @@ def process_input(key: str) -> bool:
 def scan_dir(
     dir: str,
     contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
+    last_entry: Optional[str] = None,
+    sort_key: Optional[Callable] = None,
     *,
     notify_errors: bool = False,
 ) -> Generator[Tuple[str, Union[Image, type(...)]], None, int]:
-    """Scans *dir* (and sub-directories, if '--recursive' was set) for readable images
-    using a directory tree of the form produced by ``.cli.check_dir(dir)``.
+    """Scans *dir* for readable images (and sub-directories containing such,
+    if '--recursive' was set).
 
     Args:
         - dir: Path to directory to be scanned.
         - contents: Tree of directories containing readable images
           (as produced by ``.cli.check_dir(dir)``).
-        - notify_errors: Determines if a notification showing the number of unreadable
+        - last_entry: The entry after which scanning should start, if ``None`` or
+          not found, all entries in the directory are scanned.
+        - sort_key: A callable to generate values to be used in sorting the directory
+          entries.
+        - notify_errors: If True, a notification showing the number of unreadable
           files will be displayed.
 
     Yields:
@@ -416,22 +423,31 @@ def scan_dir(
     - If a dotted entry has the same main-name as another entry, the dotted one comes
       first.
     """
-    entries = os.listdir(dir)
-    entries.sort(
-        key=sort_key_lexi,
-    )
+    _entries = sorted(os.scandir(dir), key=sort_key or sort_key_lexi)
+    entries = iter(_entries)
+    if last_entry:
+        for entry in entries:
+            if entry.name == last_entry:
+                break
+        else:  # Start from the beginning if *last_entry* isn't found
+            entries = _entries
+
     errors = 0
-    full_dir = dir + os.sep
     for entry in entries:
-        result = scan_dir_entry(entry, contents, full_dir + entry)
-        if result == HIDDEN:
-            continue
+        result = scan_dir_entry(entry, contents)
         if result == UNREADABLE:
             errors += 1
-        if result == IMAGE:
-            yield entry, Image(TermImage.from_file(full_dir + entry))
-        elif result == DIR:
-            yield entry, ...
+        yield result, (
+            entry.name,
+            (
+                Image(TermImage.from_file(entry.path))
+                if result == IMAGE
+                else ...
+                if result == DIR
+                else None
+            ),
+        )
+
     if notify_errors and errors:
         notify.notify(
             f"{errors} file(s) could not be read in {abspath(dir)!r}! Check the logs.",
@@ -442,78 +458,65 @@ def scan_dir(
 
 
 def scan_dir_entry(
-    entry: str,
+    entry: Union[os.DirEntry, Path],
     contents: Dict[str, Union[bool, Dict[str, Union[bool, dict]]]],
     entry_path: Optional[str] = None,
 ) -> int:
     """Scans a single directory entry and returns a flag indicating its kind."""
-    if entry.startswith(".") and not SHOW_HIDDEN:
+    if not SHOW_HIDDEN and entry.name.startswith("."):
         return HIDDEN
-    if isfile(entry_path or entry):
-        if not contents["/"]:
-            return -1
+    if contents["/"] and entry.is_file():
         try:
-            PIL.Image.open(entry_path or entry)
+            PIL.Image.open(abspath(entry))
         except PIL.UnidentifiedImageError:
             # Reporting will apply to every non-image file :(
-            pass
+            return UNKNOWN
         except Exception:
-            logging.log_exception(
-                f"{abspath(entry_path or entry)!r} could not be read", logger
-            )
+            logging.log_exception(f"{abspath(entry)!r} could not be read", logger)
             return UNREADABLE
         else:
             return IMAGE
-    if RECURSIVE and entry in contents:
-        # `.cli.check_dir()` already eliminates bad symlinks
+    if RECURSIVE and entry.name in contents:
+        # `.cli.check_dir()` already eliminated bad symlinks
         return DIR
 
-    return -1
+    return UNKNOWN
 
 
 def scan_dir_grid() -> None:
-    """Scans a given directory (and it's sub-directories, if '--recursive'
-    was set) for readable images using a directory tree of the form produced by
-    ``.cli.check_dir(dir)``.
+    """Updates the image grid using ``scan_dir()``.
 
     This is designed to be executed in a separate thread, while certain grid details
     are passed in using the ``next_grid`` queue.
 
-    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
-    to ``.tui.main.grid_list`` and adds a corresponding entry to the grid widget
-    (for image entries only), then updates the screen.
-
-    Grouping and sorting are the same as for ``scan_dir()``.
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir()``,
+    is appended to ``.tui.main._grid_list`` and adds the *value* to the
+    grid widget (for image entries only), then updates the screen.
     """
     grid_contents = image_grid.contents
     while True:
         dir, contents = next_grid.get()
+        grid_list = _grid_list
         image_grid.contents.clear()
         grid_acknowledge.set()  # Cleared grid contents
         grid_scan_done.clear()
         notify.start_loading()
 
-        entries = os.listdir(dir)
-        entries.sort(key=lambda x: sort_key_lexi(x, os.path.join(dir, x)))
-
-        for entry in entries:
-            entry_path = os.path.join(dir, entry)
-            result = scan_dir_entry(entry, contents, entry_path)
-            if result == HIDDEN:
-                continue
+        for result, item in scan_dir(dir, contents):
             if result == IMAGE:
-                val = Image(TermImage.from_file(entry_path))
-                grid_list.append((entry, val))
+                grid_list.append(item)
                 grid_contents.append(
                     (
-                        urwid.AttrMap(LineSquare(val), "unfocused box", "focused box"),
+                        urwid.AttrMap(
+                            LineSquare(item[1]), "unfocused box", "focused box"
+                        ),
                         image_grid.options(),
                     )
                 )
                 image_grid_box.base_widget._invalidate()
                 update_screen()
             elif result == DIR:
-                grid_list.append((entry, ...))
+                grid_list.append(item)
 
             if not next_grid.empty():
                 break
@@ -530,18 +533,14 @@ def scan_dir_grid() -> None:
 
 
 def scan_dir_menu() -> None:
-    """Scans the current working directory (and it's sub-directories, if '--recursive'
-    was set) for readable images using a directory tree of the form produced by
-    ``.cli.check_dir(dir)``.
+    """Updates the menu list using ``scan_dir()``.
 
     This is designed to be executed in a separate thread, while certain menu details
     are passed in using the ``next_menu`` queue.
 
-    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir``, is appended
-    to ``.tui.main.menu_list`` and adds a corresponding entry to the menu widget,
-    then updates the screen.
-
-    Grouping and sorting are the same as for ``scan_dir()``.
+    For each valid entry, a tuple ``(entry, value)``, like in ``scan_dir()``,
+    is appended to ``.tui.main.menu_list`` and appends a ``MenuEntry`` widget to the
+    menu widget, then updates the screen.
     """
     menu_body = menu.body
     while True:
@@ -550,27 +549,14 @@ def scan_dir_menu() -> None:
             continue
         notify.start_loading()
 
-        entries = os.listdir()
-        entries.sort(key=sort_key_lexi)
-        entries = iter(entries)
-        last_entry = items[-1][0] if items else None
-        if last_entry:
-            for entry in entries:
-                if entry == last_entry:
-                    break
-
-        errors = 0
-        for entry in entries:
-            result = scan_dir_entry(entry, contents)
-            if result == HIDDEN:
-                continue
-            if result == UNREADABLE:
-                errors += 1
+        for result, item in scan_dir(
+            ".", contents, items[-1][0] if items else None, notify_errors=True
+        ):
             if result == IMAGE:
-                items.append((entry, Image(TermImage.from_file(entry))))
+                items.append(item)
                 menu_body.append(
                     urwid.AttrMap(
-                        MenuEntry(entry, "left", "clip"),
+                        MenuEntry(item[0], "left", "clip"),
                         "default",
                         "focused entry",
                     )
@@ -578,10 +564,10 @@ def scan_dir_menu() -> None:
                 set_menu_count()
                 update_screen()
             elif result == DIR:
-                items.append((entry, ...))
+                items.append(item)
                 menu_body.append(
                     urwid.AttrMap(
-                        MenuEntry(entry + "/", "left", "clip"),
+                        MenuEntry(item[0] + "/", "left", "clip"),
                         "default",
                         "focused entry",
                     )
@@ -598,12 +584,6 @@ def scan_dir_menu() -> None:
             # in-between the end of the last iteration an here :)
             if menu_change.is_set():
                 menu_acknowledge.set()
-            if errors:
-                notify.notify(
-                    f"{errors} file(s) could not be read in {os.getcwd()!r}! "
-                    "Check the logs.",
-                    level=notify.ERROR,
-                )
         notify.stop_loading()
 
 
@@ -635,20 +615,18 @@ def set_prev_context(n: int = 1) -> None:
         info_bar.set_text(f"{_prev_contexts} {info_bar.text}")
 
 
-def sort_key_lexi(name, path=None):
-    """Lexicographic sort key function.
+def sort_key_lexi(entry: Union[os.DirEntry, Path]):
+    """Lexicographic ordering key function.
 
-    Compatible with ``list.sort()`` and ``sorted()``.
+    Compatible with ``list.sort()``, ``sorted()``, etc.
     """
-    # The first part groups into files and directories
-    # The seconds sorts within the group
-    # The third, between hidden and non-hidden of the same name
-    #   - '\0' makes the key for the non-hidden longer without affecting it's order
-    #     relative to other entries.
+    name = entry.name
     return (
-        "\0" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
-        if isfile(path or name)
-        else "\1" + name.lstrip(".").casefold() + "\0" * (not name.startswith("."))
+        chr(entry.is_file())  # group directories before files
+        + name.lstrip(".").casefold()  # sorts within each group
+        # '\0' makes the key for the non-hidden longer without affecting it's order
+        # relative to other entries.
+        + "\0" * (not name.startswith("."))  # hidden before non-hidden of the same name
     )
 
 
@@ -698,7 +676,7 @@ quitting = Event()
 grid_acknowledge = Event()
 grid_active = Event()
 grid_change = Event()
-grid_list = None
+_grid_list = None
 grid_path = None
 grid_scan_done = Event()
 last_non_empty_grid_path = None
@@ -720,6 +698,7 @@ BACK = -3
 DELETE = -4
 
 # FLAGS for `scan_dir*()`
+UNKNOWN = -1
 HIDDEN = 0
 UNREADABLE = 1
 IMAGE = 2
