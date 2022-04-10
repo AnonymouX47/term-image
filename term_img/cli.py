@@ -4,10 +4,12 @@ import argparse
 import logging as _logging
 import os
 import sys
-from multiprocessing import Process, Queue as mp_Queue
+from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
 from operator import mul, setitem
-from queue import Queue
+from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
+from queue import Empty, Queue
 from threading import Thread, current_thread
+from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -24,30 +26,38 @@ from .tui.widgets import Image
 
 
 def check_dir(
-    dir: str, prev_dir: str = ".."
+    dir: str, prev_dir: str = "..", *, _links: List[Tuple[str]] = None
 ) -> Optional[Dict[str, Union[bool, Dict[str, Union[bool, dict]]]]]:
-    """Scan *dir* (and sub-directories, if '--recursive' is set)
+    """Scan *dir* (and sub-directories, if '--recursive' was specified)
     and build the tree of directories [recursively] containing readable images.
 
     Args:
         - dir: Path to directory to be scanned.
         - prev_dir: Path (absolute or relative to *dir*) to set as working directory
           after scannning *dir* (default:  parent directory of *dir*).
+        - _links: Tracks all symlinks from a *source* up **till** a subdirectory.
 
     Returns:
         - `None` if *dir* contains no readable images [recursively].
         - A dict representing the resulting directory tree whose items are:
-          - a "/" key mapped to a bool. indicating if *dir* contains image files or not
+          - a "/" key mapped to a ``True``. if *dir* contains image files
           - a directory name mapped to a dict of the same structure, for each non-empty
-            sub-directory of *dir*.
+            sub-directory of *dir*
 
-    - If '--hidden' is set, hidden (.[!.]*) images and subdirectories are considered.
+    NOTE:
+        - If '--hidden' was specified, hidden (.[!.]*) images and subdirectories are
+          considered.
+        - `_depth` should always be initialized, at the module level, before calling
+          this function.
     """
+    global _depth
+
+    _depth += 1
     try:
         os.chdir(dir)
     except OSError:
         log_exception(
-            f"Could not access '{os.path.abspath(dir)}{os.sep}'",
+            f"Could not access '{abspath(dir)}{os.sep}'",
             logger,
             direct=True,
         )
@@ -55,110 +65,196 @@ def check_dir(
 
     # Some directories can be changed to but cannot be listed
     try:
-        entries = os.listdir()
+        entries = os.scandir()
     except OSError:
         log_exception(
-            f"Could not get the contents of '{os.path.abspath('.')}{os.sep}'",
+            f"Could not get the contents of '{abspath('.')}{os.sep}'",
             logger,
             direct=True,
         )
-        return os.chdir(prev_dir)
+        os.chdir(prev_dir)
+        return
 
     empty = True
     content = {}
     for entry in entries:
-        if entry.startswith(".") and not SHOW_HIDDEN:
+        if not SHOW_HIDDEN and entry.name.startswith("."):
             continue
-        if os.path.isfile(entry):
-            if not empty:
-                continue
-            try:
-                PIL.Image.open(entry)
-                if empty:
+        try:
+            is_file = entry.is_file()
+            is_dir = entry.is_dir()
+        except OSError:
+            continue
+
+        if is_file:
+            if empty:
+                try:
+                    PIL.Image.open(entry.name)
                     empty = False
                     if not RECURSIVE:
                         break
-            except Exception:
-                pass
-        elif RECURSIVE:
+                except Exception:
+                    pass
+        elif RECURSIVE and is_dir:
+            if _depth > MAX_DEPTH:
+                if not empty:
+                    break
+                continue
+
+            result = None
             try:
-                if os.path.islink(entry):
-                    # Eliminate broken and cyclic symlinks
-                    # Return to the link's parent rather than the linked directory's
-                    # parent
-                    result = (
-                        check_dir(entry, os.getcwd())
-                        if (
-                            os.path.exists(entry)  # not broken
-                            # not cyclic
-                            and not os.getcwd().startswith(os.path.realpath(entry))
-                        )
-                        else None
-                    )
+                if entry.is_symlink():
+                    path = realpath(entry)
+
+                    # Eliminate cyclic symlinks
+                    if os.getcwd().startswith(path) or (
+                        _links and any(link[0].startswith(path) for link in _links)
+                    ):
+                        continue
+
+                    if _source and _free_checkers.value:
+                        _dir_queue.put((_source, _links.copy(), abspath(entry), _depth))
+                    else:
+                        _links.append((abspath(entry), path))
+                        del path
+                        # Return to the link's parent rather than the linked directory's
+                        # parent
+                        result = check_dir(entry.name, os.getcwd(), _links=_links)
+                        _links.pop()
                 else:
-                    # The check is only to filter inaccessible files and disallow them
-                    # from being reported as inaccessible directories within the
-                    # recursive call
-                    result = check_dir(entry) if os.path.isdir(entry) else None
-            except RecursionError:
-                log(f"Too deep: {os.getcwd()!r}", logger, _logging.ERROR)
-                # Don't bother checking anything else in the current directory
-                # Could possibly mark the directory as empty even though it contains
-                # image files but at the same time, not doing this could be very costly
-                # when there are many subdirectories
-                break
-            if result is not None:
-                content[entry] = result
+                    if _source and _free_checkers.value:
+                        _dir_queue.put((_source, _links.copy(), abspath(entry), _depth))
+                    else:
+                        result = check_dir(entry.name, _links=_links)
+            except OSError:
+                pass
+
+            if result:
+                content[entry.name] = result
 
     # '/' is an invalid file/directory name on major platforms.
     # On platforms with root directory '/', it can never be the content of a directory.
-    if not empty or content:
-        content["/"] = not empty
+    if not empty:
+        content["/"] = True
 
     os.chdir(prev_dir)
+    _depth -= 1
     return content or None
 
 
 def check_dirs(
     checker_no: int,
     content_queue: mp_Queue,
+    content_updated: mp_Event,
     dir_queue: mp_Queue,
     progress_queue: mp_Queue,
+    progress_updated: mp_Event,
+    free_checkers: Value,
     globals_: Dict[str, Any],
-):
+) -> None:
     """Checks a directory source in a newly **spawned** child process.
 
     Intended as the *target* of a **spawned** process to parallelize directory checks.
     """
     from .logging_multi import redirect_logs
 
-    globals().update(globals_)
+    global _depth, _source
+
+    globals().update(globals_, _free_checkers=free_checkers, _dir_queue=dir_queue)
     redirect_logs(logger)
 
     logger.debug("Starting")
-    source = dir_queue.get()
-    while source:
-        progress_queue.put((checker_no, source))
-        log(f"Checking {source!r}", logger, verbose=True)
-        result = False
+
+    while True:
         try:
-            result = check_dir(source)
+            source, links, subdir, _depth = dir_queue.get_nowait()
+        except Empty:
+            progress_updated.wait()
+            progress_queue.put((checker_no, (None,) * 2))
+            with free_checkers:
+                free_checkers.value += 1
+            try:
+                source, links, subdir, _depth = dir_queue.get()
+            except KeyboardInterrupt:
+                return
+            finally:
+                with free_checkers:
+                    free_checkers.value -= 1
         except KeyboardInterrupt:
+            progress_queue.put((checker_no, (None,) * 2))
+            return
+
+        if not subdir:
             break
+
+        _source = source or subdir
+        if not source:
+            log(f"Checking {subdir!r}", logger, verbose=True)
+
+        content_path = get_content_path(source, links, subdir)
+        if islink(subdir):
+            links.append((subdir, realpath(subdir)))
+        progress_updated.wait()
+        progress_queue.put((checker_no, (source, content_path, _depth)))
+        result = None
+        try:
+            result = check_dir(subdir, _links=links)
+        except KeyboardInterrupt:
+            # Will be re-checked by another checker since this checker dies
+            return
         except Exception:
-            log_exception(f"Checking {source!r} failed", logger)
+            log_exception(f"Checking {content_path!r} failed", logger, direct=True)
         finally:
-            content_queue.put((source, result))
-        source = dir_queue.get()
-    progress_queue.put((checker_no, None))
+            content_updated.wait()
+            content_queue.put((source, content_path, result))
+
     logger.debug("Exiting")
+
+
+def get_content_path(source: str, links: List[Tuple[str]], subdir: str) -> str:
+    """Returns the original path from *source* to *subdir*, collapsing all symlinks
+    in-between.
+    """
+    if not (source and links):
+        return subdir
+
+    links = iter(links)
+    absolute, prev_real = next(links)
+    path = source + absolute[len(source) :]
+    for absolute, real in links:
+        path += absolute[len(prev_real) :]
+        prev_real = real
+    path += subdir[len(prev_real) :]
+
+    return path
+
+
+def get_links(source: str, subdir: str) -> List[Tuple[str, str]]:
+    """Returns a list of all symlinks (and the directories they point to) between
+    *source* and *subdir*.
+    """
+    if not source:
+        return [(subdir, realpath(subdir))] if islink(subdir) else []
+
+    links = [(source, realpath(source))] if islink(source) else []
+    # Strips off the basename in case it's a link
+    path = os.path.dirname(subdir[len(source) + 1 :])
+    if path:
+        cwd = os.getcwd()
+        os.chdir(source)
+        for dir in path.split(os.sep):
+            if islink(dir):
+                links.append((abspath(dir), realpath(dir)))
+            os.chdir(dir)
+        os.chdir(cwd)
+
+    return links
 
 
 def manage_checkers(
     dir_queue: Union[Queue, mp_Queue],
-    contents: Dict[str, Dict],
+    contents: Dict[str, Union[bool, Dict]],
     images: List[Tuple[str, Generator]],
-    opener: Thread,
 ) -> None:
     """Manages the processing of directory sources in parallel using multiple processes.
 
@@ -166,46 +262,52 @@ def manage_checkers(
     serially in the current thread of execution, after all file sources have been
     processed.
     """
-    from . import logging
+    global _depth
 
-    def process_result(source: str, result: Optional[bool], n: int = -1) -> None:
-        if logging.MULTI:
-            if n > -1:
-                log(
-                    f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
-                    f"while checking {source!r}",
-                    logger,
-                    _logging.ERROR,
-                    direct=False,
+    def process_result(
+        source: str,
+        subdir: str,
+        result: Union[None, bool, Dict[str, Union[bool, Dict]]],
+        n: int = -1,
+    ) -> None:
+        if n > -1:
+            log(
+                f"Checker-{n} was terminated by signal {-checkers[n].exitcode} "
+                + (f"while checking {subdir!r}" if subdir else ""),
+                logger,
+                _logging.ERROR,
+                direct=False,
+            )
+            if subdir:
+                dir_queue.put(
+                    (
+                        source,
+                        get_links(source, subdir),
+                        os.path.join(
+                            realpath(os.path.dirname(subdir)), basename(subdir)
+                        ),
+                    )
                 )
+            return
 
-        log(
-            (
-                f"Checking {source!r} failed"
-                if result is False
-                else f"{source!r} is empty"
-                if result is None
-                else f"Done checking {source!r}"
-            ),
-            logger,
-            _logging.ERROR if result is False else _logging.INFO,
-            verbose=result is not False,
-        )
+        if result:
+            if source not in contents:
+                contents[source] = {}
+            update_contents(source, contents[source], subdir, result)
+        elif not source and subdir not in contents:
+            # Marks a potentially empty source
+            # If the source is actually empty the dict stays empty
+            contents[subdir] = {}
 
-        if False is not result is not None:
-            source = os.path.abspath(source)
-            contents[source] = result
-            images.append((source, ...))
-
-    if logging.MULTI:
-        # Process.close() and Process.kill() were added in Python 3.7
-        CLOSE_KILL = sys.version_info[:2] >= (3, 7)
-
+    if logging.MULTI and args.checkers > 1:
         content_queue = mp_Queue()
+        content_updated = mp_Event()
         progress_queue = mp_Queue()
-        MAX_CHECKERS = args.checkers
-        checker_progress = [True] * MAX_CHECKERS
-        globals_ = {name: globals()[name] for name in ("RECURSIVE", "SHOW_HIDDEN")}
+        progress_updated = mp_Event()
+        free_checkers = Value("i")
+        globals_ = {
+            name: globals()[name] for name in ("MAX_DEPTH", "RECURSIVE", "SHOW_HIDDEN")
+        }
 
         checkers = [
             Process(
@@ -214,67 +316,131 @@ def manage_checkers(
                 args=(
                     n,
                     content_queue,
+                    content_updated,
                     dir_queue,
                     progress_queue,
+                    progress_updated,
+                    free_checkers,
                     globals_,
                 ),
             )
-            for n in range(MAX_CHECKERS)
+            for n in range(args.checkers)
         ]
 
         for checker in checkers:
             checker.start()
 
+        ALL_NONE = (None,) * 2
         try:
-            # Wait until at least one checker starts processing a directory
-            while progress_queue.empty():
-                pass
+            contents[""] = contents
+            content_updated.set()
+            checks_in_progress = [ALL_NONE] * args.checkers
+            progress_updated.set()
 
-            while not interrupted.is_set() and not (
-                not any(checker_progress) and content_queue.empty()
+            # Wait until at least one checker starts processing a directory
+            setitem(checks_in_progress, *progress_queue.get())
+
+            while not interrupted.is_set() and (
+                any(check and check != ALL_NONE for check in checks_in_progress)
+                or not dir_queue.sources_finished
+                or not dir_queue.empty()
+                or not progress_queue.empty()
+                or not content_queue.empty()
             ):
-                if not content_queue.empty():
+                content_updated.clear()
+                while not content_queue.empty():
                     process_result(*content_queue.get())
+                content_updated.set()
+
+                progress_updated.clear()
+                while not progress_queue.empty():
+                    setitem(checks_in_progress, *progress_queue.get())
+                progress_updated.set()
+
                 for n, checker in enumerate(checkers):
-                    if not checker.is_alive() and checker_progress[n]:
+                    if checks_in_progress[n] and not checker.is_alive():
                         # Ensure it's actually the last source processed by the dead
                         # process that's taken into account.
+                        progress_updated.clear()
                         while not progress_queue.empty():
-                            setitem(checker_progress, *progress_queue.get())
-                        if checker_progress[n]:  # Externally terminated
-                            process_result(checker_progress[n], False, n)
-                            checker_progress[n] = None
+                            setitem(checks_in_progress, *progress_queue.get())
+                        progress_updated.set()
+
+                        if checks_in_progress[n]:  # Externally terminated
+                            process_result(*checks_in_progress[n], n)
+                            checks_in_progress[n] = None
+
+                sleep(0.01)  # Allow queue sizes to be updated
         finally:
+            for check in checks_in_progress:
+                if check:
+                    dir_queue.put(ALL_NONE * 2)
             for checker in checkers:
-                checker.kill() if CLOSE_KILL else checker.terminate()
                 checker.join()
-                if CLOSE_KILL:
-                    checker.close()
+            del contents[""]
+            for source, result in tuple(contents.items()):
+                if result:
+                    images.append((source, ...))
+                else:
+                    del contents[source]
+                    logging.log(f"{source!r} is empty", logger)
     else:
         current_thread.name = "Checker"
-        log(
-            "Multiprocessing is not supported on this platform or has been disabled, "
-            "directory sources will be processed serially after file sources have been "
-            "processed!",
-            logger,
-            _logging.ERROR,
-        )
 
-        # wait till after file sources are processed, since the working directory
-        # will be changing
-        opener.join()
-
-        source = dir_queue.get()
+        _, links, source, _depth = dir_queue.get()
         while source:
             log(f"Checking {source!r}", logger, verbose=True)
+            if islink(source):
+                links.append((source, realpath(source)))
             result = False
             try:
-                result = check_dir(source, os.getcwd())
+                result = check_dir(source, os.getcwd(), _links=links)
             except Exception:
-                log_exception(f"Checking {source!r} failed", logger)
+                log_exception(f"Checking {source!r} failed", logger, direct=True)
             finally:
-                process_result(source, result)
-            source = dir_queue.get()
+                if result:
+                    source = abspath(source)
+                    contents[source] = result
+                    images.append((source, ...))
+                elif result is None:
+                    log(f"{source!r} is empty", logger)
+            _, links, source, _depth = dir_queue.get()
+
+
+def update_contents(
+    dir: str,
+    contents: Dict[str, Union[bool, Dict]],
+    subdir: str,
+    subcontents: Dict[str, Union[bool, Dict]],
+):
+    """Updates a directory's content tree with the content tree of a subdirectory."""
+
+    def update_dict(base: dict, update: dict):
+        for key in update:
+            # "/" can be in *base* if the directory's parent was re-checked
+            if key in base and key != "/":
+                update_dict(base[key], update[key])
+            else:
+                base[key] = update[key]
+
+    path = subdir[len(dir) + 1 :].split(os.sep) if dir else [subdir]
+    target = path.pop()
+
+    path_iter = iter(path)
+    for branch in path_iter:
+        try:
+            contents = contents[branch]
+        except KeyError:
+            contents[branch] = {}
+            contents = contents[branch]
+            break
+    for branch in path_iter:
+        contents[branch] = {}
+        contents = contents[branch]
+    if target in contents:
+        update_dict(contents[target], subcontents)
+    else:
+        contents[target] = subcontents
 
 
 def get_urls(
@@ -286,9 +452,7 @@ def get_urls(
     while not interrupted.is_set() and source:
         log(f"Getting image from {source!r}", logger, verbose=True)
         try:
-            images.append(
-                (os.path.basename(source), Image(TermImage.from_url(source))),
-            )
+            images.append((basename(source), Image(TermImage.from_url(source))))
         # Also handles `ConnectionTimeout`
         except requests.exceptions.ConnectionError:
             log(f"Unable to get {source!r}", logger, _logging.ERROR)
@@ -318,14 +482,12 @@ def open_files(
             log(f"Could not read {source!r}: {e}", logger, _logging.ERROR)
         except Exception:
             log_exception(f"Opening {source!r} failed", logger, direct=True)
-        else:
-            log(f"Done opening {source!r}", logger, verbose=True)
         source = file_queue.get()
 
 
 def main() -> None:
     """CLI execution sub-entry-point"""
-    global args, url_images, RECURSIVE, SHOW_HIDDEN
+    global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
 
     def check_arg(
         name: str,
@@ -672,9 +834,10 @@ NOTES:
     # TUI-only
     tui_options = parser.add_argument_group(
         "TUI-only Options",
-        """These options apply only when there is at least one valid directory source \
-or multiple valid sources
-""",
+        (
+            "These options apply only when there is at least one valid directory source"
+            "or multiple valid sources"
+        ),
     )
 
     tui_options.add_argument(
@@ -688,6 +851,14 @@ or multiple valid sources
         "--recursive",
         action="store_true",
         help="Scan for local images recursively",
+    )
+    tui_options.add_argument(
+        "-d",
+        "--max-depth",
+        type=int,
+        metavar="N",
+        default=sys.getrecursionlimit() - 50,
+        help=f"Maximum recursion depth (default: {sys.getrecursionlimit() - 50})",
     )
 
     # Performance
@@ -793,6 +964,7 @@ or multiple valid sources
     )
 
     args = parser.parse_args()
+    MAX_DEPTH = args.max_depth
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
 
@@ -807,12 +979,25 @@ or multiple valid sources
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
+        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
         (
             "grid_renderers",
             lambda x: x >= 0,
             "Number of grid renderers must be non-negative",
         ),
-        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
+        (
+            "max_depth",
+            lambda x: x > 0,
+            "Maximum recursion depth must be greater than zero",
+        ),
+        (
+            "max_depth",
+            lambda x: (
+                x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
+            ),
+            "Maximum recursion depth too high",
+            (RecursionError, OverflowError),
+        ),
         ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
         ("anim_cache", lambda x: x > 0, "Frame count must be greater than zero"),
     ):
@@ -836,7 +1021,8 @@ or multiple valid sources
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
-    absolute_sources = set()
+    sources = [abspath(source) if exists(source) else source for source in args.sources]
+    unique_sources = set()
 
     url_queue = Queue()
     getters = [
@@ -863,36 +1049,34 @@ or multiple valid sources
     os_is_unix = sys.platform not in {"win32", "cygwin"}
 
     if os_is_unix:
-        dir_queue = mp_Queue() if logging.MULTI else Queue()
+        dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
+        dir_queue.sources_finished = False
         check_manager = Thread(
             target=manage_checkers,
-            args=(dir_queue, contents, dir_images, opener),
+            args=(dir_queue, contents, dir_images),
             name="CheckManager",
             daemon=True,
         )
         check_manager.start()
 
-    for source in args.sources:
-        absolute_source = (
-            source if all(urlparse(source)[:3]) else os.path.abspath(source)
-        )
-        if absolute_source in absolute_sources:
-            log(f"Source repeated: {absolute_source!r}", logger, verbose=True)
+    for source in sources:
+        if source in unique_sources:
+            log(f"Source repeated: {source!r}", logger, verbose=True)
             continue
-        absolute_sources.add(absolute_source)
+        unique_sources.add(source)
 
         if all(urlparse(source)[:3]):  # Is valid URL
             url_queue.put(source)
-        elif os.path.isfile(source):
+        elif isfile(source):
             file_queue.put(source)
-        elif os.path.isdir(source):
+        elif isdir(source):
             if args.cli:
                 log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
             if not os_is_unix:
                 dir_images = True
                 continue
-            dir_queue.put(source)
+            dir_queue.put(("", [], source, 0))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
@@ -901,8 +1085,10 @@ or multiple valid sources
         url_queue.put(None)
     file_queue.put(None)
     if os_is_unix:
-        for _ in range(args.checkers):
-            dir_queue.put(None)
+        if logging.MULTI and args.checkers > 1:
+            dir_queue.sources_finished = True
+        else:
+            dir_queue.put((None,) * 4)
 
     for getter in getters:
         getter.join()
@@ -952,7 +1138,7 @@ or multiple valid sources
                 continue
 
             if show_name:
-                notify.notify("\n" + os.path.basename(entry[0]) + ":")
+                notify.notify("\n" + basename(entry[0]) + ":")
             try:
                 image.set_size(
                     args.width,
@@ -1024,7 +1210,16 @@ logger = _logging.getLogger(__name__)
 # Set from within `.__main__.main()`
 interrupted = None
 
+# Used by `check_dir()`
+_depth = None
+
+# Set from within `check_dirs()`; Hence, only set in "Checker-?" processes
+_dir_queue = None
+_free_checkers = None
+_source = None
+
 # Set from within `main()`
+MAX_DEPTH = None
 RECURSIVE = None
 SHOW_HIDDEN = None
 # # Used in other modules
