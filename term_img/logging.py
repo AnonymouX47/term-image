@@ -1,6 +1,7 @@
 """Event logging"""
 
 import logging
+import os
 import sys
 import warnings
 from dataclasses import dataclass
@@ -67,12 +68,20 @@ def init_log(
         notify.loading_indicator = Thread(target=notify.load, name="LoadingIndicator")
         notify.loading_indicator.start()
 
-    try:
-        import multiprocessing.synchronize  # noqa: F401
-    except ImportError:
+    if (
+        no_multi
+        or cli.args.cli
+        or (os.cpu_count() or 0) <= 2  # Avoid affecting overall system performance
+        or sys.platform in {"win32", "cygwin"}
+    ):
         MULTI = False
     else:
-        MULTI = not no_multi
+        try:
+            import multiprocessing.synchronize  # noqa: F401
+        except ImportError:
+            MULTI = False
+        else:
+            MULTI = True
 
     if MULTI:
         from .logging_multi import process_multi_logs
