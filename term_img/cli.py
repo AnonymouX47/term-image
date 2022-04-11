@@ -165,6 +165,7 @@ def check_dirs(
 
     logger.debug("Starting")
 
+    NO_CHECK = (None,) * 3
     while True:
         try:
             source, links, subdir, _depth = dir_queue.get_nowait()
@@ -333,6 +334,7 @@ def manage_checkers(
         for checker in checkers:
             checker.start()
 
+        NO_CHECK = (None,) * 3
         try:
             contents[""] = contents
             content_updated.set()
@@ -342,12 +344,22 @@ def manage_checkers(
             # Wait until at least one checker starts processing a directory
             setitem(checks_in_progress, *progress_queue.get())
 
-            while any(checks_in_progress) and (
-                any(check and check != NO_CHECK for check in checks_in_progress)
-                or not dir_queue.sources_finished
-                or not dir_queue.empty()
-                or not progress_queue.empty()
-                or not content_queue.empty()
+            while not (
+                interrupted.is_set()  # MainThread has been interruped
+                or not any(checks_in_progress)  # All checkers are dead
+                # All checks are done
+                or (
+                    # No check in progress
+                    all(not check or check == NO_CHECK for check in checks_in_progress)
+                    # All sources have been passed in
+                    and dir_queue.sources_finished
+                    # All sources and branched-off subdirectories have been processed
+                    and dir_queue.empty()
+                    # All progress updates have been processed
+                    and progress_queue.empty()
+                    # All results have been processed
+                    and content_queue.empty()
+                )
             ):
                 content_updated.clear()
                 while not content_queue.empty():
@@ -374,9 +386,12 @@ def manage_checkers(
 
                 sleep(0.01)  # Allow queue sizes to be updated
         finally:
+            if interrupted.is_set():
+                return
+
             if not any(checks_in_progress):
                 logging.log(
-                    "Checking directory sources failed; all checkers were terminated",
+                    "All checkers were terminated, checking directory sources failed!",
                     logger,
                     _logging.ERROR,
                 )
@@ -1229,7 +1244,6 @@ NOTES:
     return SUCCESS
 
 
-NO_CHECK = (None,) * 3
 logger = _logging.getLogger(__name__)
 
 # Set from within `.__main__.main()`
