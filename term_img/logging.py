@@ -5,10 +5,11 @@ import sys
 import warnings
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
+from multiprocessing import Event as mp_Event
 from threading import Thread
 from typing import Optional, Set
 
-from . import notify
+from . import cli, notify, tui
 
 
 def init_log(
@@ -74,75 +75,15 @@ def init_log(
         MULTI = not no_multi
 
     if MULTI:
-        import os
-        from errno import errorcode
-        from multiprocessing.connection import Listener
-        from random import randint
-        from threading import Thread
+        from .logging_multi import process_multi_logs
 
-        from . import logging_multi
-        from .config import user_dir
-        from .logging_multi import (
-            LogManager,
-            create_objects,
-            get_log_queue,
-            get_logging_details,
-            process_multi_logs,
-        )
+        process_multi_logs.started = mp_Event()
+        Thread(target=process_multi_logs, name="MultiLogger").start()
+        process_multi_logs.started.wait()
+        del process_multi_logs.started
 
-        LogManager.register("get_logging_details", get_logging_details)
-        LogManager.register("get_log_queue", get_log_queue)
-
-        # Get a port that's not in use
-        # Allows multiple sessions of `term-img` on the same machine at the same time
-        init_err_msg = (
-            "Unable to initialize the multi-process logging system..."
-            " Disabling multiprocessing!"
-        )
-        errors = 0
-        while True:
-            port = randint(50000, 60000)
-            try:
-                with Listener(("127.0.0.1", 0)):
-                    pass
-            except OSError as e:
-                if not errorcode[e.errno].endswith("EADDRINUSE"):
-                    errors += 1
-                    # Try 3 times before concluding the error is fatal
-                    if errors == 3:
-                        log_exception(init_err_msg, _logger, direct=True)
-                        MULTI = False
-                        return
-            except Exception:
-                log_exception(init_err_msg, _logger, direct=True)
-                MULTI = False
-                return
-            else:
-                break
-
-        address_dir = os.path.join(user_dir, "temp", "addresses")
-        os.makedirs(address_dir, exist_ok=True)
-        with open(os.path.join(address_dir, str(os.getpid())), "w") as f:
-            f.write(str(port))
-
-        log_manager = LogManager(("127.0.0.1", port))
-        log_manager.start(create_objects)
-        log_manager.get_logging_details().extend(
-            [
-                logging.getLogger().getEffectiveLevel(),
-                # Constants defined in this module
-                {name: value for name, value in globals().items() if name.isupper()},
-            ]
-        )
-
-        Thread(
-            target=process_multi_logs, args=(log_manager,), name="MultiLogger"
-        ).start()
-
-        while not logging_multi.log_queue:  # Wait till MultiLogger has started
-            pass
-
-        _logger.debug("Successfully initialized the multi-process logging system.")
+        # Inherited by instances of `.logging_multi.Process`
+        cli.interrupted = tui.main.interrupted = mp_Event()
 
 
 def log(

@@ -35,9 +35,11 @@ def main() -> int:
 
     def finish_multi_logging():
         if logging.MULTI:
-            from .logging_multi import log_queue
+            from .logging_multi import child_processes, log_queue
 
             if log_queue:  # Multi-logging has been successfully initialized
+                for process in child_processes:
+                    process.join()
                 log_queue.put((None,) * 2)  # End of logs
                 log_queue.join()
 
