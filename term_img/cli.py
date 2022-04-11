@@ -8,7 +8,7 @@ from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
 from queue import Empty, Queue
-from threading import Thread, current_thread
+from threading import current_thread
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -21,7 +21,7 @@ from .config import config_options, font_ratio, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
-from .logging import init_log, log, log_exception
+from .logging import Thread, init_log, log, log_exception
 from .tui.widgets import Image
 
 
@@ -1013,8 +1013,6 @@ NOTES:
         args.verbose,
         args.verbose_log,
     )
-    if not logging.QUIET:
-        notify.loading_indicator.start()
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),

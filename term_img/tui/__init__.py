@@ -4,7 +4,6 @@ import argparse
 import logging as _logging
 import os
 from pathlib import Path
-from threading import Thread
 from typing import Iterable, Iterator, Tuple, Union
 
 import urwid
@@ -43,22 +42,23 @@ def init(
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
+    main.update_pipe = main.loop.watch_pipe(lambda _: None)
 
     images.sort(
         key=lambda x: sort_key_lexi(Path(x[0] if x[1] is ... else x[1]._image._source))
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
-    main.update_pipe = main.loop.watch_pipe(lambda _: None)
-    menu_scanner = Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
-    grid_scanner = Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
-    grid_render_manager = Thread(
+    # daemon, to avoid having to check if the main process has been interrupted
+    menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
+    grid_scanner = logging.Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
+    grid_render_manager = logging.Thread(
         target=manage_grid_renders,
         args=(args.grid_renderers,),
         name="GridRenderManager",
         daemon=True,
     )
-    image_render_manager = Thread(
+    image_render_manager = logging.Thread(
         target=manage_image_renders,
         name="ImageRenderManager",
         daemon=True,

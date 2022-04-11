@@ -5,6 +5,7 @@ import sys
 import warnings
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
+from threading import Thread
 from typing import Optional, Set
 
 from . import notify
@@ -51,6 +52,8 @@ def init_log(
         level=level,
     )
 
+    if debug:
+        _logger.setLevel(logging.DEBUG)
     _logger.info("Starting a new session")
     _logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
@@ -58,6 +61,10 @@ def init_log(
         warnings.warn(
             "Please upgrade to Python 3.8 or later to get more detailed logs."
         )
+
+    if not QUIET:
+        notify.loading_indicator = Thread(target=notify.load, name="LoadingIndicator")
+        notify.loading_indicator.start()
 
     try:
         import multiprocessing.synchronize  # noqa: F401
@@ -217,12 +224,34 @@ class Filter:
         self.disallowed.remove(name)
 
 
+class Thread(Thread):
+    """A thread with integration into the logging system"""
+
+    def __init__(self, *args, **kwargs):
+        try:
+            del kwargs["redirect_notifs"]
+        except KeyError:
+            pass
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        _logger.debug("Starting")
+        try:
+            super().run()
+        except Exception:
+            log_exception(
+                "Aborted" if logging.DEBUG else f"{self.name} was aborted", _logger
+            )
+        else:
+            _logger.debug("Exiting")
+
+
 filter_ = Filter({"PIL", "urllib3"})
 
 # Writing to STDERR messes up output, especially with the TUI
 warnings.showwarning = _log_warning
 
-# Can't use "term_img", since the logger's level is changed in `.__main__`.
+# Can't use "term_img", since the logger's level is changed.
 # Otherwise, it would affect children of "term_img".
 _logger = logging.getLogger("term-img")
 

@@ -4,7 +4,6 @@ import logging as _logging
 from multiprocessing import Process, Queue as mp_Queue
 from os.path import split
 from queue import Empty, Queue
-from threading import Thread
 from typing import Union
 
 from .. import get_font_ratio, logging, notify, set_font_ratio
@@ -18,7 +17,7 @@ def manage_image_renders():
     multi = logging.MULTI
     image_render_in = (mp_Queue if multi else Queue)()
     image_render_out = (mp_Queue if multi else Queue)()
-    renderer = (Process if multi else Thread)(
+    renderer = (Process if multi else logging.Thread)(
         target=render_images,
         args=(image_render_in, image_render_out, get_font_ratio()),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
@@ -91,7 +90,7 @@ def manage_grid_renders(n_renderers: int):
     grid_render_in = (mp_Queue if multi else Queue)()
     grid_render_out = (mp_Queue if multi else Queue)()
     renderers = [
-        (Process if multi else Thread)(
+        (Process if multi else logging.Thread)(
             target=render_images,
             args=(
                 grid_render_in,
