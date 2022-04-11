@@ -2,6 +2,7 @@
 
 import logging as _logging
 from queue import Queue
+from sys import stderr, stdout
 from threading import Event, Thread
 from time import sleep
 from typing import Any, Tuple, Union
@@ -74,11 +75,10 @@ def load() -> None:
             _loading.clear()
             _loading.wait()
 
-    logger.debug("Switching to the TUI")
-
     _n_loading = 0
     _loading.clear()
     _loading.wait()
+
     while _n_loading > -1:
         while _n_loading > 0:
             for stage in (
@@ -109,15 +109,19 @@ def notify(
     msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
 ) -> None:
     """Displays a message in the TUI's notification bar or on STDOUT."""
-    if verbose and not logging.VERBOSE:
-        pass
-    elif not tui.is_launched:
+    if logging.QUIET and level < CRITICAL or verbose and not logging.VERBOSE:
+        return
+
+    if not tui.is_launched:
         print(
-            f"\033[33m{msg}\033[0m"
-            if level == WARNING
-            else f"\033[31m{msg}\033[0m"
-            if level >= ERROR
-            else msg
+            (
+                f"\033[33m{msg}\033[0m"
+                if level == WARNING
+                else f"\033[31m{msg}\033[0m"
+                if level >= ERROR
+                else msg
+            ),
+            file=stderr if level >= ERROR else stdout,
         )
         if loading:
             start_loading()
