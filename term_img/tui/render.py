@@ -20,13 +20,8 @@ def manage_image_renders():
     image_render_out = (mp_Queue if multi else Queue)()
     renderer = (Process if multi else Thread)(
         target=render_images,
-        args=(
-            image_render_in,
-            image_render_out,
-            get_font_ratio(),
-            multi,
-            False,
-        ),
+        args=(image_render_in, image_render_out, get_font_ratio()),
+        kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
     )
     renderer.start()
@@ -49,7 +44,12 @@ def manage_image_renders():
 
         Image._rendering_image_info = (image_w, size, alpha)
         image_render_in.put(
-            (image_w._image._source if multi else image_w._image, size, alpha)
+            (
+                image_w._image._source if multi else image_w._image,
+                size,
+                alpha,
+                image_w._faulty,
+            )
         )
         notify.start_loading()
         render = image_render_out.get()
@@ -63,19 +63,14 @@ def manage_image_renders():
                 )
             else:
                 image_w._canv = faulty_image.render(size)
+                # Ensures a fault is logged only once per `Image` instance
                 if not image_w._faulty:
-                    # Ensure a fault is logged only once per image, per directory scan
                     image_w._faulty = True
-                    logging.log_exception(
-                        f"{image_w._image._source!r} could not be loaded",
-                        logger,
-                        direct=True,
-                    )
             update_screen()
             last_image_w = image_w
         notify.stop_loading()
 
-    image_render_in.put((None,) * 3)
+    image_render_in.put((None,) * 4)
     renderer.join()
 
 
@@ -102,9 +97,8 @@ def manage_grid_renders(n_renderers: int):
                 grid_render_in,
                 grid_render_out,
                 get_font_ratio(),
-                multi,
-                True,
             ),
+            kwargs=dict(multi=multi, out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
         for n in range(n_renderers if multi else 1)
@@ -193,8 +187,10 @@ def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     font_ratio: float,
+    *,
     multi: bool,
     out_extras: bool,
+    log_faults: bool,
 ):
     """Renders images.
 
@@ -212,7 +208,10 @@ def render_images(
     logger.debug("Starting")
     try:
         while True:
-            image, size, alpha = input.get()
+            if log_faults:
+                image, size, alpha, faulty = input.get()
+            else:
+                image, size, alpha = input.get()
             if not image:  # Quitting
                 break
 
@@ -238,6 +237,13 @@ def render_images(
                     if out_extras
                     else None
                 )
+                # *faulty* ensures a fault is logged only once per `Image` instance
+                if log_faults and not faulty:
+                    logging.log_exception(
+                        f"Failed to load or render {image._source!r}",
+                        logger,
+                        direct=True,
+                    )
     except KeyboardInterrupt:
         # Logging here could potentially result in an exception if MultiLogger has ended
         # and the associated manager process has shutdown.
