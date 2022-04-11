@@ -581,16 +581,21 @@ NOTES:
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
   3. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`)
-     or there's only one image source.
+     or when there's only one image source.
   4. Any image having more pixels than the specified maximum will be:
      - skipped, in CLI mode, if '--max-pixels-cli' is specified.
      - replaced, in TUI mode, with a placeholder when displayed but can still be forced
        to display or viewed externally.
-     Note that increasing this will have adverse effects on performance.
+     Note that increasing this should not have any effect on general performance
+     (i.e navigation, etc) but the larger an image is, the more the time and memory
+     it'll take to render it. Thus, a large image might delay the rendering of other
+     images to be rendered immediately after it.
   5. Frames will not be cached for any animation with more frames than this value.
      Memory usage depends on the frame count per image, not this maximum count.
   6. Any event with a level lower than the specified one is not reported.
   7. Supports all image formats supported by `PIL.Image.open()`.
+     See https://pillow.readthedocs.io/en/latest/handbook/image-file-formats.html for
+     details.
 """,
         add_help=False,  # '-h' is used for HEIGHT
     )
@@ -974,7 +979,7 @@ NOTES:
         "-q",
         "--quiet",
         action="store_true",
-        help="No notifications, except fatal errors",
+        help="No notifications, except fatal and config errors",
     )
     log_options.add_argument(
         "-v",
