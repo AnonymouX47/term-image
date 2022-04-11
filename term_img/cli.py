@@ -593,7 +593,6 @@ NOTES:
   7. Supports all image formats supported by `PIL.Image.open()`.
 """,
         add_help=False,  # '-h' is used for HEIGHT
-        allow_abbrev=False,  # Allow clustering of short options in 3.7
     )
 
     # General
@@ -622,6 +621,7 @@ NOTES:
         ),
     )
 
+    # # Animation
     anim_options = parser.add_argument_group("Animation Options (General)")
     anim_options.add_argument(
         "-f",
@@ -694,6 +694,7 @@ NOTES:
         help="Always launch the TUI, even for a single image",
     )
 
+    # # Transparency
     _alpha_options = parser.add_argument_group(
         "Transparency Options (General)",
         "NOTE: These are mutually exclusive",
@@ -821,6 +822,7 @@ NOTES:
         help=("Apply '--max-pixels' in CLI mode"),
     )
 
+    # # Alignment
     align_options = parser.add_argument_group("Alignment Options (CLI-only)")
     align_options.add_argument(
         "--no-align",
@@ -1087,7 +1089,7 @@ NOTES:
 
     os_is_unix = sys.platform not in {"win32", "cygwin"}
 
-    if os_is_unix:
+    if os_is_unix and not args.cli:
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
@@ -1123,7 +1125,7 @@ NOTES:
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    if os_is_unix:
+    if os_is_unix and not args.cli:
         if logging.MULTI and args.checkers > 1:
             dir_queue.sources_finished = True
         else:
@@ -1132,7 +1134,7 @@ NOTES:
     for getter in getters:
         getter.join()
     opener.join()
-    if os_is_unix:
+    if os_is_unix and not args.cli:
         check_manager.join()
 
     notify.stop_loading()
