@@ -17,7 +17,7 @@ import PIL
 import requests
 
 from . import __version__, logging, notify, set_font_ratio, tui
-from .config import config_options, font_ratio, max_pixels, user_dir
+from .config import anim_cache, config_options, font_ratio, log_file, max_pixels
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
@@ -654,11 +654,11 @@ NOTES:
     anim_cache_options.add_argument(
         "--anim-cache",
         type=int,
-        default=100,
+        default=anim_cache,
         metavar="N",
         help=(
             "Maximum frame count for animation frames to be cached (Better performance "
-            "at the cost of memory) (default: 100) [5]"
+            f"at the cost of memory) (default: {anim_cache}) [5]"
         ),
     )
     anim_cache_options.add_argument(
@@ -957,10 +957,9 @@ NOTES:
     )
     log_options = log_options_.add_mutually_exclusive_group()
 
-    log_file = os.path.join(user_dir, "term_img.log")
     log_options_.add_argument(
         "-l",
-        "--log",
+        "--log-file",
         metavar="FILE",
         default=log_file,
         help=f"Specify a file to write logs to (default: {log_file})",
@@ -1012,7 +1011,7 @@ NOTES:
     SHOW_HIDDEN = args.all
 
     init_log(
-        args.log,
+        args.log_file if config_options["log file"][0](args.log_file) else log_file,
         getattr(_logging, args.log_level),
         args.debug,
         args.no_multi,
@@ -1045,7 +1044,6 @@ NOTES:
             (RecursionError, OverflowError),
         ),
         ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
-        ("anim_cache", lambda x: x > 0, "Frame count must be greater than zero"),
     ):
         if not check_arg(*details):
             return INVALID_ARG

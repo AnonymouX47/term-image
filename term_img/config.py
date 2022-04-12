@@ -157,6 +157,9 @@ def update_config(config: Dict[str, Any], old_version: str):
     changes = {
         "0.1": [],
         "0.2": [
+            ("['anim cache']", None, 100),
+            ("['log file']", None, os.path.join(user_dir, "term_img.log")),
+            ("['max notifications']", None, 2),
             ("['frame duration']", 0.1, None),
             ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
@@ -336,8 +339,11 @@ for key in ("page up", "page down"):
 valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
+_anim_cache = 100
 _cell_width = 30
 _font_ratio = 0.5
+_log_file = os.path.join(user_dir, "term_img.log")
+_max_notifications = 2
 _max_pixels = 2**22  # 2048x2048
 
 _nav = {
@@ -433,21 +439,47 @@ _context_keys = {
 }
 # End of Defaults
 
+anim_cache = _anim_cache
 cell_width = _cell_width
 font_ratio = _font_ratio
+log_file = _log_file
+max_notifications = _max_notifications
 max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
 
 config_options = {
+    "anim cache": (
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
     "cell width": (
-        lambda x: isinstance(x, int) and x > 0, "must be an integer greater than zero"
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
     ),
     "font ratio": (
-        lambda x: isinstance(x, float) and x > 0.0, "must be a float greater than zero"
+        lambda x: isinstance(x, float) and x > 0.0,
+        "must be a float greater than zero",
+    ),
+    "log file": (
+        lambda x: (
+            isinstance(x, str)
+            and (
+                # exists, is a file and writable
+                (os.path.isfile(x) and os.access(x, os.W_OK))
+                # its parent directory is writable
+                or os.access(os.path.dirname(x), os.W_OK)
+            )
+        ),
+        "must be a string containing a writable path to a file",
+    ),
+    "max notifications": (
+        lambda x: isinstance(x, int) and x > -1,
+        "must be an non-negative integer",
     ),
     "max pixels": (
-        lambda x: isinstance(x, int) and x > 0, "must be an integer greater than zero"
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
     ),
 }

@@ -10,6 +10,7 @@ from typing import Any, Tuple, Union
 import urwid
 
 from . import logging, tui
+from .config import max_notifications
 from .tui import main, widgets
 
 DEBUG = INFO = 0
@@ -20,7 +21,7 @@ CRITICAL = 3
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
     """Adds a message to the TUI notification bar."""
-    if _alarms.qsize() == MAX_NOTIFICATIONS:
+    if _alarms.qsize() == max_notifications:
         clear_notification(main.loop, None)
     widgets.notifications.contents.insert(
         0, (urwid.Filler(urwid.Text(msg, wrap="ellipsis")), ("given", 1))
@@ -148,8 +149,7 @@ def stop_loading() -> None:
 
 logger = _logging.getLogger(__name__)
 
-MAX_NOTIFICATIONS = 2
-_alarms = Queue(MAX_NOTIFICATIONS)
+_alarms = Queue(max_notifications)
 
 _loading = Event()
 _n_loading = 0
