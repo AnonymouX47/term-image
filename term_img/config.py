@@ -53,7 +53,7 @@ def init_config() -> None:
     if os.path.isfile(config_file):
         if load_config():
             store_config()
-            info("Successfully updated user config.")
+            info("... Successfully updated user config.")
     else:
         update_context_nav_keys(context_keys, nav, nav)
         store_config(default=True)
@@ -165,10 +165,10 @@ def update_config(config: Dict[str, Any], old_version: str):
     changes = {
         "0.1": [],
         "0.2": [
-            ("['anim cache']", None, 100),
-            ("['log file']", None, os.path.join(user_dir, "term_img.log")),
-            ("['max notifications']", None, 2),
-            ("['frame duration']", 0.1, None),
+            ("['anim cache']", NotImplemented, 100),
+            ("['log file']", NotImplemented, os.path.join(user_dir, "term_img.log")),
+            ("['max notifications']", NotImplemented, 2),
+            ("['frame duration']", 0.1, NotImplemented),
             ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
@@ -181,19 +181,22 @@ def update_config(config: Dict[str, Any], old_version: str):
     for version in versions:
         for location, old, new in changes[version]:
             try:
-                if old is None:  # Addition
+                if old is NotImplemented:  # Addition
                     exec(f"config{location} = new")
-                elif new is None:  # Removal
+                elif new is NotImplemented:  # Removal
                     exec("del config" + location)
                 else:  # Update
                     if old == eval("config" + location):  # Still default
                         exec(f"config{location} = new")
             except (KeyError, IndexError):
-                error(
-                    f"Config option/value at {location!r} is missing, "
-                    "the new default will be put in place."
-                )
+                if new is not NotImplemented:
+                    error(
+                        f"Config option/value at {location!r} is missing, "
+                        "the new default will be put in place."
+                    )
 
+    os.replace(config_file, f"{config_file}.old")
+    info(f"Previous config file moved to '{config_file}.old'.")
     config["version"] = version
     with open(config_file, "w") as f:
         json.dump(config, f, indent=4)
