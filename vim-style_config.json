@@ -1,7 +1,10 @@
 {
     "version": "0.2",
+    "anim cache": 100,
     "cell width": 30,
     "font ratio": 0.5,
+    "log file": "/home/anonymoux47/.term_img/term_img.log",
+    "max notifications": 2,
     "max pixels": 4194304,
     "keys": {
         "navigation": {
