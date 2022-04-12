@@ -1050,14 +1050,19 @@ NOTES:
         if not check_arg(*details):
             return INVALID_ARG
 
-    for name, is_valid in config_options.items():
+    for name, (is_valid, msg) in config_options.items():
         var_name = name.replace(" ", "_")
         value = getattr(args, var_name, None)
         # Not all config options have corresponding command-line arguments
         if value is not None and not is_valid(value):
+            arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"Invalid {name} (got: {value})... Using config value.",
+                f"{arg_name}: {msg} (got: {value!r})",
                 level=notify.ERROR,
+            )
+            notify.notify(
+                f"{arg_name}: Using config value: {globals()[var_name]!r}",
+                level=notify.WARNING,
             )
             setattr(args, var_name, globals()[var_name])
 

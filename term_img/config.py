@@ -78,14 +78,14 @@ def load_config() -> bool:
     except KeyError:
         error("config: Config version not found... Please correct this manually.")
 
-    for name, is_valid in config_options.items():
+    for name, (is_valid, msg) in config_options.items():
         try:
             value = config[name]
             if is_valid(value):
                 globals()[name.replace(" ", "_")] = value
             else:
                 error(
-                    f"config: Invalid value/type for {name!r} "
+                    f"config: Invalid type/value for {name!r}, {msg} "
                     f"(got: {value!r} of type {type(value).__name__!r})... "
                     "Using default."
                 )
@@ -337,8 +337,8 @@ valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
 _cell_width = 30
-_max_pixels = 2**22  # 2048x2048
 _font_ratio = 0.5
+_max_pixels = 2**22  # 2048x2048
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -434,14 +434,20 @@ _context_keys = {
 # End of Defaults
 
 cell_width = _cell_width
-max_pixels = _max_pixels
 font_ratio = _font_ratio
+max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
 
 config_options = {
-    "cell width": lambda value: isinstance(value, int) and value > 0,
-    "font ratio": lambda value: isinstance(value, float) and value > 0.0,
-    "max pixels": lambda value: isinstance(value, int) and value > 0,
+    "cell width": (
+        lambda x: isinstance(x, int) and x > 0, "must be an integer greater than zero"
+    ),
+    "font ratio": (
+        lambda x: isinstance(x, float) and x > 0.0, "must be a float greater than zero"
+    ),
+    "max pixels": (
+        lambda x: isinstance(x, int) and x > 0, "must be an integer greater than zero"
+    ),
 }
