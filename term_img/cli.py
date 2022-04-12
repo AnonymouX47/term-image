@@ -1023,27 +1023,20 @@ NOTES:
         notify.loading_indicator.start()
 
     for details in (
-        ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
-        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
-        (
-            "grid_renderers",
-            lambda x: x >= 0,
-            "Number of grid renderers must be non-negative",
-        ),
-        (
-            "max_depth",
-            lambda x: x > 0,
-            "Maximum recursion depth must be greater than zero",
-        ),
+        ("checkers", lambda x: x >= 0, "must be non-negative"),
+        ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
+        ("getters", lambda x: x > 0, "must be greater than zero"),
+        ("grid_renderers", lambda x: x >= 0, "must be non-negative"),
+        ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
             "max_depth",
             lambda x: (
                 x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
             ),
-            "Maximum recursion depth too high",
+            "too high",
             (RecursionError, OverflowError),
         ),
-        ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
+        ("repeat", lambda x: x != 0, "must be non-zero"),
     ):
         if not check_arg(*details):
             return INVALID_ARG
