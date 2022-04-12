@@ -42,7 +42,7 @@ def init_config() -> None:
     else:
         os.mkdir(user_dir)
 
-    if os.path.isfile(f"{user_dir}/config.json"):
+    if os.path.isfile(config_file):
         if load_config():
             store_config()
             print("config: Successfully updated user config.")
@@ -62,7 +62,7 @@ def load_config() -> bool:
     updated = False
 
     try:
-        with open(f"{user_dir}/config.json") as f:
+        with open(config_file) as f:
             config = json.load(f)
     except json.JSONDecodeError:
         error("config: Error loading user config... Using defaults.")
@@ -136,7 +136,7 @@ def store_config(*, default: bool = False) -> None:
         if keys:
             stored_keys[context] = keys
 
-    with open(f"{user_dir}/config.json", "w") as f:
+    with open(config_file, "w") as f:
         json.dump(
             {
                 "version": version,
@@ -184,7 +184,7 @@ def update_config(config: Dict[str, Any], old_version: str):
                 )
 
     config["version"] = version
-    with open(f"{user_dir}/config.json", "w") as f:
+    with open(config_file, "w") as f:
         json.dump(config, f, indent=4)
 
 
@@ -287,7 +287,8 @@ def update_context_nav_keys(
                 properties[:2] = nav_update[navi[properties[0]]]
 
 
-user_dir = os.path.expanduser("~/.term_img")
+user_dir = os.path.join(os.path.expanduser("~"), ".term_img")
+config_file = os.path.join(user_dir, "config.json")
 version = "0.2"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
