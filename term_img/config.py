@@ -20,12 +20,20 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
             return action
 
 
+def info(msg: str) -> None:
+    print(
+        f"\033[34mconfig: \033[0m{msg}",
+        # In case output is being redirected or piped
+        file=sys.stdout if sys.stdout.isatty() else sys.stderr,
+    )
+
+
 def error(msg: str) -> None:
-    print(f"\033[33m{msg}\033[0m", file=sys.stderr)
+    print(f"\033[34mconfig: \033[33m{msg}\033[0m", file=sys.stderr)
 
 
 def fatal(msg: str) -> None:
-    print(f"\033[31m{msg}\033[0m", file=sys.stderr)
+    print(f"\033[34mconfig: \033[31m{msg}\033[0m", file=sys.stderr)
 
 
 def init_config() -> None:
@@ -37,7 +45,7 @@ def init_config() -> None:
     """
     if os.path.exists(user_dir):
         if not os.path.isdir(user_dir):
-            fatal("config: Please rename or remove the file {user_dir!r}.")
+            fatal("Please rename or remove the file {user_dir!r}.")
             sys.exit(CONFIG_ERROR)
     else:
         os.mkdir(user_dir)
@@ -45,7 +53,7 @@ def init_config() -> None:
     if os.path.isfile(config_file):
         if load_config():
             store_config()
-            print("config: Successfully updated user config.")
+            info("Successfully updated user config.")
     else:
         update_context_nav_keys(context_keys, nav, nav)
         store_config(default=True)
@@ -65,18 +73,18 @@ def load_config() -> bool:
         with open(config_file) as f:
             config = json.load(f)
     except json.JSONDecodeError:
-        error("config: Error loading user config... Using defaults.")
+        error("Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return updated
 
     try:
         c_version = config["version"]
         if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
-            print("config: Updating user config...")
+            info("Updating user config...")
             update_config(config, c_version)
             updated = True
     except KeyError:
-        error("config: Config version not found... Please correct this manually.")
+        error("Config version not found... Please correct this manually.")
 
     for name, (is_valid, msg) in config_options.items():
         try:
@@ -85,17 +93,17 @@ def load_config() -> bool:
                 globals()[name.replace(" ", "_")] = value
             else:
                 error(
-                    f"config: Invalid type/value for {name!r}, {msg} "
+                    f"Invalid type/value for {name!r}, {msg} "
                     f"(got: {value!r} of type {type(value).__name__!r})... "
                     "Using default."
                 )
         except KeyError:
-            error(f"config: {name!r} not found... Using default.")
+            error(f"{name!r} not found... Using default.")
 
     try:
         keys = config["keys"]
     except KeyError:
-        error("config: Key config not found... Using defaults.")
+        error("Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return updated
 
@@ -103,7 +111,7 @@ def load_config() -> bool:
     try:
         nav_update = keys.pop("navigation")
     except KeyError:
-        error("config: Navigation keys config not found... Using defaults.")
+        error("Navigation keys config not found... Using defaults.")
     else:
         # Resolves all issues with _nav_update_ in the process
         update_context("navigation", nav, nav_update)
@@ -114,7 +122,7 @@ def load_config() -> bool:
 
     for context, keyset in keys.items():
         if context not in context_keys:
-            print(f"config: Unknown context {context!r}.")
+            error(f"Unknown context {context!r}.")
             continue
         update_context(context, context_keys[context], keyset)
 
@@ -181,8 +189,8 @@ def update_config(config: Dict[str, Any], old_version: str):
                     if old == eval("config" + location):  # Still default
                         exec(f"config{location} = new")
             except (KeyError, IndexError):
-                print(
-                    f"config: Config option/value at {location!r} is missing, "
+                error(
+                    f"Config option/value at {location!r} is missing, "
                     "the new default will be put in place."
                 )
 
@@ -219,7 +227,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             sys.exit(CONFIG_ERROR)
 
         assigned.add(key)
-        print(
+        info(
             f"...Using default key {default!r} for action {action!r} "
             f"in context {name!r}."
         )
@@ -237,35 +245,29 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             and all(isinstance(x, str) for x in properties)
         ):
             error(
-                f"config: The properties of action {action!r} in context {name!r} "
+                f"The properties of action {action!r} in context {name!r} "
                 "is in an incorrect format... Using the default."
             )
             continue
 
         key, symbol = properties
         if action not in keyset:
-            print(f"config: Action {action!r} not available in context {name!r}.")
+            error(f"Action {action!r} not available in context {name!r}.")
             continue
         if key not in _valid_keys:
-            error(f"config: Invalid key {key!r}; Trying default...")
+            error(f"Invalid key {key!r}; Trying default...")
             use_default_key()
             continue
 
         if key in global_:
-            error(
-                f"config: {key!r} already assigned to a global action; "
-                "Trying default..."
-            )
+            error(f"{key!r} already assigned to a global action; Trying default...")
             use_default_key()
         elif key in navi:
-            error(
-                f"config: {key!r} already assigned to a navigation action; "
-                "Trying default..."
-            )
+            error(f"{key!r} already assigned to a navigation action; Trying default...")
             use_default_key()
         elif key in assigned:
             error(
-                f"config: {key!r} already assigned to action "
+                f"{key!r} already assigned to action "
                 f"{action_with_key(key, keyset)!r} in the same context; "
                 "Trying default..."
             )
