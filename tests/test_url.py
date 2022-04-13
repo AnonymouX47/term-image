@@ -40,6 +40,13 @@ def test_from_url():
         TermImage.from_url(python_url, scale=1.0)
 
 
-def test_url_source():
+def test_source():
     image = TermImage.from_url(python_url)
     assert image._url == python_url
+
+
+def test_close():
+    image = TermImage.from_url(python_url)
+    assert os.path.exists(image._source)
+    image.close()
+    assert not os.path.exists(image._source)

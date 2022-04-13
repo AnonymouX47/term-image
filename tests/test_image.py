@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from term_img import set_font_ratio
 from term_img.exceptions import InvalidSize
-from term_img.image import _ALPHA_THRESHOLD, TermImage
+from term_img.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
 
 columns, lines = term_size = get_terminal_size()
 rows = lines * 2
@@ -19,7 +19,7 @@ _size = min(columns, rows - 4)
 
 python_image = "tests/images/python.png"
 python_img = Image.open(python_image)
-anim_img = Image.open("tests/images/anim.webp")
+anim_img = Image.open("tests/images/lion.gif")
 
 stdout = io.StringIO()
 
@@ -286,6 +286,39 @@ class TestProperties:
                 == os.path.abspath(linked_image)
                 != os.path.realpath(linked_image)
             )
+
+
+def test_seek_tell():
+    # Non-animated
+    image = TermImage(python_img)
+    assert image.tell() == 0
+    image.seek(0)
+    assert image.tell() == 0
+    with pytest.raises(ValueError, match="out of range"):
+        image.seek(1)
+    assert image.tell() == 0
+
+    # Animated
+    image = TermImage(anim_img)
+    assert image.tell() == 0
+    n_frames = anim_img.n_frames
+
+    image.seek(2)
+    assert image.tell() == 2
+
+    with pytest.raises(ValueError, match="out of range"):
+        image.seek(n_frames)
+    assert image.tell() == 2
+
+    image.seek(n_frames - 1)
+    assert image.tell() == n_frames - 1
+
+    with pytest.raises(ValueError, match="out of range"):
+        image.seek(n_frames + 1)
+    assert image.tell() == n_frames - 1
+
+    image.seek(0)
+    assert image.tell() == 0
 
 
 def test_set_size():
@@ -686,6 +719,17 @@ def test_formatting():
     image.set_size(h_allow=2, v_allow=3, maxsize=(_size, _size))
     assert format(image).partition("\n")[0].count(" ") == columns
     assert format(image).count("\n") + 1 == lines
+
+
+def test_iter():
+    image = TermImage(python_img)
+    with pytest.raises(ValueError, match="not animated"):
+        iter(image)
+
+    anim_image = TermImage(anim_img)
+    image_it = iter(anim_image)
+    assert isinstance(image_it, ImageIterator)
+    assert image_it._image is anim_image
 
 
 def test_draw():
