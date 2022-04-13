@@ -460,8 +460,8 @@ config_options = {
         "must be an integer greater than zero",
     ),
     "cell width": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
+        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
+        "must be an even integer between 30 and 50 (both inclusive)",
     ),
     "font ratio": (
         lambda x: isinstance(x, float) and x > 0.0,
@@ -473,8 +473,8 @@ config_options = {
             and (
                 # exists, is a file and writable
                 (os.path.isfile(x) and os.access(x, os.W_OK))
-                # its parent directory is writable
-                or os.access(os.path.dirname(x), os.W_OK)
+                # is not a directory and the parent directory is writable
+                or (not os.path.isdir(x) and os.access(os.path.dirname(x), os.W_OK))
             )
         ),
         "must be a string containing a writable path to a file",
