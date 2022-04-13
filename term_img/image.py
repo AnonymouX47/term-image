@@ -97,12 +97,13 @@ class TermImage:
             self._seek_position = 0
             self._n_frames = None
 
-        # Recognized advanced sizing options.
+        # Recognized sizing parameters.
         # These are initialized here only to avoid `AttributeError`s in case `_size` is
         # initially set via a means other than `set_size()`.
         self._fit_to_width = False
         self._h_allow = 0
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
+        self._width_compensation = 0.0
 
     def __del__(self):
         self.close()
@@ -642,10 +643,10 @@ class TermImage:
         Frame numbers start from 0 (zero).
         """
         if not isinstance(pos, int):
-            raise TypeError(f"Invalid seek position type (got: {type(pos).__name__})")
-        if not 0 <= pos < self.n_frames if self._is_animated else pos:
+            raise TypeError(f"Invalid frame number type (got: {type(pos).__name__})")
+        if not 0 <= pos < self.n_frames:
             raise ValueError(
-                f"Invalid frame number (got: {pos}, n_frames={self._n_frames})"
+                f"Frame number out of range (got: {pos}, n_frames={self.n_frames})"
             )
         if self._is_animated:
             self._seek_position = pos
