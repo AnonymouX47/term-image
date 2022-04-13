@@ -1403,8 +1403,8 @@ class ImageIterator:
           :term:`render size` and :term:`scale`.
         - If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
           calculated per frame.
-        - The current frame number reflects on *image* during iteration.
-        - After the iterator is exhauseted, *image* is set to frame `0`.
+        - The current frame number reflects on the underlying image during iteration.
+        - After the iterator is exhausted, the underlying image is set to frame `0`.
     """
 
     def __init__(
@@ -1430,7 +1430,7 @@ class ImageIterator:
             )
         *fmt, alpha = image._check_format_spec(format)
 
-        if not isinstance(cached, (bool, int)):
+        if not isinstance(cached, int):  # `bool` is a subclass of `int`
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
         if False is not cached <= 0:
             raise ValueError("'cached' must be a boolean or a positive integer")
@@ -1443,6 +1443,9 @@ class ImageIterator:
         ) and repeat != 1
         self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
 
+    def __del__(self):
+        self.close()
+
     def __iter__(self):
         return self
 
@@ -1450,15 +1453,42 @@ class ImageIterator:
         try:
             return next(self._animator)
         except StopIteration:
+            self.close()
             raise StopIteration(
-                "Iteration has reached the given repeat count or was interruped"
+                "Iteration has reached the given repeat count"
             ) from None
+        except AttributeError as e:
+            if str(e).endswith("'_animator'"):
+                raise StopIteration("Iterator exhausted or closed") from None
+            else:
+                self.close()
+                raise
+        except Exception:
+            self.close()
+            raise
 
     def __repr__(self):
         return "{}(image={!r}, repeat={}, format={!r}, cached={})".format(
             type(self).__name__,
             *self.__dict__.values(),
         )
+
+    def close(self):
+        """Closes the iterator and releases resources used.
+
+        Does not reset the frame number of the underlying image.
+
+        NOTE: This methods is automatically called when the iterator is exhausted or
+        garbage-collected.
+        """
+        try:
+            self._animator.close()
+            del self._animator
+            if self._img is not self._image._source:
+                self._img.close()
+            del self._img
+        except AttributeError:
+            pass
 
     def _animate(
         self,
@@ -1469,6 +1499,7 @@ class ImageIterator:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
         """
+        self._img = img  # For cleanup
         image = self._image
         cached = self._cached
         repeat = self._repeat
@@ -1539,6 +1570,10 @@ class ImageIterator:
             image._seek_position = 0
             if repeat > 0:  # Avoid infinitely large negative numbers
                 repeat -= 1
+
+        # For consistency in behaviour
+        if img is image._source:
+            img.seek(0)
 
 
 # Reserved
