@@ -26,8 +26,8 @@ del command
 class GridListBox(urwid.ListBox):
     def __init__(self, grid: urwid.GridFlow):
         self._grid = grid
-        self._prev_ncell = 1
-        self._prev_cell_width = grid.cell_width
+        self._ncell = 1
+        self._cell_width = grid.cell_width
         self._grid_path = None
         self._ncontent = 0
 
@@ -54,52 +54,73 @@ class GridListBox(urwid.ListBox):
         grid_path = tui_main.grid_path
         ncontent = len(self._grid.contents)
 
+        _row_pos = self.focus_position
+        transfer_col_pos = False
+
         if (
             self._grid_path != grid_path  # Different grids
             or self._ncontent != ncontent  # Different no of cells
-            or not (ncell or self._prev_ncell)  # maxcol is and was < cell_width
-            or ncell != self._prev_ncell  # Number of cells per row changed
-            or self._prev_cell_width != self._grid.cell_width  # cell_width changed
+            or not (ncell or self._ncell)  # maxcol is and was < cell_width
+            or ncell != self._ncell  # Number of cells per row changed
+            or self._cell_width != self._grid.cell_width  # cell_width changed
         ):
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
 
             # Old and new grids are both non-empty
-            both_non_empty = len(self._grid.contents) and (
-                len(self.body) > 1 or isinstance(self.body[0], urwid.Columns)
-            )
-            # Conditions for transferring row focus position
-            transfer_row_focus = (
-                self._grid_path == grid_path
-                and both_non_empty
-                and ncell
-                and self._prev_ncell
-            )
+            both_non_empty = self._ncontent and ncontent
+            # Conditions for transferring GridListBox's focus position
+            transfer_row_pos = self._grid_path == grid_path and both_non_empty
 
-            if transfer_row_focus:
-                col_focus_position = self.focus.focus_position
+            if transfer_row_pos:
+                # Conditions for transferring column focus position
+                transfer_col_pos = ncell and self._ncell
+                # The 0-based index of the focused cell if the grid were laid out flat
+                cell_index = (
+                    # The GridListBox also contains dividers between columns
+                    # i.e Column - Divider - Column - DIvider - Column - ...
+                    # Hence the `// 2`
+                    (self.focus_position // 2) * (self._ncell or 1)
+                    + (self._ncell and self.focus.focus_position)
+                )
 
             self.body[:] = self._grid_contents(size[:1])
-            if self._grid_path == grid_path:
+
+            if transfer_row_pos:
                 # Ensure focus-position is not out-of-bounds
-                self.focus_position = min(len(self.body) - 1, self.focus_position)
+                # For the `* 2`, see the comments on cell_index calculation above
+                self.focus_position = min(
+                    len(self.body) - 1, cell_index // (ncell or 1) * 2
+                )
             else:
                 self.focus_position = 0
 
-            if transfer_row_focus:
-                self.focus.focus_position = min(
-                    len(self.focus.contents) - 1, col_focus_position
+            if transfer_col_pos:
+                # Ensure focus-position is not out-of-bounds
+                col_pos = self.focus.focus_position = min(
+                    len(self.focus.contents) - 1, cell_index % ncell
                 )
-            elif isinstance(self.focus, urwid.Columns):
+            elif ncontent and ncell:
                 self.focus.focus_position = 0
 
             self._grid_path = grid_path
             self._ncontent = ncontent
-            self._prev_ncell = ncell
-            self._prev_cell_width = self._grid.cell_width
+            self._ncell = ncell
+            self._cell_width = self._grid.cell_width
 
-        return super().render(size, focus)
+        canv = super().render(size, focus)
+
+        # For some reason, `GridListBox.render()` resets the focused column's
+        # focus_position to 0 whenever its (the GridListBox's) own focus_position is
+        # manually changed to a different position
+        # So, the focus_position of the newly focused column has be set again after
+        # `render()` and another render set in place
+        if transfer_col_pos and _row_pos != self.focus_position:
+            self.focus.focus_position = col_pos
+            tui_main.update_screen()
+
+        return canv
 
     def _grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
         # The display widget is a `Divider` when the grid is empty
