@@ -625,6 +625,20 @@ NOTES:
             f"for proper image scaling (default: {font_ratio})"
         ),
     )
+    mode_options = general.add_mutually_exclusive_group()
+    mode_options.add_argument(
+        "--cli",
+        action="store_true",
+        help=(
+            "Do not the launch the TUI, instead draw all image sources "
+            "to the terminal directly [3]"
+        ),
+    )
+    mode_options.add_argument(
+        "--tui",
+        action="store_true",
+        help="Always launch the TUI, even for a single image",
+    )
 
     # # Animation
     anim_options = parser.add_argument_group("Animation Options (General)")
@@ -682,21 +696,6 @@ NOTES:
             "Disable image animation. Animated images are displayed as just their "
             "first frame."
         ),
-    )
-
-    mode_options = general.add_mutually_exclusive_group()
-    mode_options.add_argument(
-        "--cli",
-        action="store_true",
-        help=(
-            "Do not the launch the TUI, instead draw all image sources "
-            "to the terminal directly [3]"
-        ),
-    )
-    mode_options.add_argument(
-        "--tui",
-        action="store_true",
-        help="Always launch the TUI, even for a single image",
     )
 
     # # Transparency
@@ -1000,9 +999,12 @@ NOTES:
     # Positional
     parser.add_argument(
         "sources",
-        nargs="+",
+        nargs="*",
         metavar="source",
-        help="Path(s) to local image(s) and/or directory(s) OR URLs",
+        help=(
+            "Path(s) to local image(s) and/or directory(s) OR URLs. "
+            "If no source is given, the current working directory is used."
+        ),
     )
 
     args = parser.parse_args()
@@ -1063,7 +1065,9 @@ NOTES:
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
-    sources = [abspath(source) if exists(source) else source for source in args.sources]
+    sources = [
+        abspath(source) if exists(source) else source for source in args.sources or "."
+    ]
     unique_sources = set()
 
     url_queue = Queue()
