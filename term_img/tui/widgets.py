@@ -415,7 +415,7 @@ banner = urwid.LineBox(
 )
 loading = urwid.Text("", "center")
 notifications = urwid.Pile([])
-notif_bar = urwid.Columns([(3, urwid.Filler(loading)), notifications])
+notif_bar = urwid.Columns([(3, urwid.Filler(loading)), urwid.Filler(notifications)])
 pile = urwid.Pile([(3, banner), viewer], 1)
 
 info_bar = urwid.Text("")
