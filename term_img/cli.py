@@ -17,7 +17,14 @@ import PIL
 import requests
 
 from . import __version__, logging, notify, set_font_ratio, tui
-from .config import anim_cache, config_options, font_ratio, log_file, max_pixels
+from .config import (
+    anim_cache,
+    config_options,
+    font_ratio,
+    log_file,
+    max_pixels,
+    store_config,
+)
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
@@ -615,6 +622,11 @@ NOTES:
         help="Show the program version and exit",
     )
     general.add_argument(
+        "--reset-config",
+        action="store_true",
+        help="Restore default config and exit (Overwrites the config file)",
+    )
+    general.add_argument(
         "-F",
         "--font-ratio",
         type=float,
@@ -1011,6 +1023,10 @@ NOTES:
     MAX_DEPTH = args.max_depth
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
+
+    if args.reset_config:
+        store_config(default=True)
+        sys.exit(SUCCESS)
 
     init_log(
         args.log_file if config_options["log file"][0](args.log_file) else log_file,
