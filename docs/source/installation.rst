@@ -50,7 +50,7 @@ Other terminals that only support 256 colors but meet other requirements include
 .. note::
    If you've tested ``term-img`` on any other terminal emulator that meets all requirements, please mention the name in a new thread under `this discussion <https://github.com/AnonymouX47/term-img/discussions/4>`_.
 
-   Also, if you're having an issue with terminal support, also report or view information about it in the discussion linked above.
+   Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
 
 
 See `here <https://github.com/termstandard/colors>`_ for information about terminal colors and a list of potentially supported terminal emulators.
