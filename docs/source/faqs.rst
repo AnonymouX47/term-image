@@ -10,7 +10,7 @@ What about Windows support?
    - Firstly, only the new `Windows Terminal <https://github.com/microsoft/terminal>`_ seems to have proper ANSI support and mordern terminal emulator features.
    - The library and the viewer's CLI mode currently work (with a few quirks) on Windows (i.e using ``cmd`` or ``powershell``) if the other requirements are satisfied but can't guarantee it'll always be so.
 
-     - Tranparent images and animations don't work well with ``cmd`` and ``powershell`` i.e in Windows Terminal.
+     - Drawing images and animations doesn't work completely well in ``cmd`` and ``powershell``. See :ref:`library-issues`.
 
    - The TUI doesn't work due to the lack of `fcntl <https://docs.python.org/3/library/fcntl.html>`_ on Windows, which is used by `urwid <https://urwid.org>`_.
    - If stuck on Windows and want to use all features, you could use WSL + Windows Terminal.

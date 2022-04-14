@@ -112,7 +112,10 @@ A log entry has the following format:
 
 Known Issues
 ------------
-* The TUI is not supported on Windows
+1. The TUI is not supported on Windows
+2. Drawing of images and animations doesn't work completely well with ``cmd`` and ``powershell`` (tested in Windows Terminal). See :ref:`library-issues` for details.
+
+   * In the viewer's CLI mode, use the ``--h-allow`` option to specify a horizontal allowance.
 
 
 Planned Features

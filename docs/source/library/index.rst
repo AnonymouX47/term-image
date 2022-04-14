@@ -9,9 +9,17 @@ Library Documentation
    reference/index
 
 
+.. _library-issues:
+
 Known Issues
 ------------
-* Transparent and animated images don't work well with ``cmd`` and ``powershell`` on Windows i.e within Windows Terminal.
+1. Drawing of images and animations doesn't work completely well with ``cmd`` and ``powershell`` (tested in Windows Terminal).
+
+   * **Description**: Some lines of the image seem to extend beyond the number of columns that it should normally occupy by about one or two columns. This behaviour causes animations to go bizzare.
+
+   * **Comment**: First of all, the issue is inherent to these shells and neither a fault of this library nor the Windows Terminal, as drawing images and animations works properly with WSL within Windows Terminal.
+
+   * **Solution**: A workaround is to leave some **horizontal allowance** of **at least two columns** to ensure the image never reaches the right edge of the terminal. This can be achieved in the library by using the *h_allow* parameter of :py:meth:`TermImage.set_size() <term_img.image.TermImage.set_size>`.
 
 
 .. _library-planned:
