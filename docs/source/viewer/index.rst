@@ -10,7 +10,8 @@ Image viewer
 
 The package comes with a standalone in-terminal image viewer based on the library.
 
-The image viewer is started from the command line using either the ``term-img`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
+| The image viewer is started from the command line using either the ``term-img`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
+| *Take note of the "-" (hyphen) versus "_" (underscore)*.
 
 .. image:: /resources/tui.png
 
@@ -61,27 +62,34 @@ Notifications
 | Notifications are event reports meant to be brought to the immediate knowledge of the user.
 | Notifications have two possible destinations:
 
-* Standard output: This is used while the TUI is **not** launched.
+* Standard output/error stream: This is used while the TUI is **not** launched.
 * TUI :ref:`notification bar <notif-bar>`: This is used while the TUI is launched.
 
 Notifications sent to the TUI's :ref:`notification bar <notif-bar>` automatically disappear after 5 seconds.
 
+.. _logging:
 
 Logging
 -------
 
-| Logs are more detailed event reports meant for troubleshooting and debugging purporses.
+Logs are more detailed event reports meant for troubleshooting and debugging purporses.
 
-| Logs are written to a file on a local filesystem. The default log file is ``~/.term_img/term_img.log`` but a different file can be specified (for a single session) using the ``--log`` CLI option.
+Logs are written to a file on a local filesystem. The default log file is ``~/.term_img/term_img.log`` but a different file can be specified:
+   * for all sessions, using the :ref:`log file <log-file>` config option
+   * per session, using the ``--log`` command-line option
 
 A log entry has the following format:
 
 .. code-block:: none
 
-   (<pid>) (<date> <time>) [<level>] <module>: <function>: <message>
+   (<pid>) (<date> <time>) <process>: <thread>: [<level>] <module>: <function>: <message>
 
 * *pid*: The process ID of the term-img session.
 * *date* and *time*: Current system date and time in the format ``%d-%m-%Y %H:%M:%S``.
+* *process* and *thread*: The names of the python process and thread that produced the log record.
+
+  * Only present when the *logging level* is set to ``DEBUG`` (either by ``--debug`` or ``--log-level=DEBUG``).
+
 * *level*: The level of the log entry, this indicates it's importance.
 * *module*: The package sub-module from which it originated.
 * *function*: The function from which it originated.
@@ -95,7 +103,7 @@ A log entry has the following format:
 
    * Certain logs and some extra info are only provided when *logging level* is set to ``DEBUG``.
    * Log files are **appended to**, so it's safe use the same file for multiple sessions.
-   * Logs are rotated upon reaching a size of **1MiB**.
+   * Log files are rotated upon reaching a size of **1MiB**.
 
      * Only the current and immediate previous log file are kept.
 
@@ -104,30 +112,36 @@ A log entry has the following format:
 
 Known Issues
 ------------
+* The TUI is not supported on Windows
 
 
 Planned Features
 ----------------
-In no particular order:
-
 * Performance improvements
-* Overlay support for ``Image`` widgets
+* STDIN source
 * Open in external viewer
-* Theme customization
-* Grid cell animations
-* Config menu
 * Pattern-based file and directory exclusion
 * Minimum and maximum file size
 * Optionally skipping symlinks
-* Grid cell showing number of subfolders
+* Distinguished color for symlinked entries in the list view
+* Full grid view
+* Grid cells for directory entries
+* Interactive CLI mode
 * Slideshow
 * Zoom/Pan
-* Frame duration adjustment per animated image
-* Find
-* Filter
+* Sorting options
+* Find in iist view
+* Filter in list and grid views
 * Alpha backaground adjustment per image
+* Frame duration adjustment per animated image
 * Copy:
-   * Image
+
+   * Image data
    * File/Directory name
    * Full path
    * Parent directory path
+
+* Theme customization
+* Config menu
+* Overlay support for ``Image`` widgets
+* etc...
