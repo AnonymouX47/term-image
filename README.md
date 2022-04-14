@@ -31,20 +31,20 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / MacOS X / Windows (partial, more info in the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html))
-- [Python >= 3.6](https://www.python.org/)
+- Operating System: Unix / Linux / MacOS X / Windows (partial support, see the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html))
+- [Python >= 3.7](https://www.python.org/)
 - A Terminal emulator with full Unicode support and ANSI 24-bit color support
-  - Plans are in place to [partially] support terminals not meeting this requirement (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).
+  - Plans are in place to support a wider variety of terminal emulators, whether not meeting or surpassing these requirements (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).
 
 ### Steps
-The package can be installed from PyPI using `pip`:
+The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-img) using `pip`:
 
 ```shell
 pip install term-image
 ```
-OR
 
-Clone this repository using any method, then navigate into the project directory in a terminal and run:
+The **development** version can be installed thus:
+Clone this repository, then navigate into the project directory in a terminal and run:
 
 ```shell
 pip install .
@@ -54,56 +54,60 @@ pip install .
 See [here](https://term-img.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
 If you've tested `term-img` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-img/discussions/4).
-Also, if you're having an issue with terminal support, also report or view information about it in the discussion linked above.
+Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
 
 
 ## Features
 
 ### Library features
 - Multiple image format support
-  - Basically supports all formats supported by `PIL.Image.open()`
+  - Basically supports all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
 - Multiple image sources (PIL image, local file, URL)
 - Transparency support (with multiple options)
 - Animated image support (including transparent ones)
+  - Fully controllable and efficient iteration over frames of animated images
+  - Image animation with controllable parameters
 - Terminal size awareness
 - Variable image size
 - Automatic image sizing; best fit within the terminal window or a given size
 - Variable image scale
 - Horizontal and vertical alignment/padding
 - Font-ratio adjustment
-- Frame duration (animation speed) control
-- ... more coming soon :grin:
+- and more... :grin:
 
 ### CLI/TUI features
 - Basically everything the library supports
 - Individual image display
-- Multiple images / Directory / Recursive browsing
-- Image grid [TUI]
+- Browse multiple images
+- Browse directories (recursively) [TUI]
+- Image grids [TUI]
 - Context-based controls [TUI]
 - Dynamic controls (context actions are disabled and enabled dynamically) [TUI]
 - Customizable controls and configuration options
 - Automatic adjustment upon terminal resize [TUI]
 - Image deletion [TUI]
+- Smooth and fairly performant experience
+- Takes advantage of both concurrency and parallelism
 - Notification system
 - Detailed logging system
-- ... more coming soon :grin:
+- and more... :grin:
 
 
 ## CLI/TUI Quick Start
 
 From a local image file
-```bash
+```shell
 term-img path/to/image.png
 ```
 
 From a URL
-```bash
+```shell
 term-img https://www.example.com/image.png
 ```
 
-If the image is animated (GIF, WEBP), the animation is infinitely looped but can be stopped with `Ctrl-C`.
+If the image is animated (GIF, WEBP), the animation is infinitely looped **by default** but can be stopped with `Ctrl-C`.
 
-**By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images.**
+**By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images (and/or directories).**
 
 **NOTE:** `python -m term_img` can be used as an alternative to the `term-img` command **(take note of the _underscore_ VS _hyphen_)**.
 
@@ -203,8 +207,11 @@ For animated images, only the first method can animate the output, the second on
 
 ## Usage
 
+### Library
+See the [tutorial](https://term-img.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-img.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
+
 ### CLI (Command-Line Interface)
-Run `term-img --help` to see full usage info.
+Run `term-img --help` to see the full usage info and list of options.
 
 ### TUI (Text-based/Terminal User Interface)
 The controls are **context-based** and displayed at the bottom of the terminal window.
@@ -214,10 +221,7 @@ The TUI controls can be configured by modifying the config file `~/.term_img/con
 [Here](https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation).
 *Remember to rename the file to `config.json`.*
 
-### Library
-See the [tutorial](https://term-img.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-img.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
-
-_**NOTE:** The project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
+_**NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
 
 
 ## Contribution
@@ -237,8 +241,9 @@ Thanks! :heart:
 
 
 ## WIP
-- Performance improvements
-
+- Change of image sizing unit (#16)
+- Support for terminal graphics protocols (#23)
+- Support for more text-based rendering styles
 
 ## TODO
 
@@ -246,9 +251,3 @@ Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planne
 
 ## FAQs
 See the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html) section of the docs.
-
-* * *
-
-## Acknowledgment
-
-This project started as a fork of [img](https://github.com/pranavbaburaj/img) by [@pranavbaburaj](https://github.com/pranavbaburaj) but has since grown into something almost entirely different.
