@@ -9,7 +9,7 @@ For this tutorial we'll be using the image below:
 
 The image has a resolution of **288x288 pixels**.
 
-.. note:: All the samples in this tutorial occured in a terminal of **255 columns by 70 lines**.
+.. note:: All the samples in this tutorial occured in a terminal window of **255 columns by 70 lines**.
 
 Creating an instance
 --------------------
@@ -123,7 +123,7 @@ Renders the image with:
 * **no** horizontal :term:`padding`, since ``1`` must be less than or equal to the image :term:`width <render width>`
 * **middle** :term:`vertical alignment` (default)
 * **no** vertical :term:`padding`, since ``1`` is less than or equal to the image :term:`height <render height>`
-* transparency **disabled** (black background)
+* transparency **disabled** (uses the image's default background color)
 
 The result should look like:
 
@@ -156,7 +156,9 @@ There are two ways to draw an image to the terminal screen:
 
       print(f"{image:>200.^70#ffffff}")  # Uses format()
 
-.. note:: For :term:`animated` images, only the first method animates the output, the second only draws the **current** frame (see :py:meth:`TermImage.seek() <term_img.image.TermImage.seek()>` and :py:meth:`TermImage.tell() <term_img.image.TermImage.tell()>`).
+.. note::
+   - For :term:`animated` images, only the former animates the output, the latter only draws the **current** frame (see :py:meth:`TermImage.seek() <term_img.image.TermImage.seek()>` and :py:meth:`TermImage.tell() <term_img.image.TermImage.tell()>`).
+   - Also, the former performs size validation to see if the image will fit into the terminal, while the latter doesn't.
 
 
 .. important:: All the examples above use automatic :term:`sizing <render size>` and default :term:`scale`.
@@ -206,17 +208,14 @@ True
 >>> image.width
 56
 
-The resulting size must fit into the terminal window
+No size validation is performed i.e the resulting size might not fit into the terminal window
 
->>> image = TermImage.from_file("python.png", height=136)  # (terminal_height - 2) * 2; Still OK
+>>> image = TermImage.from_file("python.png", height=136)  # (terminal_height - 2) * 2; Will fit, OK
 >>> image.size
 (136, 136)
->>> image = TermImage.from_file("python.png", height=137)  # Not OK
-Traceback (most recent call last):
-  .
-  .
-  .
-term_img.exceptions.InvalidSize: The resulting rendered size will not fit into the available size
+>>> image = TermImage.from_file("python.png", height=1000)  # Will not fit, also OK
+>>> image.size
+(1000, 1000)
 
 An exception is raised when both *width* and *height* are given.
 
@@ -242,12 +241,7 @@ True
 (136, 136)
 >>> image.width
 136
->>> image.width = 200  # Even though the terminal can contain this width, it can't contain the resulting height
-Traceback (most recent call last):
-  .
-  .
-  .
-term_img.exceptions.InvalidSize: The resulting rendered size will not fit into the available size
+>>> image.width = 200  # Even though the terminal can't contain the resulting height, the size is still set
 
 Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated based on the current :term:`terminal size`.
 
@@ -264,6 +258,8 @@ True
 >>> image.size
 (136, 136)
 
+.. note:: An exception is raised if the terminal size is too small to calculate a size.
+
 The :py:attr:`size <term_img.image.TermImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the :term:`render size`.
 
 >>> image = Termimage.from_file("python.png", width=100)
@@ -276,9 +272,8 @@ True
 .. important::
 
    1. The currently set :term:`font ratio` is also taken into consideration when calculating or validating sizes.
-   2. **By default**, the resulting size must not exceed the :term:`terminal size` i.e for both the given axis and the axis automatically calculated.
-   3. The :term:`height <render height>` is actually **about twice the number of lines** that'll be used to draw the image, assuming the y-axis :term:`scale` is ``1.0`` (we'll get to that).
-   4. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
+   2. The :term:`height <render height>` is actually **about twice the number of lines** that'll be used to draw the image, assuming the y-axis :term:`scale` is ``1.0`` (we'll get to that).
+   3. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
    Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
 
