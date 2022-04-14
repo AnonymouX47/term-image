@@ -25,6 +25,7 @@
 - [Contribution](#contribution)
 - [WIP](#wip)
 - [TODO](#todo)
+- [Known Issues](#known-issues)
 - [FAQs](#faqs)
 
 
@@ -32,7 +33,7 @@
 
 ### Requirements
 - Operating System: Unix / Linux / MacOS X / Windows (partial support, see the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html))
-- [Python >= 3.7](https://www.python.org/)
+- [Python](https://www.python.org/) >= 3.7
 - A Terminal emulator with full Unicode support and ANSI 24-bit color support
   - Plans are in place to support a wider variety of terminal emulators, whether not meeting or surpassing these requirements (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).
 
@@ -95,6 +96,9 @@ Also, if you're having an issue with terminal support, you may report or view in
 
 ## CLI/TUI Quick Start
 
+<details>
+<summary>Click to expand</summary>
+
 From a local image file
 ```shell
 term-img path/to/image.png
@@ -111,10 +115,15 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 
 **NOTE:** `python -m term_img` can be used as an alternative to the `term-img` command **(take note of the _underscore_ VS _hyphen_)**.
 
+</details>
+
 
 ## Library Quick Start
 
 ### Creating an instance
+
+<details>
+<summary>Click to expand</summary>
 
 ```python
 from term_img.image import TermImage
@@ -138,7 +147,13 @@ img = Image.open("path/to/image.png")
 image = TermImage(img)
 ```
 
+</details>
+
 ### Rendering an image
+
+<details>
+<summary>Click to expand</summary>
+
 Rendering an image, in this context, is simply the process of converting it into text (a string).
 There are two ways to render an image:
 
@@ -182,7 +197,13 @@ Renders the image with:
 * **no** vertical padding, since ``1`` is less than or equal to the image height
 * transparency **disabled** (black background)
 
+</details>
+
 ### Drawing/Displaying an image to/in the terminal
+
+<details>
+<summary>Click to expand</summary>
+
 There are two ways to draw an image to the terminal screen.
 
 #### 1. The `draw()` method
@@ -204,11 +225,15 @@ For animated images, only the first method can animate the output, the second on
 
 **NOTE:** All the above examples use **automatic sizing** and default scale.
 
+</details>
+
 
 ## Usage
 
 ### Library
 See the [tutorial](https://term-img.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-img.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
+
+_**PLEASE NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
 
 ### CLI (Command-Line Interface)
 Run `term-img --help` to see the full usage info and list of options.
@@ -218,11 +243,8 @@ The controls are **context-based** and displayed at the bottom of the terminal w
 Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
 
 The TUI controls can be configured by modifying the config file `~/.term_img/config.json`. See the [Configuration](https://term-img.readthedocs.io/en/latest/viewer/config.html) section.
-[Here](https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation).
-*Remember to rename the file to `config.json`.*
 
-_**NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
-
+[Here](https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
 
 ## Contribution
 
@@ -241,13 +263,18 @@ Thanks! :heart:
 
 
 ## WIP
-- Change of image sizing unit (#16)
-- Support for terminal graphics protocols (#23)
+- Change of image sizing unit (See [#16](https://github.com/AnonymouX47/term-img/issues/16))
+- Support for terminal graphics protocols (See [#23](https://github.com/AnonymouX47/term-img/issues/23))
 - Support for more text-based rendering styles
+- Performace Improvements
 
 ## TODO
 
 Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-img.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
+
+## Known Issues
+
+Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#known-issues) for the library and [here](https://term-img.readthedocs.io/en/latest/viewer/index.html#known-issues) for the image viewer.
 
 ## FAQs
 See the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html) section of the docs.
