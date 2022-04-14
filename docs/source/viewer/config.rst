@@ -12,33 +12,57 @@ The configuration is stored in the JSON format in a file located at ``~/.term_im
 Config Options
 --------------
 
-These are fields whose values control various behaviours of the viewer. They are as follows:
+| These are fields whose values control various behaviours of the viewer.
+| Any option with a "[\*]" after its description will be used only when the corresponding command-line option is either not specified or has an invalid value.
+
+They are as follows:
+
+* **anim cache**: The maximum frame count of an image for which frames will be cached during animation. [\*]
+
+  * Type: integer
+  * Valid values: x > ``0``
 
 * **cell width**: The initial width of (no of columns for) grid cells, in the TUI.
 
   * Type: integer
-  * Valid values: x > ``0``
+  * Valid values: ``30`` <= x <= ``50`` and x is even
 
 .. _font-ratio-config:
 
-* **font ratio**: The :term:`font ratio` used when ``--font-ratio`` CLI option is not specified.
+* **font ratio**: The :term:`font ratio`. [\*]
 
   * Type: float
   * Valid values: x > ``0.0``
 
-* **frame duration**: The the time (in seconds) between frames of an animated image, when ``--frame-duration`` CLI option is not specified.
+.. _log-file:
 
-  * Type: float
-  * Valid values: x > ``0.0``
+* **log file**: The file to which logs are written. [\*]
 
-* **max pixels**: The maximum amount of pixels in images to be displayed in the TUI, when ``--max-pixels`` CLI option is not specified.
+  * Type: string
+  * Valid values: An absolute path to a writable file.
+  * If the file doesn't exist the parent directory must be writable, so the file can created.
+  * If the file exists, it is appended to, not overwritten.
+  * See :ref:`logging`.
+
+* **max notifications**: The maximum number of TUI notifications that can show at a time.
+
+  * Type: integer
+  * Valid values: x >= ``0``
+  * Adjusts the height of the :ref:`notification bar <notif-bar>`.
+
+* **max pixels**: The maximum amount of pixels in images to be displayed in the TUI. [\*]
 
   * Type: integer
   * Valid values: x > ``0``
-  * Any image having more pixels than the specified maximum will be replaced with a placeholder when displayed but can still be forced to display or viewed externally.
-  * Note that increasing this will have adverse effects on performance.
+  * Any image having more pixels than the specified value will be:
 
-.. important:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
+    * skipped, in CLI mode, if ``--max-pixels-cli`` is specified.
+    * replaced, in TUI mode, with a placeholder when displayed but can still be forced to display or viewed externally.
+
+  * Note that increasing this should not have any effect on general performance (i.e navigation, etc) but the larger an image is, the more the time and memory it'll take to render it. Thus, a large image might delay the rendering of other images to be rendered immediately after it.
+
+
+.. attention:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
 
 
 Key Config
@@ -65,7 +89,7 @@ The format of the ``"keys"`` mapping is thus::
 
 *'...' means continuous repitition of the format occurs.*
 
-| *action* is the *name* of the action. It should not be modified.
+| *action* is the name of the action. **It should not be modified**.
 | Any or both of *key* and *symbol* can be changed. Both must be valid Python strings, hence Unicode characters are supported.
 
 .. hint::
@@ -76,7 +100,13 @@ The format of the ``"keys"`` mapping is thus::
 
    The ``navigation`` field is not actually a *context*, instead it's the universal navigation controls configuration from which navigation *actions* in actual *contexts* are updated.
 
-| `Here <https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json>`_ is a pre-configured config with Vim-style key-bindings (majorly navigation).
+.. attention::
+
+   1. Keys used in ``navigation`` or ``global`` contexts cannot be used in any other context.
+   2. All keys in a context must be unique.
+   3. If a key is invalid or already used, the default is tried as a fallback but if that fails (because it's already used), the session is terminated.
+
+| `Here <https://raw.githubusercontent.com/AnonymouX47/term-img/main/vim-style_config.json>`_ is a config with Vim-style (majorly navigation) keybindings.
 | *Remember to rename the file to* ``config.json``.
 
 Below is a list of all **valid** values for *key*::
@@ -286,10 +316,4 @@ Below is a list of all **valid** values for *key*::
     "page down"
     "ctrl page down"
 
-Any values other than these will be flagged as invalid and the default will be used instead (if possible), for that session.
-
-.. important::
-
-   1. Keys used in ``navigation`` or ``global`` contexts cannot be used in any other context.
-   2. All keys in a context must be unique.
-   3. If a key is invalid or already used, the default is tried as a fallback but if that fails (because it already used), the session is terminated.
+Any values other than these will be flagged as invalid and the default will be used instead (if possible) for that session.
