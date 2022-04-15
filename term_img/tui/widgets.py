@@ -30,6 +30,7 @@ class GridListBox(urwid.ListBox):
         self._cell_width = grid.cell_width
         self._grid_path = None
         self._ncontent = 0
+        self._page_ncell = 1  # Used by GridScanner
 
         return super().__init__(self._grid_contents((grid.cell_width,)))
 
@@ -104,6 +105,12 @@ class GridListBox(urwid.ListBox):
             elif ncontent and ncell:
                 self.focus.focus_position = 0
 
+            if grid_path != self._grid_path:
+                # Maximum number of cells per grid page. Used by GridScanner
+                self._page_ncell = ncell * ceil(
+                    size[1] / (ceil(self._grid.cell_width / 2) + self._grid.v_sep)
+                )
+
             self._grid_path = grid_path
             self._ncontent = ncontent
             self._ncell = ncell
@@ -133,10 +140,6 @@ class GridListBox(urwid.ListBox):
             else content[0].original_widget
             for content in self._grid.generate_display_widget(size).contents
         ]
-
-        for content in contents:
-            if not isinstance(content, urwid.Divider):
-                content._selectable = True
 
         return contents
 
