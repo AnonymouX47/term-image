@@ -8,6 +8,9 @@ check-imports:
 	isort --check --diff --color .
 	echo
 
+clean-docs:
+	cd docs/; make clean
+
 .PHONY: docs
 docs:
 	cd docs/; make html

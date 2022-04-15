@@ -1,6 +1,5 @@
 """
-Core Library Definitions
-========================
+.. Core Library Definitions
 """
 
 from __future__ import annotations
@@ -200,7 +199,7 @@ class TermImage:
     )
 
     original_size = property(
-        lambda self: self._original_size, doc="Original image size"
+        lambda self: self._original_size, doc="Original image size in pixels"
     )
 
     @property
@@ -361,12 +360,11 @@ class TermImage:
     def close(self) -> None:
         """Finalizes the instance and releases external resources.
 
-        NOTE:
-            * In most cases, it's not neccesary to explicity call this method, as it's
-              automatically called when the instance is garbage-collected.
-            * This method can be safely called mutiple times.
-            * If the instance was initialized with a PIL image, the PIL image is never
-              finalized.
+        * In most cases, it's not neccesary to explicity call this method, as it's
+          automatically called when the instance is garbage-collected.
+        * This method can be safely called mutiple times.
+        * If the instance was initialized with a PIL image, the PIL image is never
+          finalized.
         """
         try:
             if not self._closed:
@@ -415,7 +413,8 @@ class TermImage:
 
             alpha: Transparency setting.
 
-              * If ``None``, transparency is disabled (i.e black background).
+              * If ``None``, transparency is disabled
+                (uses the image's default background color).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
                 **above** which pixels are taken as *opaque*.
               * If a string, specifies a **hex color** with which transparent
@@ -451,23 +450,22 @@ class TermImage:
             term_img.exceptions.InvalidSize: The image's :term:`rendered size` can not
               fit into the :term:`available terminal size <available size>`.
 
-        .. note::
-            * Animations, **by default**, are infinitely looped and can be terminated
-              with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
-            * If :py:meth:`set_size` was previously used to set the
-              :term:`render size` (directly or not), the last values of its
-              *fit_to_width*, *h_allow* and *v_allow* parameters are taken into
-              consideration, with *fit_to_width* applying to only non-animations.
-            * If the render size was set with the *fit_to_width* paramter of
-              :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
-            * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
-              They are simply ignored for non-animated images.
-            * For animations (i.e animated images with *animate* set to ``True``):
+        * Animations, **by default**, are infinitely looped and can be terminated
+          with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
+        * If :py:meth:`set_size` was previously used to set the
+          :term:`render size` (directly or not), the last values of its
+          *fit_to_width*, *h_allow* and *v_allow* parameters are taken into
+          consideration, with *fit_to_width* applying to only non-animations.
+        * If the render size was set with the *fit_to_width* paramter of
+          :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
+        * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
+          They are simply ignored for non-animated images.
+        * For animations (i.e animated images with *animate* set to ``True``):
 
-              * :term:`Render size` and :term:`padding height` are always validated,
-                if set.
-              * *scroll* is taken as ``False`` when render size is
-                :ref:`unset <unset-size>`.
+          * :term:`Render size` and :term:`padding height` are always validated,
+            if set.
+          * *scroll* is taken as ``False`` when render size is
+            :ref:`unset <unset-size>`.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -1395,18 +1393,17 @@ class ImageIterator:
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not.
 
-          - If ``bool``, it directly sets if the frames will be cached or not.
-          - If ``int``, caching is enabled only if the framecount of the image
+          * If ``bool``, it directly sets if the frames will be cached or not.
+          * If ``int``, caching is enabled only if the framecount of the image
             is less than or equal to the given number.
 
-    NOTE:
-        - If *repeat* equals ``1``, caching is disabled.
-        - The iterator has immediate response to changes in the image
-          :term:`render size` and :term:`scale`.
-        - If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
-          calculated per frame.
-        - The current frame number reflects on the underlying image during iteration.
-        - After the iterator is exhausted, the underlying image is set to frame `0`.
+    * If *repeat* equals ``1``, caching is disabled.
+    * The iterator has immediate response to changes in the image
+      :term:`render size` and :term:`scale`.
+    * If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
+      calculated per frame.
+    * The current frame number reflects on the underlying image during iteration.
+    * After the iterator is exhausted, the underlying image is set to frame `0`.
     """
 
     def __init__(
@@ -1480,8 +1477,9 @@ class ImageIterator:
 
         Does not reset the frame number of the underlying image.
 
-        NOTE: This methods is automatically called when the iterator is exhausted or
-        garbage-collected.
+        NOTE:
+            This methods is automatically called when the iterator is exhausted or
+            garbage-collected.
         """
         try:
             self._animator.close()

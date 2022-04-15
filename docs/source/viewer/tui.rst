@@ -47,9 +47,9 @@ The following are the key components that make up the UI.
 * **Notification Bar**:
 
   * Immediately above the *Action/Key Bar*.
-  * Fixed height of 2 lines.
   * Notifications about various events are displayed here.
   * Hidden in full image views.
+  * Hidden in all views, in QUIET mode (``--quiet``).
 
 * **Action/Key Bar**:
 
