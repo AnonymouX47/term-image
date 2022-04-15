@@ -915,38 +915,35 @@ NOTES:
         ),
     )
 
-    default_checkers = max(
-        (
-            len(os.sched_getaffinity(0))
-            if hasattr(os, "sched_getaffinity")
-            else os.cpu_count() or 0
-        )
-        - 1,
-        2,
-    )
     perf_options.add_argument(
         "--checkers",
         type=int,
         metavar="N",
-        default=default_checkers,
+        default=config.checkers,
         help=(
             "Maximum number of sub-processes for checking directory sources "
-            f"(default: {default_checkers})"
+            f"(default: {config.checkers})"
         ),
     )
     perf_options.add_argument(
         "--getters",
         type=int,
         metavar="N",
-        default=4,
-        help="Number of threads for downloading images from URL sources (default: 4)",
+        default=config.getters,
+        help=(
+            "Number of threads for downloading images from URL sources "
+            "(default: {config.getters})"
+        ),
     )
     perf_options.add_argument(
         "--grid-renderers",
         type=int,
         metavar="N",
-        default=1,
-        help="Number of subprocesses for rendering grid cells (default: 1)",
+        default=config.grid_renderers,
+        help=(
+            "Number of subprocesses for rendering grid cells "
+            "(default: {config.grid_renderers})"
+        ),
     )
     perf_options.add_argument(
         "--no-multi",
@@ -1038,10 +1035,7 @@ NOTES:
         notify.loading_indicator.start()
 
     for details in (
-        ("checkers", lambda x: x >= 0, "must be non-negative"),
         ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
-        ("getters", lambda x: x > 0, "must be greater than zero"),
-        ("grid_renderers", lambda x: x >= 0, "must be non-negative"),
         ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
             "max_depth",

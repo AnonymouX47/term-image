@@ -43,6 +43,8 @@ def init_config() -> None:
         Must be called before any other function in this module
         and before anything else is imported from this module.
     """
+    global checkers
+
     if os.path.exists(user_dir):
         if not os.path.isdir(user_dir):
             fatal("Please rename or remove the file {user_dir!r}.")
@@ -63,6 +65,17 @@ def init_config() -> None:
             action[3:] = (True, True)  # Default: "shown", "enabled"
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
+
+    if checkers is None:
+        checkers = max(
+            (
+                len(os.sched_getaffinity(0))
+                if hasattr(os, "sched_getaffinity")
+                else os.cpu_count() or 0
+            )
+            - 1,
+            2,
+        )
 
 
 def load_config() -> bool:
@@ -169,6 +182,9 @@ def update_config(config: Dict[str, Any], old_version: str):
         "0.1": [],
         "0.2": [
             ("['anim cache']", NotImplemented, 100),
+            ("['checkers']", NotImplemented, None),
+            ("['getters']", NotImplemented, 4),
+            ("['grid renderers']", NotImplemented, 1),
             (
                 "['log file']",
                 NotImplemented,
@@ -353,7 +369,10 @@ valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 # Defaults
 _anim_cache = 100
 _cell_width = 30
+_checkers = None
 _font_ratio = 0.5
+_getters = 4
+_grid_renderers = 1
 _log_file = os.path.join(user_dir, "term_img.log")
 _max_notifications = 2
 _max_pixels = 2**22  # 2048x2048
@@ -453,7 +472,10 @@ _context_keys = {
 
 anim_cache = _anim_cache
 cell_width = _cell_width
+checkers = _checkers
 font_ratio = _font_ratio
+getters = _getters
+grid_renderers = _grid_renderers
 log_file = _log_file
 max_notifications = _max_notifications
 max_pixels = _max_pixels
@@ -470,9 +492,21 @@ config_options = {
         lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
         "must be an even integer between 30 and 50 (both inclusive)",
     ),
+    "checkers": (
+        lambda x: x is None or isinstance(x, int) and x >= 0,
+        "must be `null` or a non-negative integer",
+    ),
     "font ratio": (
         lambda x: isinstance(x, float) and x > 0.0,
         "must be a float greater than zero",
+    ),
+    "getters": (
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "grid renderers": (
+        lambda x: isinstance(x, int) and x >= 0,
+        "must be a non-negative integer",
     ),
     "log file": (
         lambda x: (
