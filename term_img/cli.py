@@ -16,8 +16,8 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import __version__, logging, notify, set_font_ratio, tui
-from .config import config_options, font_ratio, max_pixels, user_dir
+from . import __version__, config, logging, notify, set_font_ratio, tui
+from .config import config_options, store_config
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
@@ -604,15 +604,34 @@ NOTES:
         help="Show the program version and exit",
     )
     general.add_argument(
+        "--reset-config",
+        action="store_true",
+        help="Restore default config and exit (Overwrites the config file)",
+    )
+    general.add_argument(
         "-F",
         "--font-ratio",
         type=float,
         metavar="N",
-        default=font_ratio,
+        default=config.font_ratio,
         help=(
             "Specify the width-to-height ratio of a character cell in your terminal "
-            f"for proper image scaling (default: {font_ratio})"
+            f"for proper image scaling (default: {config.font_ratio})"
         ),
+    )
+    mode_options = general.add_mutually_exclusive_group()
+    mode_options.add_argument(
+        "--cli",
+        action="store_true",
+        help=(
+            "Do not the launch the TUI, instead draw all image sources "
+            "to the terminal directly [3]"
+        ),
+    )
+    mode_options.add_argument(
+        "--tui",
+        action="store_true",
+        help="Always launch the TUI, even for a single image",
     )
 
     # # Animation
@@ -643,11 +662,11 @@ NOTES:
     anim_cache_options.add_argument(
         "--anim-cache",
         type=int,
-        default=100,
+        default=config.anim_cache,
         metavar="N",
         help=(
             "Maximum frame count for animation frames to be cached (Better performance "
-            "at the cost of memory) (default: 100) [5]"
+            f"at the cost of memory) (default: {config.anim_cache}) [5]"
         ),
     )
     anim_cache_options.add_argument(
@@ -671,21 +690,6 @@ NOTES:
             "Disable image animation. Animated images are displayed as just their "
             "first frame."
         ),
-    )
-
-    mode_options = general.add_mutually_exclusive_group()
-    mode_options.add_argument(
-        "--cli",
-        action="store_true",
-        help=(
-            "Do not the launch the TUI, instead draw all image sources "
-            "to the terminal directly [3]"
-        ),
-    )
-    mode_options.add_argument(
-        "--tui",
-        action="store_true",
-        help="Always launch the TUI, even for a single image",
     )
 
     # # Transparency
@@ -893,45 +897,42 @@ NOTES:
         "--max-pixels",
         type=int,
         metavar="N",
-        default=max_pixels,
+        default=config.max_pixels,
         help=(
             "Maximum amount of pixels in images to be displayed "
-            f"(default: {max_pixels}) [4]"
+            f"(default: {config.max_pixels}) [4]"
         ),
     )
 
-    default_checkers = max(
-        (
-            len(os.sched_getaffinity(0))
-            if hasattr(os, "sched_getaffinity")
-            else os.cpu_count() or 0
-        )
-        - 1,
-        2,
-    )
     perf_options.add_argument(
         "--checkers",
         type=int,
         metavar="N",
-        default=default_checkers,
+        default=config.checkers,
         help=(
             "Maximum number of sub-processes for checking directory sources "
-            f"(default: {default_checkers})"
+            f"(default: {config.checkers})"
         ),
     )
     perf_options.add_argument(
         "--getters",
         type=int,
         metavar="N",
-        default=4,
-        help="Number of threads for downloading images from URL sources (default: 4)",
+        default=config.getters,
+        help=(
+            "Number of threads for downloading images from URL sources "
+            "(default: {config.getters})"
+        ),
     )
     perf_options.add_argument(
         "--grid-renderers",
         type=int,
         metavar="N",
-        default=1,
-        help="Number of subprocesses for rendering grid cells (default: 1)",
+        default=config.grid_renderers,
+        help=(
+            "Number of subprocesses for rendering grid cells "
+            "(default: {config.grid_renderers})"
+        ),
     )
     perf_options.add_argument(
         "--no-multi",
@@ -946,13 +947,12 @@ NOTES:
     )
     log_options = log_options_.add_mutually_exclusive_group()
 
-    log_file = os.path.join(user_dir, "term_img.log")
     log_options_.add_argument(
         "-l",
-        "--log",
+        "--log-file",
         metavar="FILE",
-        default=log_file,
-        help=f"Specify a file to write logs to (default: {log_file})",
+        default=config.log_file,
+        help=f"Specify a file to write logs to (default: {config.log_file})",
     )
     log_options.add_argument(
         "--log-level",
@@ -990,9 +990,12 @@ NOTES:
     # Positional
     parser.add_argument(
         "sources",
-        nargs="+",
+        nargs="*",
         metavar="source",
-        help="Path(s) to local image(s) and/or directory(s) OR URLs",
+        help=(
+            "Path(s) to local image(s) and/or directory(s) OR URLs. "
+            "If no source is given, the current working directory is used."
+        ),
     )
 
     args = parser.parse_args()
@@ -1000,8 +1003,16 @@ NOTES:
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
 
+    if args.reset_config:
+        store_config(default=True)
+        sys.exit(SUCCESS)
+
     init_log(
-        args.log,
+        (
+            args.log_file
+            if config_options["log file"][0](args.log_file)
+            else config.log_file
+        ),
         getattr(_logging, args.log_level),
         args.debug,
         args.no_multi,
@@ -1011,42 +1022,36 @@ NOTES:
     )
 
     for details in (
-        ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
-        ("getters", lambda x: x > 0, "Number of getters must be greater than zero"),
-        (
-            "grid_renderers",
-            lambda x: x >= 0,
-            "Number of grid renderers must be non-negative",
-        ),
-        (
-            "max_depth",
-            lambda x: x > 0,
-            "Maximum recursion depth must be greater than zero",
-        ),
+        ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
+        ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
             "max_depth",
             lambda x: (
                 x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
             ),
-            "Maximum recursion depth too high",
+            "too high",
             (RecursionError, OverflowError),
         ),
-        ("repeat", lambda x: x != 0, "Repeat count must be non-zero"),
-        ("anim_cache", lambda x: x > 0, "Frame count must be greater than zero"),
+        ("repeat", lambda x: x != 0, "must be non-zero"),
     ):
         if not check_arg(*details):
             return INVALID_ARG
 
-    for name, is_valid in config_options.items():
+    for name, (is_valid, msg) in config_options.items():
         var_name = name.replace(" ", "_")
         value = getattr(args, var_name, None)
         # Not all config options have corresponding command-line arguments
         if value is not None and not is_valid(value):
+            arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"Invalid {name} (got: {value})... Using config value.",
+                f"{arg_name}: {msg} (got: {value!r})",
                 level=notify.ERROR,
             )
-            setattr(args, var_name, globals()[var_name])
+            notify.notify(
+                f"{arg_name}: Using config value: {getattr(config, var_name)!r}",
+                level=notify.WARNING,
+            )
+            setattr(args, var_name, getattr(config, var_name))
 
     set_font_ratio(args.font_ratio)
 
@@ -1054,7 +1059,9 @@ NOTES:
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
-    sources = [abspath(source) if exists(source) else source for source in args.sources]
+    sources = [
+        abspath(source) if exists(source) else source for source in args.sources or "."
+    ]
     unique_sources = set()
 
     url_queue = Queue()

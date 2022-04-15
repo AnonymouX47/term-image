@@ -20,12 +20,20 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
             return action
 
 
+def info(msg: str) -> None:
+    print(
+        f"\033[34mconfig: \033[0m{msg}",
+        # In case output is being redirected or piped
+        file=sys.stdout if sys.stdout.isatty() else sys.stderr,
+    )
+
+
 def error(msg: str) -> None:
-    print(f"\033[33m{msg}\033[0m", file=sys.stderr)
+    print(f"\033[34mconfig: \033[33m{msg}\033[0m", file=sys.stderr)
 
 
 def fatal(msg: str) -> None:
-    print(f"\033[31m{msg}\033[0m", file=sys.stderr)
+    print(f"\033[34mconfig: \033[31m{msg}\033[0m", file=sys.stderr)
 
 
 def init_config() -> None:
@@ -35,17 +43,19 @@ def init_config() -> None:
         Must be called before any other function in this module
         and before anything else is imported from this module.
     """
+    global checkers
+
     if os.path.exists(user_dir):
         if not os.path.isdir(user_dir):
-            fatal("config: Please rename or remove the file {user_dir!r}.")
+            fatal("Please rename or remove the file {user_dir!r}.")
             sys.exit(CONFIG_ERROR)
     else:
         os.mkdir(user_dir)
 
-    if os.path.isfile(f"{user_dir}/config.json"):
+    if os.path.isfile(config_file):
         if load_config():
             store_config()
-            print("config: Successfully updated user config.")
+            info("... Successfully updated user config.")
     else:
         update_context_nav_keys(context_keys, nav, nav)
         store_config(default=True)
@@ -56,46 +66,57 @@ def init_config() -> None:
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
+    if checkers is None:
+        checkers = max(
+            (
+                len(os.sched_getaffinity(0))
+                if hasattr(os, "sched_getaffinity")
+                else os.cpu_count() or 0
+            )
+            - 1,
+            2,
+        )
+
 
 def load_config() -> bool:
     """Load user config from disk"""
     updated = False
 
     try:
-        with open(f"{user_dir}/config.json") as f:
+        with open(config_file) as f:
             config = json.load(f)
     except json.JSONDecodeError:
-        error("config: Error loading user config... Using defaults.")
+        error("Error loading user config... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return updated
 
     try:
         c_version = config["version"]
         if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
-            print("config: Updating user config...")
+            info("Updating user config...")
             update_config(config, c_version)
             updated = True
     except KeyError:
-        error("config: Config version not found... Please correct this manually.")
+        error("Config version not found... Please correct this manually.")
 
-    for name, is_valid in config_options.items():
+    for name, (is_valid, msg) in config_options.items():
         try:
             value = config[name]
             if is_valid(value):
                 globals()[name.replace(" ", "_")] = value
             else:
                 error(
-                    f"config: Invalid value/type for {name!r} "
+                    f"Invalid type/value for {name!r}, {msg} "
                     f"(got: {value!r} of type {type(value).__name__!r})... "
                     "Using default."
                 )
         except KeyError:
-            error(f"config: {name!r} not found... Using default.")
+            error(f"{name!r} not found... Using default.")
 
     try:
         keys = config["keys"]
     except KeyError:
-        error("config: Key config not found... Using defaults.")
+        error("Key config not found... Using defaults.")
         update_context_nav_keys(context_keys, nav, nav)
         return updated
 
@@ -103,7 +124,7 @@ def load_config() -> bool:
     try:
         nav_update = keys.pop("navigation")
     except KeyError:
-        error("config: Navigation keys config not found... Using defaults.")
+        error("Navigation keys config not found... Using defaults.")
     else:
         # Resolves all issues with _nav_update_ in the process
         update_context("navigation", nav, nav_update)
@@ -114,7 +135,7 @@ def load_config() -> bool:
 
     for context, keyset in keys.items():
         if context not in context_keys:
-            print(f"config: Unknown context {context!r}.")
+            error(f"Unknown context {context!r}.")
             continue
         update_context(context, context_keys[context], keyset)
 
@@ -136,7 +157,7 @@ def store_config(*, default: bool = False) -> None:
         if keys:
             stored_keys[context] = keys
 
-    with open(f"{user_dir}/config.json", "w") as f:
+    with open(config_file, "w") as f:
         json.dump(
             {
                 "version": version,
@@ -153,11 +174,24 @@ def store_config(*, default: bool = False) -> None:
 
 def update_config(config: Dict[str, Any], old_version: str):
     """Updates the user config to latest version"""
+    # Must use the values directly, never reference the corresponding global variables,
+    # as those might change later and will break updating since it's incremental
+    #
     # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
     changes = {
         "0.1": [],
         "0.2": [
-            ("['frame duration']", 0.1, None),
+            ("['anim cache']", NotImplemented, 100),
+            ("['checkers']", NotImplemented, None),
+            ("['getters']", NotImplemented, 4),
+            ("['grid renderers']", NotImplemented, 1),
+            (
+                "['log file']",
+                NotImplemented,
+                os.path.join(os.path.expanduser("~"), ".term_img", "term_img.log"),
+            ),
+            ("['max notifications']", NotImplemented, 2),
+            ("['frame duration']", 0.1, NotImplemented),
             ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
@@ -170,21 +204,24 @@ def update_config(config: Dict[str, Any], old_version: str):
     for version in versions:
         for location, old, new in changes[version]:
             try:
-                if old is None:  # Addition
+                if old is NotImplemented:  # Addition
                     exec(f"config{location} = new")
-                elif new is None:  # Removal
+                elif new is NotImplemented:  # Removal
                     exec("del config" + location)
                 else:  # Update
                     if old == eval("config" + location):  # Still default
                         exec(f"config{location} = new")
             except (KeyError, IndexError):
-                print(
-                    f"config: Config option/value at {location!r} is missing, "
-                    "the new default will be put in place."
-                )
+                if new is not NotImplemented:
+                    error(
+                        f"Config option/value at {location!r} is missing, "
+                        "the new default will be put in place."
+                    )
 
+    os.replace(config_file, f"{config_file}.old")
+    info(f"Previous config file moved to '{config_file}.old'.")
     config["version"] = version
-    with open(f"{user_dir}/config.json", "w") as f:
+    with open(config_file, "w") as f:
         json.dump(config, f, indent=4)
 
 
@@ -216,7 +253,7 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             sys.exit(CONFIG_ERROR)
 
         assigned.add(key)
-        print(
+        info(
             f"...Using default key {default!r} for action {action!r} "
             f"in context {name!r}."
         )
@@ -234,35 +271,29 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             and all(isinstance(x, str) for x in properties)
         ):
             error(
-                f"config: The properties of action {action!r} in context {name!r} "
+                f"The properties of action {action!r} in context {name!r} "
                 "is in an incorrect format... Using the default."
             )
             continue
 
         key, symbol = properties
         if action not in keyset:
-            print(f"config: Action {action!r} not available in context {name!r}.")
+            error(f"Action {action!r} not available in context {name!r}.")
             continue
         if key not in _valid_keys:
-            error(f"config: Invalid key {key!r}; Trying default...")
+            error(f"Invalid key {key!r}; Trying default...")
             use_default_key()
             continue
 
         if key in global_:
-            error(
-                f"config: {key!r} already assigned to a global action; "
-                "Trying default..."
-            )
+            error(f"{key!r} already assigned to a global action; Trying default...")
             use_default_key()
         elif key in navi:
-            error(
-                f"config: {key!r} already assigned to a navigation action; "
-                "Trying default..."
-            )
+            error(f"{key!r} already assigned to a navigation action; Trying default...")
             use_default_key()
         elif key in assigned:
             error(
-                f"config: {key!r} already assigned to action "
+                f"{key!r} already assigned to action "
                 f"{action_with_key(key, keyset)!r} in the same context; "
                 "Trying default..."
             )
@@ -287,7 +318,8 @@ def update_context_nav_keys(
                 properties[:2] = nav_update[navi[properties[0]]]
 
 
-user_dir = os.path.expanduser("~/.term_img")
+user_dir = os.path.join(os.path.expanduser("~"), ".term_img")
+config_file = os.path.join(user_dir, "config.json")
 version = "0.2"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
@@ -335,9 +367,15 @@ for key in ("page up", "page down"):
 valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
+_anim_cache = 100
 _cell_width = 30
-_max_pixels = 2**22  # 2048x2048
+_checkers = None
 _font_ratio = 0.5
+_getters = 4
+_grid_renderers = 1
+_log_file = os.path.join(user_dir, "term_img.log")
+_max_notifications = 2
+_max_pixels = 2**22  # 2048x2048
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -432,15 +470,62 @@ _context_keys = {
 }
 # End of Defaults
 
+anim_cache = _anim_cache
 cell_width = _cell_width
-max_pixels = _max_pixels
+checkers = _checkers
 font_ratio = _font_ratio
+getters = _getters
+grid_renderers = _grid_renderers
+log_file = _log_file
+max_notifications = _max_notifications
+max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
 
 config_options = {
-    "cell width": lambda value: isinstance(value, int) and value > 0,
-    "font ratio": lambda value: isinstance(value, float) and value > 0.0,
-    "max pixels": lambda value: isinstance(value, int) and value > 0,
+    "anim cache": (
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "cell width": (
+        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
+        "must be an even integer between 30 and 50 (both inclusive)",
+    ),
+    "checkers": (
+        lambda x: x is None or isinstance(x, int) and x >= 0,
+        "must be `null` or a non-negative integer",
+    ),
+    "font ratio": (
+        lambda x: isinstance(x, float) and x > 0.0,
+        "must be a float greater than zero",
+    ),
+    "getters": (
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "grid renderers": (
+        lambda x: isinstance(x, int) and x >= 0,
+        "must be a non-negative integer",
+    ),
+    "log file": (
+        lambda x: (
+            isinstance(x, str)
+            and (
+                # exists, is a file and writable
+                (os.path.isfile(x) and os.access(x, os.W_OK))
+                # is not a directory and the parent directory is writable
+                or (not os.path.isdir(x) and os.access(os.path.dirname(x), os.W_OK))
+            )
+        ),
+        "must be a string containing a writable path to a file",
+    ),
+    "max notifications": (
+        lambda x: isinstance(x, int) and x > -1,
+        "must be an non-negative integer",
+    ),
+    "max pixels": (
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
 }

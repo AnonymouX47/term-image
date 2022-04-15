@@ -9,6 +9,7 @@ from typing import Iterable, Iterator, Tuple, Union
 import urwid
 
 from .. import logging
+from ..config import max_notifications
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .render import image_render_queue, manage_grid_renders, manage_image_renders
@@ -24,7 +25,7 @@ def init(
     global is_launched
 
     if not logging.QUIET:
-        pile.contents.append((notif_bar, ("given", 2)))
+        pile.contents.append((notif_bar, ("given", max_notifications)))
     if args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
