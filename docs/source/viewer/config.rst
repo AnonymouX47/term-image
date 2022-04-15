@@ -17,49 +17,81 @@ Config Options
 
 They are as follows:
 
-* **anim cache**: The maximum frame count of an image for which frames will be cached during animation. [\*]
+anim cache
+   The maximum frame count of an image for which frames will be cached during animation. [\*]
 
-  * Type: integer
-  * Valid values: x > ``0``
+   * Type: integer
+   * Valid values: x > ``0``
 
-* **cell width**: The initial width of (no of columns for) grid cells, in the TUI.
+cell width
+   The initial width of (no of columns for) grid cells, in the TUI.
 
-  * Type: integer
-  * Valid values: ``30`` <= x <= ``50`` and x is even
+   * Type: integer
+   * Valid values: ``30`` <= x <= ``50`` and x is even
+
+checkers
+   Maximum number of subprocesses for checking directory sources.
+
+   * Type: null or integer
+   * Valid values: ``null`` or x >= ``0``
+
+   | If ``null``, the number of subprocesses is automatically determined based on the amount of logical processors available. CPU affinity is also taken into account on supported platforms.
+   | If ``0`` (zero), directory sources are checked within the main process.
 
 .. _font-ratio-config:
 
-* **font ratio**: The :term:`font ratio`. [\*]
+font ratio
+   The :term:`font ratio`. [\*]
 
-  * Type: float
-  * Valid values: x > ``0.0``
+   * Type: float
+   * Valid values: x > ``0.0``
+
+getters
+   Number of threads for downloading images from URL sources.
+
+   * Type: integer
+   * Valid values: x > ``0``
+
+grid renderers
+   Number of subprocesses for rendering grid cells.
+
+   * Type: integer
+   * Valid values: x > ``0``
+
+   | If ``0`` (zero), grid cells are rendered by a thread of the main process.
 
 .. _log-file:
 
-* **log file**: The file to which logs are written. [\*]
+log file
+   The file to which logs are written. [\*]
 
-  * Type: string
-  * Valid values: An absolute path to a writable file.
-  * If the file doesn't exist the parent directory must be writable, so the file can created.
-  * If the file exists, it is appended to, not overwritten.
-  * See :ref:`logging`.
+   * Type: string
+   * Valid values: An absolute path to a writable file.
 
-* **max notifications**: The maximum number of TUI notifications that can show at a time.
+   | If the file doesn't exist the parent directory must be writable, so the file can created.
+   | If the file exists, it is appended to, not overwritten.
+   | See :ref:`logging`.
 
-  * Type: integer
-  * Valid values: x >= ``0``
-  * Adjusts the height of the :ref:`notification bar <notif-bar>`.
+max notifications
+   The maximum number of TUI notifications that can show at a time.
 
-* **max pixels**: The maximum amount of pixels in images to be displayed in the TUI. [\*]
+   * Type: integer
+   * Valid values: x >= ``0``
 
-  * Type: integer
-  * Valid values: x > ``0``
-  * Any image having more pixels than the specified value will be:
+   | Adjusts the height of the :ref:`notification bar <notif-bar>`.
 
-    * skipped, in CLI mode, if ``--max-pixels-cli`` is specified.
-    * replaced, in TUI mode, with a placeholder when displayed but can still be forced to display or viewed externally.
+max pixels
+   The maximum amount of pixels in images to be displayed in the TUI. [\*]
 
-  * Note that increasing this should not have any effect on general performance (i.e navigation, etc) but the larger an image is, the more the time and memory it'll take to render it. Thus, a large image might delay the rendering of other images to be rendered immediately after it.
+   * Type: integer
+   * Valid values: x > ``0``
+
+   Any image having more pixels than the specified value will be:
+
+     * skipped, in CLI mode, if ``--max-pixels-cli`` is specified.
+     * replaced, in TUI mode, with a placeholder when displayed but can still be forced to display or viewed externally.
+
+   Note that increasing this should not have any effect on general performance (i.e navigation, etc) but the larger an image is, the more the time and memory it'll take to render it. Thus, a large image might delay the rendering of other images to be rendered immediately after it.
 
 
 .. attention:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
