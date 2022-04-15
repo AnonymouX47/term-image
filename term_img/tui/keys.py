@@ -388,7 +388,8 @@ def set_menu_actions():
 
 
 def set_menu_count():
-    menu_box.set_title(f"{menu.focus_position} of {len(main.menu_list)}")
+    length = len(main.menu_list) if main.menu_scan_done.is_set() else "..."
+    menu_box.set_title(f"{menu.focus_position} of {length}")
 
 
 @register_key(("menu", "Open"))
@@ -457,6 +458,7 @@ def maximize_cell():
 
 
 def set_image_grid_actions():
+    # The grid for a non-empty directory might be empty at the start of scanning
     if image_grid.contents:
         enable_actions("image-grid", "Open", "Size-", "Size+")
     else:

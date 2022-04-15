@@ -500,9 +500,10 @@ def scan_dir_grid() -> None:
     while True:
         dir, contents = next_grid.get()
         grid_list = _grid_list
-        image_grid.contents.clear()
+        grid_contents.clear()
         grid_acknowledge.set()  # Cleared grid contents
         grid_scan_done.clear()
+        page_not_complete = True
         notify.start_loading()
 
         for result, item in scan_dir(dir, contents):
@@ -517,7 +518,11 @@ def scan_dir_grid() -> None:
                     )
                 )
                 image_grid_box.base_widget._invalidate()
-                update_screen()
+                if page_not_complete:
+                    if len(grid_contents) <= image_grid_box.base_widget._page_ncell:
+                        update_screen()
+                    else:
+                        page_not_complete = False
             elif result == DIR:
                 grid_list.append(item)
 
@@ -528,6 +533,7 @@ def scan_dir_grid() -> None:
                 break
         else:
             grid_scan_done.set()
+            update_screen()
             # There is a possibility that `grid_scan_done` is read as "cleared"
             # in-between the end of the last iteration an here :)
             if not grid_active.is_set():
@@ -550,6 +556,7 @@ def scan_dir_menu() -> None:
         items, contents, menu_is_complete = next_menu.get()
         if menu_is_complete:
             continue
+        page_not_complete = True
         notify.start_loading()
 
         for result, item in scan_dir(
@@ -564,8 +571,11 @@ def scan_dir_menu() -> None:
                         "focused entry",
                     )
                 )
-                set_menu_count()
-                update_screen()
+                if page_not_complete:
+                    if len(items) <= menu._height:
+                        update_screen()
+                    else:
+                        page_not_complete = False
             elif result == DIR:
                 items.append(item)
                 menu_body.append(
@@ -575,14 +585,19 @@ def scan_dir_menu() -> None:
                         "focused entry",
                     )
                 )
-                set_menu_count()
-                update_screen()
+                if page_not_complete:
+                    if len(items) <= menu._height:
+                        update_screen()
+                    else:
+                        page_not_complete = False
 
             if menu_change.is_set():
                 menu_acknowledge.set()
                 break
         else:
             menu_scan_done.set()
+            set_menu_count()
+            update_screen()
             # There is a possibility that `menu_scan_done` is read as "cleared"
             # in-between the end of the last iteration an here :)
             if menu_change.is_set():
