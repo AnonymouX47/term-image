@@ -1,5 +1,7 @@
 """Term-Img's Terminal User Interface"""
 
+from __future__ import annotations
+
 import argparse
 import logging as _logging
 import os

@@ -3,6 +3,8 @@ Core Library Definitions
 ========================
 """
 
+from __future__ import annotations
+
 __all__ = ("TermImage", "ImageIterator")
 
 import io
@@ -527,7 +529,7 @@ class TermImage:
         cls,
         filepath: str,
         **kwargs: Union[Optional[int], Tuple[float, float]],
-    ) -> "TermImage":
+    ) -> TermImage:
         """Creates a :py:class:`TermImage` instance from an image file.
 
         Args:
@@ -569,7 +571,7 @@ class TermImage:
         cls,
         url: str,
         **kwargs: Union[Optional[int], Tuple[float, float]],
-    ) -> "TermImage":
+    ) -> TermImage:
         """Creates a :py:class:`TermImage` instance from an image URL.
 
         Args:

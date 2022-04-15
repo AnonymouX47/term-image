@@ -3,6 +3,8 @@ Custom Exceptions
 =================
 """
 
+from __future__ import annotations
+
 
 class TermImageException(Exception):
     """Package exception baseclass"""

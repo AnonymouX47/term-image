@@ -44,7 +44,7 @@ setup(
     packages=find_packages(where=".", include=["term_img*"]),
     license="MIT",
     classifiers=classifiers,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0", "urwid>=2.1,<3.0"],
     entry_points={
         "console_scripts": ["term-img=term_img.__main__:main"],

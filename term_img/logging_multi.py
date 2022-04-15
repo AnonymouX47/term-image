@@ -1,5 +1,7 @@
 """Extension of `.logging` for multiprocessing support"""
 
+from __future__ import annotations
+
 import logging as _logging
 import os
 from multiprocessing import JoinableQueue, Process

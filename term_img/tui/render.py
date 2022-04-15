@@ -1,5 +1,7 @@
 """Definitions for deferred image rendering"""
 
+from __future__ import annotations
+
 import logging as _logging
 from multiprocessing import Queue as mp_Queue
 from os.path import split

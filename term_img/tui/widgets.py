@@ -1,5 +1,7 @@
 """Custom widget definitions and UI components assembly"""
 
+from __future__ import annotations
+
 import logging as _logging
 from math import ceil
 from operator import floordiv, mul, sub

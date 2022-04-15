@@ -1,5 +1,7 @@
 """Support for command-line execution using `python -m term-img`"""
 
+from __future__ import annotations
+
 import logging as _logging
 import multiprocessing
 import sys

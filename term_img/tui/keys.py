@@ -1,5 +1,7 @@
 """Definitions of key functions"""
 
+from __future__ import annotations
+
 import logging as _logging
 import os
 from os.path import abspath, basename

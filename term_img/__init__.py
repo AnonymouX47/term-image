@@ -17,6 +17,8 @@ AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
 Copyright (c) 2022
 """
 
+from __future__ import annotations
+
 __all__ = ("set_font_ratio", "get_font_ratio")
 
 version_info = (0, 2, 0, "dev0")

@@ -1,5 +1,7 @@
 """Exit codes for fatal errors"""
 
+from __future__ import annotations
+
 codes = {
     0: "SUCCESS",
     1: "FAILURE",

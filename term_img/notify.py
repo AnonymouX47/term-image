@@ -1,5 +1,7 @@
 """Issuing user notifications in the TUI and on STDOUT"""
 
+from __future__ import annotations
+
 import logging as _logging
 from queue import Queue
 from sys import stderr, stdout

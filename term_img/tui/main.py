@@ -1,5 +1,7 @@
 """Main UI"""
 
+from __future__ import annotations
+
 import logging as _logging
 import os
 from operator import mul
