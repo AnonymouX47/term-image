@@ -16,15 +16,8 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import __version__, logging, notify, set_font_ratio, tui
-from .config import (
-    anim_cache,
-    config_options,
-    font_ratio,
-    log_file,
-    max_pixels,
-    store_config,
-)
+from . import __version__, config, logging, notify, set_font_ratio, tui
+from .config import config_options, store_config
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
@@ -631,10 +624,10 @@ NOTES:
         "--font-ratio",
         type=float,
         metavar="N",
-        default=font_ratio,
+        default=config.font_ratio,
         help=(
             "Specify the width-to-height ratio of a character cell in your terminal "
-            f"for proper image scaling (default: {font_ratio})"
+            f"for proper image scaling (default: {config.font_ratio})"
         ),
     )
     mode_options = general.add_mutually_exclusive_group()
@@ -680,11 +673,11 @@ NOTES:
     anim_cache_options.add_argument(
         "--anim-cache",
         type=int,
-        default=anim_cache,
+        default=config.anim_cache,
         metavar="N",
         help=(
             "Maximum frame count for animation frames to be cached (Better performance "
-            f"at the cost of memory) (default: {anim_cache}) [5]"
+            f"at the cost of memory) (default: {config.anim_cache}) [5]"
         ),
     )
     anim_cache_options.add_argument(
@@ -915,10 +908,10 @@ NOTES:
         "--max-pixels",
         type=int,
         metavar="N",
-        default=max_pixels,
+        default=config.max_pixels,
         help=(
             "Maximum amount of pixels in images to be displayed "
-            f"(default: {max_pixels}) [4]"
+            f"(default: {config.max_pixels}) [4]"
         ),
     )
 
@@ -972,8 +965,8 @@ NOTES:
         "-l",
         "--log-file",
         metavar="FILE",
-        default=log_file,
-        help=f"Specify a file to write logs to (default: {log_file})",
+        default=config.log_file,
+        help=f"Specify a file to write logs to (default: {config.log_file})",
     )
     log_options.add_argument(
         "--log-level",
@@ -1029,7 +1022,11 @@ NOTES:
         sys.exit(SUCCESS)
 
     init_log(
-        args.log_file if config_options["log file"][0](args.log_file) else log_file,
+        (
+            args.log_file
+            if config_options["log file"][0](args.log_file)
+            else config.log_file
+        ),
         getattr(_logging, args.log_level),
         args.debug,
         args.no_multi,
@@ -1070,10 +1067,10 @@ NOTES:
                 level=notify.ERROR,
             )
             notify.notify(
-                f"{arg_name}: Using config value: {globals()[var_name]!r}",
+                f"{arg_name}: Using config value: {getattr(config, var_name)!r}",
                 level=notify.WARNING,
             )
-            setattr(args, var_name, globals()[var_name])
+            setattr(args, var_name, getattr(config, var_name))
 
     set_font_ratio(args.font_ratio)
 

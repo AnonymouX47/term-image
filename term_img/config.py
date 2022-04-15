@@ -161,12 +161,19 @@ def store_config(*, default: bool = False) -> None:
 
 def update_config(config: Dict[str, Any], old_version: str):
     """Updates the user config to latest version"""
+    # Must use the values directly, never reference the corresponding global variables,
+    # as those might change later and will break updating since it's incremental
+    #
     # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
     changes = {
         "0.1": [],
         "0.2": [
             ("['anim cache']", NotImplemented, 100),
-            ("['log file']", NotImplemented, os.path.join(user_dir, "term_img.log")),
+            (
+                "['log file']",
+                NotImplemented,
+                os.path.join(os.path.expanduser("~"), ".term_img", "term_img.log"),
+            ),
             ("['max notifications']", NotImplemented, 2),
             ("['frame duration']", 0.1, NotImplemented),
             ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
