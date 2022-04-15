@@ -2,97 +2,22 @@
 
 import logging as _logging
 import os
-from multiprocessing.managers import BaseManager
+from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-
-def create_objects():
-    from queue import Queue
-
-    global _log_queue, _logging_details
-    _log_queue = Queue()
-    _logging_details = []
+from . import cli, logging, notify
 
 
-def get_log_queue():
-    return _log_queue
-
-
-def get_logging_details():
-    return _logging_details
-
-
-def redirect_logs(logger: _logging.Logger, *, notifs: bool = False) -> None:
-    """Sets up the logging system to redirect records produced by *logger*,
-    (and optionally notifcations) in a subprocess, to the main process to be emitted.
-
-    Args:
-        logger: The `logging.Logger` instance of the module from which this function is
-          called.
-        notifs: If `True`, notifications are redirected also.
-
-    NOTE:
-        - This function is meant to be called from within the subprocess,
-        - Only TUI notifications need to be redirected.
-        - The redirected records and notifcations are automatically handled by
-          `process_logs()`, running in the MultiLogger thread of the main process.
-    """
-    from . import logging, notify
-    from .config import user_dir
-
-    def log_redirector(record):
-        attrdict = record.__dict__
-        exc_info = attrdict["exc_info"]
-        if exc_info:
-            # traceback objects cannot be pickled
-            attrdict["msg"] = "\n".join(
-                (attrdict["msg"], "".join(format_exception(*exc_info)))
-            ).rstrip()
-            attrdict["exc_info"] = None
-        log_queue.put((LOG, attrdict))
-
-    def notif_redirector(*args, loading: bool = False, **kwargs):
-        log_queue.put((NOTIF, (args, kwargs)))
-
-    LogManager.register("get_logging_details")
-    LogManager.register("get_log_queue")
-
-    with open(os.path.join(user_dir, "temp", "addresses", str(os.getppid()))) as f:
-        port = int(f.read())
-
-    log_manager = LogManager(("127.0.0.1", port))
-    log_manager.connect()
-
-    logging_level, constants = log_manager.get_logging_details()._getvalue()
-    log_queue = log_manager.get_log_queue()
-
-    # Logs
-    _logging.getLogger().setLevel(logging_level)
-    logging.__dict__.update(constants)
-    logger.filter = log_redirector
-
-    # # Warnings
-    logger = _logging.getLogger("term-img")
-    logger.setLevel(_logging.INFO)
-    logger.filter = log_redirector
-
-    # Notifications
-    if notifs and not logging.QUIET:
-        notify.notify = notif_redirector
-
-
-def process_multi_logs(log_manager: "LogManager") -> None:
+def process_multi_logs() -> None:
     """Emits logs and notifications redirected from subprocesses.
 
     Intended to be executed in a separate thread of the main process.
     """
-    from . import notify
-    from .config import user_dir
-
     global log_queue
 
     PID = os.getpid()
-    log_queue = log_manager.get_log_queue()
+    log_queue = JoinableQueue()
+    process_multi_logs.started.set()
 
     log_type, data = log_queue.get()
     while data:
@@ -100,22 +25,106 @@ def process_multi_logs(log_manager: "LogManager") -> None:
             data["process"] = PID
             _logger.handle(_logging.makeLogRecord(data))
         else:
-            args, kwargs = data
-            notify.notify(*args, **kwargs)
+            notify.notify(*data[0], **data[1])
         log_queue.task_done()
         log_type, data = log_queue.get()
-    os.remove(os.path.join(user_dir, "temp", "addresses", str(PID)))
     log_queue.task_done()
 
 
-class LogManager(BaseManager):
-    pass
+class Process(Process):
+    """A process with integration into the logging system
+
+    Sets up the logging system to redirect all logs (and optionally notifcations)
+    in the subprocess, to the main process to be emitted.
+
+    NOTE:
+        - Only TUI notifications need to be redirected.
+        - The redirected logs and notifcations are automatically handled by
+          `process_multi_logs()`, running in the MultiLogger thread of the main process.
+    """
+
+    def __init__(self, *args, redirect_notifs: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._log_queue = log_queue
+        self._logging_details = {
+            "constants": {
+                name: value for name, value in vars(logging).items() if name.isupper()
+            },
+            "logging_level": _logging.getLogger().getEffectiveLevel(),
+            "redirect_notifs": redirect_notifs,
+        }
+        self._main_process_interruped = cli.interrupted
+        child_processes.append(self)
+
+    def run(self):
+        self._redirect_logs()
+        _logger.debug("Starting")
+
+        try:
+            super().run()
+        except KeyboardInterrupt:
+            # Log only if the main process was not interruped
+            if not self._main_process_interruped.wait(0.1):
+                logging.log(
+                    "Interrupted" if logging.DEBUG else f"{self.name} was interrupted",
+                    _logger,
+                    _logging.ERROR,
+                    direct=False,
+                )
+        except Exception:
+            logging.log_exception(
+                "Aborted" if logging.DEBUG else f"{self.name} was aborted", _logger
+            )
+        else:
+            _logger.debug("Exiting")
+
+    def _notif_redirector(self, *args, loading: bool = False, **kwargs):
+        self._log_queue.put((NOTIF, (args, kwargs)))
+
+    def _redirect_logs(self) -> None:
+        # Logs
+        vars(logging).update(self._logging_details["constants"])
+        logger = _logging.getLogger()
+        logger.setLevel(self._logging_details["logging_level"])
+        logger.addHandler(RedirectHandler(self._log_queue))
+        logger.handlers[0].addFilter(logging.filter_)
+
+        # # Warnings and session-level logs
+        _logger.setLevel(min(self._logging_details["logging_level"], _logging.INFO))
+
+        # Notifications
+        if self._logging_details["redirect_notifs"] and not logging.QUIET:
+            notify.notify = self._notif_redirector
+
+
+class RedirectHandler(_logging.Handler):
+    """Puts the attribute dict of log records into *log_queue*.
+
+    The records can be recreated with `logging.makeLogRecord()` and emitted with the
+    `handle()` method of a logger with a different handler.
+    """
+
+    def __init__(self, log_queue: JoinableQueue, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._log_queue = log_queue
+
+    def handle(self, record: _logging.LogRecord):
+        attrdict = vars(record)
+        exc_info = attrdict["exc_info"]
+        if exc_info:
+            # traceback objects cannot be pickled
+            attrdict["msg"] = "\n".join(
+                (attrdict["msg"], "".join(format_exception(*exc_info)))
+            ).rstrip()
+            attrdict["exc_info"] = None
+        self._log_queue.put((LOG, attrdict))
 
 
 _logger = _logging.getLogger("term-img")
 
 LOG = 0
 NOTIF = 1
+child_processes = []
 
 # Set from `process_multi_logs()` in the MultiLogger thread, only in the main process
 log_queue = None

@@ -4,11 +4,11 @@ import argparse
 import logging as _logging
 import os
 import sys
-from multiprocessing import Event as mp_Event, Process, Queue as mp_Queue, Value
+from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
 from queue import Empty, Queue
-from threading import Thread, current_thread
+from threading import current_thread
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -21,7 +21,8 @@ from .config import config_options, font_ratio, max_pixels, user_dir
 from .exceptions import InvalidSize, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
-from .logging import init_log, log, log_exception
+from .logging import Thread, init_log, log, log_exception
+from .logging_multi import Process
 from .tui.widgets import Image
 
 
@@ -156,19 +157,17 @@ def check_dirs(
 
     Intended as the *target* of a **spawned** process to parallelize directory checks.
     """
-    from .logging_multi import redirect_logs
-
     global _depth, _source
 
     globals().update(globals_, _free_checkers=free_checkers, _dir_queue=dir_queue)
-    redirect_logs(logger)
-
-    logger.debug("Starting")
 
     NO_CHECK = (None,) * 3
     while True:
         try:
             source, links, subdir, _depth = dir_queue.get_nowait()
+        except KeyboardInterrupt:
+            progress_queue.put((checker_no, NO_CHECK))
+            raise
         except Empty:
             progress_updated.wait()
             progress_queue.put((checker_no, NO_CHECK))
@@ -176,14 +175,9 @@ def check_dirs(
                 free_checkers.value += 1
             try:
                 source, links, subdir, _depth = dir_queue.get()
-            except KeyboardInterrupt:
-                return
             finally:
                 with free_checkers:
                     free_checkers.value -= 1
-        except KeyboardInterrupt:
-            progress_queue.put((checker_no, NO_CHECK))
-            return
 
         if not subdir:
             break
@@ -200,16 +194,11 @@ def check_dirs(
         result = None
         try:
             result = check_dir(subdir, _links=links)
-        except KeyboardInterrupt:
-            # Will be re-checked by another checker since this checker dies
-            return
         except Exception:
             log_exception(f"Checking {content_path!r} failed", logger, direct=True)
         finally:
             content_updated.wait()
             content_queue.put((source, content_path, result))
-
-    logger.debug("Exiting")
 
 
 def get_content_path(source: str, links: List[Tuple[str]], subdir: str) -> str:
@@ -1020,8 +1009,6 @@ NOTES:
         args.verbose,
         args.verbose_log,
     )
-    if not logging.QUIET:
-        notify.loading_indicator.start()
 
     for details in (
         ("checkers", lambda x: x >= 0, "Number of checkers must be non-negative"),
@@ -1253,7 +1240,8 @@ NOTES:
 
 logger = _logging.getLogger(__name__)
 
-# Set from within `.__main__.main()`
+# Initially set from within `.__main__.main()`
+# Will be updated from `.logging.init_log()` if multiprocessing is enabled
 interrupted = None
 
 # Used by `check_dir()`

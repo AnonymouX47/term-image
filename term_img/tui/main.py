@@ -713,7 +713,8 @@ DIR = 3
 menu_list = None
 at_top_level = None
 
-# # Set from `.__main__.main()`
+# # Intially set from `.__main__.main()`
+# # Will be updated from `.logging.init_log()` if multiprocessing is enabled
 interrupted = None
 
 # # Set from `..tui.init()`

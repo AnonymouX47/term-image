@@ -1,14 +1,13 @@
 """Definitions for deferred image rendering"""
 
 import logging as _logging
-from multiprocessing import Process, Queue as mp_Queue
+from multiprocessing import Queue as mp_Queue
 from os.path import split
 from queue import Empty, Queue
-from threading import Thread
 from typing import Union
 
 from .. import get_font_ratio, logging, notify, set_font_ratio
-from ..logging_multi import redirect_logs
+from ..logging_multi import Process
 
 
 def manage_image_renders():
@@ -18,11 +17,12 @@ def manage_image_renders():
     multi = logging.MULTI
     image_render_in = (mp_Queue if multi else Queue)()
     image_render_out = (mp_Queue if multi else Queue)()
-    renderer = (Process if multi else Thread)(
+    renderer = (Process if multi else logging.Thread)(
         target=render_images,
         args=(image_render_in, image_render_out, get_font_ratio()),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
+        redirect_notifs=True,
     )
     renderer.start()
     faulty_image = Image._faulty_image
@@ -91,7 +91,7 @@ def manage_grid_renders(n_renderers: int):
     grid_render_in = (mp_Queue if multi else Queue)()
     grid_render_out = (mp_Queue if multi else Queue)()
     renderers = [
-        (Process if multi else Thread)(
+        (Process if multi else logging.Thread)(
             target=render_images,
             args=(
                 grid_render_in,
@@ -202,56 +202,44 @@ def render_images(
     from ..image import TermImage
 
     if multi:
-        redirect_logs(logger, notifs=True)
         set_font_ratio(font_ratio)
 
-    logger.debug("Starting")
-    try:
-        while True:
-            if log_faults:
-                image, size, alpha, faulty = input.get()
-            else:
-                image, size, alpha = input.get()
-            if not image:  # Quitting
-                break
+    while True:
+        if log_faults:
+            image, size, alpha, faulty = input.get()
+        else:
+            image, size, alpha = input.get()
 
-            if multi:
-                image = TermImage.from_file(image)
-            image.set_size(maxsize=size)
+        if not image:  # Quitting
+            break
 
-            # Using `TermImage` for padding will use more memory since all the
-            # spaces will be in the render output string, and theoretically more time
-            # with all the checks and string splitting & joining.
-            # While `ImageCanvas` is better since it only stores the main image render
-            # string (as a list though) then generates and yields the complete lines
-            # **as needed**. Trimmed padding lines are never generated at all.
-            try:
-                output.put(
-                    (image._source, f"{image:1.1{alpha}}", size, image.rendered_size)
-                    if out_extras
-                    else f"{image:1.1{alpha}}"
+        if multi:
+            image = TermImage.from_file(image)
+        image.set_size(maxsize=size)
+
+        # Using `TermImage` for padding will use more memory since all the
+        # spaces will be in the render output string, and theoretically more time
+        # with all the checks and string splitting & joining.
+        # While `ImageCanvas` is better since it only stores the main image render
+        # string (as a list though) then generates and yields the complete lines
+        # **as needed**. Trimmed padding lines are never generated at all.
+        try:
+            output.put(
+                (image._source, f"{image:1.1{alpha}}", size, image.rendered_size)
+                if out_extras
+                else f"{image:1.1{alpha}}"
+            )
+        except Exception:
+            output.put(
+                (image._source, None, size, image.rendered_size) if out_extras else None
+            )
+            # *faulty* ensures a fault is logged only once per `Image` instance
+            if log_faults and not faulty:
+                logging.log_exception(
+                    f"Failed to load or render {image._source!r}",
+                    logger,
+                    direct=True,
                 )
-            except Exception:
-                output.put(
-                    (image._source, None, size, image.rendered_size)
-                    if out_extras
-                    else None
-                )
-                # *faulty* ensures a fault is logged only once per `Image` instance
-                if log_faults and not faulty:
-                    logging.log_exception(
-                        f"Failed to load or render {image._source!r}",
-                        logger,
-                        direct=True,
-                    )
-    except KeyboardInterrupt:
-        # Logging here could potentially result in an exception if MultiLogger has ended
-        # and the associated manager process has shutdown.
-        pass
-    except Exception:
-        logging.log_exception("Aborted", logger)
-    else:
-        logger.debug("Exiting")
 
 
 logger = _logging.getLogger(__name__)

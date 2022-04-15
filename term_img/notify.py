@@ -3,7 +3,7 @@
 import logging as _logging
 from queue import Queue
 from sys import stderr, stdout
-from threading import Event, Thread
+from threading import Event
 from time import sleep
 from typing import Any, Tuple, Union
 
@@ -61,7 +61,6 @@ def load() -> None:
     global _n_loading
 
     _loading.wait()
-    logger.debug("Starting")
 
     while _n_loading > -1:
         while _n_loading > 0:
@@ -101,8 +100,6 @@ def load() -> None:
         if _n_loading > -1:
             _loading.clear()
             _loading.wait()
-
-    logger.debug("Exiting")
 
 
 def notify(
@@ -153,4 +150,6 @@ _alarms = Queue(MAX_NOTIFICATIONS)
 
 _loading = Event()
 _n_loading = 0
-loading_indicator = Thread(target=load, name="LoadingIndicator")
+
+# Set from `.logging.init_log()`.
+loading_indicator = None
