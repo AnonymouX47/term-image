@@ -388,7 +388,8 @@ def set_menu_actions():
 
 
 def set_menu_count():
-    menu_box.set_title(f"{menu.focus_position} of {len(main.menu_list)}")
+    length = len(main.menu_list) if main.menu_scan_done.is_set() else "..."
+    menu_box.set_title(f"{menu.focus_position} of {length}")
 
 
 @register_key(("menu", "Open"))

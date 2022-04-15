@@ -389,6 +389,10 @@ class MenuListBox(urwid.ListBox):
         ret = super().keypress(size, key)
         return key if any(key == v[0] for v in nav.values()) else ret
 
+    def render(self, size: Tuple[int, int], focus: bool = False):
+        self._height = size[1]  # Used by MenuScanner
+        return super().render(size, focus)
+
 
 class NoSwitchColumns(urwid.Columns):
     _command_map = urwid.ListBox._command_map.copy()
