@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 # To locate the package since `setuptools.build_meta` modifies `sys.path`
 sys.path.append(os.getcwd())
 
-from term_img import __version__  # noqa: E402
+from term_img import __author__, __version__  # noqa: E402
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -35,7 +35,7 @@ with open("README.md", "r") as fp:
 setup(
     name="term-image",
     version=__version__,
-    author="Anonymoux47",
+    author=__author__,
     author_email="anonymoux47@gmail.com",
     url="https://github.com/AnonymouX47/term-img",
     description="Display images in the terminal",

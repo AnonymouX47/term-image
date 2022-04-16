@@ -20,8 +20,9 @@ Copyright (c) 2022
 from __future__ import annotations
 
 __all__ = ("set_font_ratio", "get_font_ratio")
+__author__ = "AnonymouX47"
 
-version_info = (0, 2, 0, "dev0")
+version_info = (0, 2, 0)
 __version__ = ".".join(map(str, version_info))
 
 
