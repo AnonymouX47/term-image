@@ -19,6 +19,7 @@
 ## Contents
 - [Installation](#installation)
 - [Features](#features)
+- [Demo](#demo)
 - [CLI/TUI Quick Start](#clitui-quick-start)
 - [Library Quick Start](#library-quick-start)
 - [Usage](#usage)
@@ -92,6 +93,18 @@ Also, if you're having an issue with terminal support, you may report or view in
 - Notification system
 - Detailed logging system
 - and more... :grin:
+
+
+## Demo
+
+<details>
+<summary>Click to expand</summary>
+
+[TUI Demo Video](https://user-images.githubusercontent.com/61663146/163809903-e8fb254b-a0aa-4d0d-9fc9-dd676c10b735.mp4)
+
+_\*The video was recorded at normal speed and not sped up._
+
+</details>
 
 
 ## CLI/TUI Quick Start

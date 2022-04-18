@@ -3,6 +3,13 @@ Text-based User Interface
 
 The TUI is developed using `urwid <https://urwid.org>`_.
 
+Demo
+----
+
+.. image:: /resources/tui.png
+
+See a `demo video <https://user-images.githubusercontent.com/61663146/163809903-e8fb254b-a0aa-4d0d-9fc9-dd676c10b735.mp4>`_ (*recorded at normal speed and not sped up*).
+
 
 UI Components
 -------------

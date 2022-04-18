@@ -13,8 +13,6 @@ The package comes with a standalone in-terminal image viewer based on the librar
 | The image viewer is started from the command line using either the ``term-img`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
 | *Take note of the "-" (hyphen) versus "_" (underscore)*.
 
-.. image:: /resources/tui.png
-
 
 Image sources
 -------------
