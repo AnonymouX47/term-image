@@ -1,4 +1,4 @@
-"""Term-Img COnfiguration"""
+"""Term-Image's Configuration"""
 
 from __future__ import annotations
 
@@ -187,11 +187,7 @@ def update_config(config: Dict[str, Any], old_version: str):
             ("['checkers']", NotImplemented, None),
             ("['getters']", NotImplemented, 4),
             ("['grid renderers']", NotImplemented, 1),
-            (
-                "['log file']",
-                NotImplemented,
-                os.path.join(os.path.expanduser("~"), ".term_img", "term_img.log"),
-            ),
+            ("['log file']", NotImplemented, os.path.join(user_dir, "term_image.log")),
             ("['max notifications']", NotImplemented, 2),
             ("['frame duration']", 0.1, NotImplemented),
             ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
@@ -320,7 +316,7 @@ def update_context_nav_keys(
                 properties[:2] = nav_update[navi[properties[0]]]
 
 
-user_dir = os.path.join(os.path.expanduser("~"), ".term_img")
+user_dir = os.path.join(os.path.expanduser("~"), ".term_image")
 config_file = os.path.join(user_dir, "config.json")
 version = "0.2"  # For config upgrades
 
@@ -375,7 +371,7 @@ _checkers = None
 _font_ratio = 0.5
 _getters = 4
 _grid_renderers = 1
-_log_file = os.path.join(user_dir, "term_img.log")
+_log_file = os.path.join(user_dir, "term_image.log")
 _max_notifications = 2
 _max_pixels = 2**22  # 2048x2048
 
@@ -396,7 +392,7 @@ _context_keys = {
     "global": {
         "Config": ["C", "\u21e7C", "Open configuration menu"],
         "Help": ["f1", "F1", "Show this help menu"],
-        "Quit": ["q", "q", "Exit Term-Img"],
+        "Quit": ["q", "q", "Exit term-image"],
         "Key Bar": [".", ".", "Expand/Collapse key bar"],
     },
     "menu": {

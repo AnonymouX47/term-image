@@ -24,7 +24,7 @@ You can also use a URL if you don't have the file stored locally::
 
    from term_img.image import TermImage
 
-   image = TermImage.from_url("https://raw.githubusercontent.com/AnonymouX47/term-img/docs/source/resources/python.png")
+   image = TermImage.from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/docs/source/resources/python.png")
 
 The library can also be used with PIL images::
 

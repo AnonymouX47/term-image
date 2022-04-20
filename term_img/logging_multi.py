@@ -122,7 +122,7 @@ class RedirectHandler(_logging.Handler):
         self._log_queue.put((LOG, attrdict))
 
 
-_logger = _logging.getLogger("term-img")
+_logger = _logging.getLogger("term-image")
 
 LOG = 0
 NOTIF = 1

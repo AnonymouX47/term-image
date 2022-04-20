@@ -1,5 +1,5 @@
 """
-term-img
+term-image
 
 Display images in a terminal
 

@@ -14,14 +14,14 @@ Requirements
 Steps
 -----
 
-The latest **stable** version can be installed from `PyPI <https://pypi.python.org/pypi/term-img>`_ using ``pip``:
+The latest **stable** version can be installed from `PyPI <https://pypi.python.org/pypi/term-image>`_ using ``pip``:
 
 .. code-block:: shell
 
    pip install term-image
 
 The **development** version can be installed thus:
-Clone the `repository <https://github.com/AnonymouX47/term-img>`_, then navigate into the project directory in a terminal and run:
+Clone the `repository <https://github.com/AnonymouX47/term-image>`_, then navigate into the project directory in a terminal and run:
 
 .. code-block:: shell
 
@@ -48,7 +48,7 @@ Other terminals that only support 256 colors but meet other requirements include
 - xterm, uxterm *(256 colors)*
 
 .. note::
-   If you've tested ``term-img`` on any other terminal emulator that meets all requirements, please mention the name in a new thread under `this discussion <https://github.com/AnonymouX47/term-img/discussions/4>`_.
+   If you've tested ``term-image`` on any other terminal emulator that meets all requirements, please mention the name in a new thread under `this discussion <https://github.com/AnonymouX47/term-image/discussions/4>`_.
 
    Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
 

@@ -1,9 +1,9 @@
-.. term-img documentation master file
+.. term-image documentation master file
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to term-img's documentation!
-====================================
+Welcome to term-image's documentation!
+======================================
 
 .. toctree::
    :maxdepth: 3

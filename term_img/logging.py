@@ -205,7 +205,7 @@ warnings.showwarning = _log_warning
 
 # Can't use "term_img", since the logger's level is changed.
 # Otherwise, it would affect children of "term_img".
-_logger = logging.getLogger("term-img")
+_logger = logging.getLogger("term-image")
 
 # the _stacklevel_ parameter was added in Python 3.8
 stacklevel_is_available = sys.version_info[:3] >= (3, 8, 0)

@@ -6,7 +6,7 @@ The configuration is divided into the following categories:
 * Options
 * Keys
 
-The configuration is stored in the JSON format in a file located at ``~/.term_img/config.json``.
+The configuration is stored in the JSON format in a file located at ``~/.term_image/config.json``.
 
 
 Config Options
@@ -138,7 +138,7 @@ The format of the ``"keys"`` mapping is thus::
    2. All keys in a context must be unique.
    3. If a key is invalid or already used, the default is tried as a fallback but if that fails (because it's already used), the session is terminated.
 
-| `Here <https://raw.githubusercontent.com/AnonymouX47/term-img/main/vim-style_config.json>`_ is a config with Vim-style (majorly navigation) keybindings.
+| `Here <https://raw.githubusercontent.com/AnonymouX47/term-image/main/vim-style_config.json>`_ is a config with Vim-style (majorly navigation) keybindings.
 | *Remember to rename the file to* ``config.json``.
 
 Below is a list of all **valid** values for *key*::

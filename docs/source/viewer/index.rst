@@ -10,8 +10,8 @@ Image viewer
 
 The package comes with a standalone in-terminal image viewer based on the library.
 
-| The image viewer is started from the command line using either the ``term-img`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
-| *Take note of the "-" (hyphen) versus "_" (underscore)*.
+| The image viewer is started from the command line using either the ``term-image`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
+| **\*Take note of the differences**.
 
 
 Image sources
@@ -45,7 +45,7 @@ The viewer can be used in two modes:
 Usage
 -----
 
-| Run ``term-img`` with the ``--help`` option to see the usage info and help text.
+| Run ``term-image`` with the ``--help`` option to see the usage info and help text.
 | All arguments and options are described there.
 
 Note that some options are only applicable to a specific mode. If used with the other mode, they're simply ignored.
@@ -72,7 +72,7 @@ Logging
 
 Logs are more detailed event reports meant for troubleshooting and debugging purporses.
 
-Logs are written to a file on a local filesystem. The default log file is ``~/.term_img/term_img.log`` but a different file can be specified:
+Logs are written to a file on a local filesystem. The default log file is ``~/.term_image/term_image.log`` but a different file can be specified:
    * for all sessions, using the :ref:`log file <log-file>` config option
    * per session, using the ``--log`` command-line option
 
@@ -82,7 +82,7 @@ A log entry has the following format:
 
    (<pid>) (<date> <time>) <process>: <thread>: [<level>] <module>: <function>: <message>
 
-* *pid*: The process ID of the term-img session.
+* *pid*: The process ID of the term-image session.
 * *date* and *time*: Current system date and time in the format ``%d-%m-%Y %H:%M:%S``.
 * *process* and *thread*: The names of the python process and thread that produced the log record.
 
@@ -105,7 +105,7 @@ A log entry has the following format:
 
      * Only the current and immediate previous log file are kept.
 
-   * The Process ID of the ``term-img`` instance preceeds every log entry, so this can be used to distinguish and track logs from different sessions running simultaneously while using the same log file.
+   * The Process ID of the ``term-image`` instance preceeds every log entry, so this can be used to distinguish and track logs from different sessions running simultaneously while using the same log file.
 
 
 Known Issues

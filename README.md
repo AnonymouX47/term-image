@@ -1,14 +1,14 @@
 <div align="center">
-<h1><b>Term-Img</b></h1>
+<h1><b>Term-Image</b></h1>
 <b>Display Images in the terminal</b>
 <br>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-img/main/docs/source/resources/tui.png">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tui.png">
 
 <p align="center">
     <img src="https://static.pepy.tech/badge/term-image">
     <img src="https://badges.frapsoft.com/os/v1/open-source.svg?v=103">
-    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-img">
-    <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20the%20terminal%20using%20python&url=https://github.com/AnonymouX47/term-img&hashtags=developers,images,terminal">
+    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
+    <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20the%20terminal%20using%20python&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal">
         <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
     </a>
 </p>
@@ -33,13 +33,13 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / MacOS X / Windows (partial support, see the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html))
+- Operating System: Unix / Linux / MacOS X / Windows (partial support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
 - [Python](https://www.python.org/) >= 3.7
 - A Terminal emulator with full Unicode support and ANSI 24-bit color support
-  - Plans are in place to support a wider variety of terminal emulators, whether not meeting or surpassing these requirements (see [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features)).
+  - Plans are in place to support a wider variety of terminal emulators, whether not meeting or surpassing these requirements (see [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features)).
 
 ### Steps
-The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-img) using `pip`:
+The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip`:
 
 ```shell
 pip install term-image
@@ -53,9 +53,9 @@ pip install .
 ```
 
 ### Supported Terminal Emulators
-See [here](https://term-img.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
+See [here](https://term-image.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
-If you've tested `term-img` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-img/discussions/4).
+If you've tested `term-image` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
 Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
 
 
@@ -114,19 +114,19 @@ _\*The video was recorded at normal speed and not sped up._
 
 From a local image file
 ```shell
-term-img path/to/image.png
+term-image path/to/image.png
 ```
 
 From a URL
 ```shell
-term-img https://www.example.com/image.png
+term-image https://www.example.com/image.png
 ```
 
 If the image is animated (GIF, WEBP), the animation is infinitely looped **by default** but can be stopped with `Ctrl-C`.
 
 **By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images (and/or directories).**
 
-**NOTE:** `python -m term_img` can be used as an alternative to the `term-img` command **(take note of the _underscore_ VS _hyphen_)**.
+**NOTE:** `python -m term_img` can be used as an alternative to the `term-image` command ***(take note of the differences)***.
 
 </details>
 
@@ -244,50 +244,50 @@ For animated images, only the first method can animate the output, the second on
 ## Usage
 
 ### Library
-See the [tutorial](https://term-img.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-img.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
+See the [tutorial](https://term-image.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
 
-_**PLEASE NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-img/blob/main/CHANGELOG.md)._
+_**PLEASE NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md)._
 
 ### CLI (Command-Line Interface)
-Run `term-img --help` to see the full usage info and list of options.
+Run `term-image --help` to see the full usage info and list of options.
 
 ### TUI (Text-based/Terminal User Interface)
 The controls are **context-based** and displayed at the bottom of the terminal window.
 Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
 
-The TUI controls can be configured by modifying the config file `~/.term_img/config.json`. See the [Configuration](https://term-img.readthedocs.io/en/latest/viewer/config.html) section.
+The TUI controls can be configured by modifying the config file `~/.term_image/config.json`. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section.
 
-[Here](https://github.com/AnonymouX47/term-img/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
+[Here](https://github.com/AnonymouX47/term-image/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
 
 ## Contribution
 
-If you've found any bug or want to suggest a new feature, please open a new [issue](https://github.com/AnonymouX47/term-img/issues) with proper description, after browsing/searching through the existing issues and making sure you won't create a duplicate.
+If you've found any bug or want to suggest a new feature, please open a new [issue](https://github.com/AnonymouX47/term-image/issues) with proper description, after browsing/searching through the existing issues and making sure you won't create a duplicate.
 
-For code contributions, please make sure you read through the [guidelines](https://github.com/AnonymouX47/term-img/blob/main/CONTRIBUTING.md).
+For code contributions, please make sure you read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
 
 Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
-If you wish to work on any of the listed tasks, please go through the [issues](https://github.com/AnonymouX47/term-img/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
+If you wish to work on any of the listed tasks, please go through the [issues](https://github.com/AnonymouX47/term-image/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
 
 Hint: You can filter issues by *label* or simply *search* using the task's name or description.
 
-For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-img/discussions) instead.
+For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-image/discussions) instead.
 
 Thanks! :heart:
 
 
 ## WIP
-- Change of image sizing unit (See [#16](https://github.com/AnonymouX47/term-img/issues/16))
-- Support for terminal graphics protocols (See [#23](https://github.com/AnonymouX47/term-img/issues/23))
+- Change of image sizing unit (See [#16](https://github.com/AnonymouX47/term-image/issues/16))
+- Support for terminal graphics protocols (See [#23](https://github.com/AnonymouX47/term-image/issues/23))
 - Support for more text-based rendering styles
 - Performace Improvements
 
 ## TODO
 
-Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-img.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
+Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
 
 ## Known Issues
 
-Check [here](https://term-img.readthedocs.io/en/latest/library/index.html#known-issues) for the library and [here](https://term-img.readthedocs.io/en/latest/viewer/index.html#known-issues) for the image viewer.
+Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#known-issues) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#known-issues) for the image viewer.
 
 ## FAQs
-See the [FAQs](https://term-img.readthedocs.io/en/latest/faqs.html) section of the docs.
+See the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html) section of the docs.

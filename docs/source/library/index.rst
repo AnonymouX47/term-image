@@ -27,7 +27,7 @@ Known Issues
 Planned Features
 ----------------
 * Performance improvements
-* Support for terminal graphics protocols (See `#23 <https://github.com/AnonymouX47/term-img/issues/23>`_)
+* Support for terminal graphics protocols (See `#23 <https://github.com/AnonymouX47/term-image/issues/23>`_)
 * More text-based render styles
 
   * Greyscale rendering (Good for 256-color terminals)

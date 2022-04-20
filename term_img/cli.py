@@ -1,4 +1,4 @@
-"""term-img's CLI Implementation"""
+"""Term-Image's CLI Implementation"""
 
 from __future__ import annotations
 
@@ -553,14 +553,14 @@ def main() -> None:
         return bool(valid)
 
     parser = argparse.ArgumentParser(
-        prog="term-img",
+        prog="term-image",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Display/Browse images in a terminal",
         epilog=""" \
 
 '--' should be used to separate positional arguments that begin with an '-' \
 from options/flags, to avoid ambiguity.
-For example, `$ term-img [options] -- -image.jpg --image.png`
+For example, `$ term-image [options] -- -image.jpg --image.png`
 
 NOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent

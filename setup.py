@@ -37,7 +37,7 @@ setup(
     version=__version__,
     author=__author__,
     author_email="anonymoux47@gmail.com",
-    url="https://github.com/AnonymouX47/term-img",
+    url="https://github.com/AnonymouX47/term-image",
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -47,7 +47,7 @@ setup(
     python_requires=">=3.7",
     install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0", "urwid>=2.1,<3.0"],
     entry_points={
-        "console_scripts": ["term-img=term_img.__main__:main"],
+        "console_scripts": ["term-image=term_img.__main__:main"],
     },
     keywords=[
         "image",

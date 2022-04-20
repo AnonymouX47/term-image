@@ -88,6 +88,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib,cli,tui] Support for Python 3.6.
 - [config] `frame duration` config option.
 
-[Unreleased]: https://github.com/AnonymouX47/term-img/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/AnonymouX47/term-img/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/AnonymouX47/term-img/releases/tag/v0.1.1
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/AnonymouX47/term-image/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/AnonymouX47/term-image/releases/tag/v0.1.1

@@ -439,7 +439,7 @@ viewer = NoSwitchColumns(
 )
 banner = urwid.LineBox(
     urwid.AttrMap(
-        urwid.Filler(urwid.Text(("red on green", "Term-Img"), "center")),
+        urwid.Filler(urwid.Text(("red on green", "Term-Image"), "center")),
         "red on green",
     ),
 )

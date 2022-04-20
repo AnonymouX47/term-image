@@ -1,4 +1,4 @@
-"""Support for command-line execution using `python -m term-img`"""
+"""Support for command-line execution using `python -m term-image`"""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def main() -> int:
 
     # Can't use "term_img", since the logger's level is changed.
     # Otherwise, it would affect children of "term_img".
-    logger = _logging.getLogger("term-img")
+    logger = _logging.getLogger("term-image")
     logger.setLevel(_logging.INFO)
 
     cli.interrupted = main.interrupted = Event()

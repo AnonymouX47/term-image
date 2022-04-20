@@ -26,14 +26,14 @@ pip install -e .
 ```
 This way, the package and the CLI command are always available in the virtual environment.
 
-Now that you have created a development environment, you can create a new branch and start making changes (after reading the guidelines below :smiley:) and when done, contribute your changes by opening a [pull request](https://github.com/AnonymouX47/term-img/pulls).
+Now that you have created a development environment, you can create a new branch and start making changes (after reading the guidelines below :smiley:) and when done, contribute your changes by opening a [pull request](https://github.com/AnonymouX47/term-image/pulls).
 
 
 ## Guidelines
-- For feature suggestions, please open a new **Feature Request** in the [issues section](https://github.com/AnonymouX47/term-img/issues) first to discuss how it would be implemented... you should propose your idea there.
+- For feature suggestions, please open a new **Feature Request** in the [issues section](https://github.com/AnonymouX47/term-image/issues) first to discuss how it would be implemented... you should propose your idea there.
 - Every **pull request** should be **from a branch other than the default** (`main`).
 - Always test that everything works as expected before opening a pull request.
-- Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-img/discussions/9).
+- Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/9).
 
 
 ## Style
@@ -56,7 +56,7 @@ _The points below apply to the **Python** aspects of this project._
 - Try to keep things (definitions, names, dict keys, etc...) **sorted** wherever reasonably possible.
   - Makes finding things faster and easier :smiley:.
 - Please try as much as possible to follow formats or styles already established in the project.
-- Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-img/discussions/7).
+- Any questions or suggestions about these can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/7).
 
 * * *
 

@@ -615,7 +615,7 @@ class TermImage:
 
         # Ensure initialization is successful before writing to file
 
-        basedir = os.path.join(os.path.expanduser("~"), ".term_img", "temp")
+        basedir = os.path.join(os.path.expanduser("~"), ".term_image", "temp")
         if not os.path.isdir(basedir):
             os.makedirs(basedir)
 

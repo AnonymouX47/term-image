@@ -8,7 +8,7 @@ from term_img.image import TermImage
 
 python_image = "tests/images/python.png"
 python_url = (
-    "https://raw.githubusercontent.com/AnonymouX47/term-img/main/tests/"
+    "https://raw.githubusercontent.com/AnonymouX47/term-image/main/tests/"
     "images/python.png"
 )
 python_img = Image.open(python_image)
@@ -23,7 +23,7 @@ def test_from_url():
         TermImage.from_url(python_url + "e")
     with pytest.raises(UnidentifiedImageError):
         TermImage.from_url(
-            "https://raw.githubusercontent.com/AnonymouX47/term-img/main/LICENSE"
+            "https://raw.githubusercontent.com/AnonymouX47/term-image/main/LICENSE"
         )
 
     image = TermImage.from_url(python_url)
