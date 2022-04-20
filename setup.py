@@ -41,7 +41,7 @@ setup(
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(where=".", include=["term_image*"]),
+    packages=find_packages(where=".", include=["term_image*", "term_img*"]),
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.7",
