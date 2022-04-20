@@ -45,8 +45,8 @@ def main() -> int:
                 log_queue.put((None,) * 2)  # End of logs
                 log_queue.join()
 
-    # Can't use "term_img", since the logger's level is changed.
-    # Otherwise, it would affect children of "term_img".
+    # Can't use "term_image", since the logger's level is changed.
+    # Otherwise, it would affect children of "term_image".
     logger = _logging.getLogger("term-image")
     logger.setLevel(_logging.INFO)
 

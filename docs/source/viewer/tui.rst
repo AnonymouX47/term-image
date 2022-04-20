@@ -132,4 +132,4 @@ Actions
 
 .. note::
 
-   All contexts and their actions (with default properties) are defined in ``_context_keys`` in the ``term_img.config`` sub-module.
+   All contexts and their actions (with default properties) are defined in ``_context_keys`` in the ``term_image.config`` sub-module.

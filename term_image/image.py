@@ -447,7 +447,7 @@ class TermImage:
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
             ValueError: :term:`Render size` or :term:`scale` too small.
-            term_img.exceptions.InvalidSize: The image's :term:`rendered size` can not
+            term_image.exceptions.InvalidSize: The image's :term:`rendered size` can not
               fit into the :term:`available terminal size <available size>`.
 
         * Animations, **by default**, are infinitely looped and can be terminated
@@ -582,7 +582,7 @@ class TermImage:
         Raises:
             TypeError: *url* is not a string.
             ValueError: The URL is invalid.
-            term_img.exceptions.URLNotFoundError: The URL does not exist.
+            term_image.exceptions.URLNotFoundError: The URL does not exist.
             PIL.UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
 
         Also propagates connection-related exceptions from ``requests.get()``
@@ -681,9 +681,9 @@ class TermImage:
             ValueError: *fit_to_width* or *fit_to_height* is ``True`` when *width*,
               *height* or *maxsize* is given.
             ValueError: The :term:`available size` is too small for automatic sizing.
-            term_img.exceptions.InvalidSize: The resulting :term:`render size` is too
+            term_image.exceptions.InvalidSize: The resulting :term:`render size` is too
               small.
-            term_img.exceptions.InvalidSize: *maxsize* is given and the resulting
+            term_image.exceptions.InvalidSize: *maxsize* is given and the resulting
               :term:`rendered size` will not fit into it.
 
         If neither *width* nor *height* is given or anyone given is ``None``,
@@ -711,7 +711,7 @@ class TermImage:
             3. Be careful when setting *fit_to_height* to ``True`` as it might result
                in the image's :term:`rendered width` being larger than the terminal
                width (or maxsize[0]) because :py:meth:`draw` will (by default) raise
-               :py:exc:`term_img.exceptions.InvalidSize` if such is the case.
+               :py:exc:`term_image.exceptions.InvalidSize` if such is the case.
 
         | :term:`Vertical allowance` does not apply when *fit_to_width* is ``True``.
         | :term:`horizontal allowance` does not apply when *fit_to_height* is ``True``.
@@ -1228,10 +1228,10 @@ class TermImage:
 
         Raises:
             ValueError: Render size or scale too small.
-            term_img.exceptions.InvalidSize: *check_size* or *animated* is ``True`` and
-              the image's :term:`rendered size` can not fit into the :term:`available
-              terminal size <available size>`.
-            term_img.exceptions.TermImageException: The image has been finalized.
+            term_image.exceptions.InvalidSize: *check_size* or *animated* is ``True``
+              and the image's :term:`rendered size` can not fit into the
+              :term:`available terminal size <available size>`.
+            term_image.exceptions.TermImageException: The image has been finalized.
 
         NOTE:
             * If the ``set_size()`` method was previously used to set the *render size*,

@@ -11,9 +11,9 @@ Reference
 Top-Level Functions
 -------------------
 
-.. autofunction:: term_img.get_font_ratio
+.. autofunction:: term_image.get_font_ratio
 
-.. autofunction:: term_img.set_font_ratio
+.. autofunction:: term_image.set_font_ratio
 
 |
 

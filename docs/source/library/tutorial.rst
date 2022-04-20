@@ -16,20 +16,20 @@ Creating an instance
 
 If the file is stored on your local filesystem::
 
-   from term_img.image import TermImage
+   from term_image.image import TermImage
 
    image = TermImage.from_file("python.png")
 
 You can also use a URL if you don't have the file stored locally::
 
-   from term_img.image import TermImage
+   from term_image.image import TermImage
 
    image = TermImage.from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/docs/source/resources/python.png")
 
 The library can also be used with PIL images::
 
    from PIL import Image
-   from term_img.image import TermImage
+   from term_image.image import TermImage
 
    img = Image.open("python.png")
    image = TermImage(img)
@@ -137,12 +137,12 @@ Drawing/Displaying an image to/in the terminal
 
 There are two ways to draw an image to the terminal screen:
 
-1. The :py:meth:`draw() <term_img.image.TermImage.draw>` method
+1. The :py:meth:`draw() <term_image.image.TermImage.draw>` method
    ::
 
       image.draw()
 
-   **NOTE:** :py:meth:`TermImage.draw() <term_img.image.TermImage.draw>` has various parameters for :term:`alignment`/:term:`padding`, transparency and animation control.
+   **NOTE:** :py:meth:`TermImage.draw() <term_image.image.TermImage.draw>` has various parameters for :term:`alignment`/:term:`padding`, transparency and animation control.
 
 2. Using ``print()`` with an image render output (i.e printing the rendered string)
 
@@ -157,7 +157,7 @@ There are two ways to draw an image to the terminal screen:
       print(f"{image:>200.^70#ffffff}")  # Uses format()
 
 .. note::
-   - For :term:`animated` images, only the former animates the output, the latter only draws the **current** frame (see :py:meth:`TermImage.seek() <term_img.image.TermImage.seek()>` and :py:meth:`TermImage.tell() <term_img.image.TermImage.tell()>`).
+   - For :term:`animated` images, only the former animates the output, the latter only draws the **current** frame (see :py:meth:`TermImage.seek() <term_image.image.TermImage.seek()>` and :py:meth:`TermImage.tell() <term_image.image.TermImage.tell()>`).
    - Also, the former performs size validation to see if the image will fit into the terminal, while the latter doesn't.
 
 
@@ -167,7 +167,7 @@ There are two ways to draw an image to the terminal screen:
 Image render size
 -----------------
 | The :term:`render size` of an image is the dimension with which an image is rendered.
-| The *render size* can be retrieved via the :py:attr:`size <term_img.image.TermImage.size>`, :py:attr:`width <term_img.image.TermImage.width>` and :py:attr:`height <term_img.image.TermImage.height>` properties.
+| The *render size* can be retrieved via the :py:attr:`size <term_image.image.TermImage.size>`, :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties.
 
 The *render size* of an image can be in either of two states:
 
@@ -226,7 +226,7 @@ Traceback (most recent call last):
   .
 ValueError: Cannot specify both width and height
 
-The :py:attr:`width <term_img.image.TermImage.width>` and :py:attr:`height <term_img.image.TermImage.height>` properties are used to set the :term:`render size` of an image after instantiation.
+The :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties are used to set the :term:`render size` of an image after instantiation.
 
 >>> image = Termimage.from_file("python.png")  # Unset
 >>> image.size is None
@@ -260,7 +260,7 @@ True
 
 .. note:: An exception is raised if the terminal size is too small to calculate a size.
 
-The :py:attr:`size <term_img.image.TermImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the :term:`render size`.
+The :py:attr:`size <term_image.image.TermImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the :term:`render size`.
 
 >>> image = Termimage.from_file("python.png", width=100)
 >>> image.size
@@ -279,7 +279,7 @@ True
 
 .. hint::
 
-   See :py:meth:`TermImage.set_size() <term_img.image.TermImage.set_size()>` for advanced sizing control.
+   See :py:meth:`TermImage.set_size() <term_image.image.TermImage.set_size()>` for advanced sizing control.
 
 
 .. _render-scale:
@@ -290,7 +290,7 @@ Image render scale
 | The :term:`render scale` of an image is the **fraction** of the :term:`render size` that'll actually be used to render the image.
 | A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero and less than or equal to one.
 
-The *render scale* can be retrieved via the properties :py:attr:`scale <term_img.image.TermImage.scale>`, :py:attr:`scale_x <term_img.image.TermImage.scale_x>` and :py:attr:`scale_y <term_img.image.TermImage.scale_y>`.
+The *render scale* can be retrieved via the properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>`.
 
 The scale can be set at instantiation by passing a value to the *scale* **keyword-only** paramter.
 
@@ -312,7 +312,7 @@ The rendered result (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_unset.png
 
-| The properties :py:attr:`scale <term_img.image.TermImage.scale>`, :py:attr:`scale_x <term_img.image.TermImage.scale_x>` and :py:attr:`scale_y <term_img.image.TermImage.scale_y>` are used to set the *render scale* of an image after instantiation.
+| The properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>` are used to set the *render scale* of an image after instantiation.
 
 | ``scale`` accepts a tuple of two scale values or a single scale value.
 | ``scale_x`` and ``scale_y`` each accept a single scale value.

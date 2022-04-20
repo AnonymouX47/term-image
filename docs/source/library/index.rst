@@ -19,7 +19,7 @@ Known Issues
 
    * **Comment**: First of all, the issue is inherent to these shells and neither a fault of this library nor the Windows Terminal, as drawing images and animations works properly with WSL within Windows Terminal.
 
-   * **Solution**: A workaround is to leave some **horizontal allowance** of **at least two columns** to ensure the image never reaches the right edge of the terminal. This can be achieved in the library by using the *h_allow* parameter of :py:meth:`TermImage.set_size() <term_img.image.TermImage.set_size>`.
+   * **Solution**: A workaround is to leave some **horizontal allowance** of **at least two columns** to ensure the image never reaches the right edge of the terminal. This can be achieved in the library by using the *h_allow* parameter of :py:meth:`TermImage.set_size() <term_image.image.TermImage.set_size>`.
 
 
 .. _library-planned:

@@ -10,7 +10,7 @@ Image viewer
 
 The package comes with a standalone in-terminal image viewer based on the library.
 
-| The image viewer is started from the command line using either the ``term-image`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_img``.
+| The image viewer is started from the command line using either the ``term-image`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_image``.
 | **\*Take note of the differences**.
 
 
