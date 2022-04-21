@@ -1,5 +1,5 @@
-.. automodule:: term_img.exceptions
+.. automodule:: term_image.exceptions
    :members:
    :show-inheritance:
 
-   The ``term_img.exceptions`` module defines the following:
+   The ``term_image.exceptions`` module defines the following:

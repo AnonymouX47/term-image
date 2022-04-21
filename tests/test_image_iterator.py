@@ -3,7 +3,7 @@ from types import GeneratorType
 import pytest
 from PIL import Image
 
-from term_img.image import ImageIterator, TermImage
+from term_image.image import ImageIterator, TermImage
 
 _size = (40, 40)
 

@@ -3,8 +3,8 @@ import os
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from term_img.exceptions import URLNotFoundError
-from term_img.image import TermImage
+from term_image.exceptions import URLNotFoundError
+from term_image.image import TermImage
 
 python_image = "tests/images/python.png"
 python_url = (

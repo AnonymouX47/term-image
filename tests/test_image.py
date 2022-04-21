@@ -9,9 +9,9 @@ from shutil import get_terminal_size
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from term_img import set_font_ratio
-from term_img.exceptions import InvalidSize
-from term_img.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
+from term_image import set_font_ratio
+from term_image.exceptions import InvalidSize
+from term_image.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
 
 columns, lines = term_size = get_terminal_size()
 rows = lines * 2

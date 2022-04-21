@@ -203,8 +203,8 @@ filter_ = Filter({"PIL", "urllib3"})
 # Writing to STDERR messes up output, especially with the TUI
 warnings.showwarning = _log_warning
 
-# Can't use "term_img", since the logger's level is changed.
-# Otherwise, it would affect children of "term_img".
+# Can't use "term_image", since the logger's level is changed.
+# Otherwise, it would affect children of "term_image".
 _logger = logging.getLogger("term-image")
 
 # the _stacklevel_ parameter was added in Python 3.8

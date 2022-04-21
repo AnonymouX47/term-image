@@ -1,11 +1,11 @@
 Core Library Definitions
 ========================
 
-.. automodule:: term_img.image
+.. automodule:: term_image.image
    :members:
    :show-inheritance:
 
-   The ``term_img.image`` module defines the following:
+   The ``term_image.image`` module defines the following:
 
    .. note:: It's allowed to set properties for :term:`animated` images on non-animated ones, the values are simply ignored.
 

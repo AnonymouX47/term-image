@@ -126,7 +126,7 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 
 **By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images (and/or directories).**
 
-**NOTE:** `python -m term_img` can be used as an alternative to the `term-image` command ***(take note of the differences)***.
+**NOTE:** `python -m term_image` can be used as an alternative to the `term-image` command ***(take note of the differences)***.
 
 </details>
 
@@ -139,14 +139,14 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 <summary>Click to expand</summary>
 
 ```python
-from term_img.image import TermImage
+from term_image.image import TermImage
 
 image = TermImage.from_file("path/to/image.png")
 ```
 
 You can also use a URL if you don't have the file stored locally
 ```python
-from term_img.image import TermImage
+from term_image.image import TermImage
 
 image = TermImage.from_url("https://www.example.com/image.png")
 ```
@@ -154,7 +154,7 @@ image = TermImage.from_url("https://www.example.com/image.png")
 The library can also be used with PIL images
 ```python
 from PIL import Image
-from term_img.image import TermImage
+from term_image.image import TermImage
 
 img = Image.open("path/to/image.png")
 image = TermImage(img)

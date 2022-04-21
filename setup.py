@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 # To locate the package since `setuptools.build_meta` modifies `sys.path`
 sys.path.append(os.getcwd())
 
-from term_img import __author__, __version__  # noqa: E402
+from term_image import __author__, __version__  # noqa: E402
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -41,13 +41,13 @@ setup(
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(where=".", include=["term_img*"]),
+    packages=find_packages(where=".", include=["term_image*", "term_img*"]),
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.7",
     install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0", "urwid>=2.1,<3.0"],
     entry_points={
-        "console_scripts": ["term-image=term_img.__main__:main"],
+        "console_scripts": ["term-image=term_image.__main__:main"],
     },
     keywords=[
         "image",

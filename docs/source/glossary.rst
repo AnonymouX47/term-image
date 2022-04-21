@@ -72,7 +72,7 @@ Below are definitions of terms used across the library's public interface, excep
    font ratio
       The **aspect ratio** of a terminal’s font i.e the ratio of **width to height** of a single **character cell** on the terminal.
 
-      See also: :py:func:`get_font_ratio() <term_img.get_font_ratio>` and :py:func:`set_font_ratio() <term_img.set_font_ratio>`.
+      See also: :py:func:`get_font_ratio() <term_image.get_font_ratio>` and :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
 
    padding
    padding width
