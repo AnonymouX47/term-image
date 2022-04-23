@@ -460,8 +460,7 @@ class TermImage:
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
 
-          * *scroll* is taken as ``False`` when the image size is
-            :ref:`unset <unset-size>`.
+          * *scroll* is ignored.
           * Image size and :term:`padding height` are always validated, if set or given.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
@@ -679,7 +678,6 @@ class TermImage:
             ValueError: *fit_to_width* or *fit_to_height* is ``True`` when *width*,
               *height* or *maxsize* is given.
             ValueError: The :term:`available size` is too small for automatic sizing.
-            term_image.exceptions.InvalidSize: The resulting size is too small.
             term_image.exceptions.InvalidSize: *maxsize* is given and the resulting
               size will not fit into it.
 
@@ -1197,11 +1195,8 @@ class TermImage:
               ``PIL.Image.Image`` instance.
             scroll: See *scroll* in ``draw()``.
             check_size: See *check_size* in ``draw()``.
-            animated: If ``True`` and render size is:
-
-              * set, ignore *scroll* and *check_size* and validate the size.
-              * unset, scroll is taken as ``False``.
-
+            animated: If ``True``, *scroll* and *check_size* are ignored and the size
+              is validated.
             kwargs: Keyword arguments to pass on to *renderer*.
 
         Returns:
@@ -1234,7 +1229,9 @@ class TermImage:
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
-                    (self._h_allow, self._v_allow),
+                    # *scroll* nullifies vertical allowance for non-animations
+                    # Makes a difference when terminal height < vertical allowance
+                    (self._h_allow, self._v_allow * (animated or not scroll)),
                 )
 
                 if any(
@@ -1377,11 +1374,6 @@ class TermImage:
                 self._width_height_px(w=self._pixels_cols(cols=width)) * _pixel_ratio
             )
             height = self._pixels_lines(pixels=height_px)
-
-        if not (width and height):
-            raise InvalidSize(
-                f"The resulting render size is too small: {width, height}"
-            )
 
         if maxsize and (width > columns or height > lines):
             raise InvalidSize(
