@@ -26,7 +26,7 @@ def init(
     """Initializes the TUI"""
     global is_launched
 
-    if not logging.QUIET:
+    if not logging.QUIET and max_notifications:
         pile.contents.append((notif_bar, ("given", max_notifications)))
     if args.debug:
         main_widget.contents.insert(

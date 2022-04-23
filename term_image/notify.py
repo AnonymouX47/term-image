@@ -128,7 +128,8 @@ def notify(
     else:
         # CRITICAL-level notifications should never be displayed in the TUI,
         # since the program shouldn't recover from the cause.
-        add_notification((msg, ("warning", msg), ("error", msg))[level])
+        if max_notifications:
+            add_notification((msg, ("warning", msg), ("error", msg))[level])
 
 
 def start_loading() -> None:
