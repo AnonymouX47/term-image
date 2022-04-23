@@ -11,7 +11,7 @@ import os
 import re
 import time
 from math import ceil
-from operator import add, gt, mul, sub, truediv
+from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
 from types import FunctionType
@@ -104,7 +104,6 @@ class TermImage:
         self._fit_to_width = False
         self._h_allow = 0
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
-        self._width_compensation = 0.0
 
     def __del__(self):
         self.close()
@@ -218,44 +217,40 @@ class TermImage:
         return self._n_frames
 
     rendered_height = property(
-        lambda self: ceil(
-            round((self._size or self._valid_size(None, None))[1] * self._scale[1]) / 2
+        lambda self: round(
+            (self._size or self._valid_size(None, None))[1] * self._scale[1]
         ),
-        doc="The number of lines that the drawn image will occupy in a terminal",
+        doc="""
+        The **scaled** height of the image.
+
+        Also the exact number of lines that the drawn image will occupy in a terminal.
+        """,
     )
 
-    @property
-    def rendered_size(self) -> Tuple[int, int]:
-        """The number of columns and lines (respectively) that the drawn image will
-        occupy in a terminal
-        """
-        columns, rows = map(
-            round,
+    rendered_size = property(
+        lambda self: tuple(
             map(
-                mul,
-                map(
-                    add,
-                    map(
-                        truediv,
-                        self._size or self._valid_size(None, None),
-                        (_pixel_ratio, 1),
-                    ),
-                    (self._width_compensation, 0.0),
-                ),
-                self._scale,
-            ),
-        )
-        return (columns, ceil(rows / 2))
+                round,
+                map(mul, self._size or self._valid_size(None, None), self._scale),
+            )
+        ),
+        doc="""
+        The **scaled** size of the image.
+
+        Also the exact number of columns and lines (respectively) that the drawn image
+        will occupy in a terminal.
+        """,
+    )
 
     rendered_width = property(
         lambda self: round(
-            (
-                (self._size or self._valid_size(None, None))[0] / _pixel_ratio
-                + self._width_compensation
-            )
-            * self._scale[0]
+            (self._size or self._valid_size(None, None))[0] * self._scale[0]
         ),
-        doc="The number of columns that the drawn image will occupy in a terminal",
+        doc="""
+        The **scaled** width of the image.
+
+        Also the exact number of columns that the drawn image will occupy in a terminal.
+        """,
     )
 
     scale = property(
@@ -1014,6 +1009,31 @@ class TermImage:
 
         return "\n".join(lines)
 
+    def _get_render_size(self) -> Tuple[int, int]:
+        """Returns the size (in pixels) required to render the image.
+
+        Applies the image scale.
+        """
+        return tuple(map(mul, self.rendered_size, (1, 2)))
+
+    @staticmethod
+    def _pixels_cols(
+        *, pixels: Optional[int] = None, cols: Optional[int] = None
+    ) -> int:
+        """Returns the number of pixels represented by a given number of columns
+        or vice-versa.
+        """
+        return pixels if pixels is not None else cols
+
+    @staticmethod
+    def _pixels_lines(
+        *, pixels: Optional[int] = None, lines: Optional[int] = None
+    ) -> int:
+        """Returns the number of pixels represented by a given number of lines
+        or vice-versa.
+        """
+        return ceil(pixels / 2) if pixels is not None else lines * 2
+
     def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
         """Converts image pixel data into a "color-coded" string.
 
@@ -1029,8 +1049,8 @@ class TermImage:
         # It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
-        # Eliminate attribute resolution cost
         buffer = io.StringIO()
+        # Eliminate attribute resolution cost
         buf_write = buffer.write
 
         def update_buffer():
@@ -1061,18 +1081,7 @@ class TermImage:
         if self._is_animated:
             image.seek(self._seek_position)
 
-        width, height = map(
-            round,
-            map(
-                mul,
-                self._scale,
-                map(
-                    add,
-                    map(truediv, self._size, (_pixel_ratio, 1)),
-                    (self._width_compensation, 0.0),
-                ),
-            ),
-        )
+        width, height = self._get_render_size()
 
         if alpha is None or image.mode == "RGB":
             try:
@@ -1107,11 +1116,6 @@ class TermImage:
         # clean up
         if image is not self._source:
             image.close()
-
-        if height % 2:
-            mark = width * (height // 2) * 2  # Starting index of the last row
-            rgb, last_rgb = rgb[:mark], rgb[mark:]
-            a, last_a = a[:mark], a[mark:]
 
         rgb_pairs = (
             (
@@ -1163,33 +1167,6 @@ class TermImage:
             update_buffer()
             if row_no < height:  # last line not yet rendered
                 buf_write("\033[0m\n")
-
-        if height % 2:
-            cluster1 = last_rgb[0]
-            a_cluster1 = last_a[0]
-            n = 0
-            for px1, a1 in zip(last_rgb, last_a):
-                if px1 != cluster1 or (
-                    alpha and a_cluster1 != a1 == 0 or 0 == a_cluster1 != a1
-                ):
-                    if alpha and a_cluster1 == 0:
-                        buf_write(_RESET)
-                        buf_write(" " * n)
-                    else:
-                        buf_write(_FG_FMT % cluster1)
-                        buf_write(_UPPER_PIXEL * n)
-                    cluster1 = px1
-                    if alpha:
-                        a_cluster1 = a1
-                    n = 0
-                n += 1
-            # Last cluster
-            if alpha and a_cluster1 == 0:
-                buf_write(_RESET)
-                buf_write(" " * n)
-            else:
-                buf_write(_FG_FMT % cluster1)
-                buf_write(_UPPER_PIXEL * n)
 
         buf_write(_RESET)  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
@@ -1307,19 +1284,32 @@ class TermImage:
         fit_to_width: bool = False,
         fit_to_height: bool = False,
     ) -> Tuple[int, int]:
-        """Generates a *render size* tuple.
+        """Returns an image size tuple.
 
         See the description of ``set_size()`` for the parameters.
-
-        Returns:
-            A valid *render size* tuple.
         """
         ori_width, ori_height = self._original_size
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
-        # Two pixel rows per line
-        rows = lines * 2
+        max_width = self._pixels_cols(cols=columns)
+        max_height = self._pixels_lines(lines=lines)
 
         # NOTE: The image scale is not considered since it should never be > 1
+
+        # As for font ratio...
+        #
+        # Take for example, pixel ratio = 2.0
+        # (i.e font ratio = 1.0; square character cells).
+        # To adjust the image to the proper scale, we either reduce the
+        # width (i.e divide by 2.0) or increase the height (i.e multiply by 2.0).
+        #
+        # On the other hand, if the pixel ratio = 0.5
+        # (i.e font ratio = 0.25; vertically oblong character cells).
+        # To adjust the image to the proper scale, we either increase the width
+        # (i.e divide by the 0.5) or reduce the height (i.e multiply by the 0.5).
+        #
+        # Therefore, for the height, we always multiply by the pixel ratio
+        # and for the width, we always divide by the pixel ratio.
+        # The non-constraining axis is always the one directly adjusted.
 
         if width is None is height:
             for name in ("columns", "lines"):
@@ -1327,58 +1317,88 @@ class TermImage:
                     raise ValueError(f"Amount of available {name} too small")
 
             if fit_to_width:
-                width = columns * _pixel_ratio
-                # Adding back later compensates for the rounding
-                self._width_compensation = columns - (round(width) / _pixel_ratio)
-                return (round(width), round(ori_height * width / ori_width))
-            if fit_to_height:
-                self._width_compensation = 0.0
-                return (round(ori_width * rows / ori_height), rows)
-
-            # The smaller fraction will always fit into the larger fraction
-            # Using the larger fraction with cause the image not to fit on the axis with
-            # the smaller fraction
-            factor = min(map(truediv, (columns, rows), (ori_width, ori_height)))
-            width, height = map(round, map(mul, (factor,) * 2, (ori_width, ori_height)))
-
-            # The width will later be divided by the pixel-ratio when rendering
-            rendered_width = width / _pixel_ratio
-            if round(rendered_width) <= columns:
-                self._width_compensation = 0.0
-                return (width, height)
-            else:
-                # Adjust the width such that the rendered width is exactly the maximum
-                # number of available columns and adjust the height proportionally
-
-                # w1 == rw1 * (w0 / rw0) == rw1 * _pixel_ratio
-                new_width = round(columns * _pixel_ratio)
-                # Adding back later compensates for the rounding
-                self._width_compensation = columns - (new_width / _pixel_ratio)
                 return (
-                    new_width,
-                    # h1 == h0 * (w1 / w0) == h0 * (rw1 / rw0)
-                    # But it's better to avoid the rounded widths
-                    round(height * columns / rendered_width),
+                    self._pixels_cols(pixels=max_width),
+                    self._pixels_lines(
+                        pixels=round(self._width_height_px(w=max_width) * _pixel_ratio)
+                    ),
                 )
+            if fit_to_height:
+                return (
+                    self._pixels_cols(
+                        pixels=round(self._width_height_px(h=max_height) / _pixel_ratio)
+                    ),
+                    self._pixels_lines(pixels=max_height),
+                )
+
+            # The smaller fraction will fit on both axis.
+            # Hence, the axis with the smaller ratio is the constraining axis.
+            # Constraining by the axis with the larger ratio will cause the image
+            # to not fit into the axis with the smaller ratio.
+            x = max_width / ori_width
+            y = max_height / ori_height
+            _width_px = ori_width * min(x, y)
+            _height_px = ori_height * min(x, y)
+
+            # The font ratio should affect the axis with the larger ratio since the axis
+            # the smaller ratio is already fully occupied
+
+            if x < y:
+                _height_px = _height_px * _pixel_ratio
+                # If height becomes greater than the max, reduce it to the max
+                height_px = min(_height_px, max_height)
+                # Calculate the corresponding width
+                width_px = round((height_px / _height_px) * _width_px)
+                # Round the height
+                height_px = round(height_px)
+            else:
+                _width_px = _width_px / _pixel_ratio
+                # If width becomes greater than the max, reduce it to the max
+                width_px = min(_width_px, max_width)
+                # Calculate the corresponding height
+                height_px = round((width_px / _width_px) * _height_px)
+                # Round the width
+                width_px = round(width_px)
+            return (
+                self._pixels_cols(pixels=width_px),
+                self._pixels_lines(pixels=height_px),
+            )
         elif width is None:
-            width = round((height / ori_height) * ori_width)
+            width_px = round(
+                self._width_height_px(h=self._pixels_lines(lines=height)) / _pixel_ratio
+            )
+            width = self._pixels_cols(pixels=width_px)
         elif height is None:
-            height = round((width / ori_width) * ori_height)
+            height_px = round(
+                self._width_height_px(w=self._pixels_cols(cols=width)) * _pixel_ratio
+            )
+            height = self._pixels_lines(pixels=height_px)
 
         if not (width and height):
             raise InvalidSize(
                 f"The resulting render size is too small: {width, height}"
             )
 
-        # The width will later be divided by the pixel-ratio when rendering
-        if maxsize and (round(width / _pixel_ratio) > columns or height > rows):
+        if maxsize and (width > columns or height > lines):
             raise InvalidSize(
-                f"The resulting rendered size {width, height} will not fit into "
+                f"The resulting size {width, height} will not fit into "
                 f"'maxsize' {maxsize}"
             )
 
-        self._width_compensation = 0.0
         return (width, height)
+
+    def _width_height_px(
+        self, *, w: Optional[int] = None, h: Optional[int] = None
+    ) -> float:
+        """Converts the given width (in pixels) to the **unrounded** proportional height
+        (in pixels) OR vice-versa.
+        """
+        ori_width, ori_height = self._original_size
+        return (
+            (w / ori_width) * ori_height
+            if w is not None
+            else (h / ori_height) * ori_width
+        )
 
 
 class ImageIterator:
