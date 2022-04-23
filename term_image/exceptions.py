@@ -15,4 +15,4 @@ class URLNotFoundError(FileNotFoundError, TermImageException):
 
 
 class InvalidSize(ValueError, TermImageException):
-    """Raised when the given/set image render size is larger than the terminal size"""
+    """Raised for invalid image sizes"""
