@@ -177,14 +177,11 @@ class Image(urwid.Widget):
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         # Incompetent implementation due to the lack of *maxrows*
-        size = self._image._valid_size(
+        return self._image._valid_size(
             size[0],
             None,
             maxsize=get_terminal_size(),  # Omit 2-line allowance
-            ignore_oversize=True,  # For the sake of vertically-oriented images
-        )
-        rows = ceil(size[1] / 2)
-        return rows
+        )[1]
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         context = tui_main.get_context()
@@ -254,7 +251,6 @@ class Image(urwid.Widget):
                 None,
                 maxsize=(size[0], get_terminal_size()[1]),
             )
-            size = (size[0], ceil(size[1] / 2))
         image.set_size(maxsize=size)
 
         # Rendering
