@@ -1,11 +1,13 @@
+py_files = *.py docs/source/conf.py term_img/ term_image/ tests/
+
 check: lint check-format check-imports test-no-url
 
 check-format:
-	black --check --diff --color .
+	black --check --diff --color $(py_files)
 	echo
 
 check-imports:
-	isort --check --diff --color .
+	isort --check --diff --color $(py_files)
 	echo
 
 clean-docs:
@@ -16,13 +18,13 @@ docs:
 	cd docs/; make html
 
 format:
-	black .
+	black $(py_files)
 
 imports:
-	isort .
+	isort $(py_files)
 
 lint:
-	flake8 .
+	flake8 $(py_files)
 	echo
 
 test:
