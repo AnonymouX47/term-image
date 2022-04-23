@@ -5,7 +5,7 @@ from PIL import Image
 
 from term_image.image import ImageIterator, TermImage
 
-_size = (40, 40)
+_size = (40, 20)
 
 png_image = TermImage(Image.open("tests/images/python.png"))
 gif_img = Image.open("tests/images/lion.gif")
@@ -167,13 +167,13 @@ def test_sizing():
             next(image_it)
             assert gif_image2._size is None
 
-            gif_image2._size = (40, 40)
+            gif_image2._size = (40, 20)
             assert next(image_it).count("\n") + 1 == 20
-            assert gif_image2._size == (40, 40)
+            assert gif_image2._size == (40, 20)
 
-            gif_image2._size = (20, 20)
+            gif_image2._size = (20, 10)
             assert next(image_it).count("\n") + 1 == 10
-            assert gif_image2._size == (20, 20)
+            assert gif_image2._size == (20, 10)
 
     gif_image2 = TermImage.from_file(gif_image._source.filename)
 
@@ -191,19 +191,19 @@ def test_sizing():
 def test_formatting():
     # Transparency enabled, not padded
     image_it = ImageIterator(gif_image, 1, "1.1")
-    assert next(image_it).count("\n") + 1 == _size[1] // 2
+    assert next(image_it).count("\n") + 1 == _size[1]
     # First line without escape codes
     assert next(image_it).partition("\n")[0][4:-4] == " " * _size[0]
 
     # Transparency disabled, not padded
     image_it = ImageIterator(gif_image, 1, "1.1#")
-    assert next(image_it).count("\n") + 1 == _size[1] // 2
+    assert next(image_it).count("\n") + 1 == _size[1]
     # First line without escape codes
     assert next(image_it).partition("\n")[0][4:-4] != " " * _size[0]
 
     # Transparency disabled, padded
-    image_it = ImageIterator(gif_image, 1, f"{_size[0] + 2}.{_size[1] // 2 + 2}#")
-    assert next(image_it).count("\n") + 1 == _size[1] // 2 + 2
+    image_it = ImageIterator(gif_image, 1, f"{_size[0] + 2}.{_size[1] + 2}#")
+    assert next(image_it).count("\n") + 1 == _size[1] + 2
     # First line should be padding, so no escape codes
     assert next(image_it).partition("\n")[0] == " " * (_size[0] + 2)
 
