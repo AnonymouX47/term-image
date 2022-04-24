@@ -14,7 +14,7 @@ from math import ceil
 from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
-from types import FunctionType
+from types import FunctionType, TracebackType
 from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -73,7 +73,7 @@ class TermImage:
         width: Optional[int] = None,
         height: Optional[int] = None,
         scale: Tuple[float, float] = (1.0, 1.0),
-    ):
+    ) -> None:
         """See class description"""
         if not isinstance(image, Image.Image):
             raise TypeError(
@@ -104,17 +104,17 @@ class TermImage:
         self._h_allow = 0
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.close()
 
-    def __enter__(self):
+    def __enter__(self) -> TermImage:
         return self
 
-    def __exit__(self, typ, val, tb):
+    def __exit__(self, typ: type, val: Exception, tb: TracebackType) -> bool:
         self.close()
         return False  # Currently, no particular exception is suppressed
 
-    def __format__(self, spec):
+    def __format__(self, spec: str) -> str:
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
         h_align, width, v_align, height, alpha = self._check_format_spec(spec)
@@ -129,10 +129,10 @@ class TermImage:
             )
         )
 
-    def __iter__(self):
+    def __iter__(self) -> ImageIterator:
         return ImageIterator(self, 1, "1.1", False)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
         ).format(
@@ -144,7 +144,7 @@ class TermImage:
             self._is_animated,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Renders the image with transparency enabled and without alignment"""
         # Only the currently set frame is rendered for animated images
         return self._renderer(lambda image: self._render_image(image, _ALPHA_THRESHOLD))
@@ -497,7 +497,7 @@ class TermImage:
 
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
-        def render(image) -> None:
+        def render(image: Image.Image) -> None:
             print("\033[?25l", end="")  # Hide the cursor
             try:
                 if self._is_animated and animate:
@@ -522,7 +522,7 @@ class TermImage:
     def from_file(
         cls,
         filepath: str,
-        **kwargs: Union[Optional[int], Tuple[float, float]],
+        **kwargs: Union[None, int, Tuple[float, float]],
     ) -> TermImage:
         """Creates a :py:class:`TermImage` instance from an image file.
 
@@ -564,7 +564,7 @@ class TermImage:
     def from_url(
         cls,
         url: str,
-        **kwargs: Union[Optional[int], Tuple[float, float]],
+        **kwargs: Union[None, int, Tuple[float, float]],
     ) -> TermImage:
         """Creates a :py:class:`TermImage` instance from an image URL.
 
@@ -1428,7 +1428,7 @@ class ImageIterator:
         repeat: int = -1,
         format: str = "",
         cached: Union[bool, int] = 100,
-    ):
+    ) -> None:
         if not isinstance(image, TermImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
         if not image._is_animated:
@@ -1458,13 +1458,13 @@ class ImageIterator:
         ) and repeat != 1
         self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.close()
 
-    def __iter__(self):
+    def __iter__(self) -> None:
         return self
 
-    def __next__(self):
+    def __next__(self) -> None:
         try:
             return next(self._animator)
         except StopIteration:
@@ -1482,13 +1482,13 @@ class ImageIterator:
             self.close()
             raise
 
-    def __repr__(self):
+    def __repr__(self) -> None:
         return "{}(image={!r}, repeat={}, format={!r}, cached={})".format(
             type(self).__name__,
             *self.__dict__.values(),
         )
 
-    def close(self):
+    def close(self) -> None:
         """Closes the iterator and releases resources used.
 
         Does not reset the frame number of the underlying image.
