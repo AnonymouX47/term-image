@@ -10,7 +10,7 @@ from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
 from queue import Empty, Queue
-from threading import current_thread
+from threading import Event, current_thread
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -1251,20 +1251,20 @@ logger = _logging.getLogger(__name__)
 
 # Initially set from within `.__main__.main()`
 # Will be updated from `.logging.init_log()` if multiprocessing is enabled
-interrupted = None
+interrupted: Union[None, Event, mp_Event] = None
 
 # Used by `check_dir()`
-_depth = None
+_depth: int = None
 
 # Set from within `check_dirs()`; Hence, only set in "Checker-?" processes
-_dir_queue = None
-_free_checkers = None
-_source = None
+_dir_queue: Union[None, Queue, mp_Queue] = None
+_free_checkers: Optional[Value] = None
+_source: Optional[str] = None
 
 # Set from within `main()`
-MAX_DEPTH = None
-RECURSIVE = None
-SHOW_HIDDEN = None
+MAX_DEPTH: Optional[int] = None
+RECURSIVE: Optional[bool] = None
+SHOW_HIDDEN: Optional[bool] = None
 # # Used in other modules
-args = None
-url_images = None
+args: Optional[argparse.Namespace] = None
+url_images: Optional[list] = None

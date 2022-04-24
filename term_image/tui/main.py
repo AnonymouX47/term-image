@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging as _logging
 import os
+from multiprocessing import Event as mp_Event
 from operator import mul
 from os.path import abspath, basename, islink
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, U
 import PIL
 import urwid
 
-from .. import logging, notify
+from .. import logging, notify, tui
 from ..config import context_keys, expand_key
 from ..image import ImageIterator, TermImage
 from .keys import (
@@ -651,7 +652,7 @@ def sort_key_lexi(entry: Union[os.DirEntry, Path]):
 
 
 def update_menu(
-    items: Iterable[Tuple[str, Union[Image, Generator]]],
+    items: Iterable[Tuple[str, Union[Image, type(...)]]],
     top_level: bool = False,
     pos: int = -1,
 ) -> None:
@@ -696,11 +697,11 @@ quitting = Event()
 grid_acknowledge = Event()
 grid_active = Event()
 grid_change = Event()
-_grid_list = None
-grid_path = None
 grid_scan_done = Event()
-last_non_empty_grid_path = None
 next_grid = Queue(1)
+_grid_list: Optional[list] = None
+grid_path: Optional[str] = None
+last_non_empty_grid_path: Optional[str] = None
 
 # For menu scanning/listing
 menu_acknowledge = Event()
@@ -724,28 +725,26 @@ UNREADABLE = 1
 IMAGE = 2
 DIR = 3
 
-# Placeholders
+# Set by `update_menu()`
+menu_list: Optional[list] = None
+at_top_level: Optional[bool] = None
 
-# # Set by `update_menu()`
-menu_list = None
-at_top_level = None
+# Intially set from `.__main__.main()`
+# Will be updated from `.logging.init_log()` if multiprocessing is enabled
+interrupted: Union[None, Event, mp_Event] = None
 
-# # Intially set from `.__main__.main()`
-# # Will be updated from `.logging.init_log()` if multiprocessing is enabled
-interrupted = None
+# Set from `.tui.init()`
+displayer: Optional[Generator[None, int, bool]] = None
+loop: Optional[tui.Loop] = None
+update_pipe: Optional[int] = None
 
-# # Set from `..tui.init()`
-displayer = None
-loop = None
-update_pipe = None
-
-# # # Corresponsing to command-line args
-ANIM_CACHED = None
-DEBUG = None
-FRAME_DURATION = None
-GRID_RENDERERS = None
-MAX_PIXELS = None
-NO_ANIMATION = None
-REPEAT = None
-RECURSIVE = None
-SHOW_HIDDEN = None
+# # Corresponsing to command-line args
+ANIM_CACHED: Union[None, bool, int] = None
+DEBUG: Optional[bool] = None
+FRAME_DURATION: Optional[float] = None
+GRID_RENDERERS: Optional[int] = None
+MAX_PIXELS: Optional[int] = None
+NO_ANIMATION: Optional[bool] = None
+REPEAT: Optional[int] = None
+RECURSIVE: Optional[bool] = None
+SHOW_HIDDEN: Optional[bool] = None

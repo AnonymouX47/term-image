@@ -218,8 +218,8 @@ else:
     _kwargs = _kwargs_exc = {}
 
 # Set from within `init_log()`
-DEBUG = None
-MULTI = None
-QUIET = None
-VERBOSE = None
-VERBOSE_LOG = None
+DEBUG: Optional[bool] = None
+MULTI: Optional[bool] = None
+QUIET: Optional[bool] = None
+VERBOSE: Optional[bool] = None
+VERBOSE_LOG: Optional[bool] = None

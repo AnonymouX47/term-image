@@ -8,7 +8,7 @@ from os.path import abspath, basename
 from shutil import get_terminal_size
 from time import sleep
 from types import FunctionType
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import urwid
 
@@ -664,5 +664,10 @@ logger = _logging.getLogger(__name__)
 key_bar_is_collapsed = True
 expand_key_is_shown = True
 no_globals = {"global", "confirmation", "full-grid-image", "overlay"}
-_confirm = _cancel = None  # To be set by `set_confirmation()`
-_prev_view_widget = None  # Used for overlays
+
+# Use in the "confirmation" context. Set by `set_confirmation()`
+_confirm: Optional[Tuple[FunctionType, Tuple[Any]]] = None
+_cancel: Optional[Tuple[FunctionType, Tuple[Any]]] = None
+
+# Used for overlays
+_prev_view_widget: Optional[urwid.Widget] = None

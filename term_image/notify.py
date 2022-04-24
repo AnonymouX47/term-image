@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging as _logging
 from queue import Queue
 from sys import stderr, stdout
-from threading import Event
+from threading import Event, Thread
 from time import sleep
-from typing import Any, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import urwid
 
@@ -155,4 +155,4 @@ _loading = Event()
 _n_loading = 0
 
 # Set from `.logging.init_log()`.
-loading_indicator = None
+loading_indicator: Optional[Thread] = None

@@ -6,6 +6,7 @@ import logging as _logging
 import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
+from typing import Optional
 
 from . import cli, logging, notify
 
@@ -129,8 +130,4 @@ NOTIF = 1
 child_processes = []
 
 # Set from `process_multi_logs()` in the MultiLogger thread, only in the main process
-log_queue = None
-
-# Set from `create_objects()`, only in the manager process
-_log_queue = None
-_logging_details = None
+log_queue: Optional[JoinableQueue] = None
