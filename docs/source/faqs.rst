@@ -19,7 +19,8 @@ Why are colours not properly reproduced?
    - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
 
 Why do images look out-of-scale in my terminal?
-   - Simply adjust your :ref:`font ratio <font-ratio-config>` setting appropriately.
+   - For the library, adjust the :term:`font ratio` using :py:func:`get_font_ratio() <term_image.get_font_ratio>`.
+   - For the CLI or TUI, adjust your :ref:`font ratio <font-ratio-config>` setting.
 
 Why is the TUI unresponsive or slow in drawing images?
    - Drawing (not rendering) speed is **enteirly** dependent on the terminal emulator itself.

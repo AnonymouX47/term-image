@@ -11,7 +11,7 @@ import os
 import re
 import time
 from math import ceil
-from operator import add, gt, mul, sub, truediv
+from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
 from types import FunctionType
@@ -42,9 +42,9 @@ class TermImage:
 
     Args:
         image: Source image.
-        width: The width to render the image with.
-        height: The height to render the image with.
-        scale: The image render scale on respective axes.
+        width: Horizontal dimension of the image, in columns.
+        height: Vertical dimension of the image, in lines.
+        scale: The fraction of the size on respective axes, to render the image with.
 
     Raises:
         TypeError: An argument is of an inappropriate type.
@@ -54,15 +54,14 @@ class TermImage:
     given.
 
     NOTE:
-        * *width* is not neccesarily the exact number of columns that'll be used
-          to render the image. That is influenced by the currently set
-          :term:`font ratio`.
-        * *height* is **2 times** the number of lines that'll be used in the terminal.
+        * *width* or *height* is the exact number of columns or lines that'll be used
+          to draw the image (assuming the scale equal `1`), regardless of the currently
+          set :term:`font ratio`.
         * If neither is given or both are ``None``, the size is automatically determined
-          when the image is to be :term:`rendered`, such that it can fit
-          within the terminal.
-        * The :term:`size <render size>` is multiplied by the :term:`scale` on each axis
-          respectively before the image is :term:`rendered`.
+          when the image is to be :term:`rendered`, such that it optimally fits
+          into the terminal.
+        * The image size is multiplied by the :term:`scale` on respective axes before
+          the image is :term:`rendered`.
     """
 
     # Special Methods
@@ -104,7 +103,6 @@ class TermImage:
         self._fit_to_width = False
         self._h_allow = 0
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
-        self._width_compensation = 0.0
 
     def __del__(self):
         self.close()
@@ -179,17 +177,16 @@ class TermImage:
         lambda self: self._size and self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
-        Image :term:`render height`
+        The **unscaled** height of the image.
 
-        ``None`` when :py:attr:`render size <size>` is :ref:`unset <unset-size>`.
+        ``None`` when the image size is :ref:`unset <unset-size>`.
 
         Settable values:
 
-            * ``None``: Sets the render size to the automatically calculated one.
-            * A positive ``int``: Sets the render height to the given value and
-              the width proprtionally.
-
-        The image is actually :term:`rendered` using half this number of lines
+            * ``None``: Sets the image size to an automatically calculated one,
+              based on the current terminal size.
+            * A positive ``int``: Sets the image height to the given value and
+              the width proportionally.
         """,
     )
 
@@ -199,7 +196,7 @@ class TermImage:
     )
 
     original_size = property(
-        lambda self: self._original_size, doc="Original image size in pixels"
+        lambda self: self._original_size, doc="Size of the source image (in pixels)"
     )
 
     @property
@@ -218,50 +215,46 @@ class TermImage:
         return self._n_frames
 
     rendered_height = property(
-        lambda self: ceil(
-            round((self._size or self._valid_size(None, None))[1] * self._scale[1]) / 2
+        lambda self: round(
+            (self._size or self._valid_size(None, None))[1] * self._scale[1]
         ),
-        doc="The number of lines that the drawn image will occupy in a terminal",
+        doc="""
+        The **scaled** height of the image.
+
+        Also the exact number of lines that the drawn image will occupy in a terminal.
+        """,
     )
 
-    @property
-    def rendered_size(self) -> Tuple[int, int]:
-        """The number of columns and lines (respectively) that the drawn image will
-        occupy in a terminal
-        """
-        columns, rows = map(
-            round,
+    rendered_size = property(
+        lambda self: tuple(
             map(
-                mul,
-                map(
-                    add,
-                    map(
-                        truediv,
-                        self._size or self._valid_size(None, None),
-                        (_pixel_ratio, 1),
-                    ),
-                    (self._width_compensation, 0.0),
-                ),
-                self._scale,
-            ),
-        )
-        return (columns, ceil(rows / 2))
+                round,
+                map(mul, self._size or self._valid_size(None, None), self._scale),
+            )
+        ),
+        doc="""
+        The **scaled** size of the image.
+
+        Also the exact number of columns and lines (respectively) that the drawn image
+        will occupy in a terminal.
+        """,
+    )
 
     rendered_width = property(
         lambda self: round(
-            (
-                (self._size or self._valid_size(None, None))[0] / _pixel_ratio
-                + self._width_compensation
-            )
-            * self._scale[0]
+            (self._size or self._valid_size(None, None))[0] * self._scale[0]
         ),
-        doc="The number of columns that the drawn image will occupy in a terminal",
+        doc="""
+        The **scaled** width of the image.
+
+        Also the exact number of columns that the drawn image will occupy in a terminal.
+        """,
     )
 
     scale = property(
         lambda self: tuple(self._scale),
         doc="""
-        Image :term:`render scale`
+        Image :term:`scale`
 
         Settable values are:
 
@@ -286,7 +279,7 @@ class TermImage:
     scale_x = property(
         lambda self: self._scale[0],
         doc="""
-        x-axis :term:`render scale`
+        Horizontal :term:`scale`
 
         A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
         """,
@@ -299,7 +292,7 @@ class TermImage:
     scale_y = property(
         lambda self: self._scale[1],
         doc="""
-        y-ayis :term:`render scale`
+        Vertical :term:`scale`
 
         A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
         """,
@@ -311,13 +304,17 @@ class TermImage:
 
     size = property(
         lambda self: self._size,
-        doc="""Image :term:`render size`
+        doc="""
+        The **unscaled** size of the image.
 
-        ``None`` when render size is unset.
+        ``None`` when the image size is :ref:`unset <unset-size>`.
 
-        Setting this to ``None`` :ref:`unsets <unset-size>` the *render size* (so that
+        Setting this to ``None`` :ref:`unsets <unset-size>` the image size (so that
         it's automatically calculated whenever the image is :term:`rendered`) and
         resets the recognized advanced sizing options to their defaults.
+
+        This is multiplied by the :term:`scale` on respective axes before the image
+        is :term:`rendered`.
         """,
     )
 
@@ -343,14 +340,15 @@ class TermImage:
         lambda self: self._size and self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
-        Image :term:`render width`
+        The **unscaled** width of the image.
 
-        ``None`` when :py:attr:`render size <size>` is :ref:`unset <unset-size>`.
+        ``None`` when the image size is :ref:`unset <unset-size>`.
 
         Settable values:
 
-            * ``None``: Sets the render size to the automatically calculated one.
-            * A positive ``int``: Sets the render width to the given value and
+            * ``None``: Sets the image size to an automatically calculated one,
+              based on the current terminal size.
+            * A positive ``int``: Sets the image width to the given value and
               the height proportionally.
         """,
     )
@@ -422,10 +420,10 @@ class TermImage:
 
             scroll: Only applies to non-animations. If ``True``:
 
-              * and the :term:`render size` is set, allows the image's
+              * and the image size is set, allows the image's
                 :term:`rendered height` to be greater than the
                 :term:`available terminal height <available height>`.
-              * and the :term:`render size` is :ref:`unset <unset-size>`, the image is
+              * and the image size is :ref:`unset <unset-size>`, the image is
                 drawn to fit the terminal width.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
@@ -446,26 +444,24 @@ class TermImage:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: :term:`Render size` or :term:`scale` too small.
+            ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSize: The image's :term:`rendered size` can not
               fit into the :term:`available terminal size <available size>`.
 
         * Animations, **by default**, are infinitely looped and can be terminated
           with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
         * If :py:meth:`set_size` was previously used to set the
-          :term:`render size` (directly or not), the last values of its
+          image size (directly or not), the last values of its
           *fit_to_width*, *h_allow* and *v_allow* parameters are taken into
           consideration, with *fit_to_width* applying to only non-animations.
-        * If the render size was set with the *fit_to_width* paramter of
+        * If the image size was set with the *fit_to_width* paramter of
           :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
 
-          * :term:`Render size` and :term:`padding height` are always validated,
-            if set.
-          * *scroll* is taken as ``False`` when render size is
-            :ref:`unset <unset-size>`.
+          * *scroll* is ignored.
+          * Image size and :term:`padding height` are always validated, if set or given.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -662,14 +658,15 @@ class TermImage:
         fit_to_width: bool = False,
         fit_to_height: bool = False,
     ) -> None:
-        """Sets the :term:`render size` with advanced control.
+        """Sets the image size with extended control.
 
         Args:
-            width: :term:`Render width` to use.
-            height: :term:`Render height` to use.
+            width: Horizontal dimension of the image, in columns.
+            height: Vertical dimension of the image, in lines.
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
             v_allow: Vertical allowance i.e minimum number of lines to leave unused.
-            maxsize: If given ``(cols, lines)``, it's used instead of the terminal size.
+            maxsize: If given, as ``(columns, lines)``, it's used instead of the
+              terminal size.
             fit_to_width: Only used with **automatic sizing**. See description below.
             fit_to_height: Only used with **automatic sizing**. See description below.
 
@@ -681,10 +678,8 @@ class TermImage:
             ValueError: *fit_to_width* or *fit_to_height* is ``True`` when *width*,
               *height* or *maxsize* is given.
             ValueError: The :term:`available size` is too small for automatic sizing.
-            term_image.exceptions.InvalidSize: The resulting :term:`render size` is too
-              small.
             term_image.exceptions.InvalidSize: *maxsize* is given and the resulting
-              :term:`rendered size` will not fit into it.
+              size will not fit into it.
 
         If neither *width* nor *height* is given or anyone given is ``None``,
         **automatic sizing** applies. In such a case, if:
@@ -695,12 +690,12 @@ class TermImage:
           * *fit_to_width* is ``True``, the size is set such that the
             :term:`rendered width` is exactly the
             :term:`available terminal width <available width>`
-            (assuming the horizontal :term:`render scale` equals 1),
+            (assuming the horizontal :term:`scale` equals 1),
             regardless of the :term:`font ratio`.
           * *fit_to_height* is ``True``, the size is set such that the
             :term:`rendered height` is exactly the
             :term:`available terminal height <available height>`
-            (assuming the vertical :term:`render scale` equals 1),
+            (assuming the vertical :term:`scale` equals 1),
             regardless of the :term:`font ratio`.
 
         .. important::
@@ -718,7 +713,7 @@ class TermImage:
 
         :term:`Allowance`\\ s are ignored when *maxsize* is given.
 
-        *fit_to_width* might be set to ``True`` to set the *render size* for
+        *fit_to_width* might be set to ``True`` to set the image size for
         vertically-oriented images (i.e images with height > width) such that the
         drawn image spans more columns but the terminal window has to be scrolled
         to view the entire image.
@@ -732,9 +727,14 @@ class TermImage:
         The value of this parameter is **not** recognized by any other method or
         operation.
 
-        .. note:: The size is checked to fit in only when *maxsize* is given because
-          :py:meth:`draw` is generally not the means of drawing such an image and all
-          rendering methods don't perform any sort of render size validation.
+        .. note::
+           The size is checked to fit in only when *maxsize* is given along with
+           *width* or *height* because :py:meth:`draw` is generally not the means of
+           drawing such an image and all rendering methods don't perform any sort of
+           size validation.
+
+           If the validation is not desired, specify only one of *maxsize* and
+           *width* or *height*, not both.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
@@ -778,12 +778,9 @@ class TermImage:
             )
         arg = "fit_to_width" if fit_to_width else "fit_to_height"
         if locals()[arg]:  # Both may be `False`
-            if width:
-                raise ValueError(f"{arg!r} cannot be `True` when 'width' is given")
-            if height:
-                raise ValueError(f"{arg!r} cannot be `True` when 'height' is given")
-            if maxsize:
-                raise ValueError(f"{arg!r} cannot be `True` when 'maxsize' is given")
+            for arg2 in ("width", "height", "maxsize"):
+                if locals()[arg2]:
+                    raise ValueError(f"{arg!r} cannot be `True` when {arg2!r} is given")
 
         self._size = self._valid_size(
             width,
@@ -1014,6 +1011,31 @@ class TermImage:
 
         return "\n".join(lines)
 
+    def _get_render_size(self) -> Tuple[int, int]:
+        """Returns the size (in pixels) required to render the image.
+
+        Applies the image scale.
+        """
+        return tuple(map(mul, self.rendered_size, (1, 2)))
+
+    @staticmethod
+    def _pixels_cols(
+        *, pixels: Optional[int] = None, cols: Optional[int] = None
+    ) -> int:
+        """Returns the number of pixels represented by a given number of columns
+        or vice-versa.
+        """
+        return pixels if pixels is not None else cols
+
+    @staticmethod
+    def _pixels_lines(
+        *, pixels: Optional[int] = None, lines: Optional[int] = None
+    ) -> int:
+        """Returns the number of pixels represented by a given number of lines
+        or vice-versa.
+        """
+        return ceil(pixels / 2) if pixels is not None else lines * 2
+
     def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
         """Converts image pixel data into a "color-coded" string.
 
@@ -1029,8 +1051,8 @@ class TermImage:
         # It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
-        # Eliminate attribute resolution cost
         buffer = io.StringIO()
+        # Eliminate attribute resolution cost
         buf_write = buffer.write
 
         def update_buffer():
@@ -1061,24 +1083,13 @@ class TermImage:
         if self._is_animated:
             image.seek(self._seek_position)
 
-        width, height = map(
-            round,
-            map(
-                mul,
-                self._scale,
-                map(
-                    add,
-                    map(truediv, self._size, (_pixel_ratio, 1)),
-                    (self._width_compensation, 0.0),
-                ),
-            ),
-        )
+        width, height = self._get_render_size()
 
         if alpha is None or image.mode == "RGB":
             try:
                 image = image.convert("RGB").resize((width, height))
             except ValueError:
-                raise ValueError("Render size or scale too small") from None
+                raise ValueError("Image size or scale too small") from None
             rgb = tuple(image.getdata())
             a = (255,) * (width * height)
             alpha = None
@@ -1086,7 +1097,7 @@ class TermImage:
             try:
                 image = image.convert("RGBA").resize((width, height))
             except ValueError:
-                raise ValueError("Render size or scale too small") from None
+                raise ValueError("Image size or scale too small") from None
             if isinstance(alpha, str):
                 bg = Image.new("RGBA", image.size, alpha)
                 bg.alpha_composite(image)
@@ -1107,11 +1118,6 @@ class TermImage:
         # clean up
         if image is not self._source:
             image.close()
-
-        if height % 2:
-            mark = width * (height // 2) * 2  # Starting index of the last row
-            rgb, last_rgb = rgb[:mark], rgb[mark:]
-            a, last_a = a[:mark], a[mark:]
 
         rgb_pairs = (
             (
@@ -1164,33 +1170,6 @@ class TermImage:
             if row_no < height:  # last line not yet rendered
                 buf_write("\033[0m\n")
 
-        if height % 2:
-            cluster1 = last_rgb[0]
-            a_cluster1 = last_a[0]
-            n = 0
-            for px1, a1 in zip(last_rgb, last_a):
-                if px1 != cluster1 or (
-                    alpha and a_cluster1 != a1 == 0 or 0 == a_cluster1 != a1
-                ):
-                    if alpha and a_cluster1 == 0:
-                        buf_write(_RESET)
-                        buf_write(" " * n)
-                    else:
-                        buf_write(_FG_FMT % cluster1)
-                        buf_write(_UPPER_PIXEL * n)
-                    cluster1 = px1
-                    if alpha:
-                        a_cluster1 = a1
-                    n = 0
-                n += 1
-            # Last cluster
-            if alpha and a_cluster1 == 0:
-                buf_write(_RESET)
-                buf_write(" " * n)
-            else:
-                buf_write(_FG_FMT % cluster1)
-                buf_write(_UPPER_PIXEL * n)
-
         buf_write(_RESET)  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
 
@@ -1216,25 +1195,22 @@ class TermImage:
               ``PIL.Image.Image`` instance.
             scroll: See *scroll* in ``draw()``.
             check_size: See *check_size* in ``draw()``.
-            animated: If ``True`` and render size is:
-
-              * set, ignore *scroll* and *check_size* and validate the size.
-              * unset, scroll is taken as ``False``.
-
+            animated: If ``True``, *scroll* and *check_size* are ignored and the size
+              is validated.
             kwargs: Keyword arguments to pass on to *renderer*.
 
         Returns:
             The return value of *renderer*.
 
         Raises:
-            ValueError: Render size or scale too small.
+            ValueError: Image size or scale too small.
             term_image.exceptions.InvalidSize: *check_size* or *animated* is ``True``
               and the image's :term:`rendered size` can not fit into the
               :term:`available terminal size <available size>`.
             term_image.exceptions.TermImageException: The image has been finalized.
 
         NOTE:
-            * If the ``set_size()`` method was previously used to set the *render size*,
+            * If the ``set_size()`` method was previously used to set the image size,
               (directly or not), the last value of its *fit_to_width* parameter
               is taken into consideration, for non-animations.
         """
@@ -1253,7 +1229,9 @@ class TermImage:
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
-                    (self._h_allow, self._v_allow),
+                    # *scroll* nullifies vertical allowance for non-animations
+                    # Makes a difference when terminal height < vertical allowance
+                    (self._h_allow, self._v_allow * (animated or not scroll)),
                 )
 
                 if any(
@@ -1307,19 +1285,32 @@ class TermImage:
         fit_to_width: bool = False,
         fit_to_height: bool = False,
     ) -> Tuple[int, int]:
-        """Generates a *render size* tuple.
+        """Returns an image size tuple.
 
         See the description of ``set_size()`` for the parameters.
-
-        Returns:
-            A valid *render size* tuple.
         """
         ori_width, ori_height = self._original_size
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
-        # Two pixel rows per line
-        rows = lines * 2
+        max_width = self._pixels_cols(cols=columns)
+        max_height = self._pixels_lines(lines=lines)
 
         # NOTE: The image scale is not considered since it should never be > 1
+
+        # As for font ratio...
+        #
+        # Take for example, pixel ratio = 2.0
+        # (i.e font ratio = 1.0; square character cells).
+        # To adjust the image to the proper scale, we either reduce the
+        # width (i.e divide by 2.0) or increase the height (i.e multiply by 2.0).
+        #
+        # On the other hand, if the pixel ratio = 0.5
+        # (i.e font ratio = 0.25; vertically oblong character cells).
+        # To adjust the image to the proper scale, we either increase the width
+        # (i.e divide by the 0.5) or reduce the height (i.e multiply by the 0.5).
+        #
+        # Therefore, for the height, we always multiply by the pixel ratio
+        # and for the width, we always divide by the pixel ratio.
+        # The non-constraining axis is always the one directly adjusted.
 
         if width is None is height:
             for name in ("columns", "lines"):
@@ -1327,58 +1318,83 @@ class TermImage:
                     raise ValueError(f"Amount of available {name} too small")
 
             if fit_to_width:
-                width = columns * _pixel_ratio
-                # Adding back later compensates for the rounding
-                self._width_compensation = columns - (round(width) / _pixel_ratio)
-                return (round(width), round(ori_height * width / ori_width))
-            if fit_to_height:
-                self._width_compensation = 0.0
-                return (round(ori_width * rows / ori_height), rows)
-
-            # The smaller fraction will always fit into the larger fraction
-            # Using the larger fraction with cause the image not to fit on the axis with
-            # the smaller fraction
-            factor = min(map(truediv, (columns, rows), (ori_width, ori_height)))
-            width, height = map(round, map(mul, (factor,) * 2, (ori_width, ori_height)))
-
-            # The width will later be divided by the pixel-ratio when rendering
-            rendered_width = width / _pixel_ratio
-            if round(rendered_width) <= columns:
-                self._width_compensation = 0.0
-                return (width, height)
-            else:
-                # Adjust the width such that the rendered width is exactly the maximum
-                # number of available columns and adjust the height proportionally
-
-                # w1 == rw1 * (w0 / rw0) == rw1 * _pixel_ratio
-                new_width = round(columns * _pixel_ratio)
-                # Adding back later compensates for the rounding
-                self._width_compensation = columns - (new_width / _pixel_ratio)
                 return (
-                    new_width,
-                    # h1 == h0 * (w1 / w0) == h0 * (rw1 / rw0)
-                    # But it's better to avoid the rounded widths
-                    round(height * columns / rendered_width),
+                    self._pixels_cols(pixels=max_width),
+                    self._pixels_lines(
+                        pixels=round(self._width_height_px(w=max_width) * _pixel_ratio)
+                    ),
                 )
-        elif width is None:
-            width = round((height / ori_height) * ori_width)
-        elif height is None:
-            height = round((width / ori_width) * ori_height)
+            if fit_to_height:
+                return (
+                    self._pixels_cols(
+                        pixels=round(self._width_height_px(h=max_height) / _pixel_ratio)
+                    ),
+                    self._pixels_lines(pixels=max_height),
+                )
 
-        if not (width and height):
-            raise InvalidSize(
-                f"The resulting render size is too small: {width, height}"
+            # The smaller fraction will fit on both axis.
+            # Hence, the axis with the smaller ratio is the constraining axis.
+            # Constraining by the axis with the larger ratio will cause the image
+            # to not fit into the axis with the smaller ratio.
+            x = max_width / ori_width
+            y = max_height / ori_height
+            _width_px = ori_width * min(x, y)
+            _height_px = ori_height * min(x, y)
+
+            # The font ratio should affect the axis with the larger ratio since the axis
+            # the smaller ratio is already fully occupied
+
+            if x < y:
+                _height_px = _height_px * _pixel_ratio
+                # If height becomes greater than the max, reduce it to the max
+                height_px = min(_height_px, max_height)
+                # Calculate the corresponding width
+                width_px = round((height_px / _height_px) * _width_px)
+                # Round the height
+                height_px = round(height_px)
+            else:
+                _width_px = _width_px / _pixel_ratio
+                # If width becomes greater than the max, reduce it to the max
+                width_px = min(_width_px, max_width)
+                # Calculate the corresponding height
+                height_px = round((width_px / _width_px) * _height_px)
+                # Round the width
+                width_px = round(width_px)
+            return (
+                self._pixels_cols(pixels=width_px),
+                self._pixels_lines(pixels=height_px),
             )
+        elif width is None:
+            width_px = round(
+                self._width_height_px(h=self._pixels_lines(lines=height)) / _pixel_ratio
+            )
+            width = self._pixels_cols(pixels=width_px)
+        elif height is None:
+            height_px = round(
+                self._width_height_px(w=self._pixels_cols(cols=width)) * _pixel_ratio
+            )
+            height = self._pixels_lines(pixels=height_px)
 
-        # The width will later be divided by the pixel-ratio when rendering
-        if maxsize and (round(width / _pixel_ratio) > columns or height > rows):
+        if maxsize and (width > columns or height > lines):
             raise InvalidSize(
-                f"The resulting rendered size {width, height} will not fit into "
+                f"The resulting size {width, height} will not fit into "
                 f"'maxsize' {maxsize}"
             )
 
-        self._width_compensation = 0.0
         return (width, height)
+
+    def _width_height_px(
+        self, *, w: Optional[int] = None, h: Optional[int] = None
+    ) -> float:
+        """Converts the given width (in pixels) to the **unrounded** proportional height
+        (in pixels) OR vice-versa.
+        """
+        ori_width, ori_height = self._original_size
+        return (
+            (w / ori_width) * ori_height
+            if w is not None
+            else (h / ori_height) * ori_width
+        )
 
 
 class ImageIterator:
@@ -1398,9 +1414,9 @@ class ImageIterator:
             is less than or equal to the given number.
 
     * If *repeat* equals ``1``, caching is disabled.
-    * The iterator has immediate response to changes in the image
-      :term:`render size` and :term:`scale`.
-    * If the :term:`render size` is :ref:`unset <unset-size>`, it's automatically
+    * The iterator has immediate response to changes in the image size
+      and :term:`scale`.
+    * If the image size is :ref:`unset <unset-size>`, it's automatically
       calculated per frame.
     * The current frame number reflects on the underlying image during iteration.
     * After the iterator is exhausted, the underlying image is set to frame `0`.

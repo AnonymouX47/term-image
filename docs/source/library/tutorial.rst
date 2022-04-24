@@ -65,7 +65,7 @@ The result should look like:
 
      image.scale = 0.75
 
-   This simply sets the x-axis and y-axis :term:`scales <scale>` of the image to ``0.75``. We'll see more about this :ref:`later <render-scale>`.
+   This simply sets the x-axis and y-axis :term:`scales <scale>` of the image to ``0.75``. We'll see more about this :ref:`later <image-scale>`.
 
 Below are examples of formatted rendering:
 
@@ -120,9 +120,9 @@ The result should look like:
 Renders the image with:
 
 * **center** :term:`horizontal alignment` (default)
-* **no** horizontal :term:`padding`, since ``1`` must be less than or equal to the image :term:`width <render width>`
+* **no** horizontal :term:`padding`, since ``1`` must be less than or equal to the image width
 * **middle** :term:`vertical alignment` (default)
-* **no** vertical :term:`padding`, since ``1`` is less than or equal to the image :term:`height <render height>`
+* **no** vertical :term:`padding`, since ``1`` is less than or equal to the image height
 * transparency **disabled** (uses the image's default background color)
 
 The result should look like:
@@ -161,15 +161,15 @@ There are two ways to draw an image to the terminal screen:
    - Also, the former performs size validation to see if the image will fit into the terminal, while the latter doesn't.
 
 
-.. important:: All the examples above use automatic :term:`sizing <render size>` and default :term:`scale`.
+.. important:: All the examples above use automatic sizing and default :term:`scale`.
 
 
-Image render size
------------------
-| The :term:`render size` of an image is the dimension with which an image is rendered.
-| The *render size* can be retrieved via the :py:attr:`size <term_image.image.TermImage.size>`, :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties.
+Image size
+----------
+| The size of an image is the **unscaled** dimension with which an image is rendered.
+| The image size can be retrieved via the :py:attr:`size <term_image.image.TermImage.size>`, :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties.
 
-The *render size* of an image can be in either of two states:
+The size of an image can be in either of two states:
 
 1. Set
 
@@ -184,7 +184,7 @@ The *render size* of an image can be in either of two states:
    | In this case, the size with which the image is rendered is automatically calculated (based on the current `term:`terminal size`) whenever the image is to be rendered.
    | In this state, the ``size``, ``width`` and ``height`` properties are ``None``.
 
-| The *render size* of an image can be set when creating the instance by passing valid values to **either** the *width* **or** the *height* **keyword-only** parameter.
+| The size of an image can be set when creating the instance by passing valid values to **either** the *width* **or** the *height* **keyword-only** parameter.
 | For whichever axis is given, the other axis is calculated **proportionally**.
 
 .. note::
@@ -226,7 +226,7 @@ Traceback (most recent call last):
   .
 ValueError: Cannot specify both width and height
 
-The :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties are used to set the :term:`render size` of an image after instantiation.
+The :py:attr:`width <term_image.image.TermImage.width>` and :py:attr:`height <term_image.image.TermImage.height>` properties are used to set the size of an image after instantiation.
 
 >>> image = Termimage.from_file("python.png")  # Unset
 >>> image.size is None
@@ -260,7 +260,7 @@ True
 
 .. note:: An exception is raised if the terminal size is too small to calculate a size.
 
-The :py:attr:`size <term_image.image.TermImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the :term:`render size`.
+The :py:attr:`size <term_image.image.TermImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the image size.
 
 >>> image = Termimage.from_file("python.png", width=100)
 >>> image.size
@@ -271,26 +271,25 @@ True
 
 .. important::
 
-   1. The currently set :term:`font ratio` is also taken into consideration when calculating or validating sizes.
-   2. The :term:`height <render height>` is actually **about twice the number of lines** that'll be used to draw the image, assuming the y-axis :term:`scale` is ``1.0`` (we'll get to that).
+   1. The currently set :term:`font ratio` is also taken into consideration when setting sizes.
    3. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
    Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
 
 .. hint::
 
-   See :py:meth:`TermImage.set_size() <term_image.image.TermImage.set_size()>` for advanced sizing control.
+   See :py:meth:`TermImage.set_size() <term_image.image.TermImage.set_size()>` for extended sizing control.
 
 
-.. _render-scale:
+.. _image-scale:
 
-Image render scale
-------------------
+Image scale
+-----------
 
-| The :term:`render scale` of an image is the **fraction** of the :term:`render size` that'll actually be used to render the image.
+| The scale of an image is the **fraction** of the size that'll actually be used to render the image.
 | A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero and less than or equal to one.
 
-The *render scale* can be retrieved via the properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>`.
+The image scale can be retrieved via the properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>`.
 
 The scale can be set at instantiation by passing a value to the *scale* **keyword-only** paramter.
 
@@ -312,7 +311,7 @@ The rendered result (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_unset.png
 
-| The properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>` are used to set the *render scale* of an image after instantiation.
+| The properties :py:attr:`scale <term_image.image.TermImage.scale>`, :py:attr:`scale_x <term_image.image.TermImage.scale_x>` and :py:attr:`scale_y <term_image.image.TermImage.scale_y>` are used to set the scale of an image after instantiation.
 
 | ``scale`` accepts a tuple of two scale values or a single scale value.
 | ``scale_x`` and ``scale_y`` each accept a single scale value.

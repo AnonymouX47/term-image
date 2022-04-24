@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [lib] Fixed `InvalidSize` being raised when vertical allowance is greater than the terminal size even though *scroll* is set to `True`.
+  The *scroll* parameter of `TermImage.draw()` now nullifies vertical allowance during image size validation.
+- [tui] Fixed TUI crashing when "max notifications" config option is set to `0`.
+
+### Changed
+- [lib] Changed sizing units to columns and lines.
+- [lib] Removed "size too small" check and exception when setting size.
 
 ## [0.1.1] - 2022-01-29
 ### Added
