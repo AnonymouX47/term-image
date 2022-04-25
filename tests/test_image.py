@@ -701,185 +701,257 @@ class TestRender:
         assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
 
 
-def test_format_spec():
+class TestFormatting:
     image = TermImage(python_img)
-
-    for spec in (
-        "1<",
-        "-1.|1",
-        "<1.1^",
-        ".",
-        "1.",
-        "<.",
-        ">1.",
-        "-",
-        "<^",
-        ".#",
-        ">1.#.23",
-        "#0",
-        "#.",
-        "#2445",
-        "#.23fa45",
-        "#fffffff",
-        "#a45gh4",
-        " ",
-    ):
-        with pytest.raises(ValueError, match=r"Invalid format specification"):
-            format(image, spec)
-
-    for spec in (
-        "<",
-        "1",
-        ".1",
-        "<1",
-        ".^1",
-        "|1.-1",
-        "<1.-",
-        ".-",
-        "#",
-        "#123456",
-        "#23af5b",
-        "#abcdef",
-        "#.4",
-        "#.343545453453",
-        "1.1#",
-        "<.^#ffffff",
-        "<1.^1#ffffff",
-        f"<{columns}.^{lines}#ffffff",
-    ):
-        assert isinstance(format(image, spec), str)
-
-
-def test_formatting():
-    image = TermImage(python_img)
+    image.scale = 0.5  # To ensure there's padding
+    render = str(image)
     check_formatting = image._check_formatting
     format_render = image._format_render
 
-    # Argument valid types and values
-    for value in (1, 1.0, (), []):
-        with pytest.raises(TypeError, match="'h_align' must be .*"):
-            check_formatting(h_align=value)
-        with pytest.raises(TypeError, match="'v_align' must be .*"):
-            check_formatting(v_align=value)
+    def test_args(self):
+        self.image.size = None
+        for value in (1, 1.0, (), []):
+            with pytest.raises(TypeError, match="'h_align' must be .*"):
+                self.check_formatting(h_align=value)
+            with pytest.raises(TypeError, match="'v_align' must be .*"):
+                self.check_formatting(v_align=value)
 
-    for value in ("", "cool", ".", " ", "\n"):
-        with pytest.raises(ValueError, match="Invalid horizontal .*"):
-            check_formatting(h_align=value)
-        with pytest.raises(ValueError, match="Invalid vertical .*"):
-            check_formatting(v_align=value)
+        for value in ("", "cool", ".", " ", "\n"):
+            with pytest.raises(ValueError, match="Invalid horizontal .*"):
+                self.check_formatting(h_align=value)
+            with pytest.raises(ValueError, match="Invalid vertical .*"):
+                self.check_formatting(v_align=value)
 
-    for value in ("1", 1.0, (), []):
-        with pytest.raises(TypeError, match="Padding width must be .*"):
-            check_formatting(width=value)
-        with pytest.raises(TypeError, match="Padding height must be .*"):
-            check_formatting(height=value)
+        for value in ("1", 1.0, (), []):
+            with pytest.raises(TypeError, match="Padding width must be .*"):
+                self.check_formatting(width=value)
+            with pytest.raises(TypeError, match="Padding height must be .*"):
+                self.check_formatting(height=value)
 
-    for value in (0, -1, -100):
-        with pytest.raises(ValueError, match="Padding width must be .*"):
-            check_formatting(width=value)
-        with pytest.raises(ValueError, match="Padding height must be .*"):
-            check_formatting(height=value)
+        for value in (0, -1, -100):
+            with pytest.raises(ValueError, match="Padding width must be .*"):
+                self.check_formatting(width=value)
+            with pytest.raises(ValueError, match="Padding height must be .*"):
+                self.check_formatting(height=value)
 
-    # Padding width is validated
-    with pytest.raises(ValueError, match="Padding width is larger .*"):
-        check_formatting(width=columns + 1)  # Using default *h_allow*
-    assert isinstance(check_formatting(width=columns), tuple)
+    def test_arg_align_conversion(self):
+        self.image.size = None
+        assert self.check_formatting() == (None,) * 4
 
-    # recognizes allowance
-    image.set_size(h_allow=2)
-    with pytest.raises(ValueError, match="Padding width is larger .*"):
-        check_formatting(width=columns - 1)  # Using last *h_allow*
-    assert isinstance(check_formatting(width=columns - 2), tuple)
+        for value in "<|>":
+            assert self.check_formatting(h_align=value) == (value, None, None, None)
+        for val1, val2 in zip(("left", "center", "right"), "<|>"):
+            assert self.check_formatting(h_align=val1) == (val2, None, None, None)
 
-    image.size = None
-    assert check_formatting() == (None,) * 4
+        for value in "^-_":
+            assert self.check_formatting(v_align=value) == (None, None, value, None)
+        for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
+            assert self.check_formatting(v_align=val1) == (None, None, val2, None)
 
-    for value in "<|>":
-        assert check_formatting(h_align=value) == (value, None, None, None)
-    for val1, val2 in zip(("left", "center", "right"), "<|>"):
-        assert check_formatting(h_align=val1) == (val2, None, None, None)
+    def test_arg_padding_width(self):
+        self.image.size = None
+        for value in (1, _width, columns):
+            assert self.check_formatting(width=value) == (None, value, None, None)
+        # Cannot exceed terminal width
+        with pytest.raises(ValueError, match="Padding width is larger .*"):
+            self.check_formatting(width=columns + 1)  # Using default *h_allow*
+        # recognizes allowance
+        self.image.set_size(h_allow=2)
+        assert self.check_formatting(width=columns - 2) == (
+            None,
+            columns - 2,
+            None,
+            None,
+        )
+        with pytest.raises(ValueError, match="Padding width is larger .*"):
+            self.check_formatting(width=columns - 1)  # Using last *h_allow*
 
-    for value in "^-_":
-        assert check_formatting(v_align=value) == (None, None, value, None)
-    for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
-        assert check_formatting(v_align=val1) == (None, None, val2, None)
+    def test_arg_padding_height(self):
+        self.image.size = None
+        for value in (1, _size, lines):
+            assert self.check_formatting(height=value) == (None, None, None, value)
+        # Can exceed terminal height
+        assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
+        # Allowance is not considered
+        self.image.set_size(v_allow=4)
+        assert self.check_formatting(height=lines) == (None, None, None, lines)
 
-    # height goes beyond terminal height and allowance is not considered
-    for value in (1, _size, lines, lines + 1):
-        assert check_formatting(height=value) == (None, None, None, value)
+    def test_padding_width(self):
+        self.image.size = None
+        for width in range(self.image.rendered_width, columns + 1):
+            assert (
+                self.format_render(self.render, "<", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, "|", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, ">", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, None, width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
 
-    # width can not go beyond terminal width (minus allowance)
-    for value in (1, _size, columns):
-        assert check_formatting(width=value) == (None, value, None, None)
+    def test_padding_height(self):
+        self.image.size = None
+        for height in range(self.image.rendered_height, lines + 1):
+            assert (
+                self.format_render(self.render, None, None, "^", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, "-", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, "_", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, None, height).count("\n")
+                + 1
+                == height
+            )
 
-    size = _size - 5
-    image.set_size(size)
-    nlines = image.rendered_height
+    def test_align_left_top(self):
+        self.image.size = None
+        render = self.format_render(self.render, "<", columns, "^", lines)
+        partition = render.partition("\033")[2]
+        assert (
+            len(partition.partition("\n")[0].rpartition("m")[2])
+            == columns - self.image.rendered_width
+        )
+        assert (
+            render.rpartition("m")[2].count("\n") == lines - self.image.rendered_height
+        )
 
-    render = str(image)
-    assert format_render(render) == format(image)
+    def test_align_center_middle(self):
+        self.image.size = None
+        render = self.format_render(self.render, "|", columns, "-", lines)
+        left = (columns - self.image.rendered_width) // 2
+        right = columns - self.image.rendered_width - left
+        up = (lines - self.image.rendered_height) // 2
+        down = lines - self.image.rendered_height - up
 
-    for width in range(size, columns + 1):
-        assert format_render(render, "<", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, "|", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, ">", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, None, width).partition("\n")[0].count(" ") == width
-    for height in range(nlines, lines + 1):
-        assert format_render(render, None, None, "^", height).count("\n") + 1 == height
-        assert format_render(render, None, None, "-", height).count("\n") + 1 == height
-        assert format_render(render, None, None, "_", height).count("\n") + 1 == height
-        assert format_render(render, None, None, None, height).count("\n") + 1 == height
+        partition = render.rpartition("m")[0]
+        assert partition.rpartition("\n")[2].index("\033") == left
+        assert render.partition("\033")[0].count("\n") == up
 
-    # Left + Up
-    output = format_render(render, "<", columns, "^", lines)
-    partition = output.partition("\033")[2]
-    assert len(partition.partition("\n")[0].rpartition("m")[2]) == columns - size
-    assert output.rpartition("m")[2].count("\n") == lines - nlines
+        partition = render.partition("\033")[2]
+        assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
+        assert render.rpartition("m")[2].count("\n") == down
 
-    # Center + Middle
-    output = format_render(render, "|", columns, "-", lines)
-    left = (columns - size) // 2
-    right = columns - size - left
-    up = (lines - nlines) // 2
-    down = lines - nlines - up
-    partition = output.rpartition("m")[0]
-    assert partition.rpartition("\n")[2].index("\033") == left
-    assert output.partition("\033")[0].count("\n") == up
-    partition = output.partition("\033")[2]
-    assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
-    assert output.rpartition("m")[2].count("\n") == down
+    def test_align_right_bottom(self):
+        self.image.size = None
+        render = self.format_render(self.render, ">", columns, "_", lines)
+        partition = render.rpartition("m")[0]
+        assert (
+            partition.rpartition("\n")[2].index("\033")
+            == columns - self.image.rendered_width
+        )
+        assert (
+            render.partition("\033")[0].count("\n")
+            == lines - self.image.rendered_height
+        )
 
-    # Right + Down
-    output = format_render(render, ">", columns, "_", lines)
-    partition = output.rpartition("m")[0]
-    assert partition.rpartition("\n")[2].index("\033") == columns - size
-    assert output.partition("\033")[0].count("\n") == lines - nlines
-
-    image.scale = 0.5  # To ensure there's padding
     # First line in every render should be padding (except the terminal is so small)
     # No '\n' after the last line, hence the `+ 1` when counting lines
 
-    # Allowance recognition
+    def test_allowance_default(self):
+        self.image.size = None
+        render = self.format_render(self.render)
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines - 2
 
-    # # Default allowances
-    image.set_size()
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines - 2
+    def test_allowance_non_default(self):
+        self.image.set_size(h_allow=2, v_allow=3)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns - 2
+        assert render.count("\n") + 1 == lines - 3
 
-    # # Vertical allowance nullified
-    image.set_size(h_allow=2, v_allow=3, fit_to_width=True)
-    assert format(image).partition("\n")[0].count(" ") == columns - 2
-    assert format(image).count("\n") + 1 == lines
+    def test_allowance_fit_to_width(self):
+        # Vertical allowance nullified
+        self.image.set_size(h_allow=2, v_allow=3, fit_to_width=True)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns - 2
+        assert render.count("\n") + 1 == lines
 
-    # # Horizontal allowance nullified
-    image.set_size(h_allow=2, v_allow=3, fit_to_height=True)
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines - 3
+    def test_allowance_fit_to_height(self):
+        # Horizontal allowance nullified
+        self.image.set_size(h_allow=2, v_allow=3, fit_to_height=True)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines - 3
 
-    # # `maxsize` nullifies allowances
-    image.set_size(h_allow=2, v_allow=3, maxsize=(_size, _size))
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines
+    def test_allowance_maxsize(self):
+        # `maxsize` nullifies allowances
+        self.image.set_size(h_allow=2, v_allow=3, maxsize=(_size, _size))
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines
+
+    def test_format_spec(self):
+        for spec in (
+            "1<",
+            "-1.|1",
+            "<1.1^",
+            ".",
+            "1.",
+            "<.",
+            ">1.",
+            "-",
+            "<^",
+            ".#",
+            ">1.#.23",
+            "#0",
+            "#.",
+            "#2445",
+            "#.23fa45",
+            "#fffffff",
+            "#a45gh4",
+            " ",
+        ):
+            with pytest.raises(ValueError, match=r"Invalid format specification"):
+                self.image._check_format_spec(spec)
+
+        for spec in (
+            "<",
+            "1",
+            ".1",
+            "<1",
+            ".^1",
+            "|1.-1",
+            "<1.-",
+            ".-",
+            "#",
+            "#123456",
+            "#23af5b",
+            "#abcdef",
+            "#.4",
+            "#.343545453453",
+            "1.1#",
+            "<.^#ffffff",
+            "<1.^1#ffffff",
+            f"<{columns}.^{lines}#ffffff",
+        ):
+            fmt = self.image._check_format_spec(spec)
+            assert isinstance(fmt, tuple)
+
+    def test_format(self):
+        self.image.set_size()
+        assert format(self.image) == self.format_render(str(self.image))
 
 
 def test_iter():
