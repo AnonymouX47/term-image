@@ -965,121 +965,138 @@ def test_iter():
     assert image_it._image is anim_image
 
 
-def test_draw():
-    sys.stdout = stdout
+class TestDraw:
     image = TermImage(python_img, width=_size)
     anim_image = TermImage(anim_img, width=_size)
 
-    with pytest.raises(ValueError, match="Padding height .*"):
-        anim_image.draw(pad_height=lines + 1)
+    def test_args(self):
+        sys.stdout = stdout
+        with pytest.raises(ValueError, match="Padding height .*"):
+            self.anim_image.draw(pad_height=lines + 1)
 
-    for value in (1, (), [], {}, b""):
-        with pytest.raises(TypeError, match="'alpha' must be .*"):
-            image.draw(alpha=value)
+        for value in (1, (), [], {}, b""):
+            with pytest.raises(TypeError, match="'alpha' must be .*"):
+                self.image.draw(alpha=value)
 
-    for value in (-1.0, -0.1, 1.0, 1.1):
-        with pytest.raises(ValueError, match="Alpha threshold .*"):
-            image.draw(alpha=value)
+        for value in (-1.0, -0.1, 1.0, 1.1):
+            with pytest.raises(ValueError, match="Alpha threshold .*"):
+                self.image.draw(alpha=value)
 
-    for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
-        with pytest.raises(ValueError, match="Invalid hex color .*"):
-            image.draw(alpha=value)
+        for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
+            with pytest.raises(ValueError, match="Invalid hex color .*"):
+                self.image.draw(alpha=value)
 
-    # Non-animations
+    def test_size_validation(self):
+        sys.stdout = stdout
+        self.image._size = (columns + 1, 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # Size validation
+        self.image._size = (1, lines - 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    image._size = (columns + 1, lines - 1)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+        self.image.set_size(h_allow=2)
+        self.image._size = (columns - 1, 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # # Horizontal Allowance
-    image.set_size(h_allow=2)
-    image._size = (columns - 1, 1)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+        self.image.set_size(v_allow=4)
+        self.image._size = (1, lines - 3)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # # vertical Allowance
-    image.set_size(v_allow=4)
-    image._size = (1, lines - 3)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+    class TestNonAnimated:
+        image = TermImage(python_img, width=_size)
+        anim_image = TermImage(anim_img, width=_size)
 
-    # # `lines + 1` because *scroll* and *fit_to_width* nullify vertical allowance
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.image.set_size(fit_to_width=True)
+            self.image._size = (columns, lines + 1)
+            self.image.draw()
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # fit_to_width=True
-    image.set_size(fit_to_width=True)
-    image._size = (columns, lines + 1)
-    image.draw()
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.image.size = None
+            self.image._size = (columns, lines + 1)
+            self.image.draw(scroll=True)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # scroll=True
-    image.size = None
-    image._size = (columns, lines + 1)
-    image.draw(scroll=True)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.image.size = None
+            self.image._size = (columns + 1, lines)
+            self.image.draw(check_size=False)
+            assert stdout.getvalue().count("\n") == lines
+            clear_stdout()
 
-    # # check_size=False
-    image.size = None
-    image._size = (columns + 1, lines)
-    image.draw(check_size=False)
-    assert stdout.getvalue().count("\n") == lines
-    clear_stdout()
+    class TestAnimatedFalse:
+        image = TermImage(python_img, width=_size)
+        anim_image = TermImage(anim_img, width=_size)
 
-    # # Animated image + animate=False
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            self.anim_image.draw(animate=False)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # # fit_to_width=True
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    anim_image.draw(animate=False)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns, lines + 1)
+            self.anim_image.draw(scroll=True, animate=False)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # # scroll=True
-    anim_image.size = None
-    anim_image._size = (columns, lines + 1)
-    anim_image.draw(scroll=True, animate=False)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns + 1, lines)
+            self.anim_image.draw(animate=False, check_size=False)
+            assert stdout.getvalue().count("\n") == lines
+            clear_stdout()
 
-    # # # check_size=False
-    anim_image.size = None
-    anim_image._size = (columns + 1, lines)
-    anim_image.draw(animate=False, check_size=False)
-    assert stdout.getvalue().count("\n") == lines
-    clear_stdout()
+    class TestAnimated:
+        image = TermImage(python_img)
+        anim_image = TermImage(anim_img)
 
-    # Animations
-    # `lines + 1` because *scroll* and *fit_to_width* nullify vertical allowance
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw()
 
-    # # `fit_to_width=True` is overriden
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw(scroll=True)
 
-    # # `scroll=True` is overriden
-    anim_image.size = None
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw(scroll=True)
+        def test_fit_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw(scroll=True)
 
-    # # Both of the above combined
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw(scroll=True)
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns + 1, lines)
+            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+                self.anim_image.draw(check_size=False)
 
-    # # `check_size=False` is overriden
-    anim_image.size = None
-    anim_image._size = (columns + 1, lines)
-    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
-        anim_image.draw(check_size=False)
-
-    # # All of the above combined
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns + 1, lines + 1)
-    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
-        anim_image.draw(scroll=True, check_size=False)
+        def test_fit_scroll_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns + 1, lines + 1)
+            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+                self.anim_image.draw(scroll=True, check_size=False)
