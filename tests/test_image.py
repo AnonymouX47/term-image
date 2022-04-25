@@ -349,6 +349,24 @@ class TestProperties:
         )
 
 
+def test_context_management():
+    image = TermImage(python_img)
+    with image as image2:
+        assert image2 is image
+    assert image.closed
+
+
+def test_iter():
+    image = TermImage(python_img)
+    with pytest.raises(ValueError, match="not animated"):
+        iter(image)
+
+    anim_image = TermImage(anim_img)
+    image_it = iter(anim_image)
+    assert isinstance(image_it, ImageIterator)
+    assert image_it._image is anim_image
+
+
 def test_seek_tell():
     # Non-animated
     image = TermImage(python_img)
@@ -952,17 +970,6 @@ class TestFormatting:
     def test_format(self):
         self.image.set_size()
         assert format(self.image) == self.format_render(str(self.image))
-
-
-def test_iter():
-    image = TermImage(python_img)
-    with pytest.raises(ValueError, match="not animated"):
-        iter(image)
-
-    anim_image = TermImage(anim_img)
-    image_it = iter(anim_image)
-    assert isinstance(image_it, ImageIterator)
-    assert image_it._image is anim_image
 
 
 class TestDraw:
