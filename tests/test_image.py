@@ -14,6 +14,11 @@ from term_image.exceptions import InvalidSize
 from term_image.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
 
 
+def clear_stdout():
+    stdout.seek(0)
+    stdout.truncate()
+
+
 def width_height(image, *, w=None, h=None):
     return (
         TermImage._pixels_lines(
@@ -53,22 +58,30 @@ _height_px = TermImage._pixels_lines(lines=_height)
 _size = 20
 
 python_image = "tests/images/python.png"
+
+python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
 python_img = Image.open(python_image)
 anim_img = Image.open("tests/images/lion.gif")
 
 stdout = io.StringIO()
 
 
-def clear_stdout():
-    stdout.seek(0)
-    stdout.truncate()
-
-
-class TestInstantiation:
-    def test_constructor(self):
-        with pytest.raises(TypeError, match=r".* 'PIL\.Image\.Image' instance .*"):
+class TestConstructor:
+    def test_args(self):
+        with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
             TermImage(python_image)
 
+        # Ensure size arguments get through to `set_size()`
+        with pytest.raises(ValueError, match=r".* both width and height"):
+            TermImage(python_img, width=1, height=1)
+
+        with pytest.raises(TypeError, match=r"'scale'"):
+            TermImage(python_img, scale=0.5)
+        for value in ((0.0, 0.0), (-0.4, -0.4)):
+            with pytest.raises(ValueError, match=r"'scale'"):
+                TermImage(python_img, scale=value)
+
+    def test_init(self):
         image = TermImage(python_img)
         assert image._size is None
         assert isinstance(image._scale, list)
@@ -76,35 +89,28 @@ class TestInstantiation:
         assert image._source is python_img
         assert isinstance(image._original_size, tuple)
         assert image._original_size == python_img.size
+
+        image = TermImage(python_img, width=_size)
+        assert isinstance(image._size, tuple)
+        image = TermImage(python_img, height=_size)
+        assert isinstance(image._size, tuple)
+
+        image = TermImage(python_img, scale=(0.5, 0.4))
+        assert image._scale == [0.5, 0.4]
+
         assert image._is_animated is False
 
+    def test_init_animated(self):
         image = TermImage(anim_img)
         assert image._is_animated is True
         assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
         assert image._seek_position == 0
         assert image._n_frames is None
 
-        # Ensure size arguments get through to `set_size()`
-        with pytest.raises(ValueError, match=r".* both width and height"):
-            TermImage(python_img, width=1, height=1)
-        image = TermImage(python_img, width=_size)
-        assert isinstance(image._size, tuple)
-        image = TermImage(python_img, height=_size)
-        assert isinstance(image._size, tuple)
 
-        with pytest.raises(TypeError, match=r"'scale' .*"):
-            image = TermImage(python_img, scale=0.5)
-
-        for value in ((0.0, 0.0), (-0.4, -0.4)):
-            with pytest.raises(ValueError, match=r"'scale' .*"):
-                image = TermImage(python_img, scale=value)
-
-        image = TermImage(python_img, scale=(0.5, 0.4))
-        assert isinstance(image._scale, list)
-        assert image._scale == [0.5, 0.4]
-
-    def test_from_file(self):
-        with pytest.raises(TypeError, match=r".* a string .*"):
+class TestFromFile:
+    def test_args(self):
+        with pytest.raises(TypeError, match=r"a string"):
             TermImage.from_file(python_img)
         with pytest.raises(FileNotFoundError):
             TermImage.from_file(python_image + "e")
@@ -113,17 +119,27 @@ class TestInstantiation:
         with pytest.raises(UnidentifiedImageError):
             TermImage.from_file("LICENSE")
 
-        image = TermImage.from_file(python_image)
-        assert isinstance(image, TermImage)
-        assert image._source == os.path.realpath(python_image)
-
         # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r".* both width and height"):
+        with pytest.raises(ValueError, match=r"both width and height"):
             TermImage.from_file(python_image, width=1, height=1)
 
         # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale' .*"):
+        with pytest.raises(TypeError, match=r"'scale'"):
             TermImage.from_file(python_image, scale=1.0)
+
+    def test_filepath(self):
+        image = TermImage.from_file(python_image)
+        assert isinstance(image, TermImage)
+        assert image._source == os.path.abspath(python_image)
+
+    @pytest.mark.skipif(
+        not os.path.islink(python_sym),
+        reason="The symlink is on or has passed through a platform or filesystem that "
+        "doesn't support symlinks",
+    )
+    def test_symlink(self):
+        image = TermImage.from_file(python_sym)
+        assert isinstance(image, TermImage)
 
 
 class TestProperties:
