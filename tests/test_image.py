@@ -187,9 +187,8 @@ class TestProperties:
         assert image.n_frames == 1
 
         image = TermImage(anim_img)
-        n_frames = image.n_frames  # On-demand computation
-        assert n_frames > 1
-        assert image.n_frames == image._n_frames == n_frames
+        assert 1 < image.n_frames == anim_img.n_frames
+        assert image.n_frames == anim_img.n_frames  # Ensure consistency
 
         with pytest.raises(AttributeError):
             image.n_frames = 2
@@ -220,10 +219,9 @@ class TestProperties:
         # Random scales
         for _ in range(100):
             scale = random()
-            try:
-                image.scale = scale
-            except ValueError:
+            if scale == 0:
                 continue
+            image.scale = scale
             assert image.rendered_width == round(_width * scale)
             assert image.rendered_height == round(_height * scale)
 
@@ -240,23 +238,20 @@ class TestProperties:
         finally:
             set_font_ratio(0.5)
 
-    def test_scale_x_y(self):
+    def test_scale_value_checks(self):
         image = TermImage(python_img)
-        assert image.scale == (1.0, 1.0)
-        assert image.scale_x == image.scale_y == 1.0
 
-        assert isinstance(image.scale, tuple)
-        assert isinstance(image.scale_x, float)
-        assert isinstance(image.scale_y, float)
-
+        # Value type
         for value in (0, 1, None, "1", "1.0"):
             with pytest.raises(TypeError):
                 image.scale = value
+        for value in (0, 1, None, "1", "1.0", (1.0, 1.0)):
             with pytest.raises(TypeError):
                 image.scale_x = value
             with pytest.raises(TypeError):
                 image.scale_y = value
 
+        # Value range
         for value in (0.0, -0.1, 1.0001, 2.0):
             with pytest.raises(ValueError):
                 image.scale = value
@@ -265,13 +260,18 @@ class TestProperties:
             with pytest.raises(ValueError):
                 image.scale_y = value
 
+        # Tuple item type
         for value in ((1, 1), (1.0, 1), (1, 1.0), ("1.0",)):
             with pytest.raises(TypeError):
                 image.scale = value
 
+        # Tuple length
+        for value in ((0.5,), (0.5,) * 3):
+            with pytest.raises(ValueError):
+                image.scale = value
+
+        # Tuple item value range
         for value in (
-            (0.5,),
-            (0.5,) * 3,
             (0.0, 0.5),
             (0.5, 0.0),
             (-0.5, 0.5),
@@ -281,6 +281,15 @@ class TestProperties:
         ):
             with pytest.raises(ValueError):
                 image.scale = value
+
+    def test_scale_x_y(self):
+        image = TermImage(python_img)
+        assert image.scale == (1.0, 1.0)
+        assert image.scale_x == image.scale_y == 1.0
+
+        assert isinstance(image.scale, tuple)
+        assert isinstance(image.scale_x, float)
+        assert isinstance(image.scale_y, float)
 
         image.scale = 0.5
         assert image.scale == (0.5,) * 2
@@ -305,11 +314,11 @@ class TestProperties:
         assert isinstance(image.height, int)
         assert image.size[0] == _size == image.width
 
-        image.height = 1
+        image.height = _size
         assert isinstance(image.size, tuple)
         assert isinstance(image.width, int)
         assert isinstance(image.height, int)
-        assert image.size[1] == 1 == image.height
+        assert image.size[1] == _size == image.height
 
         for size in (0, 1, 0.1, "1", (1, 1), [1, 1]):
             with pytest.raises(TypeError):
@@ -327,18 +336,17 @@ class TestProperties:
         with pytest.raises(AttributeError):
             image.source = None
 
-        # Symlinked image file
-        linked_image = "tests/images/python_sym.png"
-        # The file might not be a symlink if it is on or has passed through a
-        # filesystem not supporting symlinks
-        if os.path.islink(linked_image):
-            image = TermImage.from_file(linked_image)
-            assert os.path.basename(image.source) == "python_sym.png"
-            assert (
-                image.source
-                == os.path.abspath(linked_image)
-                != os.path.realpath(linked_image)
-            )
+    @pytest.mark.skipif(
+        not os.path.islink(python_sym),
+        reason="The symlink is on or has passed through a platform or filesystem that "
+        "doesn't support symlinks",
+    )
+    def test_source_symlink(self):
+        image = TermImage.from_file(python_sym)
+        assert os.path.basename(image.source) == "python_sym.png"
+        assert (
+            image.source == os.path.abspath(python_sym) != os.path.realpath(python_sym)
+        )
 
 
 def test_seek_tell():
