@@ -621,72 +621,84 @@ def test_renderer():
         assert kwargs == keywords
 
 
-def test_render():
-    def render_image(alpha):
-        return trans._renderer(lambda im: trans._render_image(im, alpha))
-
+class TestRender:
     trans = TermImage.from_file("tests/images/trans.png")
 
-    for trans._size in ((1, 0), (0, 1), (0, 0)):
+    def render_image(self, alpha):
+        return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
+
+    def test_small_size_scale(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
+
+        for self.trans._size in ((1, 0), (0, 1), (0, 0)):
+            with pytest.raises(ValueError, match="too small"):
+                self.render_image(None)
+
+        self.trans.scale = 0.0001
         with pytest.raises(ValueError, match="too small"):
-            render_image(None)
+            self.render_image(None)
 
-    trans.set_size(height=_size)
+    def test_transparency(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
-    render = render_image(_ALPHA_THRESHOLD)
-    # No '\n' after the last line, hence the `+ 1`
-    assert render.count("\n") + 1 == trans.height
-    assert render.partition("\n")[0].count(" ") == trans.width
+        render = self.render_image(_ALPHA_THRESHOLD)
+        # No '\n' after the last line, hence the `+ 1`
+        assert render.count("\n") + 1 == self.trans.height
+        assert render.partition("\n")[0].count(" ") == self.trans.width
 
-    # Transparency enabled
-    assert all(
-        line == "\033[0m" + " " * trans.width + "\033[0m"
-        for line in render_image(_ALPHA_THRESHOLD).splitlines()
-    )
-    # Transparency disabled
-    assert all(
-        line == "\033[48;2;0;0;0m" + " " * trans.width + "\033[0m"
-        for line in render_image(None).splitlines()
-    )
-    # Color fill (white)
-    assert all(
-        line == "\033[48;2;255;255;255m" + " " * trans.width + "\033[0m"
-        for line in render_image("#ffffff").splitlines()
-    )
-    # Color fill (red)
-    assert all(
-        line == "\033[48;2;255;0;0m" + " " * trans.width + "\033[0m"
-        for line in render_image("#ff0000").splitlines()
-    )
+        # Transparency enabled
+        assert all(
+            line == "\033[0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image(_ALPHA_THRESHOLD).splitlines()
+        )
+        # Transparency disabled
+        assert all(
+            line == "\033[48;2;0;0;0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image(None).splitlines()
+        )
 
-    # Scaled renders
-    trans.set_size(_size)
+    def test_background_colour(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
-    trans.scale = 0.0001
-    with pytest.raises(ValueError, match="too small"):
-        render_image(None)
+        # white
+        assert all(
+            line == "\033[48;2;255;255;255m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image("#ffffff").splitlines()
+        )
+        # red
+        assert all(
+            line == "\033[48;2;255;0;0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image("#ff0000").splitlines()
+        )
 
-    # At varying scales
-    for trans.scale in map(lambda x: x / 100, range(10, 101)):
-        try:
-            render = render_image(_ALPHA_THRESHOLD)
-        except ValueError:
-            continue
-        assert render.count("\n") + 1 == trans.rendered_height
-        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+    def test_scaled(self):
+        self.trans.set_size(height=_size)
 
-    # Random scales
-    for _ in range(100):
-        try:
-            trans.scale = random()
-            render = render_image(_ALPHA_THRESHOLD)
-        except ValueError:  # random value == 0 or scale is too small
-            continue
-        assert render.count("\n") + 1 == trans.rendered_height
-        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+        # At varying scales
+        for self.trans.scale in map(lambda x: x / 100, range(10, 101)):
+            if 0 not in self.trans.rendered_size:
+                render = self.render_image(_ALPHA_THRESHOLD)
+            assert render.count("\n") + 1 == self.trans.rendered_height
+            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
 
-    image = TermImage(python_img, width=_size)
-    assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
+        # Random scales
+        for _ in range(100):
+            scale = random()
+            if scale == 0:
+                continue
+            self.trans.scale = scale
+            if 0 in self.trans.rendered_size:
+                continue
+            render = self.render_image(_ALPHA_THRESHOLD)
+            assert render.count("\n") + 1 == self.trans.rendered_height
+            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
+
+    def test_str(self):
+        image = TermImage(python_img, width=_size)
+        assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
 
 
 def test_format_spec():
