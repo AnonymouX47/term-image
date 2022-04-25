@@ -5,7 +5,7 @@ from PIL import Image
 
 from term_image.image import ImageIterator, TermImage
 
-_size = (40, 20)
+_size = (30, 15)
 
 png_image = TermImage(Image.open("tests/images/python.png"))
 gif_img = Image.open("tests/images/lion.gif")
@@ -17,7 +17,7 @@ gif_image._size = _size
 webp_image._size = _size
 
 
-def test_arg_checks():
+def test_args():
     for value in ("tests/images/anim.webp", gif_img, webp_img):
         with pytest.raises(TypeError, match="'image'"):
             ImageIterator(value)
@@ -44,40 +44,36 @@ def test_arg_checks():
             ImageIterator(gif_image, cached=value)
 
 
-def test_init():
-    def test_defaults(image):
-        image_it = ImageIterator(image)
-        assert image_it._image is image
-        assert image_it._repeat == -1
-        assert image_it._format == ""
-        assert image_it._cached is (image.n_frames <= 100)
-        assert isinstance(image_it._animator, GeneratorType)
+class TestInit:
+    def test_defaults(self):
+        for image in (gif_image, webp_image):
+            image_it = ImageIterator(image)
+            assert image_it._image is image
+            assert image_it._repeat == -1
+            assert image_it._format == ""
+            assert image_it._cached is (image.n_frames <= 100)
+            assert isinstance(image_it._animator, GeneratorType)
 
-    def test_with_args(image, repeat, format, cached):
-        image_it = ImageIterator(image, repeat, format, cached)
-        assert image_it._image is image
-        assert image_it._repeat == repeat
-        assert image_it._format == format
-        assert image_it._cached is (
-            cached if isinstance(cached, bool) else image.n_frames <= cached
-        )
-        assert isinstance(image_it._animator, GeneratorType)
+    def test_with_args(self):
+        for repeat, format, cached in (
+            (-1, "", 100),
+            (2, "#", True),
+            (10, "1.1", False),
+            (100, "#.9", 1),
+        ):
+            image_it = ImageIterator(gif_image, repeat, format, cached)
+            assert image_it._image is gif_image
+            assert image_it._repeat == repeat
+            assert image_it._format == format
+            assert image_it._cached is (
+                cached if isinstance(cached, bool) else gif_image.n_frames <= cached
+            )
+            assert isinstance(image_it._animator, GeneratorType)
 
-    for image in (gif_image, webp_image):
-        test_defaults(image)
-
-    for args in (
-        (-1, "", 100),
-        (2, "#", True),
-        (10, "1.1", False),
-        (100, "#.9", 1),
-    ):
-        test_with_args(gif_image, *args)
-
-    # caching is disabled if repeat == 1
-    for value in (True, 1, 100):
-        image_it = ImageIterator(gif_image, 1, cached=value)
-        assert image_it._cached is False
+    def test_no_caching_if_repeat_equals_1(self):
+        for value in (True, 1, 100):
+            image_it = ImageIterator(gif_image, 1, cached=value)
+            assert image_it._cached is False
 
 
 def test_next():
