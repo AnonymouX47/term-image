@@ -44,8 +44,6 @@ Image Format Specification
 
 * ``width``: Integer padding width (default: :term:`terminal width` minus :term:`horizontal allowance`)
 
-  * Must not be greater than the :term:`terminal width`.
-
 * ``v_align``: This can be one of:
 
   * ``^`` → top
@@ -54,8 +52,6 @@ Image Format Specification
   * *absent* → middle
 
 * ``height``: Integer padding height (default: :term:`terminal height` minus :term:`vertical allowance`)
-
-  * Must not be greater than the :term:`terminal height` for :term:`animated` images.
 
 * ``#``: Transparency setting:
 

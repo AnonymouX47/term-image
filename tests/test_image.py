@@ -770,26 +770,27 @@ class TestFormatting:
         self.image.size = None
         for value in (1, _width, columns):
             assert self.check_formatting(width=value) == (None, value, None, None)
-        # Cannot exceed terminal width
-        with pytest.raises(ValueError, match="Padding width is larger .*"):
-            self.check_formatting(width=columns + 1)  # Using default *h_allow*
-        # recognizes allowance
-        self.image.set_size(h_allow=2)
-        assert self.check_formatting(width=columns - 2) == (
+
+        # Can exceed terminal width
+        assert self.check_formatting(width=columns + 1) == (
             None,
-            columns - 2,
+            columns + 1,
             None,
             None,
         )
-        with pytest.raises(ValueError, match="Padding width is larger .*"):
-            self.check_formatting(width=columns - 1)  # Using last *h_allow*
+
+        # Allowance is not considered
+        self.image.set_size(h_allow=2)
+        assert self.check_formatting(width=columns) == (None, columns, None, None)
 
     def test_arg_padding_height(self):
         self.image.size = None
         for value in (1, _size, lines):
             assert self.check_formatting(height=value) == (None, None, None, value)
+
         # Can exceed terminal height
         assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
+
         # Allowance is not considered
         self.image.set_size(v_allow=4)
         assert self.check_formatting(height=lines) == (None, None, None, lines)
@@ -978,20 +979,36 @@ class TestDraw:
 
     def test_args(self):
         sys.stdout = stdout
-        with pytest.raises(ValueError, match="Padding height .*"):
-            self.anim_image.draw(pad_height=lines + 1)
-
         for value in (1, (), [], {}, b""):
-            with pytest.raises(TypeError, match="'alpha' must be .*"):
+            with pytest.raises(TypeError, match="'alpha' must be"):
                 self.image.draw(alpha=value)
 
         for value in (-1.0, -0.1, 1.0, 1.1):
-            with pytest.raises(ValueError, match="Alpha threshold .*"):
+            with pytest.raises(ValueError, match="Alpha threshold"):
                 self.image.draw(alpha=value)
 
         for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
-            with pytest.raises(ValueError, match="Invalid hex color .*"):
+            with pytest.raises(ValueError, match="Invalid hex color"):
                 self.image.draw(alpha=value)
+
+        with pytest.raises(ValueError, match="Padding width"):
+            self.image.draw(pad_width=columns + 1)
+
+        self.image.set_size(h_allow=2)
+        with pytest.raises(ValueError, match="Padding width"):
+            self.image.draw(pad_width=columns - 1)
+
+        with pytest.raises(ValueError, match="Padding height"):
+            self.anim_image.draw(pad_height=lines + 1)
+
+        for value in (1, 1.0, "1", (), []):
+            with pytest.raises(TypeError, match="'animate' .* boolean"):
+                self.anim_image.draw(animate=value)
+
+        for arg in ("scroll", "check_size"):
+            for value in (1, 1.0, "1", (), []):
+                with pytest.raises(TypeError, match=f"{arg!r} .* boolean"):
+                    self.image.draw(**{arg: value})
 
     def test_size_validation(self):
         sys.stdout = stdout
