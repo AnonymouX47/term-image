@@ -14,6 +14,11 @@ from term_image.exceptions import InvalidSize
 from term_image.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
 
 
+def clear_stdout():
+    stdout.seek(0)
+    stdout.truncate()
+
+
 def width_height(image, *, w=None, h=None):
     return (
         TermImage._pixels_lines(
@@ -53,22 +58,30 @@ _height_px = TermImage._pixels_lines(lines=_height)
 _size = 20
 
 python_image = "tests/images/python.png"
+
+python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
 python_img = Image.open(python_image)
 anim_img = Image.open("tests/images/lion.gif")
 
 stdout = io.StringIO()
 
 
-def clear_stdout():
-    stdout.seek(0)
-    stdout.truncate()
-
-
-class TestInstantiation:
-    def test_constructor(self):
-        with pytest.raises(TypeError, match=r".* 'PIL\.Image\.Image' instance .*"):
+class TestConstructor:
+    def test_args(self):
+        with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
             TermImage(python_image)
 
+        # Ensure size arguments get through to `set_size()`
+        with pytest.raises(ValueError, match=r".* both width and height"):
+            TermImage(python_img, width=1, height=1)
+
+        with pytest.raises(TypeError, match=r"'scale'"):
+            TermImage(python_img, scale=0.5)
+        for value in ((0.0, 0.0), (-0.4, -0.4)):
+            with pytest.raises(ValueError, match=r"'scale'"):
+                TermImage(python_img, scale=value)
+
+    def test_init(self):
         image = TermImage(python_img)
         assert image._size is None
         assert isinstance(image._scale, list)
@@ -76,35 +89,28 @@ class TestInstantiation:
         assert image._source is python_img
         assert isinstance(image._original_size, tuple)
         assert image._original_size == python_img.size
+
+        image = TermImage(python_img, width=_size)
+        assert isinstance(image._size, tuple)
+        image = TermImage(python_img, height=_size)
+        assert isinstance(image._size, tuple)
+
+        image = TermImage(python_img, scale=(0.5, 0.4))
+        assert image._scale == [0.5, 0.4]
+
         assert image._is_animated is False
 
+    def test_init_animated(self):
         image = TermImage(anim_img)
         assert image._is_animated is True
         assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
         assert image._seek_position == 0
         assert image._n_frames is None
 
-        # Ensure size arguments get through to `set_size()`
-        with pytest.raises(ValueError, match=r".* both width and height"):
-            TermImage(python_img, width=1, height=1)
-        image = TermImage(python_img, width=_size)
-        assert isinstance(image._size, tuple)
-        image = TermImage(python_img, height=_size)
-        assert isinstance(image._size, tuple)
 
-        with pytest.raises(TypeError, match=r"'scale' .*"):
-            image = TermImage(python_img, scale=0.5)
-
-        for value in ((0.0, 0.0), (-0.4, -0.4)):
-            with pytest.raises(ValueError, match=r"'scale' .*"):
-                image = TermImage(python_img, scale=value)
-
-        image = TermImage(python_img, scale=(0.5, 0.4))
-        assert isinstance(image._scale, list)
-        assert image._scale == [0.5, 0.4]
-
-    def test_from_file(self):
-        with pytest.raises(TypeError, match=r".* a string .*"):
+class TestFromFile:
+    def test_args(self):
+        with pytest.raises(TypeError, match=r"a string"):
             TermImage.from_file(python_img)
         with pytest.raises(FileNotFoundError):
             TermImage.from_file(python_image + "e")
@@ -113,17 +119,27 @@ class TestInstantiation:
         with pytest.raises(UnidentifiedImageError):
             TermImage.from_file("LICENSE")
 
-        image = TermImage.from_file(python_image)
-        assert isinstance(image, TermImage)
-        assert image._source == os.path.realpath(python_image)
-
         # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r".* both width and height"):
+        with pytest.raises(ValueError, match=r"both width and height"):
             TermImage.from_file(python_image, width=1, height=1)
 
         # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale' .*"):
+        with pytest.raises(TypeError, match=r"'scale'"):
             TermImage.from_file(python_image, scale=1.0)
+
+    def test_filepath(self):
+        image = TermImage.from_file(python_image)
+        assert isinstance(image, TermImage)
+        assert image._source == os.path.abspath(python_image)
+
+    @pytest.mark.skipif(
+        not os.path.islink(python_sym),
+        reason="The symlink is on or has passed through a platform or filesystem that "
+        "doesn't support symlinks",
+    )
+    def test_symlink(self):
+        image = TermImage.from_file(python_sym)
+        assert isinstance(image, TermImage)
 
 
 class TestProperties:
@@ -171,9 +187,8 @@ class TestProperties:
         assert image.n_frames == 1
 
         image = TermImage(anim_img)
-        n_frames = image.n_frames  # On-demand computation
-        assert n_frames > 1
-        assert image.n_frames == image._n_frames == n_frames
+        assert 1 < image.n_frames == anim_img.n_frames
+        assert image.n_frames == anim_img.n_frames  # Ensure consistency
 
         with pytest.raises(AttributeError):
             image.n_frames = 2
@@ -204,10 +219,9 @@ class TestProperties:
         # Random scales
         for _ in range(100):
             scale = random()
-            try:
-                image.scale = scale
-            except ValueError:
+            if scale == 0:
                 continue
+            image.scale = scale
             assert image.rendered_width == round(_width * scale)
             assert image.rendered_height == round(_height * scale)
 
@@ -224,23 +238,20 @@ class TestProperties:
         finally:
             set_font_ratio(0.5)
 
-    def test_scale_x_y(self):
+    def test_scale_value_checks(self):
         image = TermImage(python_img)
-        assert image.scale == (1.0, 1.0)
-        assert image.scale_x == image.scale_y == 1.0
 
-        assert isinstance(image.scale, tuple)
-        assert isinstance(image.scale_x, float)
-        assert isinstance(image.scale_y, float)
-
+        # Value type
         for value in (0, 1, None, "1", "1.0"):
             with pytest.raises(TypeError):
                 image.scale = value
+        for value in (0, 1, None, "1", "1.0", (1.0, 1.0)):
             with pytest.raises(TypeError):
                 image.scale_x = value
             with pytest.raises(TypeError):
                 image.scale_y = value
 
+        # Value range
         for value in (0.0, -0.1, 1.0001, 2.0):
             with pytest.raises(ValueError):
                 image.scale = value
@@ -249,13 +260,18 @@ class TestProperties:
             with pytest.raises(ValueError):
                 image.scale_y = value
 
+        # Tuple item type
         for value in ((1, 1), (1.0, 1), (1, 1.0), ("1.0",)):
             with pytest.raises(TypeError):
                 image.scale = value
 
+        # Tuple length
+        for value in ((0.5,), (0.5,) * 3):
+            with pytest.raises(ValueError):
+                image.scale = value
+
+        # Tuple item value range
         for value in (
-            (0.5,),
-            (0.5,) * 3,
             (0.0, 0.5),
             (0.5, 0.0),
             (-0.5, 0.5),
@@ -265,6 +281,15 @@ class TestProperties:
         ):
             with pytest.raises(ValueError):
                 image.scale = value
+
+    def test_scale_x_y(self):
+        image = TermImage(python_img)
+        assert image.scale == (1.0, 1.0)
+        assert image.scale_x == image.scale_y == 1.0
+
+        assert isinstance(image.scale, tuple)
+        assert isinstance(image.scale_x, float)
+        assert isinstance(image.scale_y, float)
 
         image.scale = 0.5
         assert image.scale == (0.5,) * 2
@@ -289,11 +314,11 @@ class TestProperties:
         assert isinstance(image.height, int)
         assert image.size[0] == _size == image.width
 
-        image.height = 1
+        image.height = _size
         assert isinstance(image.size, tuple)
         assert isinstance(image.width, int)
         assert isinstance(image.height, int)
-        assert image.size[1] == 1 == image.height
+        assert image.size[1] == _size == image.height
 
         for size in (0, 1, 0.1, "1", (1, 1), [1, 1]):
             with pytest.raises(TypeError):
@@ -311,18 +336,35 @@ class TestProperties:
         with pytest.raises(AttributeError):
             image.source = None
 
-        # Symlinked image file
-        linked_image = "tests/images/python_sym.png"
-        # The file might not be a symlink if it is on or has passed through a
-        # filesystem not supporting symlinks
-        if os.path.islink(linked_image):
-            image = TermImage.from_file(linked_image)
-            assert os.path.basename(image.source) == "python_sym.png"
-            assert (
-                image.source
-                == os.path.abspath(linked_image)
-                != os.path.realpath(linked_image)
-            )
+    @pytest.mark.skipif(
+        not os.path.islink(python_sym),
+        reason="The symlink is on or has passed through a platform or filesystem that "
+        "doesn't support symlinks",
+    )
+    def test_source_symlink(self):
+        image = TermImage.from_file(python_sym)
+        assert os.path.basename(image.source) == "python_sym.png"
+        assert (
+            image.source == os.path.abspath(python_sym) != os.path.realpath(python_sym)
+        )
+
+
+def test_context_management():
+    image = TermImage(python_img)
+    with image as image2:
+        assert image2 is image
+    assert image.closed
+
+
+def test_iter():
+    image = TermImage(python_img)
+    with pytest.raises(ValueError, match="not animated"):
+        iter(image)
+
+    anim_image = TermImage(anim_img)
+    image_it = iter(anim_image)
+    assert isinstance(image_it, ImageIterator)
+    assert image_it._image is anim_image
 
 
 def test_seek_tell():
@@ -358,7 +400,12 @@ def test_seek_tell():
     assert image.tell() == 0
 
 
-def test_set_size():
+class TestSetSize:
+    image = TermImage(python_img)  # Square
+    h_image = TermImage.from_file("tests/images/hori.jpg")  # Horizontally-oriented
+    v_image = TermImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
+
+    @staticmethod
     def proportional(image):
         ori_width, ori_height = image.original_size
         # The converted width and height in pixels might not be exactly proportional
@@ -387,148 +434,192 @@ def test_set_size():
                 < image._pixels_lines(lines=1) / ori_height
             )
 
-    image = TermImage(python_img)  # Square
-    h_image = TermImage.from_file("tests/images/hori.jpg")
-    v_image = TermImage.from_file("tests/images/vert.jpg")
+    def test_args_width_height(self):
+        with pytest.raises(ValueError, match=".* both width and height"):
+            self.image.set_size(1, 1)
+        for value in (1.0, "1", (), []):
+            with pytest.raises(TypeError, match="'width' must be"):
+                self.image.set_size(value)
+            with pytest.raises(TypeError, match="'height' must be"):
+                self.image.set_size(height=value)
+        for value in (0, -1, -100):
+            with pytest.raises(ValueError, match="'width' must be"):
+                self.image.set_size(value)
+            with pytest.raises(ValueError, match="'height' must be"):
+                self.image.set_size(height=value)
 
-    # Default args
-    image.set_size()
-    assert image._size == (_width, _height)
-    h_image.set_size()
-    assert gt(
-        h_image._pixels_cols(cols=h_image.width),
-        h_image._pixels_lines(lines=h_image.height),
-    )
-    v_image.set_size()
-    assert lt(
-        v_image._pixels_cols(cols=v_image.width),
-        v_image._pixels_lines(lines=v_image.height),
-    )
+    def test_args_allow(self):
+        for value in (1.0, "1", (), []):
+            with pytest.raises(TypeError, match="'h_allow' must be"):
+                self.image.set_size(h_allow=value)
+            with pytest.raises(TypeError, match="'v_allow' must be"):
+                self.image.set_size(v_allow=value)
+        for value in (-1, -100):
+            with pytest.raises(ValueError, match="'h_allow' must be"):
+                self.image.set_size(h_allow=value)
+            with pytest.raises(ValueError, match="'v_allow' must be"):
+                self.image.set_size(v_allow=value)
 
-    # width and height
-    with pytest.raises(ValueError, match=".* both width and height"):
-        image.set_size(1, 1)
-    for value in (1.0, "1", (), []):
-        with pytest.raises(TypeError, match="'width' must be"):
-            image.set_size(value)
-        with pytest.raises(TypeError, match="'height' must be"):
-            image.set_size(height=value)
-    for value in (0, -1, -100):
-        with pytest.raises(ValueError, match="'width' must be"):
-            image.set_size(value)
-        with pytest.raises(ValueError, match="'height' must be"):
-            image.set_size(height=value)
+    def test_args_maxsize(self):
+        for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
+            with pytest.raises(TypeError, match="'maxsize' must be"):
+                self.image.set_size(maxsize=value)
+        for value in ((), (0,), (1,), (1, 1, 1), (0, 1), (1, 0), (-1, 1), (1, -1)):
+            with pytest.raises(ValueError, match="'maxsize' must contain"):
+                self.image.set_size(maxsize=value)
 
-    # h_allow and v_allow
-    for value in (1.0, "1", (), []):
-        with pytest.raises(TypeError, match="'h_allow' must be"):
-            image.set_size(h_allow=value)
-        with pytest.raises(TypeError, match="'v_allow' must be"):
-            image.set_size(v_allow=value)
-    for value in (-1, -100):
-        with pytest.raises(ValueError, match="'h_allow' must be"):
-            image.set_size(h_allow=value)
-        with pytest.raises(ValueError, match="'v_allow' must be"):
-            image.set_size(v_allow=value)
+    def test_args_fit_to(self):
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            self.image.set_size(fit_to_width=True, fit_to_height=True)
+        for arg in ("fit_to_width", "fit_to_height"):
+            for value in (1, 1.0, "1", (), []):
+                with pytest.raises(TypeError, match=f"{arg!r} .* boolean"):
+                    self.image.set_size(**{arg: value})
+            with pytest.raises(ValueError, match=f"{arg!r} .* 'width' is given"):
+                self.image.set_size(width=1, **{arg: True})
+            with pytest.raises(ValueError, match=f"{arg!r} .* 'height' is given"):
+                self.image.set_size(height=1, **{arg: True})
+            with pytest.raises(ValueError, match=f"{arg!r} .* 'maxsize' is given"):
+                self.image.set_size(maxsize=(1, 1), **{arg: True})
 
-    # maxsize
-    for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
-        with pytest.raises(TypeError, match="'maxsize' must be"):
-            image.set_size(maxsize=value)
-    for value in ((), (0,), (1,), (1, 1, 1), (0, 1), (1, 0), (-1, 1), (1, -1)):
-        with pytest.raises(ValueError, match="'maxsize' must contain"):
-            image.set_size(maxsize=value)
+    def test_auto_sizing_and_proportionality(self):
+        self.image.set_size()
+        assert self.image.size == (_width, _height) == self.image._size
+        assert self.proportional(self.image)
 
-    # fit_to_width and fit_to_height
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        image.set_size(fit_to_width=True, fit_to_height=True)
-    for arg in ("fit_to_width", "fit_to_height"):
-        for value in (1, 1.0, "1", (), []):
-            with pytest.raises(TypeError, match=f"{arg!r} .* boolean"):
-                image.set_size(**{arg: value})
-        with pytest.raises(ValueError, match=f"{arg!r} .* 'width' is given"):
-            image.set_size(width=1, **{arg: True})
-        with pytest.raises(ValueError, match=f"{arg!r} .* 'height' is given"):
-            image.set_size(height=1, **{arg: True})
-        with pytest.raises(ValueError, match=f"{arg!r} .* 'maxsize' is given"):
-            image.set_size(maxsize=(1, 1), **{arg: True})
+        self.h_image.set_size()
+        assert gt(
+            self.h_image._pixels_cols(cols=self.h_image.width),
+            self.h_image._pixels_lines(lines=self.h_image.height),
+        )
+        assert self.proportional(self.h_image)
 
-    # Cannot exceed maxsize
-    with pytest.raises(InvalidSize, match="will not fit into"):
-        image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
-    with pytest.raises(InvalidSize, match="will not fit into"):
-        image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
-    with pytest.raises(InvalidSize, match="will not fit into"):
-        image.set_size(height=51, maxsize=(200, 50))  # Exceeds Vertically
-    # # Horizontal image in a square space, constrained by height
-    with pytest.raises(InvalidSize, match="will not fit into"):
-        h_image.set_size(height=100, maxsize=(100, 50))
-    # # Vertical image in a square space, constrained by width
-    with pytest.raises(InvalidSize, match="will not fit into"):
-        v_image.set_size(width=100, maxsize=(100, 50))
+        self.v_image.set_size()
+        assert lt(
+            self.v_image._pixels_cols(cols=self.v_image.width),
+            self.v_image._pixels_lines(lines=self.v_image.height),
+        )
+        assert self.proportional(self.v_image)
 
-    # Can exceed available terminal size
-    image.set_size(width=columns + 1)
-    assert image.width == columns + 1
-    assert proportional(image)
-    image.set_size(height=lines + 1)
-    assert image.height == lines + 1
-    assert proportional(image)
+    def test_width_and_proportionality(self):
+        self.image.set_size(width=_size)
+        assert self.image.width == _size
+        assert self.proportional(self.image)
 
-    # Proportionality
-    image.set_size(width=_width)
-    assert proportional(image)
-    image.set_size(height=_height)
-    assert proportional(image)
+        self.h_image.set_size(width=_size)
+        assert self.image.width == _size
+        assert self.proportional(self.image)
 
-    h_image.set_size(width=_size)
-    assert proportional(image)
+        self.v_image.set_size(width=_size)
+        assert self.image.width == _size
+        assert self.proportional(self.image)
 
-    v_image.set_size(height=_size)
-    assert proportional(image)
+    def test_height_and_proportionality(self):
+        self.image.set_size(height=_size)
+        assert self.image.height == _size
+        assert self.proportional(self.image)
 
-    # # Auto sizing
-    image.set_size()
-    assert proportional(image)
-    image.set_size()
-    assert proportional(image)
+        self.h_image.set_size(height=_size)
+        assert self.image.height == _size
+        assert self.proportional(self.image)
 
-    # Fitted axes and proportionality
-    h_image.set_size(fit_to_height=True)
-    assert h_image.height == lines - 2
-    assert proportional(image)
+        self.v_image.set_size(height=_size)
+        assert self.image.height == _size
+        assert self.proportional(self.image)
 
-    v_image.set_size(fit_to_width=True)
-    assert v_image.width == columns
-    assert proportional(image)
+    def test_fitted_axes_and_proportionality(self):
+        self.h_image.set_size(fit_to_height=True)
+        assert self.h_image.height == lines - 2
+        assert self.proportional(self.image)
 
-    # Allowance
-    image.set_size(fit_to_width=True)
-    assert image.width == columns
+        self.v_image.set_size(fit_to_width=True)
+        assert self.v_image.width == columns
+        assert self.proportional(self.image)
 
-    image.set_size(fit_to_height=True)
-    assert image.height == lines - 2
+    def test_allowance(self):
+        self.image.set_size(fit_to_width=True)
+        assert self.image.width == columns
 
-    image.set_size(h_allow=2, fit_to_width=True)
-    assert image.width == columns - 2
+        self.image.set_size(fit_to_height=True)
+        assert self.image.height == lines - 2
 
-    image.set_size(v_allow=3, fit_to_height=True)
-    assert image.height == lines - 3
+        self.image.set_size(h_allow=2, fit_to_width=True)
+        assert self.image.width == columns - 2
 
-    # maxsize + allowance nullification
-    image.set_size(h_allow=2, v_allow=3, maxsize=(100, 55))
-    assert image._size == (100, 50)
-    image.set_size(h_allow=2, v_allow=3, maxsize=(110, 50))
-    assert image._size == (100, 50)
+        self.image.set_size(v_allow=3, fit_to_height=True)
+        assert self.image.height == lines - 3
 
-    # Font ratio adjustment
-    try:
-        for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-            set_font_ratio(ratio)
-            image.set_size()
-            assert proportional(image)
-    finally:
-        set_font_ratio(0.5)  # Reset
+    def test_maxsize(self):
+        self.image.set_size(maxsize=(100, 50))
+        assert self.image.size == (100, 50)
+        self.image.set_size(maxsize=(100, 55))
+        assert self.image.size == (100, 50)
+        self.image.set_size(maxsize=(110, 50))
+        assert self.image.size == (100, 50)
+
+        self.image.set_size(width=100, maxsize=(200, 100))
+        assert self.image.size == (100, 50)
+        self.image.set_size(height=50, maxsize=(200, 100))
+        assert self.image.size == (100, 50)
+
+    def test_maxsize_allowance_nullification(self):
+        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
+        assert self.image.size == (100, 50)
+        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
+        assert self.image.size == (100, 50)
+
+    def test_fixed_width_font_ratio_adjustment(self):
+        try:
+            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+                set_font_ratio(ratio)
+                self.image.set_size(width=_size)
+                assert self.image.width == _size
+                assert self.proportional(self.image)
+        finally:
+            set_font_ratio(0.5)
+
+    def test_fixed_height_font_ratio_adjustment(self):
+        try:
+            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+                set_font_ratio(ratio)
+                self.image.set_size(height=_size)
+                assert self.image.height == _size
+                assert self.proportional(self.image)
+        finally:
+            set_font_ratio(0.5)
+
+    def test_auto_size_font_ratio_adjustment(self):
+        try:
+            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+                set_font_ratio(ratio)
+                self.image.set_size()
+                assert self.proportional(self.image)
+        finally:
+            set_font_ratio(0.5)
+
+    def test_can_exceed_terminal_size(self):
+        self.image.set_size(width=columns + 1)
+        assert self.image.width == columns + 1
+        assert self.proportional(self.image)
+        self.image.set_size(height=lines + 1)
+        assert self.image.height == lines + 1
+        assert self.proportional(self.image)
+
+    def test_cannot_exceed_maxsize(self):
+        with pytest.raises(InvalidSize, match="will not fit into"):
+            self.image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
+        with pytest.raises(InvalidSize, match="will not fit into"):
+            self.image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
+        with pytest.raises(InvalidSize, match="will not fit into"):
+            self.image.set_size(height=51, maxsize=(200, 50))  # Exceeds Vertically
+
+        # Horizontal image in a (supposedly) square space; Exceeds horizontally
+        with pytest.raises(InvalidSize, match="will not fit into"):
+            self.h_image.set_size(height=100, maxsize=(100, 50))
+
+        # Vertical image in a (supposedly) square space; Exceeds Vertically
+        with pytest.raises(InvalidSize, match="will not fit into"):
+            self.v_image.set_size(width=100, maxsize=(100, 50))
 
 
 def test_renderer():
@@ -548,381 +639,471 @@ def test_renderer():
         assert kwargs == keywords
 
 
-def test_render():
-    def render_image(alpha):
-        return trans._renderer(lambda im: trans._render_image(im, alpha))
-
+class TestRender:
     trans = TermImage.from_file("tests/images/trans.png")
 
-    for trans._size in ((1, 0), (0, 1), (0, 0)):
+    def render_image(self, alpha):
+        return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
+
+    def test_small_size_scale(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
+
+        for self.trans._size in ((1, 0), (0, 1), (0, 0)):
+            with pytest.raises(ValueError, match="too small"):
+                self.render_image(None)
+
+        self.trans.scale = 0.0001
         with pytest.raises(ValueError, match="too small"):
-            render_image(None)
+            self.render_image(None)
 
-    trans.set_size(height=_size)
+    def test_transparency(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
-    render = render_image(_ALPHA_THRESHOLD)
-    # No '\n' after the last line, hence the `+ 1`
-    assert render.count("\n") + 1 == trans.height
-    assert render.partition("\n")[0].count(" ") == trans.width
+        render = self.render_image(_ALPHA_THRESHOLD)
+        # No '\n' after the last line, hence the `+ 1`
+        assert render.count("\n") + 1 == self.trans.height
+        assert render.partition("\n")[0].count(" ") == self.trans.width
 
-    # Transparency enabled
-    assert all(
-        line == "\033[0m" + " " * trans.width + "\033[0m"
-        for line in render_image(_ALPHA_THRESHOLD).splitlines()
-    )
-    # Transparency disabled
-    assert all(
-        line == "\033[48;2;0;0;0m" + " " * trans.width + "\033[0m"
-        for line in render_image(None).splitlines()
-    )
-    # Color fill (white)
-    assert all(
-        line == "\033[48;2;255;255;255m" + " " * trans.width + "\033[0m"
-        for line in render_image("#ffffff").splitlines()
-    )
-    # Color fill (red)
-    assert all(
-        line == "\033[48;2;255;0;0m" + " " * trans.width + "\033[0m"
-        for line in render_image("#ff0000").splitlines()
-    )
+        # Transparency enabled
+        assert all(
+            line == "\033[0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image(_ALPHA_THRESHOLD).splitlines()
+        )
+        # Transparency disabled
+        assert all(
+            line == "\033[48;2;0;0;0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image(None).splitlines()
+        )
 
-    # Scaled renders
-    trans.set_size(_size)
+    def test_background_colour(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
-    trans.scale = 0.0001
-    with pytest.raises(ValueError, match="too small"):
-        render_image(None)
+        # white
+        assert all(
+            line == "\033[48;2;255;255;255m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image("#ffffff").splitlines()
+        )
+        # red
+        assert all(
+            line == "\033[48;2;255;0;0m" + " " * self.trans.width + "\033[0m"
+            for line in self.render_image("#ff0000").splitlines()
+        )
 
-    # At varying scales
-    for trans.scale in map(lambda x: x / 100, range(10, 101)):
-        try:
-            render = render_image(_ALPHA_THRESHOLD)
-        except ValueError:
-            continue
-        assert render.count("\n") + 1 == trans.rendered_height
-        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+    def test_scaled(self):
+        self.trans.set_size(height=_size)
 
-    # Random scales
-    for _ in range(100):
-        try:
-            trans.scale = random()
-            render = render_image(_ALPHA_THRESHOLD)
-        except ValueError:  # random value == 0 or scale is too small
-            continue
-        assert render.count("\n") + 1 == trans.rendered_height
-        assert render.partition("\n")[0].count(" ") == trans.rendered_width
+        # At varying scales
+        for self.trans.scale in map(lambda x: x / 100, range(10, 101)):
+            if 0 not in self.trans.rendered_size:
+                render = self.render_image(_ALPHA_THRESHOLD)
+            assert render.count("\n") + 1 == self.trans.rendered_height
+            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
 
-    image = TermImage(python_img, width=_size)
-    assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
+        # Random scales
+        for _ in range(100):
+            scale = random()
+            if scale == 0:
+                continue
+            self.trans.scale = scale
+            if 0 in self.trans.rendered_size:
+                continue
+            render = self.render_image(_ALPHA_THRESHOLD)
+            assert render.count("\n") + 1 == self.trans.rendered_height
+            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
+
+    def test_str(self):
+        image = TermImage(python_img, width=_size)
+        assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
 
 
-def test_format_spec():
+class TestFormatting:
     image = TermImage(python_img)
-
-    for spec in (
-        "1<",
-        "-1.|1",
-        "<1.1^",
-        ".",
-        "1.",
-        "<.",
-        ">1.",
-        "-",
-        "<^",
-        ".#",
-        ">1.#.23",
-        "#0",
-        "#.",
-        "#2445",
-        "#.23fa45",
-        "#fffffff",
-        "#a45gh4",
-        " ",
-    ):
-        with pytest.raises(ValueError, match=r"Invalid format specification"):
-            format(image, spec)
-
-    for spec in (
-        "<",
-        "1",
-        ".1",
-        "<1",
-        ".^1",
-        "|1.-1",
-        "<1.-",
-        ".-",
-        "#",
-        "#123456",
-        "#23af5b",
-        "#abcdef",
-        "#.4",
-        "#.343545453453",
-        "1.1#",
-        "<.^#ffffff",
-        "<1.^1#ffffff",
-        f"<{columns}.^{lines}#ffffff",
-    ):
-        assert isinstance(format(image, spec), str)
-
-
-def test_formatting():
-    image = TermImage(python_img)
+    image.scale = 0.5  # To ensure there's padding
+    render = str(image)
     check_formatting = image._check_formatting
     format_render = image._format_render
 
-    # Argument valid types and values
-    for value in (1, 1.0, (), []):
-        with pytest.raises(TypeError, match="'h_align' must be .*"):
-            check_formatting(h_align=value)
-        with pytest.raises(TypeError, match="'v_align' must be .*"):
-            check_formatting(v_align=value)
+    def test_args(self):
+        self.image.size = None
+        for value in (1, 1.0, (), []):
+            with pytest.raises(TypeError, match="'h_align' must be .*"):
+                self.check_formatting(h_align=value)
+            with pytest.raises(TypeError, match="'v_align' must be .*"):
+                self.check_formatting(v_align=value)
 
-    for value in ("", "cool", ".", " ", "\n"):
-        with pytest.raises(ValueError, match="Invalid horizontal .*"):
-            check_formatting(h_align=value)
-        with pytest.raises(ValueError, match="Invalid vertical .*"):
-            check_formatting(v_align=value)
+        for value in ("", "cool", ".", " ", "\n"):
+            with pytest.raises(ValueError, match="Invalid horizontal .*"):
+                self.check_formatting(h_align=value)
+            with pytest.raises(ValueError, match="Invalid vertical .*"):
+                self.check_formatting(v_align=value)
 
-    for value in ("1", 1.0, (), []):
-        with pytest.raises(TypeError, match="Padding width must be .*"):
-            check_formatting(width=value)
-        with pytest.raises(TypeError, match="Padding height must be .*"):
-            check_formatting(height=value)
+        for value in ("1", 1.0, (), []):
+            with pytest.raises(TypeError, match="Padding width must be .*"):
+                self.check_formatting(width=value)
+            with pytest.raises(TypeError, match="Padding height must be .*"):
+                self.check_formatting(height=value)
 
-    for value in (0, -1, -100):
-        with pytest.raises(ValueError, match="Padding width must be .*"):
-            check_formatting(width=value)
-        with pytest.raises(ValueError, match="Padding height must be .*"):
-            check_formatting(height=value)
+        for value in (0, -1, -100):
+            with pytest.raises(ValueError, match="Padding width must be .*"):
+                self.check_formatting(width=value)
+            with pytest.raises(ValueError, match="Padding height must be .*"):
+                self.check_formatting(height=value)
 
-    # Padding width is validated
-    with pytest.raises(ValueError, match="Padding width is larger .*"):
-        check_formatting(width=columns + 1)  # Using default *h_allow*
-    assert isinstance(check_formatting(width=columns), tuple)
+    def test_arg_align_conversion(self):
+        self.image.size = None
+        assert self.check_formatting() == (None,) * 4
 
-    # recognizes allowance
-    image.set_size(h_allow=2)
-    with pytest.raises(ValueError, match="Padding width is larger .*"):
-        check_formatting(width=columns - 1)  # Using last *h_allow*
-    assert isinstance(check_formatting(width=columns - 2), tuple)
+        for value in "<|>":
+            assert self.check_formatting(h_align=value) == (value, None, None, None)
+        for val1, val2 in zip(("left", "center", "right"), "<|>"):
+            assert self.check_formatting(h_align=val1) == (val2, None, None, None)
 
-    image.size = None
-    assert check_formatting() == (None,) * 4
+        for value in "^-_":
+            assert self.check_formatting(v_align=value) == (None, None, value, None)
+        for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
+            assert self.check_formatting(v_align=val1) == (None, None, val2, None)
 
-    for value in "<|>":
-        assert check_formatting(h_align=value) == (value, None, None, None)
-    for val1, val2 in zip(("left", "center", "right"), "<|>"):
-        assert check_formatting(h_align=val1) == (val2, None, None, None)
+    def test_arg_padding_width(self):
+        self.image.size = None
+        for value in (1, _width, columns):
+            assert self.check_formatting(width=value) == (None, value, None, None)
+        # Cannot exceed terminal width
+        with pytest.raises(ValueError, match="Padding width is larger .*"):
+            self.check_formatting(width=columns + 1)  # Using default *h_allow*
+        # recognizes allowance
+        self.image.set_size(h_allow=2)
+        assert self.check_formatting(width=columns - 2) == (
+            None,
+            columns - 2,
+            None,
+            None,
+        )
+        with pytest.raises(ValueError, match="Padding width is larger .*"):
+            self.check_formatting(width=columns - 1)  # Using last *h_allow*
 
-    for value in "^-_":
-        assert check_formatting(v_align=value) == (None, None, value, None)
-    for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
-        assert check_formatting(v_align=val1) == (None, None, val2, None)
+    def test_arg_padding_height(self):
+        self.image.size = None
+        for value in (1, _size, lines):
+            assert self.check_formatting(height=value) == (None, None, None, value)
+        # Can exceed terminal height
+        assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
+        # Allowance is not considered
+        self.image.set_size(v_allow=4)
+        assert self.check_formatting(height=lines) == (None, None, None, lines)
 
-    # height goes beyond terminal height and allowance is not considered
-    for value in (1, _size, lines, lines + 1):
-        assert check_formatting(height=value) == (None, None, None, value)
+    def test_padding_width(self):
+        self.image.size = None
+        for width in range(self.image.rendered_width, columns + 1):
+            assert (
+                self.format_render(self.render, "<", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, "|", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, ">", width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
+            assert (
+                self.format_render(self.render, None, width)
+                .partition("\n")[0]
+                .count(" ")
+                == width
+            )
 
-    # width can not go beyond terminal width (minus allowance)
-    for value in (1, _size, columns):
-        assert check_formatting(width=value) == (None, value, None, None)
+    def test_padding_height(self):
+        self.image.size = None
+        for height in range(self.image.rendered_height, lines + 1):
+            assert (
+                self.format_render(self.render, None, None, "^", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, "-", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, "_", height).count("\n") + 1
+                == height
+            )
+            assert (
+                self.format_render(self.render, None, None, None, height).count("\n")
+                + 1
+                == height
+            )
 
-    size = _size - 5
-    image.set_size(size)
-    nlines = image.rendered_height
+    def test_align_left_top(self):
+        self.image.size = None
+        render = self.format_render(self.render, "<", columns, "^", lines)
+        partition = render.partition("\033")[2]
+        assert (
+            len(partition.partition("\n")[0].rpartition("m")[2])
+            == columns - self.image.rendered_width
+        )
+        assert (
+            render.rpartition("m")[2].count("\n") == lines - self.image.rendered_height
+        )
 
-    render = str(image)
-    assert format_render(render) == format(image)
+    def test_align_center_middle(self):
+        self.image.size = None
+        render = self.format_render(self.render, "|", columns, "-", lines)
+        left = (columns - self.image.rendered_width) // 2
+        right = columns - self.image.rendered_width - left
+        up = (lines - self.image.rendered_height) // 2
+        down = lines - self.image.rendered_height - up
 
-    for width in range(size, columns + 1):
-        assert format_render(render, "<", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, "|", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, ">", width).partition("\n")[0].count(" ") == width
-        assert format_render(render, None, width).partition("\n")[0].count(" ") == width
-    for height in range(nlines, lines + 1):
-        assert format_render(render, None, None, "^", height).count("\n") + 1 == height
-        assert format_render(render, None, None, "-", height).count("\n") + 1 == height
-        assert format_render(render, None, None, "_", height).count("\n") + 1 == height
-        assert format_render(render, None, None, None, height).count("\n") + 1 == height
+        partition = render.rpartition("m")[0]
+        assert partition.rpartition("\n")[2].index("\033") == left
+        assert render.partition("\033")[0].count("\n") == up
 
-    # Left + Up
-    output = format_render(render, "<", columns, "^", lines)
-    partition = output.partition("\033")[2]
-    assert len(partition.partition("\n")[0].rpartition("m")[2]) == columns - size
-    assert output.rpartition("m")[2].count("\n") == lines - nlines
+        partition = render.partition("\033")[2]
+        assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
+        assert render.rpartition("m")[2].count("\n") == down
 
-    # Center + Middle
-    output = format_render(render, "|", columns, "-", lines)
-    left = (columns - size) // 2
-    right = columns - size - left
-    up = (lines - nlines) // 2
-    down = lines - nlines - up
-    partition = output.rpartition("m")[0]
-    assert partition.rpartition("\n")[2].index("\033") == left
-    assert output.partition("\033")[0].count("\n") == up
-    partition = output.partition("\033")[2]
-    assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
-    assert output.rpartition("m")[2].count("\n") == down
+    def test_align_right_bottom(self):
+        self.image.size = None
+        render = self.format_render(self.render, ">", columns, "_", lines)
+        partition = render.rpartition("m")[0]
+        assert (
+            partition.rpartition("\n")[2].index("\033")
+            == columns - self.image.rendered_width
+        )
+        assert (
+            render.partition("\033")[0].count("\n")
+            == lines - self.image.rendered_height
+        )
 
-    # Right + Down
-    output = format_render(render, ">", columns, "_", lines)
-    partition = output.rpartition("m")[0]
-    assert partition.rpartition("\n")[2].index("\033") == columns - size
-    assert output.partition("\033")[0].count("\n") == lines - nlines
-
-    image.scale = 0.5  # To ensure there's padding
     # First line in every render should be padding (except the terminal is so small)
     # No '\n' after the last line, hence the `+ 1` when counting lines
 
-    # Allowance recognition
+    def test_allowance_default(self):
+        self.image.size = None
+        render = self.format_render(self.render)
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines - 2
 
-    # # Default allowances
-    image.set_size()
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines - 2
+    def test_allowance_non_default(self):
+        self.image.set_size(h_allow=2, v_allow=3)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns - 2
+        assert render.count("\n") + 1 == lines - 3
 
-    # # Vertical allowance nullified
-    image.set_size(h_allow=2, v_allow=3, fit_to_width=True)
-    assert format(image).partition("\n")[0].count(" ") == columns - 2
-    assert format(image).count("\n") + 1 == lines
+    def test_allowance_fit_to_width(self):
+        # Vertical allowance nullified
+        self.image.set_size(h_allow=2, v_allow=3, fit_to_width=True)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns - 2
+        assert render.count("\n") + 1 == lines
 
-    # # Horizontal allowance nullified
-    image.set_size(h_allow=2, v_allow=3, fit_to_height=True)
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines - 3
+    def test_allowance_fit_to_height(self):
+        # Horizontal allowance nullified
+        self.image.set_size(h_allow=2, v_allow=3, fit_to_height=True)
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines - 3
 
-    # # `maxsize` nullifies allowances
-    image.set_size(h_allow=2, v_allow=3, maxsize=(_size, _size))
-    assert format(image).partition("\n")[0].count(" ") == columns
-    assert format(image).count("\n") + 1 == lines
+    def test_allowance_maxsize(self):
+        # `maxsize` nullifies allowances
+        self.image.set_size(h_allow=2, v_allow=3, maxsize=(_size, _size))
+        render = self.format_render(str(self.image))
+        assert render.partition("\n")[0].count(" ") == columns
+        assert render.count("\n") + 1 == lines
+
+    def test_format_spec(self):
+        for spec in (
+            "1<",
+            "-1.|1",
+            "<1.1^",
+            ".",
+            "1.",
+            "<.",
+            ">1.",
+            "-",
+            "<^",
+            ".#",
+            ">1.#.23",
+            "#0",
+            "#.",
+            "#2445",
+            "#.23fa45",
+            "#fffffff",
+            "#a45gh4",
+            " ",
+        ):
+            with pytest.raises(ValueError, match=r"Invalid format specification"):
+                self.image._check_format_spec(spec)
+
+        for spec in (
+            "<",
+            "1",
+            ".1",
+            "<1",
+            ".^1",
+            "|1.-1",
+            "<1.-",
+            ".-",
+            "#",
+            "#123456",
+            "#23af5b",
+            "#abcdef",
+            "#.4",
+            "#.343545453453",
+            "1.1#",
+            "<.^#ffffff",
+            "<1.^1#ffffff",
+            f"<{columns}.^{lines}#ffffff",
+        ):
+            fmt = self.image._check_format_spec(spec)
+            assert isinstance(fmt, tuple)
+
+    def test_format(self):
+        self.image.set_size()
+        assert format(self.image) == self.format_render(str(self.image))
 
 
-def test_iter():
-    image = TermImage(python_img)
-    with pytest.raises(ValueError, match="not animated"):
-        iter(image)
-
-    anim_image = TermImage(anim_img)
-    image_it = iter(anim_image)
-    assert isinstance(image_it, ImageIterator)
-    assert image_it._image is anim_image
-
-
-def test_draw():
-    sys.stdout = stdout
+class TestDraw:
     image = TermImage(python_img, width=_size)
     anim_image = TermImage(anim_img, width=_size)
 
-    with pytest.raises(ValueError, match="Padding height .*"):
-        anim_image.draw(pad_height=lines + 1)
+    def test_args(self):
+        sys.stdout = stdout
+        with pytest.raises(ValueError, match="Padding height .*"):
+            self.anim_image.draw(pad_height=lines + 1)
 
-    for value in (1, (), [], {}, b""):
-        with pytest.raises(TypeError, match="'alpha' must be .*"):
-            image.draw(alpha=value)
+        for value in (1, (), [], {}, b""):
+            with pytest.raises(TypeError, match="'alpha' must be .*"):
+                self.image.draw(alpha=value)
 
-    for value in (-1.0, -0.1, 1.0, 1.1):
-        with pytest.raises(ValueError, match="Alpha threshold .*"):
-            image.draw(alpha=value)
+        for value in (-1.0, -0.1, 1.0, 1.1):
+            with pytest.raises(ValueError, match="Alpha threshold .*"):
+                self.image.draw(alpha=value)
 
-    for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
-        with pytest.raises(ValueError, match="Invalid hex color .*"):
-            image.draw(alpha=value)
+        for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
+            with pytest.raises(ValueError, match="Invalid hex color .*"):
+                self.image.draw(alpha=value)
 
-    # Non-animations
+    def test_size_validation(self):
+        sys.stdout = stdout
+        self.image._size = (columns + 1, 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # Size validation
+        self.image._size = (1, lines - 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    image._size = (columns + 1, lines - 1)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+        self.image.set_size(h_allow=2)
+        self.image._size = (columns - 1, 1)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # # Horizontal Allowance
-    image.set_size(h_allow=2)
-    image._size = (columns - 1, 1)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+        self.image.set_size(v_allow=4)
+        self.image._size = (1, lines - 3)
+        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+            self.image.draw()
 
-    # # # vertical Allowance
-    image.set_size(v_allow=4)
-    image._size = (1, lines - 3)
-    with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
-        image.draw()
+    class TestNonAnimated:
+        image = TermImage(python_img, width=_size)
+        anim_image = TermImage(anim_img, width=_size)
 
-    # # `lines + 1` because *scroll* and *fit_to_width* nullify vertical allowance
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.image.set_size(fit_to_width=True)
+            self.image._size = (columns, lines + 1)
+            self.image.draw()
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # fit_to_width=True
-    image.set_size(fit_to_width=True)
-    image._size = (columns, lines + 1)
-    image.draw()
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.image.size = None
+            self.image._size = (columns, lines + 1)
+            self.image.draw(scroll=True)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # scroll=True
-    image.size = None
-    image._size = (columns, lines + 1)
-    image.draw(scroll=True)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.image.size = None
+            self.image._size = (columns + 1, lines)
+            self.image.draw(check_size=False)
+            assert stdout.getvalue().count("\n") == lines
+            clear_stdout()
 
-    # # check_size=False
-    image.size = None
-    image._size = (columns + 1, lines)
-    image.draw(check_size=False)
-    assert stdout.getvalue().count("\n") == lines
-    clear_stdout()
+    class TestAnimatedFalse:
+        image = TermImage(python_img, width=_size)
+        anim_image = TermImage(anim_img, width=_size)
 
-    # # Animated image + animate=False
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            self.anim_image.draw(animate=False)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # # fit_to_width=True
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    anim_image.draw(animate=False)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns, lines + 1)
+            self.anim_image.draw(scroll=True, animate=False)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
 
-    # # # scroll=True
-    anim_image.size = None
-    anim_image._size = (columns, lines + 1)
-    anim_image.draw(scroll=True, animate=False)
-    assert stdout.getvalue().count("\n") == lines + 1
-    clear_stdout()
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns + 1, lines)
+            self.anim_image.draw(animate=False, check_size=False)
+            assert stdout.getvalue().count("\n") == lines
+            clear_stdout()
 
-    # # # check_size=False
-    anim_image.size = None
-    anim_image._size = (columns + 1, lines)
-    anim_image.draw(animate=False, check_size=False)
-    assert stdout.getvalue().count("\n") == lines
-    clear_stdout()
+    class TestAnimated:
+        image = TermImage(python_img)
+        anim_image = TermImage(anim_img)
 
-    # Animations
-    # `lines + 1` because *scroll* and *fit_to_width* nullify vertical allowance
+        def test_fit_to_width(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw()
 
-    # # `fit_to_width=True` is overriden
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw()
+        def test_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw(scroll=True)
 
-    # # `scroll=True` is overriden
-    anim_image.size = None
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw(scroll=True)
+        def test_fit_scroll(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+                self.anim_image.draw(scroll=True)
 
-    # # Both of the above combined
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns, lines + 1)
-    with pytest.raises(InvalidSize, match="rendered height .* animations"):
-        anim_image.draw(scroll=True)
+        def test_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.size = None
+            self.anim_image._size = (columns + 1, lines)
+            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+                self.anim_image.draw(check_size=False)
 
-    # # `check_size=False` is overriden
-    anim_image.size = None
-    anim_image._size = (columns + 1, lines)
-    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
-        anim_image.draw(check_size=False)
-
-    # # All of the above combined
-    anim_image.set_size(fit_to_width=True)
-    anim_image._size = (columns + 1, lines + 1)
-    with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
-        anim_image.draw(scroll=True, check_size=False)
+        def test_fit_scroll_check_size(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(fit_to_width=True)
+            self.anim_image._size = (columns + 1, lines + 1)
+            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+                self.anim_image.draw(scroll=True, check_size=False)
