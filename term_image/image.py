@@ -400,14 +400,18 @@ class TermImage:
             pad_width: Number of columns within which to align the image.
 
               * Excess columns are filled with spaces.
-              * default: terminal width.
+              * Must not be greater than the
+                :term:`available terminal width <available width>`.
+              * Default: terminal width, minus horizontal allowance.
 
             v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
               Default: middle.
             pad_height: Number of lines within which to align the image.
 
               * Excess lines are filled with spaces.
-              * default: terminal height, with a 2-line allowance.
+              * Must not be greater than the :term:`available terminal height
+                <available height>`, **for animations**.
+              * Default: terminal height, minus vertical allowance.
 
             alpha: Transparency setting.
 
@@ -448,13 +452,13 @@ class TermImage:
             term_image.exceptions.InvalidSize: The image's :term:`rendered size` can not
               fit into the :term:`available terminal size <available size>`.
 
-        * Animations, **by default**, are infinitely looped and can be terminated
-          with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
-        * If :py:meth:`set_size` was previously used to set the
-          image size (directly or not), the last values of its
-          *fit_to_width*, *h_allow* and *v_allow* parameters are taken into
-          consideration, with *fit_to_width* applying to only non-animations.
-        * If the image size was set with the *fit_to_width* paramter of
+        * If :py:meth:`set_size` was directly used to set the image size, the values
+          of the *fit_to_width*, *h_allow* and *v_allow* arguments
+          (when :py:meth:`set_size` was called) are taken into consideration during
+          size validation, with *fit_to_width* applying to only non-animations.
+        * If the size was set via another means or the size is
+          :ref:`unset <unset-size>`, the default values of those parameters are used.
+        * If the image size was set with the *fit_to_width* parameter of
           :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
@@ -462,6 +466,8 @@ class TermImage:
 
           * *scroll* is ignored.
           * Image size and :term:`padding height` are always validated, if set or given.
+        * Animations, **by default**, are infinitely looped and can be terminated
+          with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -480,6 +486,11 @@ class TermImage:
 
         if self._is_animated and not isinstance(animate, bool):
             raise TypeError("'animate' must be a boolean")
+
+        if None is not pad_width > get_terminal_size()[0] - self._h_allow:
+            raise ValueError(
+                "Padding width is greater than the available terminal width"
+            )
 
         if (
             self._is_animated
@@ -855,10 +866,6 @@ class TermImage:
         if width is not None:
             if width <= 0:
                 raise ValueError(f"Padding width must be positive (got: {width})")
-            if width > get_terminal_size()[0] - self._h_allow:
-                raise ValueError(
-                    "Padding width is larger than the available terminal width"
-                )
 
         if not isinstance(v_align, (type(None), str)):
             raise TypeError("'v_align' must be a string.")
@@ -1203,7 +1210,6 @@ class TermImage:
             The return value of *renderer*.
 
         Raises:
-            ValueError: Image size or scale too small.
             term_image.exceptions.InvalidSize: *check_size* or *animated* is ``True``
               and the image's :term:`rendered size` can not fit into the
               :term:`available terminal size <available size>`.
