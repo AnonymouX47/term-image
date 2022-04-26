@@ -20,8 +20,8 @@ import requests
 
 from . import __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
-from .exceptions import InvalidSize, URLNotFoundError
-from .exit_codes import FAILURE, INVALID_ARG, INVALID_SIZE, NO_VALID_SOURCE, SUCCESS
+from .exceptions import URLNotFoundError
+from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import _ALPHA_THRESHOLD, TermImage
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
@@ -1163,7 +1163,6 @@ NOTES:
         log("Running in CLI mode", logger, direct=False)
 
         show_name = len(args.sources) > 1
-        err = False
         for entry in images:
             image = entry[1]._image
             if args.max_pixels_cli and mul(*image._original_size) > args.max_pixels:
@@ -1225,14 +1224,7 @@ NOTES:
             # raised by `TermImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except ValueError as e:
-                if isinstance(e, InvalidSize):
-                    notify.notify(str(e), level=notify.CRITICAL)
-                    err = True
-                else:
-                    log(str(e), logger, _logging.CRITICAL)
-                    return FAILURE
-        if err:
-            return INVALID_SIZE
+                notify.notify(str(e), level=notify.ERROR)
     elif os_is_unix:
         notify.end_loading()
         tui.init(args, images, contents)

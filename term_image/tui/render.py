@@ -231,17 +231,18 @@ def render_images(
                 if out_extras
                 else f"{image:1.1{alpha}}"
             )
-        except Exception:
+        except Exception as e:
             output.put(
                 (image._source, None, size, image.rendered_size) if out_extras else None
             )
             # *faulty* ensures a fault is logged only once per `Image` instance
-            if log_faults and not faulty:
-                logging.log_exception(
-                    f"Failed to load or render {image._source!r}",
-                    logger,
-                    direct=True,
-                )
+            if log_faults:
+                if not faulty:
+                    logging.log_exception(
+                        f"Failed to load or render {image._source!r}",
+                        logger,
+                    )
+                notify.notify(str(e), level=notify.ERROR)
 
 
 logger = _logging.getLogger(__name__)

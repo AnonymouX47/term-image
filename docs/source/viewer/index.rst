@@ -108,6 +108,18 @@ A log entry has the following format:
    * The Process ID of the ``term-image`` instance preceeds every log entry, so this can be used to distinguish and track logs from different sessions running simultaneously while using the same log file.
 
 
+Exit Codes
+----------
+``term-image`` returns the following exit codes with the specified meanings:
+
+* ``0`` (SUCESS): Exited normally and successfully.
+* ``1`` (FAILURE): Exited due to an unhandled exception or a non-specific error.
+* ``3`` (INTERRUPTED): The program recieved an interrupt signal i.e ``SIGINT``.
+* ``4`` (CONFIG_ERROR): Exited due to an irremediable error while loading the user config.
+* ``5`` (NO_VALID_SOURCE): Exited due to lack of any valid source.
+* ``6`` (INVALID_ARG): Exited due to an invalid command-line argument value.
+
+
 Known Issues
 ------------
 1. The TUI is not supported on Windows

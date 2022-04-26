@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Fixed `InvalidSize` being raised when vertical allowance is greater than the terminal size even though *scroll* is set to `True`.
   The *scroll* parameter of `TermImage.draw()` now nullifies vertical allowance during image size validation.
 - [tui] Fixed TUI crashing when "max notifications" config option is set to `0`.
+- [cli,tui] Fixed handling of some errors.
 
 ### Changed
 - [lib] Changed sizing units to columns and lines.
 - [lib] Removed "size too small" check and exception when setting size.
 - [lib] Padding width is now validated only when drawing to the terminal (via `TermImage.draw()`).
+- [cli] The viewer no longer exits immediately an error occurs while drawing an image in CLI mode.
+  - It notifies the user of the error and moves on to the next image, if any.
+- [tui] The rendering failure notification now contains the reason for failure.
+- [cli,tui] Updated the viewer's exit codes.
 
 ## [0.1.1] - 2022-01-29
 ### Added
