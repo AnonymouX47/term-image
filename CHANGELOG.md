@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [lib] Changed sizing units to columns and lines.
 - [lib] Removed "size too small" check and exception when setting size.
+- [lib] Padding width is now validated only when drawing to the terminal (via `TermImage.draw()`).
 
 ## [0.1.1] - 2022-01-29
 ### Added
