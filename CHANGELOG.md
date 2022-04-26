@@ -5,24 +5,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [0.3.0] - 2022-04-26
 ### Fixed
-- [lib] Fixed `InvalidSize` being raised when vertical allowance is greater than the terminal size even though *scroll* is set to `True`.
-  The *scroll* parameter of `TermImage.draw()` now nullifies vertical allowance during image size validation.
+- [lib] Fixed the *scroll* parameter of `TermImage.draw()` ([#29](https://github.com/AnonymouX47/term-image/pull/29)).
 - [tui] Fixed TUI crashing when "max notifications" config option is set to `0`.
-- [cli,tui] Fixed handling of some errors.
+- [cli,tui] Fixed handling of some errors in the viewer ([#33](https://github.com/AnonymouX47/term-image/pull/33)).
 
 ### Changed
-- [lib] Changed sizing units to columns and lines.
-- [lib] Removed "size too small" check and exception when setting size.
-- [lib] Padding width is now validated only when drawing to the terminal (via `TermImage.draw()`).
-- [cli] The viewer no longer exits immediately an error occurs while drawing an image in CLI mode.
-  - It notifies the user of the error and moves on to the next image, if any.
-- [tui] The rendering failure notification now contains the reason for failure.
-- [cli,tui] Updated the viewer's exit codes.
+- Renamed the project, CLI executable, top-level package and user directory ([#28](https://github.com/AnonymouX47/term-image/pull/28))
+- [lib] Changed sizing units to columns and lines ([#29](https://github.com/AnonymouX47/term-image/pull/29)).
+- [lib] Padding width is now validated only when drawing to the terminal (via `TermImage.draw()`) ([#32](https://github.com/AnonymouX47/term-image/pull/32)).
+- [cli,tui] Updated the viewer's exit codes ([#33](https://github.com/AnonymouX47/term-image/pull/33)).
+- [test] Updated and re-organized the test suite ([#31](https://github.com/AnonymouX47/term-image/pull/31)).
 
-## [0.1.1] - 2022-01-29
-### Added
-- First official release
+### Deprecated
+- [lib] Deprecated top-level package name `term_img` ([#28](https://github.com/AnonymouX47/term-image/pull/28)).
+
+### Removed
+- [lib] Removed "size too small" check and exception when setting size ([#29](https://github.com/AnonymouX47/term-image/pull/29)).
+
 
 ## [0.2.0] - 2022-04-16
 ### Fixed
@@ -84,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] Optimized non-recursive directory checks.
 - [cli] File and URL sources are now processed concurrently.
 - [cli] Directory sources are now processed in parallel with one another and with file and URL sources, if supported.
-  Otherwise they are processed sequentially with one another and concurrently with file and URL sources.
+  - Otherwise they are processed sequentially with one another and concurrently with file and URL sources.
 - [cli] Disabled processing of directory sources on Windows, since the TUI is not supported.
 - [tui] Faulty image loads are now reported only once per image, per directory scan.
 - [tui] Changed entry sorting and grouping order.
@@ -102,6 +105,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib,cli,tui] Support for Python 3.6.
 - [config] `frame duration` config option.
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...HEAD
+
+## [0.1.1] - 2022-01-29
+### Added
+- First official release
+
+
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AnonymouX47/term-image/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/AnonymouX47/term-image/releases/tag/v0.1.1
