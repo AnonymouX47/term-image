@@ -770,26 +770,27 @@ class TestFormatting:
         self.image.size = None
         for value in (1, _width, columns):
             assert self.check_formatting(width=value) == (None, value, None, None)
-        # Cannot exceed terminal width
-        with pytest.raises(ValueError, match="Padding width is larger .*"):
-            self.check_formatting(width=columns + 1)  # Using default *h_allow*
-        # recognizes allowance
-        self.image.set_size(h_allow=2)
-        assert self.check_formatting(width=columns - 2) == (
+
+        # Can exceed terminal width
+        assert self.check_formatting(width=columns + 1) == (
             None,
-            columns - 2,
+            columns + 1,
             None,
             None,
         )
-        with pytest.raises(ValueError, match="Padding width is larger .*"):
-            self.check_formatting(width=columns - 1)  # Using last *h_allow*
+
+        # Allowance is not considered
+        self.image.set_size(h_allow=2)
+        assert self.check_formatting(width=columns) == (None, columns, None, None)
 
     def test_arg_padding_height(self):
         self.image.size = None
         for value in (1, _size, lines):
             assert self.check_formatting(height=value) == (None, None, None, value)
+
         # Can exceed terminal height
         assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
+
         # Allowance is not considered
         self.image.set_size(v_allow=4)
         assert self.check_formatting(height=lines) == (None, None, None, lines)
