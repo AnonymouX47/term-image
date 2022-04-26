@@ -8,7 +8,10 @@
     <img src="https://static.pepy.tech/badge/term-image">
     <img src="https://badges.frapsoft.com/os/v1/open-source.svg?v=103">
     <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
-    <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20the%20terminal%20using%20python&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal">
+    <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
+        <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
+    </a>
+    <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal">
         <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
     </a>
 </p>
@@ -276,9 +279,7 @@ Thanks! :heart:
 
 
 ## WIP
-- Change of image sizing unit (See [#16](https://github.com/AnonymouX47/term-image/issues/16))
 - Support for terminal graphics protocols (See [#23](https://github.com/AnonymouX47/term-image/issues/23))
-- Support for more text-based rendering styles
 - Performace Improvements
 
 ## TODO
