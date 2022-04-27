@@ -1,10 +1,10 @@
 """
-.. Core Library Definitions
+.. Common Interfaces For Various Image Classes
 """
 
 from __future__ import annotations
 
-__all__ = ("TermImage", "ImageIterator")
+__all__ = ("ImageIterator", "TermImage")
 
 import io
 import os
@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .exceptions import InvalidSize, TermImageException, URLNotFoundError
+from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FG_FMT = "\033[38;2;%d;%d;%dm"

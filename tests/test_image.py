@@ -11,7 +11,8 @@ from PIL import Image, UnidentifiedImageError
 
 from term_image import get_font_ratio, set_font_ratio
 from term_image.exceptions import InvalidSize
-from term_image.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
+from term_image.image import ImageIterator, TermImage
+from term_image.image.common import _ALPHA_THRESHOLD
 
 
 def clear_stdout():

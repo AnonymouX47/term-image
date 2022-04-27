@@ -13,7 +13,8 @@ import urwid
 
 from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
-from ..image import _ALPHA_THRESHOLD, TermImage
+from ..image import TermImage
+from ..image.common import _ALPHA_THRESHOLD
 from . import keys, main as tui_main
 from .render import grid_render_queue, image_render_queue
 

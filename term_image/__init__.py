@@ -50,7 +50,7 @@ def set_font_ratio(ratio: float) -> None:
         already been set. For a change in font ratio to have any effect, it's size has
         to be set again.
     """
-    from . import image
+    from .image import common
 
     global _font_ratio
 
@@ -65,7 +65,7 @@ def set_font_ratio(ratio: float) -> None:
     # pixel-size == width * height/2
     # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
     _font_ratio = ratio
-    image._pixel_ratio = 2 * ratio
+    common._pixel_ratio = 2 * ratio
 
 
 _font_ratio = 0.5  # Default
