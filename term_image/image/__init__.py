@@ -4,4 +4,7 @@
 
 from __future__ import annotations
 
-from .common import ImageIterator, TermImage  # noqa:F401
+__all__ = ("BaseImage", "TermImage", "ImageIterator")
+
+from .common import BaseImage, ImageIterator  # noqa:F401
+from .term import TermImage  # noqa:F401

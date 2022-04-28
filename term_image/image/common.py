@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("ImageIterator", "TermImage")
+__all__ = ("BaseImage", "ImageIterator")
 
 import io
 import os
@@ -37,8 +37,8 @@ _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", r
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
-class TermImage:
-    """Text-printable image
+class BaseImage:
+    """Baseclass of all image classes.
 
     Args:
         image: Source image.
@@ -107,7 +107,7 @@ class TermImage:
     def __del__(self) -> None:
         self.close()
 
-    def __enter__(self) -> TermImage:
+    def __enter__(self) -> BaseImage:
         return self
 
     def __exit__(self, typ: type, val: Exception, tb: TracebackType) -> bool:
@@ -534,15 +534,15 @@ class TermImage:
         cls,
         filepath: str,
         **kwargs: Union[None, int, Tuple[float, float]],
-    ) -> TermImage:
-        """Creates a :py:class:`TermImage` instance from an image file.
+    ) -> BaseImage:
+        """Creates an instance from an image file.
 
         Args:
             filepath: Relative/Absolute path to an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new :py:class:`TermImage` instance.
+            A new instance.
 
         Raises:
             TypeError: *filepath* is not a string.
@@ -576,15 +576,15 @@ class TermImage:
         cls,
         url: str,
         **kwargs: Union[None, int, Tuple[float, float]],
-    ) -> TermImage:
-        """Creates a :py:class:`TermImage` instance from an image URL.
+    ) -> BaseImage:
+        """Creates an instance from an image URL.
 
         Args:
             url: URL of an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new :py:class:`TermImage` instance.
+            A new instance.
 
         Raises:
             TypeError: *url* is not a string.
@@ -1430,12 +1430,12 @@ class ImageIterator:
 
     def __init__(
         self,
-        image: TermImage,
+        image: BaseImage,
         repeat: int = -1,
         format: str = "",
         cached: Union[bool, int] = 100,
     ) -> None:
-        if not isinstance(image, TermImage):
+        if not isinstance(image, BaseImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
         if not image._is_animated:
             raise ValueError("This image is not animated")
