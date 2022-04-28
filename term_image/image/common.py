@@ -10,7 +10,7 @@ import io
 import os
 import re
 import time
-from math import ceil
+from abc import ABC, abstractmethod
 from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
@@ -37,7 +37,7 @@ _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", r
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
-class BaseImage:
+class BaseImage(ABC):
     """Baseclass of all image classes.
 
     Args:
@@ -1018,30 +1018,33 @@ class BaseImage:
 
         return "\n".join(lines)
 
+    @abstractmethod
     def _get_render_size(self) -> Tuple[int, int]:
         """Returns the size (in pixels) required to render the image.
 
         Applies the image scale.
         """
-        return tuple(map(mul, self.rendered_size, (1, 2)))
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
         """Returns the number of pixels represented by a given number of columns
         or vice-versa.
         """
-        return pixels if pixels is not None else cols
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _pixels_lines(
         *, pixels: Optional[int] = None, lines: Optional[int] = None
     ) -> int:
         """Returns the number of pixels represented by a given number of lines
         or vice-versa.
         """
-        return ceil(pixels / 2) if pixels is not None else lines * 2
+        raise NotImplementedError
 
     def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
         """Converts image pixel data into a "color-coded" string.
