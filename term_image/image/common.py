@@ -11,6 +11,7 @@ import os
 import re
 import time
 from abc import ABC, abstractmethod
+from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
@@ -34,6 +35,24 @@ _FORMAT_SPEC = re.compile(
 )
 _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
+
+
+def _close_validated(func: FunctionType) -> FunctionType:
+    """Decorates an instance method of an image class to check if the instance has
+    been finalized, before performing an operation with the instance.
+
+    Raises:
+        TermImageException: The instance has been finalized.
+    """
+
+    @wraps(func)
+    def validator(self, *args, **kwargs):
+        if self._closed:
+            raise TermImageException("This image has been finalized")
+
+        return func(self, *args, **kwargs)
+
+    return validator
 
 
 class BaseImage(ABC):
@@ -205,11 +224,7 @@ class BaseImage(ABC):
             return 1
 
         if not self._n_frames:
-            self._n_frames = (
-                Image.open(self._source)
-                if isinstance(self._source, str)
-                else self._source
-            ).n_frames
+            self._n_frames = self._get_image().n_frames
 
         return self._n_frames
 
@@ -1017,6 +1032,13 @@ class BaseImage(ABC):
 
         return "\n".join(lines)
 
+    @_close_validated
+    def _get_image(self) -> PIL.Image.Image:
+        """Returns the PIL image instance corresponding to the image source as-is"""
+        return (
+            Image.open(self._source) if isinstance(self._source, str) else self._source
+        )
+
     def _get_render_data(
         self, img: PIL.Image.Image, alpha: Union[None, float, str]
     ) -> Tuple[PIL.Image.Image, Tuple[Tuple[int, int, int]], Tuple[int]]:
@@ -1146,9 +1168,6 @@ class BaseImage(ABC):
               (directly or not), the last value of its *fit_to_width* parameter
               is taken into consideration, for non-animations.
         """
-        if self._closed:
-            raise TermImageException("This image has been finalized")
-
         try:
             reset_size = False
             if not self._size:  # Size is unset
@@ -1194,13 +1213,7 @@ class BaseImage(ABC):
                         "height for animations"
                     )
 
-            image = (
-                Image.open(self._source)
-                if isinstance(self._source, str)
-                else self._source
-            )
-
-            return renderer(image, *args, **kwargs)
+            return renderer(self._get_image(), *args, **kwargs)
 
         finally:
             if reset_size:
