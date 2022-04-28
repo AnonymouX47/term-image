@@ -18,6 +18,7 @@ from types import FunctionType, TracebackType
 from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
 
+import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
@@ -68,7 +69,7 @@ class BaseImage(ABC):
 
     def __init__(
         self,
-        image: Image.Image,
+        image: PIL.Image.Image,
         *,
         width: Optional[int] = None,
         height: Optional[int] = None,
@@ -508,7 +509,7 @@ class BaseImage(ABC):
 
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
-        def render(image: Image.Image) -> None:
+        def render(image: PIL.Image.Image) -> None:
             print("\033[?25l", end="")  # Hide the cursor
             try:
                 if self._is_animated and animate:
@@ -548,7 +549,7 @@ class BaseImage(ABC):
             TypeError: *filepath* is not a string.
             FileNotFoundError: The given path does not exist.
             IsADirectoryError: Propagated from from ``PIL.Image.open()``.
-            UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
+            PIL.UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
 
         Also Propagates exceptions raised or propagated by the class constructor.
         """
@@ -923,7 +924,7 @@ class BaseImage(ABC):
 
     def _display_animated(
         self,
-        img: Image.Image,
+        img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
@@ -1018,6 +1019,57 @@ class BaseImage(ABC):
 
         return "\n".join(lines)
 
+    def _get_render_data(
+        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+    ) -> Tuple[PIL.Image.Image, Tuple[Tuple[int, int, int]], Tuple[int]]:
+        """Returns the PIL image instance and pixel data required to render an image.
+
+        The PIL image is appropriately converted, resized and composited (if need be).
+
+        The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
+          - ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
+            the image's pixels in a flattened row-major order where ``r``, ``g``, ``b``
+            are integers in the range [0, 255].
+          - ``a`` is a tuple of integers in the range [0, 255] representing the alpha
+            channel of the image's pixels in a flattened row-major order.
+        """
+        if self._is_animated:
+            img.seek(self._seek_position)
+
+        width, height = self._get_render_size()
+
+        if alpha is None or img.mode == "RGB":
+            try:
+                img = img.convert("RGB").resize((width, height))
+            except ValueError:
+                raise ValueError("Image size or scale too small") from None
+            rgb = tuple(img.getdata())
+            a = (255,) * (width * height)
+            alpha = None
+        else:
+            try:
+                img = img.convert("RGBA").resize((width, height))
+            except ValueError:
+                raise ValueError("Image size or scale too small") from None
+            if isinstance(alpha, str):
+                bg = Image.new("RGBA", img.size, alpha)
+                bg.alpha_composite(img)
+                if img is not self._source:
+                    img.close()
+                img = bg
+                alpha = None
+            rgb = tuple(img.convert("RGB").getdata())
+            if alpha is None:
+                a = (255,) * (width * height)
+            else:
+                alpha = round(alpha * 255)
+                a = [0 if val < alpha else val for val in img.getdata(3)]
+                # To distinguish `0.0` from `None` in truth value tests
+                if alpha == 0.0:
+                    alpha = True
+
+        return img, rgb, a
+
     @abstractmethod
     def _get_render_size(self) -> Tuple[int, int]:
         """Returns the size (in pixels) required to render the image.
@@ -1061,10 +1113,6 @@ class BaseImage(ABC):
         # It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
-        buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
-
         def update_buffer():
             if alpha:
                 no_alpha = False
@@ -1090,44 +1138,15 @@ class BaseImage(ABC):
                     buf_write(_FG_FMT % cluster1)
                     buf_write(_UPPER_PIXEL * n)
 
-        if self._is_animated:
-            image.seek(self._seek_position)
+        buffer = io.StringIO()
+        # Eliminate attribute resolution cost
+        buf_write = buffer.write
 
         width, height = self._get_render_size()
-
-        if alpha is None or image.mode == "RGB":
-            try:
-                image = image.convert("RGB").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
-            rgb = tuple(image.getdata())
-            a = (255,) * (width * height)
-            alpha = None
-        else:
-            try:
-                image = image.convert("RGBA").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
-            if isinstance(alpha, str):
-                bg = Image.new("RGBA", image.size, alpha)
-                bg.alpha_composite(image)
-                if image is not self._source:
-                    image.close()
-                image = bg
-                alpha = None
-            rgb = tuple(image.convert("RGB").getdata())
-            if alpha is None:
-                a = (255,) * (width * height)
-            else:
-                alpha = round(alpha * 255)
-                a = [0 if val < alpha else val for val in image.getdata(3)]
-                # To distinguish `0.0` from `None` in truth value tests
-                if alpha == 0.0:
-                    alpha = True
-
+        img, rgb, a = self._get_render_data(img, alpha)
         # clean up
-        if image is not self._source:
-            image.close()
+        if img is not self._source:
+            img.close()
 
         rgb_pairs = (
             (
@@ -1517,7 +1536,7 @@ class ImageIterator:
 
     def _animate(
         self,
-        img: Image.Image,
+        img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
     ) -> None:
