@@ -28,8 +28,6 @@ _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FG_FMT = "\033[38;2;%d;%d;%dm"
 _BG_FMT = "\033[48;2;%d;%d;%dm"
 _RESET = "\033[0m"
-_UPPER_PIXEL = "\u2580"  # upper-half block element
-_LOWER_PIXEL = "\u2584"  # lower-half block element
 _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
@@ -1098,111 +1096,17 @@ class BaseImage(ABC):
         """
         raise NotImplementedError
 
-    def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
-        """Converts image pixel data into a "color-coded" string.
-
-        Two pixels per character using FG and BG colors.
+    @abstractmethod
+    def _render_image(
+        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+    ) -> str:
+        """Converts an image into a string which reproduces the image when printed
+        to the terminal.
 
         NOTE: This method is not meant to be used directly, use it via `_renderer()`
         instead.
         """
-        if self._closed:
-            raise TermImageException("This image has been finalized")
-
-        # NOTE:
-        # It's more efficient to write separate strings to the buffer separately
-        # than concatenate and write together.
-
-        def update_buffer():
-            if alpha:
-                no_alpha = False
-                if a_cluster1 == 0 == a_cluster2:
-                    buf_write(_RESET)
-                    buf_write(" " * n)
-                elif a_cluster1 == 0:  # up is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster2)
-                    buf_write(_LOWER_PIXEL * n)
-                elif a_cluster2 == 0:  # down is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
-                else:
-                    no_alpha = True
-
-            if not alpha or no_alpha:
-                buf_write(_BG_FMT % cluster2)
-                if cluster1 == cluster2:
-                    buf_write(" " * n)
-                else:
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
-
-        buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
-
-        width, height = self._get_render_size()
-        img, rgb, a = self._get_render_data(img, alpha)
-        # clean up
-        if img is not self._source:
-            img.close()
-
-        rgb_pairs = (
-            (
-                zip(rgb[x : x + width], rgb[x + width : x + width * 2]),
-                (rgb[x], rgb[x + width]),
-            )
-            for x in range(0, len(rgb), width * 2)
-        )
-        a_pairs = (
-            (
-                zip(a[x : x + width], a[x + width : x + width * 2]),
-                (a[x], a[x + width]),
-            )
-            for x in range(0, len(a), width * 2)
-        )
-
-        row_no = 0
-        # Two rows of pixels per line
-        for (rgb_pair, (cluster1, cluster2)), (a_pair, (a_cluster1, a_cluster2)) in zip(
-            rgb_pairs, a_pairs
-        ):
-            row_no += 2
-            n = 0
-            for (px1, px2), (a1, a2) in zip(rgb_pair, a_pair):
-                # Color-code characters and write to buffer
-                # when upper and/or lower pixel color/alpha-level changes
-                if not (alpha and a1 == a_cluster1 == 0 == a_cluster2 == a2) and (
-                    px1 != cluster1
-                    or px2 != cluster2
-                    or alpha
-                    and (
-                        # From non-transparent to transparent
-                        a_cluster1 != a1 == 0
-                        or a_cluster2 != a2 == 0
-                        # From transparent to non-transparent
-                        or 0 == a_cluster1 != a1
-                        or 0 == a_cluster2 != a2
-                    )
-                ):
-                    update_buffer()
-                    cluster1 = px1
-                    cluster2 = px2
-                    if alpha:
-                        a_cluster1 = a1
-                        a_cluster2 = a2
-                    n = 0
-                n += 1
-            # Rest of the line
-            update_buffer()
-            if row_no < height:  # last line not yet rendered
-                buf_write("\033[0m\n")
-
-        buf_write(_RESET)  # Reset color after last line
-        buffer.seek(0)  # Reset buffer pointer
-
-        return buffer.getvalue()
+        raise NotImplementedError
 
     def _renderer(
         self,
