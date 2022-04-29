@@ -1064,11 +1064,19 @@ class BaseImage(ABC):
         )
 
     def _get_render_data(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        *,
+        size: Optional[Tuple[int, int]] = None,
     ) -> Tuple[PIL.Image.Image, Tuple[Tuple[int, int, int]], Tuple[int]]:
         """Returns the PIL image instance and pixel data required to render an image.
 
-        The PIL image is appropriately converted, resized and composited (if need be).
+        If *size* is given (in pixels), it is used instead of the pixel-equivalent of
+        the image size (or auto size, if size is unset).
+
+        The returned image is appropriately converted, resized and composited
+        (if need be).
 
         The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
           - ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
@@ -1080,7 +1088,7 @@ class BaseImage(ABC):
         if self._is_animated:
             img.seek(self._seek_position)
 
-        width, height = self._get_render_size()
+        width, height = size or self._get_render_size()
 
         if alpha is None or img.mode == "RGB":
             try:
