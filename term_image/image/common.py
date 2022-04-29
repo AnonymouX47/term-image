@@ -45,6 +45,8 @@ def _close_validated(func: FunctionType) -> FunctionType:
     Raises:
         TermImageException: The instance has been finalized.
     """
+    if getattr(func, "_close_validated", False):
+        return func
 
     @wraps(func)
     def validator(self, *args, **kwargs):
@@ -53,6 +55,7 @@ def _close_validated(func: FunctionType) -> FunctionType:
 
         return func(self, *args, **kwargs)
 
+    validator._close_validated = True
     return validator
 
 
