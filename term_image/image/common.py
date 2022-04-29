@@ -23,6 +23,7 @@ import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
+from .. import get_font_ratio
 from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
@@ -366,6 +367,13 @@ class BaseImage(ABC):
               the height proportionally.
         """,
     )
+
+    # # Private
+
+    # There are two pixels vertically arranged in one character cell
+    # pixel-size == width * height/2
+    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
+    _pixel_ratio = property(lambda _: get_font_ratio() * 2)
 
     # Public Methods
 
@@ -1266,13 +1274,17 @@ class BaseImage(ABC):
                 return (
                     self._pixels_cols(pixels=max_width),
                     self._pixels_lines(
-                        pixels=round(self._width_height_px(w=max_width) * _pixel_ratio)
+                        pixels=round(
+                            self._width_height_px(w=max_width) * self._pixel_ratio
+                        )
                     ),
                 )
             if fit_to_height:
                 return (
                     self._pixels_cols(
-                        pixels=round(self._width_height_px(h=max_height) / _pixel_ratio)
+                        pixels=round(
+                            self._width_height_px(h=max_height) / self._pixel_ratio
+                        )
                     ),
                     self._pixels_lines(pixels=max_height),
                 )
@@ -1290,7 +1302,7 @@ class BaseImage(ABC):
             # the smaller ratio is already fully occupied
 
             if x < y:
-                _height_px = _height_px * _pixel_ratio
+                _height_px = _height_px * self._pixel_ratio
                 # If height becomes greater than the max, reduce it to the max
                 height_px = min(_height_px, max_height)
                 # Calculate the corresponding width
@@ -1298,7 +1310,7 @@ class BaseImage(ABC):
                 # Round the height
                 height_px = round(height_px)
             else:
-                _width_px = _width_px / _pixel_ratio
+                _width_px = _width_px / self._pixel_ratio
                 # If width becomes greater than the max, reduce it to the max
                 width_px = min(_width_px, max_width)
                 # Calculate the corresponding height
@@ -1311,12 +1323,14 @@ class BaseImage(ABC):
             )
         elif width is None:
             width_px = round(
-                self._width_height_px(h=self._pixels_lines(lines=height)) / _pixel_ratio
+                self._width_height_px(h=self._pixels_lines(lines=height))
+                / self._pixel_ratio
             )
             width = self._pixels_cols(pixels=width_px)
         elif height is None:
             height_px = round(
-                self._width_height_px(w=self._pixels_cols(cols=width)) * _pixel_ratio
+                self._width_height_px(w=self._pixels_cols(cols=width))
+                * self._pixel_ratio
             )
             height = self._pixels_lines(pixels=height_px)
 
@@ -1545,10 +1559,3 @@ def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
     The color code is ommited for any of *fg* or *bg* that is empty.
     """
     return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
-
-
-# The pixel ratio is always used to adjust the width and not the height, so that the
-# image can fill the terminal screen as much as possible.
-# The final width is always rounded, but that should never be an issue
-# since it's also rounded during size validation.
-_pixel_ratio = 1.0  # Default

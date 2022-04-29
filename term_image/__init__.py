@@ -39,19 +39,21 @@ def set_font_ratio(ratio: float) -> None:
         terminal emulator.
 
     This value is taken into consideration when setting image sizes in order for images
-    drawn to the terminal to have a proper perceived scale.
+    drawn to the terminal to have correct proportion.
 
     If you can't determine this value from your terminal's configuration,
     you might have to try different values till you get a good fit.
     Normally, this value should be between 0 and 1, but not too close to either.
+
+    NOTE:
+        The font ratio is only required and used by text-based rendering styles, not
+        those based on terminal graphics protocols.
 
     IMPORTANT:
         Changing the font ratio does not automatically affect any image whose size has
         already been set. For a change in font ratio to have any effect, it's size has
         to be set again.
     """
-    from .image import common
-
     global _font_ratio
 
     if not isinstance(ratio, float):
@@ -61,11 +63,7 @@ def set_font_ratio(ratio: float) -> None:
 
     # cell-size == width * height
     # font-ratio == width / height
-    # There are two pixels vertically arranged in one character cell
-    # pixel-size == width * height/2
-    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
     _font_ratio = ratio
-    common._pixel_ratio = 2 * ratio
 
 
 _font_ratio = 0.5  # Default
