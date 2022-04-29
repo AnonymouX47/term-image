@@ -368,6 +368,10 @@ def test_iter():
     assert image_it._image is anim_image
 
 
+def test_is_supported():
+    assert isinstance(TermImage.is_supported(), bool)
+
+
 def test_seek_tell():
     # Non-animated
     image = TermImage(python_img)

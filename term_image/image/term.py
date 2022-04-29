@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ("TermImage",)
 
 import io
+import os
 from math import ceil
 from operator import mul
 from typing import Optional, Tuple, Union
@@ -20,6 +21,17 @@ class TermImage(BaseImage):
 
     See :py:class:`BaseImage` for the description of the constructor.
     """
+
+    @classmethod
+    def is_supported(cls):
+        if cls._supported is None:
+            COLORTERM = os.environ.get("COLORTERM") or ""
+            TERM = os.environ.get("TERM") or ""
+            cls._supported = (
+                "truecolor" in COLORTERM or "24bit" in COLORTERM or "256color" in TERM
+            )
+
+        return cls._supported
 
     def _get_render_size(self) -> Tuple[int, int]:
         return tuple(map(mul, self.rendered_size, (1, 2)))

@@ -81,7 +81,15 @@ class BaseImage(ABC):
           into the terminal.
         * The image size is multiplied by the :term:`scale` on respective axes before
           the image is :term:`rendered`.
+
+    ATTENTION:
+        This class cannot be directly instantiated. Image instances should be created
+        from its subclasses.
     """
+
+    # Data Attributes
+
+    _supported = None
 
     # Special Methods
 
@@ -657,6 +665,14 @@ class BaseImage(ABC):
         new._source = filepath
         new._url = url
         return new
+
+    @classmethod
+    @abstractmethod
+    def is_supported(cls) -> bool:
+        """Returns ``True`` if the render style or graphics protocol implemented by
+        the invoking class is supported by the terminal. Otherwise, ``False``.
+        """
+        raise NotImplementedError
 
     def seek(self, pos: int) -> None:
         """Changes current image frame.
