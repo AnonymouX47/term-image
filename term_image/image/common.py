@@ -27,9 +27,6 @@ from .. import get_font_ratio
 from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
-_FG_FMT = "\033[38;2;%d;%d;%dm"
-_BG_FMT = "\033[48;2;%d;%d;%dm"
-_RESET = "\033[0m"
 _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
@@ -1568,13 +1565,3 @@ class ImageIterator:
         # For consistency in behaviour
         if img is image._source:
             img.seek(0)
-
-
-# Reserved
-def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
-    """Prepends *text* with ANSI 24-bit color escape codes
-    for the given foreground and/or background RGB values.
-
-    The color code is ommited for any of *fg* or *bg* that is empty.
-    """
-    return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)

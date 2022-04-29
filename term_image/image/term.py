@@ -10,7 +10,8 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from .common import _BG_FMT, _FG_FMT, _RESET, BaseImage
+from .common import BaseImage
+from .utils import _BG_FMT, _FG_FMT, _RESET
 
 _LOWER_PIXEL = "\u2584"  # lower-half block element
 _UPPER_PIXEL = "\u2580"  # upper-half block element
