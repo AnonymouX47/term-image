@@ -69,6 +69,12 @@ class TestConstructor:
         assert image._seek_position == 0
         assert image._n_frames is None
 
+        try:
+            anim_img.seek(2)
+            assert TermImage(anim_img)._seek_position == 2
+        finally:
+            anim_img.seek(0)
+
 
 class TestFromFile:
     def test_args(self):

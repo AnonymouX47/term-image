@@ -81,6 +81,8 @@ class BaseImage(ABC):
           into the terminal.
         * The image size is multiplied by the :term:`scale` on respective axes before
           the image is :term:`rendered`.
+        * For animated images, the seek position is initialized to the current seek
+          position of the given image.
 
     ATTENTION:
         This class cannot be directly instantiated. Image instances should be created
@@ -121,7 +123,7 @@ class BaseImage(ABC):
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
         if self._is_animated:
             self._frame_duration = (image.info.get("duration") or 100) / 1000
-            self._seek_position = 0
+            self._seek_position = image.tell()
             self._n_frames = None
 
         # Recognized sizing parameters.
