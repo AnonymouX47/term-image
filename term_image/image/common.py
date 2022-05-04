@@ -212,10 +212,10 @@ class BaseImage(ABC):
 
         Settable values:
 
-            * ``None``: Sets the image size to an automatically calculated one,
-              based on the current terminal size.
-            * A positive ``int``: Sets the image height to the given value and
-              the width proportionally.
+          * ``None``: Sets the image size to an automatically calculated one,
+            based on the current terminal size.
+          * A positive ``int``: Sets the image height to the given value and
+            the width proportionally.
         """,
     )
 
@@ -283,8 +283,8 @@ class BaseImage(ABC):
 
         Settable values are:
 
-            * A *scale value*; sets both axes.
-            * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+          * A *scale value*; sets both axes.
+          * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
 
         A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
         """,
@@ -371,15 +371,16 @@ class BaseImage(ABC):
 
         Settable values:
 
-            * ``None``: Sets the image size to an automatically calculated one,
-              based on the current terminal size.
-            * A positive ``int``: Sets the image width to the given value and
-              the height proportionally.
+          * ``None``: Sets the image size to an automatically calculated one,
+            based on the current terminal size.
+          * A positive ``int``: Sets the image width to the given value and
+            the height proportionally.
         """,
     )
 
     # # Private
 
+    # This default implementation is for text-based render styles
     # There are two pixels vertically arranged in one character cell
     # pixel-size == width * height/2
     # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
@@ -451,7 +452,8 @@ class BaseImage(ABC):
               * If ``None``, transparency is disabled
                 (uses the image's default background color).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
-                **above** which pixels are taken as *opaque*.
+                **above** which pixels are taken as *opaque*. **(Applies to only
+                text-based render styles)**.
               * If a string, specifies a **hex color** with which transparent
                 background should be replaced.
 
@@ -470,9 +472,9 @@ class BaseImage(ABC):
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
 
-                - If ``bool``, it directly sets if the frames will be cached or not.
-                - If ``int``, caching is enabled only if the framecount of the image
-                  is less than or equal to the given number.
+              * If ``bool``, it directly sets if the frames will be cached or not.
+              * If ``int``, caching is enabled only if the framecount of the image
+                is less than or equal to the given number.
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
@@ -502,6 +504,7 @@ class BaseImage(ABC):
 
           * *scroll* is ignored.
           * Image size and :term:`padding height` are always validated, if set or given.
+
         * Animations, **by default**, are infinitely looped and can be terminated
           with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
         """
@@ -975,8 +978,9 @@ class BaseImage(ABC):
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
-        NOTE: This is done indefinitely but can be terminated with ``Ctrl-C``
-          (``SIGINT``), raising ``KeyboardInterrupt``.
+        NOTE:
+            This is done indefinitely but can be terminated with ``Ctrl-C``
+            (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
@@ -1085,10 +1089,10 @@ class BaseImage(ABC):
         (if need be).
 
         The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
-          - ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
+          * ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
             the image's pixels in a flattened row-major order where ``r``, ``g``, ``b``
             are integers in the range [0, 255].
-          - ``a`` is a tuple of integers in the range [0, 255] representing the alpha
+          * ``a`` is a tuple of integers in the range [0, 255] representing the alpha
             channel of the image's pixels in a flattened row-major order.
         """
         if self._is_animated:
@@ -1163,8 +1167,9 @@ class BaseImage(ABC):
         """Converts an image into a string which reproduces the image when printed
         to the terminal.
 
-        NOTE: This method is not meant to be used directly, use it via `_renderer()`
-        instead.
+        NOTE:
+            This method is not meant to be used directly, use it via `_renderer()`
+            instead.
         """
         raise NotImplementedError
 
@@ -1202,9 +1207,9 @@ class BaseImage(ABC):
             term_image.exceptions.TermImageException: The image has been finalized.
 
         NOTE:
-            * If the ``set_size()`` method was previously used to set the image size,
-              (directly or not), the last value of its *fit_to_width* parameter
-              is taken into consideration, for non-animations.
+            If the ``set_size()`` method was previously used to set the image size,
+            (directly or not), the last value of its *fit_to_width* parameter
+            is taken into consideration, for non-animations.
         """
         try:
             reset_size = False
