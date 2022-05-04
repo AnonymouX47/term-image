@@ -1245,18 +1245,21 @@ logger = _logging.getLogger(__name__)
 # Will be updated from `.logging.init_log()` if multiprocessing is enabled
 interrupted: Union[None, Event, mp_Event] = None
 
+# The annotations below are put in comments for compatibility with Python 3.7
+# as it doesn't allow names declared as `global` within functions to be annotated.
+
 # Used by `check_dir()`
-_depth: int = None
+_depth = None  #: int
 
 # Set from within `check_dirs()`; Hence, only set in "Checker-?" processes
-_dir_queue: Union[None, Queue, mp_Queue] = None
-_free_checkers: Optional[Value] = None
-_source: Optional[str] = None
+_dir_queue = None  #: Union[None, Queue, mp_Queue]
+_free_checkers = None  #: Optional[Value]
+_source = None  #: Optional[str]
 
 # Set from within `main()`
-MAX_DEPTH: Optional[int] = None
-RECURSIVE: Optional[bool] = None
-SHOW_HIDDEN: Optional[bool] = None
+MAX_DEPTH = None  #: Optional[int]
+RECURSIVE = None  #: Optional[bool]
+SHOW_HIDDEN = None  #: Optional[bool]
 # # Used in other modules
-args: Optional[argparse.Namespace] = None
-url_images: Optional[list] = None
+args = None  #: Optional[argparse.Namespace]
+url_images = None  #: Optional[list]

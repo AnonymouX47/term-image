@@ -699,9 +699,14 @@ grid_active = Event()
 grid_change = Event()
 grid_scan_done = Event()
 next_grid = Queue(1)
-_grid_list: Optional[list] = None
-grid_path: Optional[str] = None
-last_non_empty_grid_path: Optional[str] = None
+
+# The annotations below are put in comments for compatibility with Python 3.7
+# as it doesn't allow names declared as `global` within functions to be annotated.
+
+# # Set from within `display_images()`
+_grid_list = None  #: Optional[list]
+grid_path = None  #: Optional[str]
+last_non_empty_grid_path = None  #: Optional[str]
 
 # For menu scanning/listing
 menu_acknowledge = Event()
@@ -725,9 +730,12 @@ UNREADABLE = 1
 IMAGE = 2
 DIR = 3
 
+# The annotations below are put in comments for compatibility with Python 3.7
+# as it doesn't allow names declared as `global` within functions to be annotated.
+
 # Set by `update_menu()`
-menu_list: Optional[list] = None
-at_top_level: Optional[bool] = None
+menu_list = None  #: Optional[list]
+at_top_level = None  #: Optional[bool]
 
 # Intially set from `.__main__.main()`
 # Will be updated from `.logging.init_log()` if multiprocessing is enabled
