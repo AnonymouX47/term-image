@@ -8,6 +8,7 @@ __all__ = (
     "unix_tty_only",
     "terminal_size_cached",
     "color",
+    "get_cell_size",
     "get_terminal_size",
     "get_window_size",
     "query_terminal",
@@ -20,6 +21,7 @@ import warnings
 from array import array
 from functools import wraps
 from multiprocessing import Process, RLock as mp_RLock
+from operator import floordiv
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
@@ -185,6 +187,18 @@ def color(
 
 
 @unix_tty_only
+@cached
+@terminal_size_cached
+def get_cell_size() -> Optional[Tuple[int, int]]:
+    """Returns the current size of a character cell in the *active* terminal
+    (in pixels).
+    """
+    ws = get_window_size()
+    size = ws and tuple(map(floordiv, ws, get_terminal_size()))
+
+    return None if size is None or len(size) != 2 or 0 in size else size
+
+
 def get_terminal_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of the *active* terminal in columns and lines.
 
@@ -245,6 +259,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
     return None if size is None or len(size) != 2 or 0 in size else size
 
 
+@unix_tty_only
 @lock_input
 def query_terminal(
     request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
