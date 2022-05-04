@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- [lib] A common interface to be shared across all image classes ([#34]).
+- [lib] `BaseImage`, the baseclass of all image classes ([#34]).
+- [lib] `is_supported()` class method for render style support detection ([#34]).
+
+### Changed
+- [lib] `TermImage` is now a subclass of `BaseImage` ([#34]).
+- [lib] Instantiation via the class constructor now initializes the seek position of animated images to the current seek position of the given PIL image ([#34]).
+
+[#34]: https://github.com/AnonymouX47/term-image/pull/34
 
 
 ## [0.3.1] - 2022-05-04
