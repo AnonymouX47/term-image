@@ -15,7 +15,6 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from operator import gt, mul, sub
 from random import randint
-from shutil import get_terminal_size
 from types import FunctionType, TracebackType
 from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -26,7 +25,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_font_ratio
 from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
-from ..utils import no_redecorate
+from ..utils import get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(

@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging as _logging
 import os
 from os.path import abspath, basename
-from shutil import get_terminal_size
 from time import sleep
 from types import FunctionType
 from typing import Tuple
@@ -14,6 +13,7 @@ import urwid
 
 from .. import __version__, logging
 from ..config import context_keys, expand_key
+from ..utils import get_terminal_size
 from . import main
 from .widgets import (
     bottom_bar,

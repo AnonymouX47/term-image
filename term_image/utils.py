@@ -8,6 +8,7 @@ __all__ = (
     "unix_tty_only",
     "terminal_size_cached",
     "color",
+    "get_terminal_size",
     "query_terminal",
     "read_input",
 )
@@ -17,7 +18,7 @@ import sys
 import warnings
 from functools import wraps
 from multiprocessing import Process, RLock as mp_RLock
-from shutil import get_terminal_size
+from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType
@@ -182,6 +183,27 @@ def color(
 
 
 @unix_tty_only
+def get_terminal_size() -> Optional[Tuple[int, int]]:
+    """Returns the current size of the *active* terminal in columns and lines.
+
+    Tries to query the *active* terminal device and falls back to
+    ``shutil.get_terminal_size()`` if that fails.
+
+    This implementation still gives the correct size of the process' controlling
+    terminal when output is redirected (in most cases), unlike the fallback.
+    """
+    if _tty:
+        # faster and gives correct results when output is redirected
+        try:
+            size = os.get_terminal_size(_tty)
+        except OSError:
+            size = None
+    else:
+        size = None
+
+    return size or _get_terminal_size()
+
+
 @lock_input
 def query_terminal(
     request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
