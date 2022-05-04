@@ -2,18 +2,18 @@
 
 from random import random
 
+import pytest
+
 from term_image.image import TermImage
 from term_image.image.common import _ALPHA_THRESHOLD
 
+from .common import *  # noqa:F401
 from .common import _size, setup_common
 
 
+@pytest.mark.order("first")
 def test_setup_common():
     setup_common(TermImage)
-
-
-# Must come after setup
-from .common import *  # noqa:F401,E402
 
 
 class TestRender:

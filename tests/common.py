@@ -1,7 +1,5 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
-__all__ = ["setup_common"]  # See the rest at the bottom
-
 from operator import gt, lt
 from shutil import get_terminal_size
 from types import SimpleNamespace
@@ -252,4 +250,4 @@ class TestFontRatio_Text:
             set_font_ratio(0.5)
 
 
-__all__ += [name for name in globals() if name.startswith(("test_", "Test"))]
+__all__ = [name for name in globals() if name.startswith(("test_", "Test"))]
