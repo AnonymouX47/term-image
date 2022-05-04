@@ -9,6 +9,7 @@ __all__ = (
     "terminal_size_cached",
     "color",
     "get_terminal_size",
+    "get_window_size",
     "query_terminal",
     "read_input",
 )
@@ -16,6 +17,7 @@ __all__ = (
 import os
 import sys
 import warnings
+from array import array
 from functools import wraps
 from multiprocessing import Process, RLock as mp_RLock
 from shutil import get_terminal_size as _get_terminal_size
@@ -28,7 +30,7 @@ from typing import Callable, Optional, Tuple
 
 OS_IS_UNIX: bool
 try:
-    import fcntl  # noqa:F401
+    import fcntl
     import termios
     from select import select
 except ImportError:
@@ -202,6 +204,45 @@ def get_terminal_size() -> Optional[Tuple[int, int]]:
         size = None
 
     return size or _get_terminal_size()
+
+
+@unix_tty_only
+@cached
+@terminal_size_cached
+def get_window_size() -> Optional[Tuple[int, int]]:
+    """Returns the current window size of the *active* terminal (in pixels).
+
+    The speed of this implementation is almost entirely dependent on the terminal; the
+    method it supports and its response time if it has to be queried.
+
+    Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
+    support.
+
+    Currently works on UNIX only, returns ``None`` on any other flatform.
+    """
+    # First try ioctl
+    buf = array("H", [0, 0, 0, 0])
+    try:
+        if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
+            size = tuple(buf[2:])
+            if size != (0, 0):
+                return size
+    except OSError:
+        pass
+
+    # Then CSI 14 t
+    response = query_terminal(b"\033[14t", more=lambda s: not s.endswith(b"t"))
+    try:
+        size = response and tuple(
+            map(int, response.partition(b"\033")[2][3:-1].split(b";"))
+        )
+        # non-VTE-based terminals seem to respond with (height, width)
+        if size and "VTE_VERSION" not in os.environ:
+            size = size[::-1]
+    except ValueError:
+        size = None
+
+    return None if size is None or len(size) != 2 or 0 in size else size
 
 
 @lock_input
