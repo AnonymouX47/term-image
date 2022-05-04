@@ -344,19 +344,19 @@ warnings.filterwarnings("default", category=UserWarning, module=__name__, append
 
 _tty: Optional[int] = None
 if OS_IS_UNIX:
-    # In order of probability of being available and being a TTY
+    # In order of priority
     try:
-        _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
-    except OSError:
+        _tty = os.ttyname(sys.__stdout__.fileno())
+    except (OSError, AttributeError):
         try:
-            _tty = os.ttyname(sys.__stderr__.fileno())
+            _tty = os.ttyname(sys.__stdin__.fileno())
         except (OSError, AttributeError):
             try:
-                _tty = os.ttyname(sys.__stdin__.fileno())
+                _tty = os.ttyname(sys.__stderr__.fileno())
             except (OSError, AttributeError):
                 try:
-                    _tty = os.ttyname(sys.__stdout__.fileno())
-                except (OSError, AttributeError):
+                    _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+                except OSError:
                     warnings.warn(
                         "It seems this process is not running within a terminal. "
                         "Hence, automatic font ratio and render styles based on "
