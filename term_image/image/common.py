@@ -423,6 +423,7 @@ class BaseImage(ABC):
         repeat: int = -1,
         cached: Union[bool, int] = 100,
         check_size: bool = True,
+        **kwargs: Any,
     ) -> None:
         """Draws/Displays an image in the terminal.
 
@@ -475,6 +476,9 @@ class BaseImage(ABC):
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
+            kwargs: Style-specific parameters. See each subclass for it's own usage.
+
+              Every subclass simply extracts the ones it defines and ignores any others.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
