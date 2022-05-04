@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.1] - 2022-05-04
+### Fixed
+- [cli,tui] Fixed image viewer crash on Python 3.7.
+
+
 ## [0.3.0] - 2022-04-26
 ### Fixed
 - [lib] Fixed the *scroll* parameter of `TermImage.draw()` ([#29](https://github.com/AnonymouX47/term-image/pull/29)).
@@ -111,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First official release
 
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AnonymouX47/term-image/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/AnonymouX47/term-image/releases/tag/v0.1.1

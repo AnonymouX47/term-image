@@ -8,7 +8,7 @@ from os.path import abspath, basename
 from shutil import get_terminal_size
 from time import sleep
 from types import FunctionType
-from typing import Any, Optional, Tuple
+from typing import Tuple
 
 import urwid
 
@@ -665,9 +665,12 @@ key_bar_is_collapsed = True
 expand_key_is_shown = True
 no_globals = {"global", "confirmation", "full-grid-image", "overlay"}
 
+# The annotations below are put in comments for compatibility with Python 3.7
+# as it doesn't allow names declared as `global` within functions to be annotated.
+
 # Use in the "confirmation" context. Set by `set_confirmation()`
-_confirm: Optional[Tuple[FunctionType, Tuple[Any]]] = None
-_cancel: Optional[Tuple[FunctionType, Tuple[Any]]] = None
+_confirm = None  #: Optional[Tuple[FunctionType, Tuple[Any]]]
+_cancel = None  #: Optional[Tuple[FunctionType, Tuple[Any]]]
 
 # Used for overlays
-_prev_view_widget: Optional[urwid.Widget] = None
+_prev_view_widget = None  #: Optional[urwid.Widget]
