@@ -116,34 +116,51 @@ isort --check --diff --color .
 ```
 if you don't have the `make` utility.
 
-### Run tests without URL-related
-Run:
-
-```shell
-make test-no-url
-```
-OR
-
-```shell
-python -m pytest -v "--ignore-glob=*url*" tests
-```
-if you don't have the `make` utility.
-
-*Tests involving **URL-sourced** images are ignored to help speed up the process and to eliminate the need for internet connection.*
-
-### Run full tests
+### Run main tests
 Run:
 
 ```shell
 make test
 ```
+
+*Tests involving **URL-sourced** images are excluded to help speed up the process and to eliminate the need for internet connection.*
+
+### Run URL-related tests
+Run:
+
+```shell
+make test-url
+```
 OR
 
 ```shell
-python -m pytest -v tests
+python -m pytest -v tests/test_url.py
 ```
 if you don't have the `make` utility.
 
+### Run render-style-specific tests
+Run:
+
+```shell
+make test-<style>
+```
+OR
+
+```shell
+python -m pytest -v tests/test_<style>.py
+```
+if you don't have the `make` utility.
+
+Where `<style>` is the portion of the class name for that render style with "Image" striped off, in **lowercase** e.g "term" for `TermImage`.
+
+### Run tests for all text-based render styles
+Run:
+
+```shell
+make test-text
+```
+
+* * *
 **IMPORTANT: If any of these checks or tests FAILS, please run the corresponding CORRECTION step below or correct it manually (for failed lints or tests).**
 
 
