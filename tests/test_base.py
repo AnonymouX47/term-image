@@ -607,9 +607,8 @@ class TestFormatting:
     def test_align_left_top(self):
         self.image.size = None
         render = self.format_render(self.render, "<", columns, "^", lines)
-        partition = render.partition("\033")[2]
         assert (
-            len(partition.partition("\n")[0].rpartition("m")[2])
+            len(render.partition("\n")[0].rpartition("m")[2])
             == columns - self.image.rendered_width
         )
         assert (
@@ -635,9 +634,8 @@ class TestFormatting:
     def test_align_right_bottom(self):
         self.image.size = None
         render = self.format_render(self.render, ">", columns, "_", lines)
-        partition = render.rpartition("m")[0]
         assert (
-            partition.rpartition("\n")[2].index("\033")
+            render.rpartition("\n")[2].index("\033")
             == columns - self.image.rendered_width
         )
         assert (
