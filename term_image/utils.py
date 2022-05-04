@@ -8,6 +8,7 @@ __all__ = (
     "unix_tty_only",
     "terminal_size_cached",
     "color",
+    "query_terminal",
     "read_input",
 )
 
@@ -178,6 +179,40 @@ def color(
         *bg,
         text,
     ) + _RESET * end
+
+
+@unix_tty_only
+@lock_input
+def query_terminal(
+    request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
+) -> Optional[bytes]:
+    """Sends a query to the terminal and returns the response.
+
+    Args:
+        more: A callable, which when passed the response recieved so far, returns a
+          boolean indicating if the response is incomplete or not. If it returns:
+
+          * ``True``, more response is waited for.
+          * ``False``, the recieved response is returned immediately.
+
+        timeout: Time limit for awaiting a response from the terminal, in seconds.
+
+    If no response is recieved after *timeout* is up, ``None`` is returned.
+
+    IMPORTANT:
+        Any unread input is discared before the query. If the input might be needed,
+        it can be read using ``read_input()`` before calling this fucntion.
+    """
+    old_attr = termios.tcgetattr(_tty)
+    new_attr = termios.tcgetattr(_tty)
+    new_attr[3] &= ~termios.ECHO  # Disable input echo
+    try:
+        termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
+        os.write(_tty, request)
+        termios.tcdrain(_tty)
+        return read_input(more, timeout)
+    finally:
+        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
 
 @unix_tty_only
