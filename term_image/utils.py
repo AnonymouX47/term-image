@@ -1,17 +1,31 @@
 from __future__ import annotations
 
 __all__ = (
+    "OS_IS_UNIX",
     "no_redecorate",
     "cached",
+    "unix_tty_only",
     "terminal_size_cached",
     "color",
 )
 
+import os
+import sys
+import warnings
 from functools import wraps
 from shutil import get_terminal_size
 from threading import RLock
 from types import FunctionType
-from typing import Callable
+from typing import Callable, Optional
+
+OS_IS_UNIX: bool
+try:
+    import fcntl  # noqa:F401
+    import termios  # noqa:F401
+except ImportError:
+    OS_IS_UNIX = False
+else:
+    OS_IS_UNIX = True
 
 # Decorators
 
@@ -63,6 +77,19 @@ def cached(func: Callable) -> FunctionType:
     cached_wrapper._invalidate_cache = cache.clear
 
     return cached_wrapper
+
+
+@no_redecorate
+def unix_tty_only(func: Callable) -> FunctionType:
+    """Any decorated callable always returns ``None`` on a non-unix-like platform
+    or when the process fails to gain direct access to the terminal.
+    """
+
+    @wraps(func)
+    def unix_only_wrapper(*args, **kwargs):
+        return _tty and func(*args, **kwargs)
+
+    return unix_only_wrapper
 
 
 @no_redecorate
@@ -118,3 +145,34 @@ def color(
 _BG_FMT = "\033[48;2;%d;%d;%dm"
 _FG_FMT = "\033[38;2;%d;%d;%dm"
 _RESET = "\033[0m"
+
+# Appended to ensure it is overriden by any filter prepended before loading this module
+warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
+
+_tty: Optional[int] = None
+if OS_IS_UNIX:
+    # In order of probability of being available and being a TTY
+    try:
+        _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+    except OSError:
+        try:
+            _tty = os.ttyname(sys.__stderr__.fileno())
+        except (OSError, AttributeError):
+            try:
+                _tty = os.ttyname(sys.__stdin__.fileno())
+            except (OSError, AttributeError):
+                try:
+                    _tty = os.ttyname(sys.__stdout__.fileno())
+                except (OSError, AttributeError):
+                    warnings.warn(
+                        "It seems this process is not running within a terminal. "
+                        "Hence, automatic font ratio and render styles based on "
+                        "terminal graphics protocols will not work.\n"
+                        "You can set an 'ignore' filter for this warning before "
+                        "loading `term_image`, if not using any of the features "
+                        "affected.",
+                        UserWarning,
+                    )
+    if _tty:
+        if isinstance(_tty, str):
+            _tty = os.open(_tty, os.O_RDWR)
