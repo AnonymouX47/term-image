@@ -13,7 +13,7 @@ def test_setup_common():
 
 
 # Must come after setup
-from .common import *  # noqa:E402
+from .common import *  # noqa:F401,E402
 
 
 class TestRender:

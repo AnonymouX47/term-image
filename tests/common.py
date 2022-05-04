@@ -6,7 +6,6 @@ from operator import gt, lt
 from shutil import get_terminal_size
 from types import SimpleNamespace
 
-import pytest
 from PIL import Image
 
 from term_image import set_font_ratio
