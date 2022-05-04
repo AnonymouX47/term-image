@@ -4,6 +4,7 @@ __all__ = (
     "OS_IS_UNIX",
     "no_redecorate",
     "cached",
+    "lock_input",
     "unix_tty_only",
     "terminal_size_cached",
     "color",
@@ -13,10 +14,13 @@ import os
 import sys
 import warnings
 from functools import wraps
+from multiprocessing import Process, RLock as mp_RLock
 from shutil import get_terminal_size
 from threading import RLock
 from types import FunctionType
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
+
+# import logging
 
 OS_IS_UNIX: bool
 try:
@@ -77,6 +81,37 @@ def cached(func: Callable) -> FunctionType:
     cached_wrapper._invalidate_cache = cache.clear
 
     return cached_wrapper
+
+
+@no_redecorate
+def lock_input(func: Callable) -> FunctionType:
+    """Enables global cooperative input synchronization on the decorated callable.
+
+    When any decorated function is called, a re-entrant lock is acquired by the current
+    process or thread and released after the call, such that any other decorated
+    function called within another thread or subprocess has to wait till the lock is
+    fully released (i.e has been released as many times as acquired) by the current
+    process or thread.
+
+    NOTE:
+        It automatocally works across parent-/sub-processes (started with
+        ``multiprocessing.Process``) and their threads.
+        To achieve this, ``multiprocessing.Process`` is "hooked" and it works even with
+        subclasses.
+
+    IMPORTANT:
+        It only works across processes started with ``multiprocessing.Process`` and
+        if ``multiprocessing.synchronize`` is supported on the host platform.
+        If not supported, a warning is issued when starting a subprocess.
+    """
+
+    @wraps(func)
+    def lock_input_wrapper(*args, **kwargs):
+        with _input_lock:
+            # logging.debug(f"{func.__name__} acquired input lock", stacklevel=3)
+            return func(*args, **kwargs)
+
+    return lock_input_wrapper
 
 
 @no_redecorate
@@ -142,6 +177,42 @@ def color(
     ) + _RESET * end
 
 
+def _process_start_wrapper(self, *args, **kwargs):
+    global _input_lock
+
+    if isinstance(_input_lock, type(RLock())):
+        try:
+            # Ensure it's not acquired by another process/thread before changing it.
+            # The only way this can be countered is if the owner process/thread is the
+            # one starting a process, which is very unlikely within a function meant
+            # for input :|
+            with _input_lock:
+                self._input_lock = _input_lock = mp_RLock()
+        except ImportError:
+            self._input_lock = None
+            warnings.warn(
+                "Multi-process synchronization is not supported on this platform! "
+                "Hence, if any subprocess will be reading from STDIN, "
+                "it will be unsafe to use any image render style based on a terminal "
+                "graphics protocol or to use automatic font ratio.\n"
+                "You can simply set an 'ignore' filter for this warning if not using "
+                "any of the features affected.",
+                UserWarning,
+            )
+    else:
+        self._input_lock = _input_lock
+
+    return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
+
+
+def _process_run_wrapper(self, *args, **kwargs):
+    global _input_lock
+
+    if self._input_lock:
+        _input_lock = self._input_lock
+    return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
+
+
 _BG_FMT = "\033[48;2;%d;%d;%dm"
 _FG_FMT = "\033[38;2;%d;%d;%dm"
 _RESET = "\033[0m"
@@ -176,3 +247,16 @@ if OS_IS_UNIX:
     if _tty:
         if isinstance(_tty, str):
             _tty = os.open(_tty, os.O_RDWR)
+
+        _input_lock = RLock()
+
+        Process.start = wraps(Process.start)(_process_start_wrapper)
+        Process.run = wraps(Process.run)(_process_run_wrapper)
+
+        # Shouldn't be needed since we're getting our own separate file descriptors
+        # but the validity of the assumed safety is stil under probation
+        """
+        for name, value in vars(termios).items():
+            if isinstance(value, BuiltinFunctionType):
+                setattr(termios, name, lock_input(value))
+        """
