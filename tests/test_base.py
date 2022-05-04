@@ -12,13 +12,15 @@ from term_image import set_font_ratio
 from term_image.exceptions import InvalidSize
 from term_image.image import ImageIterator, TermImage
 
-from .common import _height, _size, _width, columns, lines, python_img
+from .common import _size, columns, lines, python_img, setup_common
 
 python_image = "tests/images/python.png"
 python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
 anim_img = Image.open("tests/images/lion.gif")
-
 stdout = io.StringIO()
+
+setup_common(TermImage)
+from .common import _height, _width  # noqa:E402
 
 
 def clear_stdout():

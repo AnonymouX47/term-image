@@ -5,9 +5,15 @@ from random import random
 from term_image.image import TermImage
 from term_image.image.common import _ALPHA_THRESHOLD
 
-from . import common
-from .common import *
-from .common import _size
+from .common import _size, setup_common
+
+
+def test_setup_common():
+    setup_common(TermImage)
+
+
+# Must come after setup
+from .common import *  # noqa:E402
 
 
 class TestRender:

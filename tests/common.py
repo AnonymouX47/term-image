@@ -1,5 +1,7 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
+__all__ = ["setup_common"]  # See the rest at the bottom
+
 from operator import gt, lt
 from shutil import get_terminal_size
 from types import SimpleNamespace
@@ -8,63 +10,35 @@ import pytest
 from PIL import Image
 
 from term_image import set_font_ratio
-from term_image.image import TermImage
 from term_image.image.common import _ALPHA_THRESHOLD
-
-
-def width_height(image, *, w=None, h=None):
-    return (
-        TermImage._pixels_lines(
-            pixels=round(
-                TermImage._width_height_px(
-                    image,
-                    w=TermImage._pixels_cols(cols=w),
-                )
-            )
-        )
-        if w is not None
-        else TermImage._pixels_cols(
-            pixels=round(
-                TermImage._width_height_px(
-                    image,
-                    h=TermImage._pixels_lines(lines=h),
-                )
-            )
-        )
-    )
-
 
 columns, lines = get_terminal_size()
 
 # For square images
 dummy = SimpleNamespace()
 dummy._original_size = (1, 1)
-if TermImage._pixels_cols(cols=columns) < TermImage._pixels_lines(lines=lines - 2):
-    _width = columns
-    _height = width_height(dummy, w=columns)
-else:
-    _height = lines - 2
-    _width = width_height(dummy, h=lines - 2)
-_width_px = TermImage._pixels_cols(cols=_width)
-_height_px = TermImage._pixels_lines(lines=_height)
+_width = _height = _width_px = _height_px = None  # Set by `setup()`
 
 _size = 20
+ImageClass = None  # Set by `setup()`
 python_img = Image.open("tests/images/python.png")
 
 
-def test_str():
-    image = TermImage(python_img, width=_size)
-    assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
+def setup_common(ImageClass):
+    globals().update(locals())  # width_height() requires ImageClass
 
+    if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(
+        lines=lines - 2
+    ):
+        _width = columns
+        _height = width_height(dummy, w=columns)
+    else:
+        _height = lines - 2
+        _width = width_height(dummy, h=lines - 2)
+    _width_px = ImageClass._pixels_cols(cols=_width)
+    _height_px = ImageClass._pixels_lines(lines=_height)
 
-def test_format():
-    image = TermImage(python_img)
-    image.set_size()
-    assert format(image) == image._format_render(str(image))
-
-
-def test_is_supported():
-    assert isinstance(TermImage.is_supported(), bool)
+    globals().update(locals())
 
 
 def proportional(image):
@@ -95,12 +69,52 @@ def proportional(image):
         )
 
 
+def width_height(image, *, w=None, h=None):
+    return (
+        ImageClass._pixels_lines(
+            pixels=round(
+                ImageClass._width_height_px(
+                    image,
+                    w=ImageClass._pixels_cols(cols=w),
+                )
+            )
+        )
+        if w is not None
+        else ImageClass._pixels_cols(
+            pixels=round(
+                ImageClass._width_height_px(
+                    image,
+                    h=ImageClass._pixels_lines(lines=h),
+                )
+            )
+        )
+    )
+
+
+def test_str():
+    image = ImageClass(python_img, width=_size)
+    assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
+
+
+def test_format():
+    image = ImageClass(python_img)
+    image.set_size()
+    assert format(image) == image._format_render(str(image))
+
+
+def test_is_supported():
+    assert isinstance(ImageClass.is_supported(), bool)
+
+
 # Size-setting is taken as style-dependent because the major underlying API is
 # style-specific
 class TestSetSize:
-    image = TermImage(python_img)  # Square
-    h_image = TermImage.from_file("tests/images/hori.jpg")  # Horizontally-oriented
-    v_image = TermImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
+    def test_setup(self):
+        type(self).image = ImageClass(python_img)  # Square
+        # Horizontally-oriented
+        type(self).h_image = ImageClass.from_file("tests/images/hori.jpg")
+        # Vertically-oriented
+        type(self).v_image = ImageClass.from_file("tests/images/vert.jpg")
 
     def test_auto_sizing_and_proportionality(self):
         self.image.set_size()
@@ -182,7 +196,8 @@ class TestSetSize:
 # Specific to text-based render styles because the results are dependent on font ratio.
 # These tests only pass when the font ratio is about 0.5.
 class TestSetSize_Text:
-    image = TermImage(python_img)  # Square
+    def test_setup(self):
+        type(self).image = ImageClass(python_img)  # Square
 
     def test_maxsize(self):
         self.image.set_size(maxsize=(100, 50))
@@ -205,7 +220,8 @@ class TestSetSize_Text:
 
 
 class TestFontRatio_Text:
-    image = TermImage(python_img)  # Square
+    def test_setup(self):
+        type(self).image = ImageClass(python_img)  # Square
 
     def test_fixed_width_font_ratio_adjustment(self):
         try:
@@ -237,4 +253,4 @@ class TestFontRatio_Text:
             set_font_ratio(0.5)
 
 
-__all__ = [name for name in globals() if name.startswith(("test_", "Test"))]
+__all__ += [name for name in globals() if name.startswith(("test_", "Test"))]
