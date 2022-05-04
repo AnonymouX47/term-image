@@ -51,7 +51,6 @@ def init_log(
     logging.basicConfig(
         handlers=(handler,),
         format=FORMAT,
-        datefmt="%d-%m-%Y %H:%M:%S",
         style="{",
         level=level,
     )
@@ -140,7 +139,10 @@ def log_exception(
         logger.exception(f"{msg} due to:", **_kwargs_exc)
     elif VERBOSE or VERBOSE_LOG:
         exc_type, exc, _ = sys.exc_info()
-        logger.error(f"{msg} due to: ({exc_type.__name__}) {exc}", **_kwargs)
+        logger.error(
+            f"{msg} due to: ({exc_type.__module__}.{exc_type.__qualname__}) {exc}",
+            **_kwargs,
+        )
     else:
         logger.error(msg, **_kwargs)
 

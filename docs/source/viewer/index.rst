@@ -83,7 +83,7 @@ A log entry has the following format:
    (<pid>) (<date> <time>) <process>: <thread>: [<level>] <module>: <function>: <message>
 
 * *pid*: The process ID of the term-image session.
-* *date* and *time*: Current system date and time in the format ``%d-%m-%Y %H:%M:%S``.
+* *date* and *time*: Current system date and time in the format ``%Y-%m-%d %H:%M:%S,<ms>``, where ``<ms>`` is in milliseconds.
 * *process* and *thread*: The names of the python process and thread that produced the log record.
 
   * Only present when the *logging level* is set to ``DEBUG`` (either by ``--debug`` or ``--log-level=DEBUG``).

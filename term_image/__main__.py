@@ -75,7 +75,8 @@ def main() -> int:
         finish_multi_logging()
         logger.exception("Session terminated due to:")
         logging.log(
-            f"Session not ended successfully: ({type(e).__name__}) {e}",
+            "Session not ended successfully: "
+            f"({type(e).__module__}.{type(e).__qualname__}) {e}",
             logger,
             _logging.CRITICAL,
             # If logging has been successfully initialized
