@@ -9,6 +9,7 @@ __all__ = ("BaseImage", "ImageIterator")
 import io
 import os
 import re
+import sys
 import time
 from abc import ABC, abstractmethod
 from functools import wraps
@@ -548,7 +549,8 @@ class BaseImage(ABC):
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
         def render(image: PIL.Image.Image) -> None:
-            print("\033[?25l", end="")  # Hide the cursor
+            # Hide the cursor immediately if the output is a terminal device
+            sys.stdout.isatty() and print("\033[?25l", end="", flush=True)
             try:
                 if self._is_animated and animate:
                     self._display_animated(image, alpha, fmt, repeat, cached)
@@ -559,7 +561,8 @@ class BaseImage(ABC):
                         flush=True,
                     )
             finally:
-                print("\033[0m\033[?25h")  # Reset color and show the cursor
+                # Reset color and show the cursor
+                print("\033[0m" + "\033[?25h" * sys.stdout.isatty())
 
         self._renderer(
             render,
