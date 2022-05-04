@@ -1,3 +1,32 @@
+"""
+Utilities
+=========
+
+.. _active-terminal:
+
+Every mention of *active terminal* in this module refers to the first terminal
+device discovered.
+
+The following streams/files are checked in the following order of priority
+(along with the rationale behind the ordering):
+
+* ``STDOUT``: Since it's where images will most likely be drawn.
+* ``STDIN``: If output is redirected to a file or pipe and the input is a terminal,
+  then using it as the :term:`active terminal` should give the expected result i.e the
+  same as when output is not redirected.
+* ``STDERR``: If both output and input are redirected, it's usually unlikely for
+  errors to be.
+* ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
+  terminal, if any.
+
+The first one that is ascertained to be connected to a terminal device is used for
+all terminal queries and terminal size computations.
+
+NOTE:
+   If none of the streams/files is connected to a terminal, then a warning is issued
+   and affected functionality disabled.
+"""
+
 from __future__ import annotations
 
 __all__ = (
@@ -44,7 +73,14 @@ else:
 
 
 def no_redecorate(decor: Callable) -> FunctionType:
-    """Decorates a decorator to prevent it from re-decorating objects."""
+    """Decorates a decorator to prevent it from re-decorating objects.
+
+    Args:
+        decor: A decorator.
+
+    Returns:
+        The wrapper.
+    """
     if getattr(decor, "_no_redecorate_", False):
         return decor
 
@@ -63,11 +99,17 @@ def no_redecorate(decor: Callable) -> FunctionType:
 def cached(func: Callable) -> FunctionType:
     """Enables return value caching on the decorated callable.
 
+    Args:
+        func: The object to be decorated.
+
+    Returns:
+        The wrapper.
+
     The wrapper adds a *_cached* keyword-only parameter. When *_cached* is:
 
-      - `False` (default), the wrapped function is called and its return value is stored
+      * `False` (default), the wrapped function is called and its return value is stored
         and returned.
-      - `True`, the last stored value is returned.
+      * `True`, the last stored value is returned.
 
     An *_invalidate_cache* function is also set as an attribute of the returned wrapper
     which when called clears the cache, so that the next call actually calls the
@@ -75,7 +117,7 @@ def cached(func: Callable) -> FunctionType:
 
     NOTE:
         It's thread-safe, i.e there is no race condition between calls to the same
-        decorated callable across threads of the same process.
+        decorated object across threads of the same process.
     """
 
     @wraps(func)
@@ -96,9 +138,15 @@ def cached(func: Callable) -> FunctionType:
 def lock_input(func: Callable) -> FunctionType:
     """Enables global cooperative input synchronization on the decorated callable.
 
-    When any decorated function is called, a re-entrant lock is acquired by the current
+    Args:
+        func: The object to be decorated.
+
+    Returns:
+        The wrapper.
+
+    When any decorated object is called, a re-entrant lock is acquired by the current
     process or thread and released after the call, such that any other decorated
-    function called within another thread or subprocess has to wait till the lock is
+    object called within another thread or subprocess has to wait till the lock is
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
@@ -126,12 +174,23 @@ def lock_input(func: Callable) -> FunctionType:
 @no_redecorate
 def unix_tty_only(func: Callable) -> FunctionType:
     """Any decorated callable always returns ``None`` on a non-unix-like platform
-    or when the process fails to gain direct access to the terminal.
+    or when there is no :term:`active terminal`.
+
+    Args:
+        func: The object to be decorated.
+
+    Returns:
+        The wrapper.
     """
 
     @wraps(func)
     def unix_only_wrapper(*args, **kwargs):
         return _tty and func(*args, **kwargs)
+
+    unix_only_wrapper.__doc__ += """
+    NOTE:
+        Currently works on UNIX only, always returns ``None`` on any other flatform.
+    """
 
     return unix_only_wrapper
 
@@ -139,7 +198,13 @@ def unix_tty_only(func: Callable) -> FunctionType:
 @no_redecorate
 def terminal_size_cached(func: Callable) -> FunctionType:
     """Enables return value caching on the decorated callable, based on the current
-    terminal size.
+    size of the :term:`active terminal`.
+
+    Args:
+        func: The object to be decorated.
+
+    Returns:
+        The wrapper.
 
     If the terminal size is the same as for the last call, the last return value is
     returned. Otherwise the wrapped object is called and the new return value is
@@ -177,6 +242,15 @@ def color(
     """Prepends *text* with 24-bit color escape codes for the given foreground and/or
     background RGB values, optionally ending with the color reset sequence.
 
+    Args:
+        text: String to be color-coded.
+        fg: Foreground color.
+        bg: Background color.
+        end: If ``True``, the color reset sequence is appended to the returned string.
+
+    Returns:
+        The color-coded string.
+
     The color code is ommited for any of *fg* or *bg* that is empty.
     """
     return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (
@@ -190,8 +264,10 @@ def color(
 @cached
 @terminal_size_cached
 def get_cell_size() -> Optional[Tuple[int, int]]:
-    """Returns the current size of a character cell in the *active* terminal
-    (in pixels).
+    """Returns the current size of a character cell in the :term:`active terminal`.
+
+    Returns:
+        The terminal cell size in pixels.
     """
     ws = get_window_size()
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
@@ -200,9 +276,12 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
 
 
 def get_terminal_size() -> Optional[Tuple[int, int]]:
-    """Returns the current size of the *active* terminal in columns and lines.
+    """Returns the current size of the :term:`active terminal`.
 
-    Tries to query the *active* terminal device and falls back to
+    Returns:
+        The terminal size in columns and lines.
+
+    Tries to query the :term:`active terminal` device and falls back to
     ``shutil.get_terminal_size()`` if that fails.
 
     This implementation still gives the correct size of the process' controlling
@@ -224,15 +303,16 @@ def get_terminal_size() -> Optional[Tuple[int, int]]:
 @cached
 @terminal_size_cached
 def get_window_size() -> Optional[Tuple[int, int]]:
-    """Returns the current window size of the *active* terminal (in pixels).
+    """Returns the current window size of the :term:`active terminal`.
+
+    Returns:
+        The terminal size in pixels.
 
     The speed of this implementation is almost entirely dependent on the terminal; the
     method it supports and its response time if it has to be queried.
 
     Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
     support.
-
-    Currently works on UNIX only, returns ``None`` on any other flatform.
     """
     # First try ioctl
     buf = array("H", [0, 0, 0, 0])
@@ -264,7 +344,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
 def query_terminal(
     request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
 ) -> Optional[bytes]:
-    """Sends a query to the terminal and returns the response.
+    """Sends a query to the :term:`active terminal` and returns the response.
 
     Args:
         more: A callable, which when passed the response recieved so far, returns a
@@ -275,11 +355,13 @@ def query_terminal(
 
         timeout: Time limit for awaiting a response from the terminal, in seconds.
 
-    If no response is recieved after *timeout* is up, ``None`` is returned.
+    Returns:
+        The terminal's response or ``None`` if no response is recieved after *timeout*
+        is up.
 
-    IMPORTANT:
+    ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
-        it can be read using ``read_input()`` before calling this fucntion.
+        it can be read using :py:func:`read_input()` before calling this fucntion.
     """
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
@@ -302,7 +384,7 @@ def read_input(
     *,
     echo: bool = False,
 ) -> Optional[bytes]:
-    """Reads input directly from the terminal with/without blocking.
+    """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
         more: A callable, which when passed the input recieved so far, returns a
@@ -315,6 +397,10 @@ def read_input(
         min: Causes to block until at least the given number of bytes have been read.
         echo: If ``True``, any input while waiting is printed unto the screen.
           Any input before or after calling this function is not affected.
+
+    Returns:
+        The input read or ``None`` if *min* == ``0`` (default) and no input is recieved
+        before *timeout* is up.
 
     If *timeout* is ``None`` (default), all available input is read without blocking.
 
@@ -329,10 +415,8 @@ def read_input(
       * *more* is given, input is read or waited for until ``more(input)`` returns
         ``False`` or *timeout* is up.
 
-    If *min* == ``0`` (default) and no input is recieved, ``None`` is returned.
-
-    Upon return or interruption, the terminal is **immediately** restored to the
-    state in which it was met.
+    Upon return or interruption, the :term:`active terminal` is **immediately** restored
+    to the state in which it was met.
     """
     old_attr = termios.tcgetattr(_tty)
 
