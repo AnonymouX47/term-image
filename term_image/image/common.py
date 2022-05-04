@@ -1,16 +1,17 @@
 """
-.. Core Library Definitions
+.. Common Interfaces For Various Image Classes
 """
 
 from __future__ import annotations
 
-__all__ = ("TermImage", "ImageIterator")
+__all__ = ("BaseImage", "ImageIterator")
 
 import io
 import os
 import re
 import time
-from math import ceil
+from abc import ABC, abstractmethod
+from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from shutil import get_terminal_size
@@ -18,17 +19,14 @@ from types import FunctionType, TracebackType
 from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
 
+import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .exceptions import InvalidSize, TermImageException, URLNotFoundError
+from .. import get_font_ratio
+from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
-_FG_FMT = "\033[38;2;%d;%d;%dm"
-_BG_FMT = "\033[48;2;%d;%d;%dm"
-_RESET = "\033[0m"
-_UPPER_PIXEL = "\u2580"  # upper-half block element
-_LOWER_PIXEL = "\u2584"  # lower-half block element
 _FORMAT_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
     re.ASCII,
@@ -37,8 +35,29 @@ _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", r
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
-class TermImage:
-    """Text-printable image
+def _close_validated(func: FunctionType) -> FunctionType:
+    """Decorates an instance method of an image class to check if the instance has
+    been finalized, before performing an operation with the instance.
+
+    Raises:
+        TermImageException: The instance has been finalized.
+    """
+    if getattr(func, "_close_validated", False):
+        return func
+
+    @wraps(func)
+    def validator(self, *args, **kwargs):
+        if self._closed:
+            raise TermImageException("This image has been finalized")
+
+        return func(self, *args, **kwargs)
+
+    validator._close_validated = True
+    return validator
+
+
+class BaseImage(ABC):
+    """Baseclass of all image classes.
 
     Args:
         image: Source image.
@@ -62,13 +81,23 @@ class TermImage:
           into the terminal.
         * The image size is multiplied by the :term:`scale` on respective axes before
           the image is :term:`rendered`.
+        * For animated images, the seek position is initialized to the current seek
+          position of the given image.
+
+    ATTENTION:
+        This class cannot be directly instantiated. Image instances should be created
+        from its subclasses.
     """
+
+    # Data Attributes
+
+    _supported = None
 
     # Special Methods
 
     def __init__(
         self,
-        image: Image.Image,
+        image: PIL.Image.Image,
         *,
         width: Optional[int] = None,
         height: Optional[int] = None,
@@ -94,7 +123,7 @@ class TermImage:
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
         if self._is_animated:
             self._frame_duration = (image.info.get("duration") or 100) / 1000
-            self._seek_position = 0
+            self._seek_position = image.tell()
             self._n_frames = None
 
         # Recognized sizing parameters.
@@ -107,7 +136,7 @@ class TermImage:
     def __del__(self) -> None:
         self.close()
 
-    def __enter__(self) -> TermImage:
+    def __enter__(self) -> BaseImage:
         return self
 
     def __exit__(self, typ: type, val: Exception, tb: TracebackType) -> bool:
@@ -183,10 +212,10 @@ class TermImage:
 
         Settable values:
 
-            * ``None``: Sets the image size to an automatically calculated one,
-              based on the current terminal size.
-            * A positive ``int``: Sets the image height to the given value and
-              the width proportionally.
+          * ``None``: Sets the image size to an automatically calculated one,
+            based on the current terminal size.
+          * A positive ``int``: Sets the image height to the given value and
+            the width proportionally.
         """,
     )
 
@@ -206,11 +235,7 @@ class TermImage:
             return 1
 
         if not self._n_frames:
-            self._n_frames = (
-                Image.open(self._source)
-                if isinstance(self._source, str)
-                else self._source
-            ).n_frames
+            self._n_frames = self._get_image().n_frames
 
         return self._n_frames
 
@@ -258,8 +283,8 @@ class TermImage:
 
         Settable values are:
 
-            * A *scale value*; sets both axes.
-            * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+          * A *scale value*; sets both axes.
+          * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
 
         A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
         """,
@@ -346,12 +371,20 @@ class TermImage:
 
         Settable values:
 
-            * ``None``: Sets the image size to an automatically calculated one,
-              based on the current terminal size.
-            * A positive ``int``: Sets the image width to the given value and
-              the height proportionally.
+          * ``None``: Sets the image size to an automatically calculated one,
+            based on the current terminal size.
+          * A positive ``int``: Sets the image width to the given value and
+            the height proportionally.
         """,
     )
+
+    # # Private
+
+    # This default implementation is for text-based render styles
+    # There are two pixels vertically arranged in one character cell
+    # pixel-size == width * height/2
+    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
+    _pixel_ratio = property(lambda _: get_font_ratio() * 2)
 
     # Public Methods
 
@@ -391,6 +424,7 @@ class TermImage:
         repeat: int = -1,
         cached: Union[bool, int] = 100,
         check_size: bool = True,
+        **kwargs: Any,
     ) -> None:
         """Draws/Displays an image in the terminal.
 
@@ -418,7 +452,8 @@ class TermImage:
               * If ``None``, transparency is disabled
                 (uses the image's default background color).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
-                **above** which pixels are taken as *opaque*.
+                **above** which pixels are taken as *opaque*. **(Applies to only
+                text-based render styles)**.
               * If a string, specifies a **hex color** with which transparent
                 background should be replaced.
 
@@ -437,12 +472,15 @@ class TermImage:
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
 
-                - If ``bool``, it directly sets if the frames will be cached or not.
-                - If ``int``, caching is enabled only if the framecount of the image
-                  is less than or equal to the given number.
+              * If ``bool``, it directly sets if the frames will be cached or not.
+              * If ``int``, caching is enabled only if the framecount of the image
+                is less than or equal to the given number.
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
+            kwargs: Style-specific parameters. See each subclass for it's own usage.
+
+              Every subclass simply extracts the ones it defines and ignores any others.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -466,6 +504,7 @@ class TermImage:
 
           * *scroll* is ignored.
           * Image size and :term:`padding height` are always validated, if set or given.
+
         * Animations, **by default**, are infinitely looped and can be terminated
           with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
         """
@@ -508,7 +547,7 @@ class TermImage:
 
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
-        def render(image: Image.Image) -> None:
+        def render(image: PIL.Image.Image) -> None:
             print("\033[?25l", end="")  # Hide the cursor
             try:
                 if self._is_animated and animate:
@@ -534,21 +573,21 @@ class TermImage:
         cls,
         filepath: str,
         **kwargs: Union[None, int, Tuple[float, float]],
-    ) -> TermImage:
-        """Creates a :py:class:`TermImage` instance from an image file.
+    ) -> BaseImage:
+        """Creates an instance from an image file.
 
         Args:
             filepath: Relative/Absolute path to an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new :py:class:`TermImage` instance.
+            A new instance.
 
         Raises:
             TypeError: *filepath* is not a string.
             FileNotFoundError: The given path does not exist.
             IsADirectoryError: Propagated from from ``PIL.Image.open()``.
-            UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
+            PIL.UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
 
         Also Propagates exceptions raised or propagated by the class constructor.
         """
@@ -576,15 +615,15 @@ class TermImage:
         cls,
         url: str,
         **kwargs: Union[None, int, Tuple[float, float]],
-    ) -> TermImage:
-        """Creates a :py:class:`TermImage` instance from an image URL.
+    ) -> BaseImage:
+        """Creates an instance from an image URL.
 
         Args:
             url: URL of an image file.
             kwargs: Same keyword arguments as the class constructor.
 
         Returns:
-            A new :py:class:`TermImage` instance.
+            A new instance.
 
         Raises:
             TypeError: *url* is not a string.
@@ -635,6 +674,14 @@ class TermImage:
         new._source = filepath
         new._url = url
         return new
+
+    @classmethod
+    @abstractmethod
+    def is_supported(cls) -> bool:
+        """Returns ``True`` if the render style or graphics protocol implemented by
+        the invoking class is supported by the terminal. Otherwise, ``False``.
+        """
+        raise NotImplementedError
 
     def seek(self, pos: int) -> None:
         """Changes current image frame.
@@ -923,7 +970,7 @@ class TermImage:
 
     def _display_animated(
         self,
-        img: Image.Image,
+        img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
@@ -931,8 +978,9 @@ class TermImage:
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
-        NOTE: This is done indefinitely but can be terminated with ``Ctrl-C``
-          (``SIGINT``), raising ``KeyboardInterrupt``.
+        NOTE:
+            This is done indefinitely but can be terminated with ``Ctrl-C``
+            (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
@@ -1018,169 +1066,112 @@ class TermImage:
 
         return "\n".join(lines)
 
+    @_close_validated
+    def _get_image(self) -> PIL.Image.Image:
+        """Returns the PIL image instance corresponding to the image source as-is"""
+        return (
+            Image.open(self._source) if isinstance(self._source, str) else self._source
+        )
+
+    def _get_render_data(
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        *,
+        size: Optional[Tuple[int, int]] = None,
+    ) -> Tuple[PIL.Image.Image, Tuple[Tuple[int, int, int]], Tuple[int]]:
+        """Returns the PIL image instance and pixel data required to render an image.
+
+        If *size* is given (in pixels), it is used instead of the pixel-equivalent of
+        the image size (or auto size, if size is unset).
+
+        The returned image is appropriately converted, resized and composited
+        (if need be).
+
+        The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
+          * ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
+            the image's pixels in a flattened row-major order where ``r``, ``g``, ``b``
+            are integers in the range [0, 255].
+          * ``a`` is a tuple of integers in the range [0, 255] representing the alpha
+            channel of the image's pixels in a flattened row-major order.
+        """
+        if self._is_animated:
+            img.seek(self._seek_position)
+
+        width, height = size or self._get_render_size()
+
+        if alpha is None or img.mode == "RGB":
+            try:
+                img = img.convert("RGB").resize((width, height))
+            except ValueError:
+                raise ValueError("Image size or scale too small") from None
+            rgb = tuple(img.getdata())
+            a = (255,) * (width * height)
+            alpha = None
+        else:
+            try:
+                img = img.convert("RGBA").resize((width, height))
+            except ValueError:
+                raise ValueError("Image size or scale too small") from None
+            if isinstance(alpha, str):
+                bg = Image.new("RGBA", img.size, alpha)
+                bg.alpha_composite(img)
+                if img is not self._source:
+                    img.close()
+                img = bg
+                alpha = None
+            rgb = tuple(img.convert("RGB").getdata())
+            if alpha is None:
+                a = (255,) * (width * height)
+            else:
+                alpha = round(alpha * 255)
+                a = [0 if val < alpha else val for val in img.getdata(3)]
+                # To distinguish `0.0` from `None` in truth value tests
+                if alpha == 0.0:
+                    alpha = True
+
+        return img, rgb, a
+
+    @abstractmethod
     def _get_render_size(self) -> Tuple[int, int]:
         """Returns the size (in pixels) required to render the image.
 
         Applies the image scale.
         """
-        return tuple(map(mul, self.rendered_size, (1, 2)))
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
         """Returns the number of pixels represented by a given number of columns
         or vice-versa.
         """
-        return pixels if pixels is not None else cols
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _pixels_lines(
         *, pixels: Optional[int] = None, lines: Optional[int] = None
     ) -> int:
         """Returns the number of pixels represented by a given number of lines
         or vice-versa.
         """
-        return ceil(pixels / 2) if pixels is not None else lines * 2
+        raise NotImplementedError
 
-    def _render_image(self, image: Image.Image, alpha: Union[None, float, str]) -> str:
-        """Converts image pixel data into a "color-coded" string.
+    @abstractmethod
+    def _render_image(
+        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+    ) -> str:
+        """Converts an image into a string which reproduces the image when printed
+        to the terminal.
 
-        Two pixels per character using FG and BG colors.
-
-        NOTE: This method is not meant to be used directly, use it via `_renderer()`
-        instead.
+        NOTE:
+            This method is not meant to be used directly, use it via `_renderer()`
+            instead.
         """
-        if self._closed:
-            raise TermImageException("This image has been finalized")
-
-        # NOTE:
-        # It's more efficient to write separate strings to the buffer separately
-        # than concatenate and write together.
-
-        buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
-
-        def update_buffer():
-            if alpha:
-                no_alpha = False
-                if a_cluster1 == 0 == a_cluster2:
-                    buf_write(_RESET)
-                    buf_write(" " * n)
-                elif a_cluster1 == 0:  # up is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster2)
-                    buf_write(_LOWER_PIXEL * n)
-                elif a_cluster2 == 0:  # down is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
-                else:
-                    no_alpha = True
-
-            if not alpha or no_alpha:
-                buf_write(_BG_FMT % cluster2)
-                if cluster1 == cluster2:
-                    buf_write(" " * n)
-                else:
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
-
-        if self._is_animated:
-            image.seek(self._seek_position)
-
-        width, height = self._get_render_size()
-
-        if alpha is None or image.mode == "RGB":
-            try:
-                image = image.convert("RGB").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
-            rgb = tuple(image.getdata())
-            a = (255,) * (width * height)
-            alpha = None
-        else:
-            try:
-                image = image.convert("RGBA").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
-            if isinstance(alpha, str):
-                bg = Image.new("RGBA", image.size, alpha)
-                bg.alpha_composite(image)
-                if image is not self._source:
-                    image.close()
-                image = bg
-                alpha = None
-            rgb = tuple(image.convert("RGB").getdata())
-            if alpha is None:
-                a = (255,) * (width * height)
-            else:
-                alpha = round(alpha * 255)
-                a = [0 if val < alpha else val for val in image.getdata(3)]
-                # To distinguish `0.0` from `None` in truth value tests
-                if alpha == 0.0:
-                    alpha = True
-
-        # clean up
-        if image is not self._source:
-            image.close()
-
-        rgb_pairs = (
-            (
-                zip(rgb[x : x + width], rgb[x + width : x + width * 2]),
-                (rgb[x], rgb[x + width]),
-            )
-            for x in range(0, len(rgb), width * 2)
-        )
-        a_pairs = (
-            (
-                zip(a[x : x + width], a[x + width : x + width * 2]),
-                (a[x], a[x + width]),
-            )
-            for x in range(0, len(a), width * 2)
-        )
-
-        row_no = 0
-        # Two rows of pixels per line
-        for (rgb_pair, (cluster1, cluster2)), (a_pair, (a_cluster1, a_cluster2)) in zip(
-            rgb_pairs, a_pairs
-        ):
-            row_no += 2
-            n = 0
-            for (px1, px2), (a1, a2) in zip(rgb_pair, a_pair):
-                # Color-code characters and write to buffer
-                # when upper and/or lower pixel color/alpha-level changes
-                if not (alpha and a1 == a_cluster1 == 0 == a_cluster2 == a2) and (
-                    px1 != cluster1
-                    or px2 != cluster2
-                    or alpha
-                    and (
-                        # From non-transparent to transparent
-                        a_cluster1 != a1 == 0
-                        or a_cluster2 != a2 == 0
-                        # From transparent to non-transparent
-                        or 0 == a_cluster1 != a1
-                        or 0 == a_cluster2 != a2
-                    )
-                ):
-                    update_buffer()
-                    cluster1 = px1
-                    cluster2 = px2
-                    if alpha:
-                        a_cluster1 = a1
-                        a_cluster2 = a2
-                    n = 0
-                n += 1
-            # Rest of the line
-            update_buffer()
-            if row_no < height:  # last line not yet rendered
-                buf_write("\033[0m\n")
-
-        buf_write(_RESET)  # Reset color after last line
-        buffer.seek(0)  # Reset buffer pointer
-
-        return buffer.getvalue()
+        raise NotImplementedError
 
     def _renderer(
         self,
@@ -1216,13 +1207,10 @@ class TermImage:
             term_image.exceptions.TermImageException: The image has been finalized.
 
         NOTE:
-            * If the ``set_size()`` method was previously used to set the image size,
-              (directly or not), the last value of its *fit_to_width* parameter
-              is taken into consideration, for non-animations.
+            If the ``set_size()`` method was previously used to set the image size,
+            (directly or not), the last value of its *fit_to_width* parameter
+            is taken into consideration, for non-animations.
         """
-        if self._closed:
-            raise TermImageException("This image has been finalized")
-
         try:
             reset_size = False
             if not self._size:  # Size is unset
@@ -1268,13 +1256,7 @@ class TermImage:
                         "height for animations"
                     )
 
-            image = (
-                Image.open(self._source)
-                if isinstance(self._source, str)
-                else self._source
-            )
-
-            return renderer(image, *args, **kwargs)
+            return renderer(self._get_image(), *args, **kwargs)
 
         finally:
             if reset_size:
@@ -1327,13 +1309,17 @@ class TermImage:
                 return (
                     self._pixels_cols(pixels=max_width),
                     self._pixels_lines(
-                        pixels=round(self._width_height_px(w=max_width) * _pixel_ratio)
+                        pixels=round(
+                            self._width_height_px(w=max_width) * self._pixel_ratio
+                        )
                     ),
                 )
             if fit_to_height:
                 return (
                     self._pixels_cols(
-                        pixels=round(self._width_height_px(h=max_height) / _pixel_ratio)
+                        pixels=round(
+                            self._width_height_px(h=max_height) / self._pixel_ratio
+                        )
                     ),
                     self._pixels_lines(pixels=max_height),
                 )
@@ -1351,7 +1337,7 @@ class TermImage:
             # the smaller ratio is already fully occupied
 
             if x < y:
-                _height_px = _height_px * _pixel_ratio
+                _height_px = _height_px * self._pixel_ratio
                 # If height becomes greater than the max, reduce it to the max
                 height_px = min(_height_px, max_height)
                 # Calculate the corresponding width
@@ -1359,7 +1345,7 @@ class TermImage:
                 # Round the height
                 height_px = round(height_px)
             else:
-                _width_px = _width_px / _pixel_ratio
+                _width_px = _width_px / self._pixel_ratio
                 # If width becomes greater than the max, reduce it to the max
                 width_px = min(_width_px, max_width)
                 # Calculate the corresponding height
@@ -1372,12 +1358,14 @@ class TermImage:
             )
         elif width is None:
             width_px = round(
-                self._width_height_px(h=self._pixels_lines(lines=height)) / _pixel_ratio
+                self._width_height_px(h=self._pixels_lines(lines=height))
+                / self._pixel_ratio
             )
             width = self._pixels_cols(pixels=width_px)
         elif height is None:
             height_px = round(
-                self._width_height_px(w=self._pixels_cols(cols=width)) * _pixel_ratio
+                self._width_height_px(w=self._pixels_cols(cols=width))
+                * self._pixel_ratio
             )
             height = self._pixels_lines(pixels=height_px)
 
@@ -1430,12 +1418,12 @@ class ImageIterator:
 
     def __init__(
         self,
-        image: TermImage,
+        image: BaseImage,
         repeat: int = -1,
         format: str = "",
         cached: Union[bool, int] = 100,
     ) -> None:
-        if not isinstance(image, TermImage):
+        if not isinstance(image, BaseImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
         if not image._is_animated:
             raise ValueError("This image is not animated")
@@ -1514,7 +1502,7 @@ class ImageIterator:
 
     def _animate(
         self,
-        img: Image.Image,
+        img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
     ) -> None:
@@ -1596,20 +1584,3 @@ class ImageIterator:
         # For consistency in behaviour
         if img is image._source:
             img.seek(0)
-
-
-# Reserved
-def _color(text: str, fg: tuple = (), bg: tuple = ()) -> str:
-    """Prepends *text* with ANSI 24-bit color escape codes
-    for the given foreground and/or background RGB values.
-
-    The color code is ommited for any of *fg* or *bg* that is empty.
-    """
-    return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (*fg, *bg, text)
-
-
-# The pixel ratio is always used to adjust the width and not the height, so that the
-# image can fill the terminal screen as much as possible.
-# The final width is always rounded, but that should never be an issue
-# since it's also rounded during size validation.
-_pixel_ratio = 1.0  # Default

@@ -55,9 +55,14 @@ Image Format Specification
 
 * ``#``: Transparency setting:
 
-   * If absent, transparency is enabled.
-   * ``threshold``: Alpha ratio above which pixels are taken as opaque e.g ``.0``, ``.325043``, ``.99999``. The value must be in the range **0.0 <= threshold < 1.0**.
-   * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
-   * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled (uses the image's default background color).
+  * If absent, transparency is enabled.
+  * ``threshold``: Alpha ratio above which pixels are taken as opaque e.g ``.0``, ``.325043``, ``.99999``.
+
+    * The value must be in the range **0.0 <= threshold < 1.0**.
+    * **Applies to only text-based render styles**, (i.e those not based on terminal
+      graphics protocols) e.g. :py:class:`TermImage <term_image.image.TermImage>`.
+
+  * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
+  * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled (uses the image's default background color, or black if none).
 
 See :ref:`Formatted rendering <formatted-render>` for examples.

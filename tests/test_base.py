@@ -1,69 +1,31 @@
+"""Render-style-independent tests"""
+
 import io
 import os
 import sys
-from operator import gt, lt
 from random import random
-from shutil import get_terminal_size
-from types import SimpleNamespace
 
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from term_image import get_font_ratio, set_font_ratio
+from term_image import set_font_ratio
 from term_image.exceptions import InvalidSize
-from term_image.image import _ALPHA_THRESHOLD, ImageIterator, TermImage
+from term_image.image import ImageIterator, TermImage
+
+from .common import _size, columns, lines, python_img, setup_common
+
+python_image = "tests/images/python.png"
+python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
+anim_img = Image.open("tests/images/lion.gif")
+stdout = io.StringIO()
+
+setup_common(TermImage)
+from .common import _height, _width  # noqa:E402
 
 
 def clear_stdout():
     stdout.seek(0)
     stdout.truncate()
-
-
-def width_height(image, *, w=None, h=None):
-    return (
-        TermImage._pixels_lines(
-            pixels=round(
-                TermImage._width_height_px(
-                    image,
-                    w=TermImage._pixels_cols(cols=w),
-                )
-            )
-        )
-        if w is not None
-        else TermImage._pixels_cols(
-            pixels=round(
-                TermImage._width_height_px(
-                    image,
-                    h=TermImage._pixels_lines(lines=h),
-                )
-            )
-        )
-    )
-
-
-columns, lines = term_size = get_terminal_size()
-
-# For square images
-dummy = SimpleNamespace()
-dummy._original_size = (1, 1)
-if TermImage._pixels_cols(cols=columns) < TermImage._pixels_lines(lines=lines - 2):
-    _width = columns
-    _height = width_height(dummy, w=columns)
-else:
-    _height = lines - 2
-    _width = width_height(dummy, h=lines - 2)
-_width_px = TermImage._pixels_cols(cols=_width)
-_height_px = TermImage._pixels_lines(lines=_height)
-
-_size = 20
-
-python_image = "tests/images/python.png"
-
-python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
-python_img = Image.open(python_image)
-anim_img = Image.open("tests/images/lion.gif")
-
-stdout = io.StringIO()
 
 
 class TestConstructor:
@@ -106,6 +68,12 @@ class TestConstructor:
         assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
         assert image._seek_position == 0
         assert image._n_frames is None
+
+        try:
+            anim_img.seek(2)
+            assert TermImage(anim_img)._seek_position == 2
+        finally:
+            anim_img.seek(0)
 
 
 class TestFromFile:
@@ -405,35 +373,6 @@ class TestSetSize:
     h_image = TermImage.from_file("tests/images/hori.jpg")  # Horizontally-oriented
     v_image = TermImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
 
-    @staticmethod
-    def proportional(image):
-        ori_width, ori_height = image.original_size
-        # The converted width and height in pixels might not be exactly proportional
-        # as they have been previously rounded to meet cell boundaries but the
-        # difference must be less than the number of pixels for one line
-        if _width_px < _height_px:
-            # Height was adjusted
-            return (
-                abs(
-                    image._pixels_cols(cols=image.width) / ori_width
-                    # Was adjusted by multiplying, so we divide
-                    - (image._pixels_lines(lines=image.height) / (get_font_ratio() * 2))
-                    / ori_height
-                )
-                < image._pixels_lines(lines=1) / ori_height
-            )
-        else:
-            # Width was adjusted
-            return (
-                abs(
-                    # Was adjusted by dividing, so we multiply
-                    (image._pixels_cols(cols=image.width) * (get_font_ratio() * 2))
-                    / ori_width
-                    - image._pixels_lines(lines=image.height) / ori_height
-                )
-                < image._pixels_lines(lines=1) / ori_height
-            )
-
     def test_args_width_height(self):
         with pytest.raises(ValueError, match=".* both width and height"):
             self.image.set_size(1, 1)
@@ -482,129 +421,6 @@ class TestSetSize:
             with pytest.raises(ValueError, match=f"{arg!r} .* 'maxsize' is given"):
                 self.image.set_size(maxsize=(1, 1), **{arg: True})
 
-    def test_auto_sizing_and_proportionality(self):
-        self.image.set_size()
-        assert self.image.size == (_width, _height) == self.image._size
-        assert self.proportional(self.image)
-
-        self.h_image.set_size()
-        assert gt(
-            self.h_image._pixels_cols(cols=self.h_image.width),
-            self.h_image._pixels_lines(lines=self.h_image.height),
-        )
-        assert self.proportional(self.h_image)
-
-        self.v_image.set_size()
-        assert lt(
-            self.v_image._pixels_cols(cols=self.v_image.width),
-            self.v_image._pixels_lines(lines=self.v_image.height),
-        )
-        assert self.proportional(self.v_image)
-
-    def test_width_and_proportionality(self):
-        self.image.set_size(width=_size)
-        assert self.image.width == _size
-        assert self.proportional(self.image)
-
-        self.h_image.set_size(width=_size)
-        assert self.image.width == _size
-        assert self.proportional(self.image)
-
-        self.v_image.set_size(width=_size)
-        assert self.image.width == _size
-        assert self.proportional(self.image)
-
-    def test_height_and_proportionality(self):
-        self.image.set_size(height=_size)
-        assert self.image.height == _size
-        assert self.proportional(self.image)
-
-        self.h_image.set_size(height=_size)
-        assert self.image.height == _size
-        assert self.proportional(self.image)
-
-        self.v_image.set_size(height=_size)
-        assert self.image.height == _size
-        assert self.proportional(self.image)
-
-    def test_fitted_axes_and_proportionality(self):
-        self.h_image.set_size(fit_to_height=True)
-        assert self.h_image.height == lines - 2
-        assert self.proportional(self.image)
-
-        self.v_image.set_size(fit_to_width=True)
-        assert self.v_image.width == columns
-        assert self.proportional(self.image)
-
-    def test_allowance(self):
-        self.image.set_size(fit_to_width=True)
-        assert self.image.width == columns
-
-        self.image.set_size(fit_to_height=True)
-        assert self.image.height == lines - 2
-
-        self.image.set_size(h_allow=2, fit_to_width=True)
-        assert self.image.width == columns - 2
-
-        self.image.set_size(v_allow=3, fit_to_height=True)
-        assert self.image.height == lines - 3
-
-    def test_maxsize(self):
-        self.image.set_size(maxsize=(100, 50))
-        assert self.image.size == (100, 50)
-        self.image.set_size(maxsize=(100, 55))
-        assert self.image.size == (100, 50)
-        self.image.set_size(maxsize=(110, 50))
-        assert self.image.size == (100, 50)
-
-        self.image.set_size(width=100, maxsize=(200, 100))
-        assert self.image.size == (100, 50)
-        self.image.set_size(height=50, maxsize=(200, 100))
-        assert self.image.size == (100, 50)
-
-    def test_maxsize_allowance_nullification(self):
-        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
-        assert self.image.size == (100, 50)
-        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
-        assert self.image.size == (100, 50)
-
-    def test_fixed_width_font_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
-                self.image.set_size(width=_size)
-                assert self.image.width == _size
-                assert self.proportional(self.image)
-        finally:
-            set_font_ratio(0.5)
-
-    def test_fixed_height_font_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
-                self.image.set_size(height=_size)
-                assert self.image.height == _size
-                assert self.proportional(self.image)
-        finally:
-            set_font_ratio(0.5)
-
-    def test_auto_size_font_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
-                self.image.set_size()
-                assert self.proportional(self.image)
-        finally:
-            set_font_ratio(0.5)
-
-    def test_can_exceed_terminal_size(self):
-        self.image.set_size(width=columns + 1)
-        assert self.image.width == columns + 1
-        assert self.proportional(self.image)
-        self.image.set_size(height=lines + 1)
-        assert self.image.height == lines + 1
-        assert self.proportional(self.image)
-
     def test_cannot_exceed_maxsize(self):
         with pytest.raises(InvalidSize, match="will not fit into"):
             self.image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
@@ -640,6 +456,8 @@ def test_renderer():
 
 
 class TestRender:
+    # Fully transparent image
+    # It's easy to predict it's pixel values
     trans = TermImage.from_file("tests/images/trans.png")
 
     def render_image(self, alpha):
@@ -657,68 +475,10 @@ class TestRender:
         with pytest.raises(ValueError, match="too small"):
             self.render_image(None)
 
-    def test_transparency(self):
-        self.trans.set_size(height=_size)
-        self.trans.scale = 1.0
 
-        render = self.render_image(_ALPHA_THRESHOLD)
-        # No '\n' after the last line, hence the `+ 1`
-        assert render.count("\n") + 1 == self.trans.height
-        assert render.partition("\n")[0].count(" ") == self.trans.width
-
-        # Transparency enabled
-        assert all(
-            line == "\033[0m" + " " * self.trans.width + "\033[0m"
-            for line in self.render_image(_ALPHA_THRESHOLD).splitlines()
-        )
-        # Transparency disabled
-        assert all(
-            line == "\033[48;2;0;0;0m" + " " * self.trans.width + "\033[0m"
-            for line in self.render_image(None).splitlines()
-        )
-
-    def test_background_colour(self):
-        self.trans.set_size(height=_size)
-        self.trans.scale = 1.0
-
-        # white
-        assert all(
-            line == "\033[48;2;255;255;255m" + " " * self.trans.width + "\033[0m"
-            for line in self.render_image("#ffffff").splitlines()
-        )
-        # red
-        assert all(
-            line == "\033[48;2;255;0;0m" + " " * self.trans.width + "\033[0m"
-            for line in self.render_image("#ff0000").splitlines()
-        )
-
-    def test_scaled(self):
-        self.trans.set_size(height=_size)
-
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101)):
-            if 0 not in self.trans.rendered_size:
-                render = self.render_image(_ALPHA_THRESHOLD)
-            assert render.count("\n") + 1 == self.trans.rendered_height
-            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
-
-        # Random scales
-        for _ in range(100):
-            scale = random()
-            if scale == 0:
-                continue
-            self.trans.scale = scale
-            if 0 in self.trans.rendered_size:
-                continue
-            render = self.render_image(_ALPHA_THRESHOLD)
-            assert render.count("\n") + 1 == self.trans.rendered_height
-            assert render.partition("\n")[0].count(" ") == self.trans.rendered_width
-
-    def test_str(self):
-        image = TermImage(python_img, width=_size)
-        assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
-
-
+# As long as each subclass passes it's render tests (particulary those related to the
+# size of the render results), then testing formatting with a single style should
+# suffice.
 class TestFormatting:
     image = TermImage(python_img)
     image.scale = 0.5  # To ensure there's padding
@@ -847,9 +607,8 @@ class TestFormatting:
     def test_align_left_top(self):
         self.image.size = None
         render = self.format_render(self.render, "<", columns, "^", lines)
-        partition = render.partition("\033")[2]
         assert (
-            len(partition.partition("\n")[0].rpartition("m")[2])
+            len(render.partition("\n")[0].rpartition("m")[2])
             == columns - self.image.rendered_width
         )
         assert (
@@ -875,9 +634,8 @@ class TestFormatting:
     def test_align_right_bottom(self):
         self.image.size = None
         render = self.format_render(self.render, ">", columns, "_", lines)
-        partition = render.rpartition("m")[0]
         assert (
-            partition.rpartition("\n")[2].index("\033")
+            render.rpartition("\n")[2].index("\033")
             == columns - self.image.rendered_width
         )
         assert (
@@ -968,11 +726,9 @@ class TestFormatting:
             fmt = self.image._check_format_spec(spec)
             assert isinstance(fmt, tuple)
 
-    def test_format(self):
-        self.image.set_size()
-        assert format(self.image) == self.format_render(str(self.image))
 
-
+# Testing with one style should suffice for all since it's simply testing the method
+# and nothing perculiar to the style
 class TestDraw:
     image = TermImage(python_img, width=_size)
     anim_image = TermImage(anim_img, width=_size)

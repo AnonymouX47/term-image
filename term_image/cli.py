@@ -22,7 +22,8 @@ from . import __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
 from .exceptions import URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import _ALPHA_THRESHOLD, TermImage
+from .image import TermImage
+from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
