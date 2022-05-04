@@ -8,6 +8,7 @@ __all__ = (
     "unix_tty_only",
     "terminal_size_cached",
     "color",
+    "read_input",
 )
 
 import os
@@ -17,6 +18,7 @@ from functools import wraps
 from multiprocessing import Process, RLock as mp_RLock
 from shutil import get_terminal_size
 from threading import RLock
+from time import monotonic
 from types import FunctionType
 from typing import Callable, Optional, Tuple
 
@@ -25,7 +27,8 @@ from typing import Callable, Optional, Tuple
 OS_IS_UNIX: bool
 try:
     import fcntl  # noqa:F401
-    import termios  # noqa:F401
+    import termios
+    from select import select
 except ImportError:
     OS_IS_UNIX = False
 else:
@@ -175,6 +178,90 @@ def color(
         *bg,
         text,
     ) + _RESET * end
+
+
+@unix_tty_only
+@lock_input
+def read_input(
+    more: Callable[[bytearray], bool] = lambda _: True,
+    timeout: Optional[float] = None,
+    min: int = 0,
+    *,
+    echo: bool = False,
+) -> Optional[bytes]:
+    """Reads input directly from the terminal with/without blocking.
+
+    Args:
+        more: A callable, which when passed the input recieved so far, returns a
+          boolean indicating if the input is incomplete or not. If it returns:
+
+          * ``True``, more input is waited for.
+          * ``False``, the recieved input is returned immediately.
+
+        timeout: Time limit for awaiting input, in seconds.
+        min: Causes to block until at least the given number of bytes have been read.
+        echo: If ``True``, any input while waiting is printed unto the screen.
+          Any input before or after calling this function is not affected.
+
+    If *timeout* is ``None`` (default), all available input is read without blocking.
+
+    If *timeout* is not ``None`` and:
+
+      * *min* > ``0``, input is waited for until at least *min* bytes have been read.
+
+        After *min* bytes have been read, the following points apply with *timeout*
+        being the leftover of the original *timeout*, if not yet used up.
+
+      * *more* is not given, input is read or waited for until *timeout* is up.
+      * *more* is given, input is read or waited for until ``more(input)`` returns
+        ``False`` or *timeout* is up.
+
+    If *min* == ``0`` (default) and no input is recieved, ``None`` is returned.
+
+    Upon return or interruption, the terminal is **immediately** restored to the
+    state in which it was met.
+    """
+    old_attr = termios.tcgetattr(_tty)
+
+    new_attr = termios.tcgetattr(_tty)
+    new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
+    new_attr[6][termios.VTIME] = 0  # Never block based on time
+    if echo:
+        new_attr[3] |= termios.ECHO  # Enable input echo
+    else:
+        new_attr[3] &= ~termios.ECHO  # Disable input echo
+    # Block until *min* bytes are read, when *timeout* is not `None`.
+    new_attr[6][termios.VMIN] = 0 if timeout is None else min
+
+    input = bytearray()
+    try:
+        termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
+
+        if timeout is None:
+            chunk = os.read(_tty, 100)
+            while chunk:
+                input.extend(chunk)
+                chunk = os.read(_tty, 100)
+        else:
+            start = monotonic()
+
+            if min > 0:
+                input.extend(os.read(_tty, min))
+
+                # Don't block based on based on amount of bytes anymore
+                new_attr[6][termios.VMIN] = 0
+                termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
+
+            r, w, x = [_tty], [], []
+            while monotonic() - start < timeout and more(input):
+                # Using select reduces CPU usage
+                if select(r, w, x, timeout - (monotonic() - start))[0]:
+                    input.extend(os.read(_tty, 1))
+            # logging.debug(f"{monotonic() - start}")
+    finally:
+        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
+
+    return bytes(input) if input else None
 
 
 def _process_start_wrapper(self, *args, **kwargs):
