@@ -219,9 +219,12 @@ if stacklevel_is_available:
 else:
     _kwargs = _kwargs_exc = {}
 
+# The annotations below are put in comments for compatibility with Python 3.7
+# as it doesn't allow names declared as `global` within functions to be annotated.
+
 # Set from within `init_log()`
-DEBUG: Optional[bool] = None
-MULTI: Optional[bool] = None
-QUIET: Optional[bool] = None
-VERBOSE: Optional[bool] = None
-VERBOSE_LOG: Optional[bool] = None
+DEBUG = None  #: Optional[bool]
+MULTI = None  #: Optional[bool]
+QUIET = None  #: Optional[bool]
+VERBOSE = None  #: Optional[bool]
+VERBOSE_LOG = None  #: Optional[bool]
