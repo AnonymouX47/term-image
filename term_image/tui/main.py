@@ -17,7 +17,7 @@ import urwid
 
 from .. import logging, notify, tui
 from ..config import context_keys, expand_key
-from ..image import ImageIterator, TermImage
+from ..image import ImageIterator
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -446,7 +446,7 @@ def scan_dir(
         yield result, (
             entry.name,
             (
-                Image(TermImage.from_file(entry.path))
+                Image(ImageClass.from_file(entry.path))
                 if result == IMAGE
                 else ...
                 if result == DIR
@@ -742,6 +742,7 @@ at_top_level = None  #: Optional[bool]
 interrupted: Union[None, Event, mp_Event] = None
 
 # Set from `.tui.init()`
+ImageClass: type
 displayer: Optional[Generator[None, int, bool]] = None
 loop: Optional[tui.Loop] = None
 update_pipe: Optional[int] = None
