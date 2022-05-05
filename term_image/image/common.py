@@ -200,14 +200,11 @@ class BaseImage(ABC):
         return ImageIterator(self, 1, "1.1", False)
 
     def __repr__(self) -> str:
-        return (
-            "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
-        ).format(
+        return "<{}: source_type={} size={} scale={} is_animated={}>".format(
             type(self).__name__,
-            (self._url if hasattr(self, "_url") else self._source),
-            self._original_size,
-            self._size,
-            self.scale,  # Stored as a list but should be shown as a tuple
+            self._source_type.name,
+            self._size and "x".join(map(str, self._size)),
+            "x".join(format(x, ".2") for x in self._scale),
             self._is_animated,
         )
 
