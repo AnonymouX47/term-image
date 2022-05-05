@@ -22,11 +22,12 @@ from . import __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
 from .exceptions import URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import TermImage
+from .image import TermImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
+from .utils import OS_IS_UNIX
 
 
 def check_dir(
@@ -464,13 +465,14 @@ def update_contents(
 def get_urls(
     url_queue: Queue,
     images: List[Tuple[str, Image]],
+    ImageClass: type,
 ) -> None:
     """Processes URL sources from a/some separate thread(s)"""
     source = url_queue.get()
     while not interrupted.is_set() and source:
         log(f"Getting image from {source!r}", logger, verbose=True)
         try:
-            images.append((basename(source), Image(TermImage.from_url(source))))
+            images.append((basename(source), Image(ImageClass.from_url(source))))
         # Also handles `ConnectionTimeout`
         except requests.exceptions.ConnectionError:
             log(f"Unable to get {source!r}", logger, _logging.ERROR)
@@ -488,12 +490,13 @@ def get_urls(
 def open_files(
     file_queue: Queue,
     images: List[Tuple[str, Image]],
+    ImageClass: type,
 ) -> None:
     source = file_queue.get()
     while not interrupted.is_set() and source:
         log(f"Opening {source!r}", logger, verbose=True)
         try:
-            images.append((source, Image(TermImage.from_file(source))))
+            images.append((source, Image(ImageClass.from_file(source))))
         except PIL.UnidentifiedImageError as e:
             log(str(e), logger, _logging.ERROR)
         except OSError as e:
@@ -563,7 +566,16 @@ def main() -> None:
 from options/flags, to avoid ambiguity.
 For example, `$ term-image [options] -- -image.jpg --image.png`
 
-NOTES:
+Render Styles:
+    auto: The best style is automatically determined based on the detected terminal
+          support.
+    term: Uses unicode half blocks with 24-bit color escape codes to represent images
+          with a density of two pixels per character cell.
+
+    Using a terminal-graphics-based style not supported by the active terminal is not
+    allowed.
+
+FOOTNOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
      on the WIDTH and the FONT RATIO.
      The auto sizing is calculated such that the image always fits into the available
@@ -620,6 +632,15 @@ NOTES:
         help=(
             "Specify the width-to-height ratio of a character cell in your terminal "
             f"for proper image scaling (default: {config.font_ratio})"
+        ),
+    )
+    general.add_argument(
+        "--style",
+        choices=("auto", "term"),
+        default="auto",
+        help=(
+            "Specify the image render style (default: auto) "
+            '[See "Render Styles" below]'
         ),
     )
     mode_options = general.add_mutually_exclusive_group()
@@ -959,13 +980,9 @@ NOTES:
     )
     log_options.add_argument(
         "--log-level",
-        metavar="LEVEL",
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
         default="WARNING",
-        help=(
-            "Set logging level to any of DEBUG, INFO, WARNING, ERROR, CRITICAL "
-            "(default: WARNING) [6]"
-        ),
+        help="Specify the logging level for the session (default: WARNING) [6]",
     )
     log_options.add_argument(
         "-q",
@@ -1058,6 +1075,8 @@ NOTES:
 
     set_font_ratio(args.font_ratio)
 
+    ImageClass = {"auto": _best_style(), "term": TermImage}[args.style]
+
     log("Processing sources", logger, loading=True)
 
     file_images, url_images, dir_images = [], [], []
@@ -1071,7 +1090,7 @@ NOTES:
     getters = [
         Thread(
             target=get_urls,
-            args=(url_queue, url_images),
+            args=(url_queue, url_images, ImageClass),
             name=f"Getter-{n}",
             daemon=True,
         )
@@ -1083,15 +1102,13 @@ NOTES:
     file_queue = Queue()
     opener = Thread(
         target=open_files,
-        args=(file_queue, file_images),
+        args=(file_queue, file_images, ImageClass),
         name="Opener",
         daemon=True,
     )
     opener.start()
 
-    os_is_unix = sys.platform not in {"win32", "cygwin"}
-
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
@@ -1116,7 +1133,7 @@ NOTES:
             if args.cli:
                 log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
-            if not os_is_unix:
+            if not OS_IS_UNIX:
                 dir_images = True
                 continue
             dir_queue.put(("", [], source, 0))
@@ -1127,7 +1144,7 @@ NOTES:
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         if logging.MULTI and args.checkers > 1:
             dir_queue.sources_finished = True
         else:
@@ -1136,14 +1153,14 @@ NOTES:
     for getter in getters:
         getter.join()
     opener.join()
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         check_manager.join()
 
     notify.stop_loading()
     while notify.is_loading():
         pass
 
-    if not os_is_unix and dir_images:
+    if not OS_IS_UNIX and dir_images:
         log(
             "Directory sources skipped, not supported on Windows!",
             logger,
@@ -1222,13 +1239,13 @@ NOTES:
                 )
 
             # Handles `ValueError` and `.exceptions.InvalidSize`
-            # raised by `TermImage.set_size()`, scaling value checks
+            # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except ValueError as e:
                 notify.notify(str(e), level=notify.ERROR)
-    elif os_is_unix:
+    elif OS_IS_UNIX:
         notify.end_loading()
-        tui.init(args, images, contents)
+        tui.init(args, images, contents, ImageClass)
     else:
         log(
             "The TUI is not supported on Windows! Try with `--cli`.",

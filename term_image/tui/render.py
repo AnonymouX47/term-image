@@ -13,7 +13,7 @@ from ..logging_multi import Process
 
 
 def manage_image_renders():
-    from .main import update_screen
+    from .main import ImageClass, update_screen
     from .widgets import Image, ImageCanvas, image_box
 
     multi = logging.MULTI
@@ -21,7 +21,7 @@ def manage_image_renders():
     image_render_out = (mp_Queue if multi else Queue)()
     renderer = (Process if multi else logging.Thread)(
         target=render_images,
-        args=(image_render_in, image_render_out, get_font_ratio()),
+        args=(image_render_in, image_render_out, get_font_ratio(), ImageClass),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
         redirect_notifs=True,
@@ -86,7 +86,7 @@ def manage_grid_renders(n_renderers: int):
     Otherwise, it starts a single new thread to render the cells.
     """
     from . import main
-    from .main import grid_active, grid_change, quitting, update_screen
+    from .main import ImageClass, grid_active, grid_change, quitting, update_screen
     from .widgets import Image, ImageCanvas, image_grid
 
     multi = logging.MULTI and n_renderers > 0
@@ -95,11 +95,7 @@ def manage_grid_renders(n_renderers: int):
     renderers = [
         (Process if multi else logging.Thread)(
             target=render_images,
-            args=(
-                grid_render_in,
-                grid_render_out,
-                get_font_ratio(),
-            ),
+            args=(grid_render_in, grid_render_out, get_font_ratio(), ImageClass),
             kwargs=dict(multi=multi, out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
@@ -189,6 +185,7 @@ def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     font_ratio: float,
+    ImageClass: type,
     *,
     multi: bool,
     out_extras: bool,
@@ -201,8 +198,6 @@ def render_images(
         out_extras: If True, image details other than the render output are passed out.
     Intended to be executed in a subprocess or thread.
     """
-    from ..image import TermImage
-
     if multi:
         set_font_ratio(font_ratio)
 
@@ -216,10 +211,10 @@ def render_images(
             break
 
         if multi:
-            image = TermImage.from_file(image)
+            image = ImageClass.from_file(image)
         image.set_size(maxsize=size)
 
-        # Using `TermImage` for padding will use more memory since all the
+        # Using `BaseImage` for padding will use more memory since all the
         # spaces will be in the render output string, and theoretically more time
         # with all the checks and string splitting & joining.
         # While `ImageCanvas` is better since it only stores the main image render

@@ -12,6 +12,7 @@ import urwid
 
 from .. import logging
 from ..config import max_notifications
+from ..utils import lock_input
 from . import main
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .render import image_render_queue, manage_grid_renders, manage_image_renders
@@ -22,6 +23,7 @@ def init(
     args: argparse.Namespace,
     images: Iterable[Tuple[str, Union[Image, Iterator]]],
     contents: dict,
+    ImageClass: type,
 ) -> None:
     """Initializes the TUI"""
     global is_launched
@@ -44,6 +46,7 @@ def init(
     main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
+    main.ImageClass = ImageClass
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
 
@@ -67,6 +70,9 @@ def init(
         daemon=True,
     )
 
+    urwid.raw_display.Screen.get_available_raw_input = lock_input(
+        urwid.raw_display.Screen.get_available_raw_input
+    )
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2**24)
 

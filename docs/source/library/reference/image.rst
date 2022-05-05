@@ -2,13 +2,42 @@ Core Library Definitions
 ========================
 
 .. automodule:: term_image.image
-   :members:
-   :imported-members:
-   :show-inheritance:
 
    The ``term_image.image`` subpackage defines the following:
 
+
+   Convenience Functions
+   ---------------------
+
+   These functions automatically detect the best supported render style for the
+   current terminal.
+
+   Since all classes define a common interface, any operation supported by one image
+   class can be performed on any other image class, except stated otherwise.
+
+   .. autofunction:: AutoImage
+
+   .. autofunction:: from_file
+
+   .. autofunction:: from_url
+
+
+   Image Classes
+   -------------
+
    .. note:: It's allowed to set properties for :term:`animated` images on non-animated ones, the values are simply ignored.
+
+   .. autoclass:: BaseImage
+      :members:
+      :show-inheritance:
+
+   .. autoclass:: TermImage
+      :members:
+      :show-inheritance:
+
+   .. autoclass:: ImageIterator
+      :members:
+      :show-inheritance:
 
 |
 

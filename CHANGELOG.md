@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] A common interface to be shared across all image classes ([#34]).
 - [lib] `BaseImage`, the baseclass of all image classes ([#34]).
 - [lib] `is_supported()` class method for render style support detection ([#34]).
+- [lib] Convenience functions for automatic render style selection ([#37]).
+  - `AutoImage()`, `from_file()` and `from_url()` in `term_image.image`.
+- [cli,tui] `--style` command-line option for render style selection ([#37]).
+- [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
 
 ### Changed
 - [lib] `TermImage` is now a subclass of `BaseImage` ([#34]).
 - [lib] Instantiation via the class constructor now initializes the seek position of animated images to the current seek position of the given PIL image ([#34]).
+- [lib] On UNIX, the library now attempts to determine the proper terminal device to use when standard streams are redirected to files or pipes ([#36]).
 
 [#34]: https://github.com/AnonymouX47/term-image/pull/34
+[#36]: https://github.com/AnonymouX47/term-image/pull/36
+[#37]: https://github.com/AnonymouX47/term-image/pull/37
 
 
 ## [0.3.1] - 2022-05-04

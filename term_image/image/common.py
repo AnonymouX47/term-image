@@ -16,7 +16,6 @@ from enum import Enum
 from functools import wraps
 from operator import gt, mul, sub
 from random import randint
-from shutil import get_terminal_size
 from types import FunctionType, TracebackType
 from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlparse
@@ -27,6 +26,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_font_ratio
 from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
+from ..utils import get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
@@ -37,6 +37,7 @@ _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", r
 _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 
+@no_redecorate
 def _close_validated(func: FunctionType) -> FunctionType:
     """Decorates an instance method of an image class to check if the instance has
     been finalized, before performing an operation with the instance.
@@ -44,18 +45,14 @@ def _close_validated(func: FunctionType) -> FunctionType:
     Raises:
         TermImageException: The instance has been finalized.
     """
-    if getattr(func, "_close_validated", False):
-        return func
 
     @wraps(func)
-    def validator(self, *args, **kwargs):
+    def close_validated_wrapper(self, *args, **kwargs):
         if self._closed:
             raise TermImageException("This image has been finalized")
-
         return func(self, *args, **kwargs)
 
-    validator._close_validated = True
-    return validator
+    return close_validated_wrapper
 
 
 class ImageSource(Enum):

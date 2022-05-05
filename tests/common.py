@@ -1,13 +1,13 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
 from operator import gt, lt
-from shutil import get_terminal_size
 from types import SimpleNamespace
 
 from PIL import Image
 
 from term_image import set_font_ratio
 from term_image.image.common import _ALPHA_THRESHOLD
+from term_image.utils import get_terminal_size
 
 columns, lines = get_terminal_size()
 
