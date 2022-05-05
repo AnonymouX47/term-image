@@ -172,30 +172,6 @@ def lock_input(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def unix_tty_only(func: Callable) -> FunctionType:
-    """Any decorated callable always returns ``None`` on a non-unix-like platform
-    or when there is no :term:`active terminal`.
-
-    Args:
-        func: The object to be decorated.
-
-    Returns:
-        The wrapper.
-    """
-
-    @wraps(func)
-    def unix_only_wrapper(*args, **kwargs):
-        return _tty and func(*args, **kwargs)
-
-    unix_only_wrapper.__doc__ += """
-    NOTE:
-        Currently works on UNIX only, always returns ``None`` on any other flatform.
-    """
-
-    return unix_only_wrapper
-
-
-@no_redecorate
 def terminal_size_cached(func: Callable) -> FunctionType:
     """Enables return value caching on the decorated callable, based on the current
     size of the :term:`active terminal`.
@@ -231,6 +207,30 @@ def terminal_size_cached(func: Callable) -> FunctionType:
     lock = RLock()
 
     return terminal_size_cached_wrapper
+
+
+@no_redecorate
+def unix_tty_only(func: Callable) -> FunctionType:
+    """Any decorated callable always returns ``None`` on a non-unix-like platform
+    or when there is no :term:`active terminal`.
+
+    Args:
+        func: The object to be decorated.
+
+    Returns:
+        The wrapper.
+    """
+
+    @wraps(func)
+    def unix_only_wrapper(*args, **kwargs):
+        return _tty and func(*args, **kwargs)
+
+    unix_only_wrapper.__doc__ += """
+    NOTE:
+        Currently works on UNIX only, always returns ``None`` on any other flatform.
+    """
+
+    return unix_only_wrapper
 
 
 # Non-decorators
