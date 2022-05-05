@@ -10,6 +10,9 @@ Below are definitions of terms used across the library's public interface, excep
 .. glossary::
    :sorted:
 
+   active terminal
+      The first terminal device discovered upon loading the package. See :ref:`here <active-terminal>`.
+
    alignment
       The position to place a rendered image within its padding.
 

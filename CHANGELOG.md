@@ -13,8 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [lib] `TermImage` is now a subclass of `BaseImage` ([#34]).
 - [lib] Instantiation via the class constructor now initializes the seek position of animated images to the current seek position of the given PIL image ([#34]).
+- [lib] On UNIX, the library now attempts to determine the proper terminal device to use when standard streams are redirected to files or pipes ([#36]).
 
 [#34]: https://github.com/AnonymouX47/term-image/pull/34
+[#36]: https://github.com/AnonymouX47/term-image/pull/36
 
 
 ## [0.3.1] - 2022-05-04

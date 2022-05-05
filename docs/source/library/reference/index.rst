@@ -7,6 +7,7 @@ Reference
 
    image
    exceptions
+   utils
 
 Top-Level Functions
 -------------------
