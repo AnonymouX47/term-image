@@ -9,8 +9,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_image import set_font_ratio
-from term_image.exceptions import InvalidSize
-from term_image.image import ImageIterator, TermImage
+from term_image.exceptions import InvalidSize, TermImageException
 from term_image.image import ImageIterator, ImageSource, TermImage
 
 from .common import _size, columns, lines, python_img, setup_common
@@ -323,6 +322,22 @@ class TestProperties:
             image.source == os.path.abspath(python_sym) != os.path.realpath(python_sym)
         )
         assert image.source_type is ImageSource.FILE_PATH
+
+
+def test_close():
+    image = TermImage(python_img)
+    image.close()
+    assert image.closed
+    with pytest.raises(AttributeError):
+        image._source
+    with pytest.raises(TermImageException):
+        image.source
+    with pytest.raises(TermImageException):
+        str(image)
+    with pytest.raises(TermImageException):
+        format(image)
+    with pytest.raises(TermImageException):
+        image.draw()
 
 
 def test_context_management():

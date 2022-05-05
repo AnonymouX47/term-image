@@ -49,6 +49,9 @@ def test_source():
 
 def test_close():
     image = TermImage.from_url(python_url)
-    assert os.path.exists(image._source)
+    source = image._source
+
     image.close()
-    assert not os.path.exists(image._source)
+    assert not os.path.exists(source)
+    with pytest.raises(AttributeError):
+        image._url
