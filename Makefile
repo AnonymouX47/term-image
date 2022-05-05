@@ -30,7 +30,7 @@ lint:
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
-test: test-base test-iterator
+test: test-base test-iterator test-others
 
 test-text: test-term
 
@@ -39,6 +39,9 @@ test-base:
 
 test-iterator:
 	python -m pytest -v tests/test_image_iterator.py
+
+test-others:
+	python -m pytest -v tests/test_others.py
 
 test-term:
 	python -m pytest -v tests/test_term.py

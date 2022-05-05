@@ -12,7 +12,7 @@ import urwid
 
 from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
-from ..image import TermImage
+from ..image import BaseImage
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
@@ -170,7 +170,7 @@ class Image(urwid.Widget):
 
     _alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
 
-    def __init__(self, image: TermImage):
+    def __init__(self, image: BaseImage):
         self._image = image
 
     def keypress(self, size: Tuple[int, int], key: str) -> str:

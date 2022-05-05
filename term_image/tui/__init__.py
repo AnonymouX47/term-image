@@ -23,6 +23,7 @@ def init(
     args: argparse.Namespace,
     images: Iterable[Tuple[str, Union[Image, Iterator]]],
     contents: dict,
+    ImageClass: type,
 ) -> None:
     """Initializes the TUI"""
     global is_launched
@@ -45,6 +46,7 @@ def init(
     main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
+    main.ImageClass = ImageClass
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
 
