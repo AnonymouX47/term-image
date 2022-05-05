@@ -11,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from term_image import set_font_ratio
 from term_image.exceptions import InvalidSize
 from term_image.image import ImageIterator, TermImage
+from term_image.image import ImageIterator, ImageSource, TermImage
 
 from .common import _size, columns, lines, python_img, setup_common
 
@@ -49,6 +50,7 @@ class TestConstructor:
         assert isinstance(image._scale, list)
         assert image._scale == [1.0, 1.0]
         assert image._source is python_img
+        assert image._source_type is ImageSource.PIL_IMAGE
         assert isinstance(image._original_size, tuple)
         assert image._original_size == python_img.size
 
@@ -99,6 +101,7 @@ class TestFromFile:
         image = TermImage.from_file(python_image)
         assert isinstance(image, TermImage)
         assert image._source == os.path.abspath(python_image)
+        assert image._source_type is ImageSource.FILE_PATH
 
     @pytest.mark.skipif(
         not os.path.islink(python_sym),
@@ -108,6 +111,8 @@ class TestFromFile:
     def test_symlink(self):
         image = TermImage.from_file(python_sym)
         assert isinstance(image, TermImage)
+        assert image._source == os.path.abspath(python_sym)
+        assert image._source_type is ImageSource.FILE_PATH
 
 
 class TestProperties:
@@ -297,9 +302,11 @@ class TestProperties:
     def test_source(self):
         image = TermImage(python_img)
         assert image.source is python_img
+        assert image.source_type is ImageSource.PIL_IMAGE
 
         image = TermImage.from_file(python_image)
         assert image.source == os.path.abspath(python_image)
+        assert image.source_type is ImageSource.FILE_PATH
 
         with pytest.raises(AttributeError):
             image.source = None
@@ -315,6 +322,7 @@ class TestProperties:
         assert (
             image.source == os.path.abspath(python_sym) != os.path.realpath(python_sym)
         )
+        assert image.source_type is ImageSource.FILE_PATH
 
 
 def test_context_management():
