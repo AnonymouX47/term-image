@@ -72,7 +72,7 @@ class ImageSource(Enum):
         value of enum members, because some would normally compare equal.
         """
 
-        def __init__(self, *args):
+        def __init__(self, *_):
             self._str = super().__str__()
 
         def __eq__(*_):
@@ -85,8 +85,13 @@ class ImageSource(Enum):
         __ne__ = __eq__
         __ascii__ = __str__ = __repr__
 
+    #: The instance was derived from a path to a local image file.
     FILE_PATH = _SourceAttr("_source")
+
+    #: The instance was derived from a PIL image instance.
     PIL_IMAGE = _SourceAttr("_source")
+
+    #: The instance was derived from an image URL.
     URL = _SourceAttr("_url")
 
 
