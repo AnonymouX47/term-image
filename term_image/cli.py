@@ -27,6 +27,7 @@ from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
+from .utils import OS_IS_UNIX
 
 
 def check_dir(
@@ -1107,9 +1108,7 @@ FOOTNOTES:
     )
     opener.start()
 
-    os_is_unix = sys.platform not in {"win32", "cygwin"}
-
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
@@ -1134,7 +1133,7 @@ FOOTNOTES:
             if args.cli:
                 log(f"Skipping directory {source!r}", logger, verbose=True)
                 continue
-            if not os_is_unix:
+            if not OS_IS_UNIX:
                 dir_images = True
                 continue
             dir_queue.put(("", [], source, 0))
@@ -1145,7 +1144,7 @@ FOOTNOTES:
     for _ in range(args.getters):
         url_queue.put(None)
     file_queue.put(None)
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         if logging.MULTI and args.checkers > 1:
             dir_queue.sources_finished = True
         else:
@@ -1154,14 +1153,14 @@ FOOTNOTES:
     for getter in getters:
         getter.join()
     opener.join()
-    if os_is_unix and not args.cli:
+    if OS_IS_UNIX and not args.cli:
         check_manager.join()
 
     notify.stop_loading()
     while notify.is_loading():
         pass
 
-    if not os_is_unix and dir_images:
+    if not OS_IS_UNIX and dir_images:
         log(
             "Directory sources skipped, not supported on Windows!",
             logger,
@@ -1244,7 +1243,7 @@ FOOTNOTES:
             # or padding width/height checks.
             except ValueError as e:
                 notify.notify(str(e), level=notify.ERROR)
-    elif os_is_unix:
+    elif OS_IS_UNIX:
         notify.end_loading()
         tui.init(args, images, contents, ImageClass)
     else:

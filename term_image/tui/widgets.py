@@ -6,7 +6,6 @@ import logging as _logging
 from math import ceil
 from operator import floordiv, mul, sub
 from os.path import basename
-from shutil import get_terminal_size
 from typing import List, Optional, Tuple
 
 import urwid
@@ -15,6 +14,7 @@ from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import BaseImage
 from ..image.common import _ALPHA_THRESHOLD
+from ..utils import get_terminal_size
 from . import keys, main as tui_main
 from .render import grid_render_queue, image_render_queue
 
