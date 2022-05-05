@@ -4,7 +4,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_image.exceptions import URLNotFoundError
-from term_image.image import BaseImage, TermImage, from_url
+from term_image.image import BaseImage, ImageSource, TermImage, from_url
 
 python_image = "tests/images/python.png"
 python_url = (
@@ -30,6 +30,7 @@ def test_from_url():
     assert isinstance(image, TermImage)
     assert image._url == python_url
     assert os.path.exists(image._source)
+    assert image._source_type is ImageSource.URL
 
     # Ensure size arguments get through
     with pytest.raises(ValueError, match=r".* both width and height"):
@@ -42,14 +43,18 @@ def test_from_url():
 
 def test_source():
     image = TermImage.from_url(python_url)
-    assert image._url == python_url
+    assert image.source == image._url == python_url
+    assert image.source_type is ImageSource.URL
 
 
 def test_close():
     image = TermImage.from_url(python_url)
-    assert os.path.exists(image._source)
+    source = image._source
+
     image.close()
-    assert not os.path.exists(image._source)
+    assert not os.path.exists(source)
+    with pytest.raises(AttributeError):
+        image._url
 
 
 class TestConvinience:

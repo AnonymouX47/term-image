@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("BaseImage", "ImageIterator")
+__all__ = ("ImageSource", "BaseImage", "ImageIterator")
 
 import io
 import os
@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from abc import ABC, abstractmethod
+from enum import Enum
 from functools import wraps
 from operator import gt, mul, sub
 from random import randint
@@ -52,6 +53,46 @@ def _close_validated(func: FunctionType) -> FunctionType:
         return func(self, *args, **kwargs)
 
     return close_validated_wrapper
+
+
+class ImageSource(Enum):
+    """Image source type.
+
+    NOTE:
+        The values of the enumeration members are implementation details and might
+        change at anytime.
+        Any comparison should be by identity of the members themselves.
+    """
+
+    class _SourceAttr(str):
+        """A string that only compares equal to itself but returns the original hash of
+        the string.
+
+        Used to store the attribute that holds the value for ``image.source`` as the
+        value of enum members, because some would normally compare equal.
+        """
+
+        def __init__(self, *_):
+            self._str = super().__str__()
+
+        def __eq__(*_):
+            return NotImplemented
+
+        def __repr__(self):
+            return "<hidden>"
+
+        __hash__ = str.__hash__
+        __ne__ = __eq__
+        __ascii__ = __str__ = __repr__
+
+    #: The instance was derived from a path to a local image file.
+    FILE_PATH = _SourceAttr("_source")
+
+    #: The instance was derived from a PIL image instance.
+    PIL_IMAGE = _SourceAttr("_source")
+
+    #: The instance was derived from an image URL.
+    URL = _SourceAttr("_url")
 
 
 class BaseImage(ABC):
@@ -110,6 +151,7 @@ class BaseImage(ABC):
 
         self._closed = False
         self._source = image
+        self._source_type = ImageSource.PIL_IMAGE
         self._original_size = image.size
         if width is None is height:
             self._size = None
@@ -160,14 +202,11 @@ class BaseImage(ABC):
         return ImageIterator(self, 1, "1.1", False)
 
     def __repr__(self) -> str:
-        return (
-            "<{}(source={!r}, original_size={}, size={}, scale={}, is_animated={})>"
-        ).format(
+        return "<{}: source_type={} size={} scale={} is_animated={}>".format(
             type(self).__name__,
-            (self._url if hasattr(self, "_url") else self._source),
-            self._original_size,
-            self._size,
-            self.scale,  # Stored as a list but should be shown as a tuple
+            self._source_type.name,
+            self._size and "x".join(map(str, self._size)),
+            "x".join(format(x, ".2") for x in self._scale),
             self._is_animated,
         )
 
@@ -351,11 +390,22 @@ class BaseImage(ABC):
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
-        lambda self: (self._url if hasattr(self, "_url") else self._source),
+        _close_validated(lambda self: getattr(self, self._source_type.value)),
         doc="""
-        The :term:`source` from which the instance was initialized
+        The :term:`source` from which the instance was initialized.
 
-        Can be a PIL image, file path or URL.
+        Returns:
+            A PIL image, file path or URL.
+        """,
+    )
+
+    source_type = property(
+        lambda self: self._source_type,
+        doc="""
+        The kind of :term:`source` from which the instance was initialized.
+
+        Returns:
+            A member of :py:class:`ImageSource`.
         """,
     )
 
@@ -397,15 +447,15 @@ class BaseImage(ABC):
         """
         try:
             if not self._closed:
-                if (
-                    hasattr(self, "_url")
-                    # The file might not exist for whatever reason.
-                    and os.path.exists(self._source)
-                ):
-                    os.remove(self._source)
+                if self._source_type is ImageSource.URL:
+                    try:
+                        os.remove(self._source)
+                    except FileNotFoundError:
+                        pass
+                    del self._url
+                del self._source
         except AttributeError:
-            # Instance creation or initialization was unsuccessful
-            pass
+            pass  # Instance creation or initialization was unsuccessful
         finally:
             self._closed = True
 
@@ -608,6 +658,7 @@ class BaseImage(ABC):
         # Absolute paths work better with symlinks, as opposed to real paths:
         # less confusing, Filename is as expected, helps in path comparisons
         new._source = os.path.abspath(filepath)
+        new._source_type = ImageSource.FILE_PATH
         return new
 
     @classmethod
@@ -672,6 +723,7 @@ class BaseImage(ABC):
             image_writer.write(response.content)
 
         new._source = filepath
+        new._source_type = ImageSource.URL
         new._url = url
         return new
 

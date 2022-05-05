@@ -8,6 +8,7 @@ __all__ = (
     "AutoImage",
     "from_file",
     "from_url",
+    "ImageSource",
     "BaseImage",
     "TermImage",
     "ImageIterator",
@@ -17,7 +18,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from .common import BaseImage, ImageIterator  # noqa:F401
+from .common import BaseImage, ImageIterator, ImageSource  # noqa:F401
 from .term import TermImage  # noqa:F401
 
 
