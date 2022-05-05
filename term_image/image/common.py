@@ -388,7 +388,7 @@ class BaseImage(ABC):
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
-        lambda self: getattr(self, self._source_type.value),
+        _close_validated(lambda self: getattr(self, self._source_type.value)),
         doc="""
         The :term:`source` from which the instance was initialized.
 
@@ -445,15 +445,15 @@ class BaseImage(ABC):
         """
         try:
             if not self._closed:
-                if (
-                    hasattr(self, "_url")
-                    # The file might not exist for whatever reason.
-                    and os.path.exists(self._source)
-                ):
-                    os.remove(self._source)
+                if self._source_type is ImageSource.URL:
+                    try:
+                        os.remove(self._source)
+                    except FileNotFoundError:
+                        pass
+                    del self._url
+                del self._source
         except AttributeError:
-            # Instance creation or initialization was unsuccessful
-            pass
+            pass  # Instance creation or initialization was unsuccessful
         finally:
             self._closed = True
 
