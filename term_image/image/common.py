@@ -388,7 +388,12 @@ class BaseImage(ABC):
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
-        lambda self: (self._url if hasattr(self, "_url") else self._source),
+        lambda self: getattr(self, self._source_type.value),
+        doc="""
+        The :term:`source` from which the instance was initialized.
+
+        Returns:
+            A PIL image, file path or URL.
         """,
     )
 
