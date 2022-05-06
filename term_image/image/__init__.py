@@ -10,6 +10,7 @@ __all__ = (
     "from_url",
     "ImageSource",
     "BaseImage",
+    "KittyImage",
     "TermImage",
     "ImageIterator",
 )
@@ -19,6 +20,7 @@ from typing import Optional, Tuple, Union
 import PIL
 
 from .common import BaseImage, ImageIterator, ImageSource  # noqa:F401
+from .kitty import KittyImage  # noqa:F401
 from .term import TermImage  # noqa:F401
 
 
@@ -74,4 +76,5 @@ def _best_style():
     return cls
 
 
-_styles = (TermImage,)
+# In order of preference
+_styles = (KittyImage, TermImage)
