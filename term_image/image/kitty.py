@@ -2,10 +2,13 @@ from __future__ import annotations
 
 __all__ = ("KittyImage",)
 
-from dataclasses import dataclass
+import io
+from base64 import standard_b64encode
+from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
-from typing import Optional, Tuple
+from typing import Generator, Optional, Tuple
+from zlib import compress, decompress
 
 import PIL
 
@@ -69,6 +72,66 @@ class KittyImage(BaseImage):
             if pixels is not None
             else lines * (get_cell_size() or (1, 2))[1]
         )
+
+
+@dataclass
+class Transmission:
+    """An abstraction of the kitty terminal graphics escape code.
+
+    Args:
+        control: The control data.
+        payload: The payload.
+    """
+
+    control: ControlData
+    payload: bytes
+
+    def __post_init__(self):
+        self._compressed = False
+        if self.control.o == o.ZLIB:
+            self.compress()
+
+    def compress(self):
+        if self.control.t == t.DIRECT and not self._compressed:
+            self.payload = compress(self.payload)
+            self.control.o = o.ZLIB
+            self._compressed = True
+
+    def decompress(self):
+        if self.control.t == t.DIRECT and self._compressed:
+            self.control.o = None
+            self.payload = decompress(self.payload)
+            self._compressed = False
+
+    def encode(self) -> bytes:
+        return standard_b64encode(self.payload)
+
+    def get_chunked(self) -> str:
+        return "".join(self.get_chunks())
+
+    def get_chunks(self, size: int = 4096) -> Generator[str, None, None]:
+        payload = self.get_payload()
+
+        chunk, next_chunk = payload.read(size), payload.read(size)
+        yield f"\033_G{self.get_control_data()},m={bool(next_chunk):d};{chunk}\033\\"
+
+        chunk, next_chunk = next_chunk, payload.read(size)
+        while next_chunk:
+            yield f"\033_Gm=1;{chunk}\033\\"
+            chunk, next_chunk = next_chunk, payload.read(size)
+
+        if chunk:  # false if there was never a next chunk
+            yield f"\033_Gm=0;{chunk}\033\\"
+
+    def get_control_data(self) -> str:
+        return ",".join(
+            f"{key}={value}"
+            for key, value in asdict(self.control).items()
+            if value is not None
+        )
+
+    def get_payload(self) -> io.StringIO:
+        return io.StringIO(self.encode().decode("ascii"))
 
 
 # Values for control data keys with limited set of values
@@ -155,3 +218,8 @@ class _ControlData:  # Currently Unused
     # # crop rectangle size
     w: Optional[int] = None
     h: Optional[int] = None
+
+
+_START = "\033_G"
+_END = "\033\\"
+_FMT = f"{_START}%(control)s;%(payload)s{_END}"
