@@ -1159,28 +1159,24 @@ class BaseImage(ABC):
                 raise ValueError("Image size or scale too small") from None
             rgb = tuple(img.getdata())
             a = (255,) * (width * height)
-            alpha = None
         else:
             try:
                 img = img.convert("RGBA").resize((width, height))
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
+
             if isinstance(alpha, str):
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
                 if img is not self._source:
                     img.close()
-                img = bg
-                alpha = None
-            rgb = tuple(img.convert("RGB").getdata())
-            if alpha is None:
+                img = bg.convert("RGB")
                 a = (255,) * (width * height)
             else:
                 alpha = round(alpha * 255)
                 a = [0 if val < alpha else val for val in img.getdata(3)]
-                # To distinguish `0.0` from `None` in truth value tests
-                if alpha == 0.0:
-                    alpha = True
+
+            rgb = tuple(img.convert("RGB").getdata())
 
         return img, rgb, a
 
