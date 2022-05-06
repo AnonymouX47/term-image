@@ -7,7 +7,7 @@ from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
-from typing import Generator, Optional, Tuple
+from typing import Generator, Optional, Tuple, Union
 from zlib import compress, decompress
 
 import PIL
@@ -72,6 +72,40 @@ class KittyImage(BaseImage):
             if pixels is not None
             else lines * (get_cell_size() or (1, 2))[1]
         )
+
+    def _render_image(
+        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+    ) -> str:
+        # NOTE:
+        # It's more efficient to write separate strings to the buffer separately
+        # than concatenate and write together.
+
+        buffer = io.StringIO()
+        # Eliminate attribute resolution cost
+        buf_write = buffer.write
+
+        img = self._get_render_data(img, alpha)[0]
+        format = getattr(f, img.mode)
+        raw_image = io.BytesIO(img.tobytes())
+
+        # clean up
+        if img is not self._source:
+            img.close()
+
+        width, height = self._get_render_size()
+        cell_height = get_cell_size()[1]
+        pixels_per_line = width * cell_height * (format // 8)
+        control_data = ControlData(f=format, s=width, v=cell_height)
+
+        with buffer, raw_image:
+            trans = Transmission(control_data, raw_image.read(pixels_per_line))
+            buf_write(trans.get_chunked())
+            for _ in range(self.rendered_height - 1):
+                buf_write("\n")
+                trans = Transmission(control_data, raw_image.read(pixels_per_line))
+                buf_write(trans.get_chunked())
+
+            return buffer.getvalue()
 
 
 @dataclass
