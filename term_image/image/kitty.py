@@ -2,10 +2,14 @@ from __future__ import annotations
 
 __all__ = ("KittyImage",)
 
+from math import ceil
+from operator import mul
+from typing import Optional, Tuple
+
 import PIL
 
 from ..exceptions import TermImageException
-from ..utils import query_terminal
+from ..utils import get_cell_size, query_terminal
 from .common import BaseImage
 
 
@@ -41,3 +45,26 @@ class KittyImage(BaseImage):
             cls._supported = bool(response and response.rpartition(b"\033")[0])
 
         return cls._supported
+
+    def _get_render_size(self) -> Tuple[int, int]:
+        return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
+
+    @staticmethod
+    def _pixels_cols(
+        *, pixels: Optional[int] = None, cols: Optional[int] = None
+    ) -> int:
+        return (
+            ceil(pixels // (get_cell_size() or (1, 2))[0])
+            if pixels is not None
+            else cols * (get_cell_size() or (1, 2))[0]
+        )
+
+    @staticmethod
+    def _pixels_lines(
+        *, pixels: Optional[int] = None, lines: Optional[int] = None
+    ) -> int:
+        return (
+            ceil(pixels // (get_cell_size() or (1, 2))[1])
+            if pixels is not None
+            else lines * (get_cell_size() or (1, 2))[1]
+        )
