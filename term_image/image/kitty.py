@@ -82,11 +82,27 @@ class KittyImage(BaseImage):
         # It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
-        buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
+        # Using `c` and `r` ensures that an image always occupies the correct amount
+        # of columns and lines even if the cell size has changed when it's drawn.
+        # Since we use `c` and `r` control data keys, there's no need upscaling the
+        # image on this end; ensures minimal payload.
 
-        img = self._get_render_data(img, alpha)[0]
+        render_size = self._get_render_size()
+        r_width, r_height = self.rendered_size
+        width, height = (
+            render_size
+            if mul(*render_size) < mul(*self._original_size)
+            else self._original_size
+        )
+
+        # When `_original_size` is used, ensure the height is a multiple of the rendered
+        # height, so that pixels can be evenly distributed among all lines.
+        extra = height % r_height
+        if extra:
+            # Incremented to the greater multiple to avoid losing any data
+            height = height - extra + r_height
+
+        img = self._get_render_data(img, alpha, size=(width, height))[0]
         format = getattr(f, img.mode)
         raw_image = io.BytesIO(img.tobytes())
 
@@ -94,18 +110,23 @@ class KittyImage(BaseImage):
         if img is not self._source:
             img.close()
 
-        width, height = self._get_render_size()
-        cell_height = get_cell_size()[1]
-        pixels_per_line = width * cell_height * (format // 8)
-        control_data = ControlData(f=format, s=width, v=cell_height)
+        cell_height = height // r_height
+        bytes_per_line = width * cell_height * (format // 8)
 
-        with buffer, raw_image:
-            trans = Transmission(control_data, raw_image.read(pixels_per_line))
-            buf_write(trans.get_chunked())
-            for _ in range(self.rendered_height - 1):
-                buf_write("\n")
-                trans = Transmission(control_data, raw_image.read(pixels_per_line))
-                buf_write(trans.get_chunked())
+        with io.StringIO() as buffer, raw_image:
+            control_data = ControlData(f=format, s=width, v=cell_height, c=r_width, r=1)
+            trans = Transmission(control_data, raw_image.read(bytes_per_line))
+
+            buffer.write("\0337")  # Save cursor position
+            buffer.write(trans.get_chunked())
+            for _ in range(r_height - 1):
+                # Restore last saved cursor position, write spaces behind the image and
+                # save the cursor position for the next line.
+                # Writing spaces clears any text under transparent areas of an image.
+                buffer.write(f"\0338{' ' * r_width}\n\0337")
+                trans = Transmission(control_data, raw_image.read(bytes_per_line))
+                buffer.write(trans.get_chunked())
+            buffer.write(f"\0338{' ' * r_width}")
 
             return buffer.getvalue()
 
