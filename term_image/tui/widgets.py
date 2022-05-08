@@ -264,11 +264,13 @@ class Image(urwid.Widget):
                     canv = __class__._placeholder.render(size)
                 self._frame_changed = False
                 self._frame_size_hash = hash(size)
+                tui_main.ImageClass._clear_images() and ImageCanvas.change()
             elif hash(size) != self._frame_size_hash:
                 # If size changed, re-render the current frame the usual way,
                 # with the new size
                 self._frame = f"{image:1.1{self._alpha}}"
                 self._frame_size_hash = hash(size)
+                tui_main.ImageClass._clear_images() and ImageCanvas.change()
             canv = ImageCanvas(
                 self._frame.encode().split(b"\n"), size, image.rendered_size
             )
@@ -288,6 +290,7 @@ class Image(urwid.Widget):
             if (self, size, self._alpha) != __class__._rendering_image_info:
                 image_render_queue.put((self, size, self._alpha))
             canv = __class__._placeholder.render(size)
+            tui_main.ImageClass._clear_images()
 
         return canv
 

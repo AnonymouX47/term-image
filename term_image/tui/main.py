@@ -33,6 +33,7 @@ from .keys import (
 from .render import grid_render_queue
 from .widgets import (
     Image,
+    ImageCanvas,
     LineSquare,
     MenuEntry,
     image_box,
@@ -183,6 +184,7 @@ def display_images(
             image_box.original_widget = placeholder  # For image animation
             image_box.set_title("Image")
             view.original_widget = image_box
+            ImageClass._clear_images()
 
         elif pos == OPEN:  # Implements "menu::Open" action (for non-image entries)
             if prev_pos == -1:
@@ -319,6 +321,8 @@ def display_images(
                 # GridScanner in the course of generating the display widget.
                 grid_acknowledge.wait()
 
+            ImageClass._clear_images() and ImageCanvas.change()
+
         prev_pos = pos
         pos = yield
         while pos == prev_pos:
@@ -364,6 +368,8 @@ def process_input(key: str) -> bool:
             set_context("menu")
             menu_nav()
             found = True
+            if get_prev_context() == "image":  # Too glitchy for the grid
+                ImageClass._clear_images() and ImageCanvas.change()
         elif _context == "menu":
             if viewer.focus_position == 1:
                 if not context_keys["menu"]["Switch Pane"][4]:
@@ -373,6 +379,7 @@ def process_input(key: str) -> bool:
                     if view.original_widget is image_box:
                         set_context("image")
                         set_image_view_actions()
+                        ImageClass._clear_images() and ImageCanvas.change()
                     else:
                         set_context("image-grid")
                         set_image_grid_actions()
