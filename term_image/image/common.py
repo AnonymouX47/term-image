@@ -1054,6 +1054,7 @@ class BaseImage(ABC):
             duration = self._frame_duration
             start = time.time()
             for frame in image_it._animate(img, alpha, fmt):
+                self._clear_images()
                 print(frame, end="", flush=True)  # Current frame
 
                 # Left-over of current frame's duration
