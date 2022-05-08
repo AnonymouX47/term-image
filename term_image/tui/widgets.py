@@ -294,6 +294,7 @@ class Image(urwid.Widget):
 
 class ImageCanvas(urwid.Canvas):
     cacheable = False
+    _change = False
 
     def __init__(
         self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
@@ -321,7 +322,7 @@ class ImageCanvas(urwid.Canvas):
 
         fill = b" " * cols
         pad_left = b" " * pad_left
-        pad_right = b" " * pad_right
+        pad_right = b" " * pad_right + b"\b " * self._change
 
         # Upper padding reduces when the top is trimmed
         for _ in range(pad_up - trim_top):
@@ -340,6 +341,20 @@ class ImageCanvas(urwid.Canvas):
         # otherwise only _rows_ rows of padding
         for _ in range(min(rows, pad_down)):
             yield [(None, "U", fill)]
+
+    @classmethod
+    def change(cls):
+        """Causes the canvas to embed or not embed some hidden text on every line of
+        the image, such that every line of the image is seen as different in each state.
+
+        ``urwid`` will not redraw lines that have not changed since the last redaw.
+        So this is to trick ``urwid`` into taking every line containing a part of an
+        image as different in each state.
+
+        This is used to force redraws of all images on screen, particularly when their
+        positions do not change much e.g when images need to be cleared in kitty.
+        """
+        cls._change = not cls._change
 
 
 class LineSquare(urwid.LineBox):
