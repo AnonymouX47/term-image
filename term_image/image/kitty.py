@@ -27,6 +27,8 @@ class KittyImage(BaseImage):
     See :py:class:`BaseImage` for the complete description of the constructor.
     """
 
+    _pixel_ratio = 1.0  # Size unit conversion already involves cell size calculation
+
     def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
         if not self.is_supported():
             raise TermImageException(
