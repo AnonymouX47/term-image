@@ -34,6 +34,8 @@ class GridListBox(urwid.ListBox):
         self._grid_path = None
         self._ncontent = 0
         self._page_ncell = 1  # Used by GridScanner
+        self._topmost = None
+        self._top_trim = 0
 
         return super().__init__(self._grid_contents((grid.cell_width,)))
 
@@ -60,6 +62,21 @@ class GridListBox(urwid.ListBox):
 
         _row_pos = self.focus_position
         transfer_col_pos = False
+
+        visible = self.calculate_visible(size)
+        if visible[0]:
+            (_, middle, *_), (top_trim, top), _ = visible
+            topmost = top[-1][0] if top else middle
+        else:
+            topmost = top_trim = None
+
+        if self._grid_path == grid_path and not (
+            self._topmost is topmost and self._top_trim == top_trim
+        ):
+            tui_main.ImageClass._clear_images() and ImageCanvas.change()
+
+        self._topmost = topmost
+        self._top_trim = top_trim
 
         if (
             self._grid_path != grid_path  # Different grids
