@@ -1020,6 +1020,14 @@ class BaseImage(ABC):
             raise ValueError(f"Scale value out of range (got: {value})")
         return value
 
+    @classmethod
+    def _clear_images(self, *args, **kwargs) -> bool:
+        """Used by some graphics-protocol-based styles to clear images on-screen.
+
+        Any overriding method should return ``True``.
+        """
+        return False
+
     def _display_animated(
         self,
         img: PIL.Image.Image,

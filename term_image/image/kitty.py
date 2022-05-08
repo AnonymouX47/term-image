@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ("KittyImage",)
 
 import io
+import sys
 from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
 from math import ceil
@@ -51,6 +52,11 @@ class KittyImage(BaseImage):
             cls._supported = bool(response and response.rpartition(b"\033")[0])
 
         return cls._supported
+
+    @classmethod
+    def _clear_images(cls):
+        _stdout_write(b"\033_Ga=d;\033\\")
+        return True
 
     def _get_render_size(self) -> Tuple[int, int]:
         return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
@@ -281,3 +287,4 @@ class _ControlData:  # Currently Unused
 _START = "\033_G"
 _END = "\033\\"
 _FMT = f"{_START}%(control)s;%(payload)s{_END}"
+_stdout_write = sys.stdout.buffer.write
