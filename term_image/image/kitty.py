@@ -97,7 +97,8 @@ class KittyImage(BaseImage):
 
         # When `_original_size` is used, ensure the height is a multiple of the rendered
         # height, so that pixels can be evenly distributed among all lines.
-        extra = height % r_height
+        # If r_height == 0, height == 0, extra == 0; Handled in `_get_render_data()`.
+        extra = height % (r_height or 1)
         if extra:
             # Incremented to the greater multiple to avoid losing any data
             height = height - extra + r_height
