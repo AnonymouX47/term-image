@@ -1131,11 +1131,16 @@ class BaseImage(ABC):
         alpha: Union[None, float, str],
         *,
         size: Optional[Tuple[int, int]] = None,
-    ) -> Tuple[PIL.Image.Image, Tuple[Tuple[int, int, int]], Tuple[int]]:
+        pixel_data: bool = True,
+    ) -> Tuple[
+        PIL.Image.Image, Optional[Tuple[Tuple[int, int, int]]], Optional[Tuple[int]]
+    ]:
         """Returns the PIL image instance and pixel data required to render an image.
 
-        If *size* is given (in pixels), it is used instead of the pixel-equivalent of
-        the image size (or auto size, if size is unset).
+        Args:
+            size: If given (in pixels), it is used instead of the pixel-equivalent of
+              the image size (or auto size, if size is unset).
+            pixel_data: If ``False``, ``None`` is returned for all pixel data.
 
         The returned image is appropriately converted, resized and composited
         (if need be).
@@ -1157,8 +1162,9 @@ class BaseImage(ABC):
                 img = img.convert("RGB").resize((width, height))
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
-            rgb = tuple(img.getdata())
-            a = (255,) * (width * height)
+            if pixel_data:
+                rgb = tuple(img.getdata())
+                a = (255,) * (width * height)
         else:
             try:
                 img = img.convert("RGBA").resize((width, height))
@@ -1171,14 +1177,16 @@ class BaseImage(ABC):
                 if img is not self._source:
                     img.close()
                 img = bg.convert("RGB")
-                a = (255,) * (width * height)
-            else:
+                if pixel_data:
+                    a = (255,) * (width * height)
+            elif pixel_data:
                 alpha = round(alpha * 255)
                 a = [0 if val < alpha else val for val in img.getdata(3)]
 
-            rgb = tuple(img.convert("RGB").getdata())
+            if pixel_data:
+                rgb = tuple(img.convert("RGB").getdata())
 
-        return img, rgb, a
+        return (img, *(pixel_data and (rgb, a) or (None, None)))
 
     @abstractmethod
     def _get_render_size(self) -> Tuple[int, int]:
