@@ -10,6 +10,10 @@ from term_image.image.common import _ALPHA_THRESHOLD
 from .common import *  # noqa:F401
 from .common import _size, setup_common
 
+for name in tuple(globals()):
+    if name.endswith("_Graphic"):
+        del globals()[name]
+
 
 @pytest.mark.order("first")
 def test_setup_common():
