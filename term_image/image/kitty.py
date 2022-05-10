@@ -8,6 +8,7 @@ from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
+from subprocess import run
 from typing import Generator, Optional, Tuple, Union
 from zlib import compress, decompress
 
@@ -26,6 +27,9 @@ class KittyImage(BaseImage):
           support the protocol.
 
     See :py:class:`BaseImage` for the complete description of the constructor.
+
+    ATTENTION:
+        Requires `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
     """
 
     _pixel_ratio = 1.0  # Size unit conversion already involves cell size calculation
@@ -50,6 +54,24 @@ class KittyImage(BaseImage):
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
             cls._supported = bool(response and response.rpartition(b"\033")[0])
+
+            # Currently, only kitty >= 0.20.0 implements the protocol features utilized
+            if cls._supported:
+                result = run(
+                    "kitty +kitten query-terminal --wait-for=0.1 name version",
+                    shell=True,
+                    text=True,
+                    capture_output=True,
+                )
+                name, version = map(
+                    lambda query: query.partition(" ")[2], result.stdout.split("\n", 1)
+                )
+
+                cls._supported = (
+                    not result.returncode
+                    and name == "xterm-kitty"
+                    and tuple(map(int, version.split("."))) >= (0, 20, 0)
+                )
 
         return cls._supported
 
