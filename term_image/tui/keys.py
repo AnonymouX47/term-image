@@ -349,8 +349,11 @@ def resize():
 
 
 def key_bar_rows():
-    # Consider columns occupied by the expand key
-    cols = get_terminal_size()[0] - (5 + 2) * expand_key_is_shown
+    # Consider columns occupied by the expand key and the divider
+    cols = (
+        get_terminal_size()[0]
+        - (len(expand.original_widget.text) + 2) * expand_key_is_shown
+    )
     return key_bar.original_widget.rows((cols,))
 
 

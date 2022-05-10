@@ -446,28 +446,12 @@ logger = _logging.getLogger(__name__)
 placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 menu_box = urwid.LineBox(menu, "List", "left")
-image_grid = urwid.GridFlow(
-    [],
-    cell_width,
-    2,
-    1,
-    "left",
-)
+image_grid = urwid.GridFlow([], cell_width, 2, 1, "left")
 image_box = urwid.LineBox(placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
-view = urwid.AttrMap(
-    image_box,
-    "unfocused box",
-    "focused box",
-)
+view = urwid.AttrMap(image_box, "unfocused box", "focused box")
 viewer = NoSwitchColumns(
-    [
-        (
-            20,
-            urwid.AttrMap(menu_box, "unfocused box", "focused box"),
-        ),
-        view,
-    ]
+    [(20, urwid.AttrMap(menu_box, "unfocused box", "focused box")), view]
 )
 banner = urwid.LineBox(
     urwid.AttrMap(

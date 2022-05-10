@@ -89,18 +89,18 @@ def width_height(image, *, w=None, h=None):
     )
 
 
-def test_str():
+def test_str_All():
     image = ImageClass(python_img, width=_size)
     assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
 
 
-def test_format():
+def test_format_All():
     image = ImageClass(python_img)
     image.set_size()
     assert format(image) == image._format_render(str(image))
 
 
-def test_is_supported():
+def test_is_supported_All():
     assert isinstance(ImageClass.is_supported(), bool)
 
 
@@ -120,7 +120,7 @@ def test_set_render_method_All():
 
 # Size-setting is taken as style-dependent because the major underlying API is
 # style-specific
-class TestSetSize:
+class TestSetSize_All:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
         # Horizontally-oriented
@@ -261,6 +261,22 @@ class TestFontRatio_Text:
                 set_font_ratio(ratio)
                 self.image.set_size()
                 assert proportional(self.image)
+        finally:
+            set_font_ratio(0.5)
+
+
+class TestFontRatio_Graphic:
+    def test_setup(self):
+        type(self).image = ImageClass(python_img)  # Square
+
+    def test_font_ratio_adjustment(self):
+        self.image.set_size()
+        size = self.image.size
+        try:
+            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+                set_font_ratio(ratio)
+                self.image.set_size()
+                assert self.image.size == size
         finally:
             set_font_ratio(0.5)
 

@@ -10,6 +10,10 @@ from term_image.image.common import _ALPHA_THRESHOLD
 from .common import *  # noqa:F401
 from .common import _size, setup_common
 
+for name in tuple(globals()):
+    if name.endswith("_Graphic"):
+        del globals()[name]
+
 
 @pytest.mark.order("first")
 def test_setup_common():
@@ -24,7 +28,7 @@ class TestRender:
     def render_image(self, alpha):
         return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
 
-    def test_transparency(self):
+    def test_size(self):
         self.trans.set_size(height=_size)
         self.trans.scale = 1.0
 
@@ -32,6 +36,10 @@ class TestRender:
         # No '\n' after the last line, hence the `+ 1`
         assert render.count("\n") + 1 == self.trans.height
         assert render.partition("\n")[0].count(" ") == self.trans.width
+
+    def test_transparency(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
         # Transparency enabled
         assert all(
