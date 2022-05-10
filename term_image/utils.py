@@ -518,6 +518,7 @@ _RESET = "\033[0m"
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
 
+_input_lock = RLock()
 _tty: Optional[int] = None
 if OS_IS_UNIX:
     # In order of priority
@@ -545,8 +546,6 @@ if OS_IS_UNIX:
     if _tty:
         if isinstance(_tty, str):
             _tty = os.open(_tty, os.O_RDWR)
-
-        _input_lock = RLock()
 
         Process.start = wraps(Process.start)(_process_start_wrapper)
         Process.run = wraps(Process.run)(_process_run_wrapper)
