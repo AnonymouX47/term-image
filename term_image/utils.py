@@ -69,7 +69,21 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-# Decorators
+# Decorator Classes
+
+
+class ClassInstanceMethod(classmethod):
+    """A method which when invoked via the owner, behaves like a class method
+    and when invoked via an instance, behaves like an instance method.
+    """
+
+    def __get__(self, obj, cls=None):
+        # classmethod just uses cls directly if present.
+        # Otherwise, type(obj) but we're not concerned with that.
+        return super().__get__(None, obj or cls)
+
+
+# Decorator Functions
 
 
 def no_redecorate(decor: Callable) -> FunctionType:

@@ -17,7 +17,7 @@ from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -26,7 +26,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_font_ratio
 from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
-from ..utils import get_terminal_size, no_redecorate
+from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
@@ -131,6 +131,7 @@ class BaseImage(ABC):
     # Data Attributes
 
     _supported = None
+    _render_methods: Set[str] = {}
 
     # Special Methods
 
@@ -731,7 +732,8 @@ class BaseImage(ABC):
     @abstractmethod
     def is_supported(cls) -> bool:
         """Returns ``True`` if the render style or graphics protocol implemented by
-        the invoking class is supported by the terminal. Otherwise, ``False``.
+        the invoking class is supported by the :term:`active terminal`.
+        Otherwise, ``False``.
         """
         raise NotImplementedError
 
@@ -756,6 +758,66 @@ class BaseImage(ABC):
             )
         if self._is_animated:
             self._seek_position = pos
+
+    @ClassInstanceMethod
+    def set_render_method(self_or_cls, method: Optional[str] = None) -> bool:
+        """Sets the render method used by the instances of subclasses providing
+        multiple render methods.
+
+        Args:
+            method: The render method to be set or ``None`` for a reset.
+
+        Returns:
+
+            * ``False``, if the given method is not recognized/implmented by the
+              calling class (or class of the calling instance).
+            * ``True``, if the given method is implemented and has been set or
+              *method* is ``None``.
+
+        Raises:
+            TypeError: *method* is not a string or ``None``.
+
+        See the **Render Methods** section in the description of the subclasses that
+        implement such for their specific usage.
+
+        If called via:
+
+           - the class, sets the class-wide render method.
+           - an instance, sets the instance-specifc render method.
+
+        If *method* is ``None`` and this method is called via:
+
+           - the class, the class-wide render method is reset to the default.
+           - an instance, the instance-specific render method is removed, so that it
+             uses the class-wide render method thenceforth.
+
+        Any instance without a specific render method set, uses the class-wide render
+        method.
+
+        Any class not implementing multiple render methods simply returns ``False``
+        for any value of *method* other than ``None``, so it's safe to blindly try to
+        set a render method for any subclass on another subclass.
+        """
+        if method is not None and not isinstance(method, str):
+            raise TypeError(
+                f"'method' must be a string or `None` (got: {type(method).__name__!r})"
+            )
+
+        if None is not method not in self_or_cls._render_methods:
+            return False
+
+        if not method:
+            if isinstance(self_or_cls, __class__):
+                try:
+                    del self_or_cls._render_method
+                except AttributeError:
+                    pass
+            elif self_or_cls._render_methods:
+                self_or_cls._render_method = self_or_cls._default_render_method
+        else:
+            self_or_cls._render_method = method
+
+        return True
 
     def set_size(
         self,
