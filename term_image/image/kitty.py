@@ -32,6 +32,39 @@ class KittyImage(BaseImage):
 
     See :py:class:`BaseImage` for the complete description of the constructor.
 
+    **Render Methods:**
+
+    ``KittyImage`` provides two methods of :term:`rendering` images, namely:
+
+    lines
+       Renders an image line-by-line i.e the image if evenly split up across
+       the number of line it should occupy and all portions is joined together by
+       ``\\n`` (newline sequence) to give the whole image.
+
+       Pros:
+
+         - Good for use cases where it might be required to trim some lines of the
+           image.
+
+       Cons:
+
+         - Drawing of large (in resolution and pixel density) images might can seem
+           glitchy.
+
+    whole
+       Renders an image all at once i.e the entire image data is encoded into the first
+       line of the :term:`rendered` output, such that the entire image is drawn once
+       by the terminal and still occupies the proper amount of lines and columns.
+
+       Pros:
+
+         - Render results are slighly less (in number of characters) compared to the
+           ``lines`` method since the entire image is encoded at once.
+
+    The render method can be set with
+    :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
+    specified above.
+
     ATTENTION:
         Requires `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
     """
