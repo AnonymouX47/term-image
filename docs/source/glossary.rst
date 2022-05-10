@@ -50,6 +50,7 @@ Below are definitions of terms used across the library's public interface, excep
 
    render
    rendered
+   rendering
       To convert image pixel data into a **string** (optionally including escape sequences to produce colour and transparency).
 
    rendered size
