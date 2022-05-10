@@ -15,7 +15,7 @@ from zlib import compress, decompress
 import PIL
 
 from ..exceptions import TermImageException
-from ..utils import get_cell_size, query_terminal
+from ..utils import get_cell_size, lock_input, query_terminal
 from .common import BaseImage
 
 
@@ -42,6 +42,7 @@ class KittyImage(BaseImage):
         super().__init__(image, **kwargs)
 
     @classmethod
+    @lock_input
     def is_supported(cls):
         if cls._supported is None:
             # Kitty graphics query + terminal attribute query
