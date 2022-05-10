@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
 from subprocess import run
-from typing import Generator, Optional, Tuple, Union
+from typing import Generator, Optional, Set, Tuple, Union
 from zlib import compress, decompress
 
 import PIL
@@ -17,6 +17,10 @@ import PIL
 from ..exceptions import TermImageException
 from ..utils import get_cell_size, lock_input, query_terminal
 from .common import BaseImage
+
+# Constants for ``KittyImage`` render method
+LINES = "lines"
+WHOLE = "whole"
 
 
 class KittyImage(BaseImage):
@@ -32,7 +36,12 @@ class KittyImage(BaseImage):
         Requires `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
     """
 
-    _pixel_ratio = 1.0  # Size unit conversion already involves cell size calculation
+    # Size unit conversion already involves cell size calculation
+    _pixel_ratio: float = 1.0
+
+    _render_methods: Set[str] = {LINES, WHOLE}
+    _default_render_method: str = LINES
+    _render_method: str = LINES
 
     def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
         if not self.is_supported():
@@ -107,10 +116,6 @@ class KittyImage(BaseImage):
     def _render_image(
         self, img: PIL.Image.Image, alpha: Union[None, float, str]
     ) -> str:
-        # NOTE:
-        # It's more efficient to write separate strings to the buffer separately
-        # than concatenate and write together.
-
         # Using `c` and `r` ensures that an image always occupies the correct amount
         # of columns and lines even if the cell size has changed when it's drawn.
         # Since we use `c` and `r` control data keys, there's no need upscaling the
@@ -134,16 +139,33 @@ class KittyImage(BaseImage):
 
         img = self._get_render_data(img, alpha, size=(width, height))[0]
         format = getattr(f, img.mode)
-        raw_image = io.BytesIO(img.tobytes())
+        raw_image = img.tobytes()
 
         # clean up
         if img is not self._source:
             img.close()
 
+        return getattr(self, f"_render_image_{self._render_method}")(
+            raw_image, format, width, height, r_width, r_height
+        )
+
+    @staticmethod
+    def _render_image_lines(
+        raw_image: bytes,
+        format: int,
+        width: int,
+        height: int,
+        r_width: int,
+        r_height: int,
+    ) -> str:
+        # NOTE:
+        # It's more efficient to write separate strings to the buffer separately
+        # than concatenate and write together.
+
         cell_height = height // r_height
         bytes_per_line = width * cell_height * (format // 8)
 
-        with io.StringIO() as buffer, raw_image:
+        with io.StringIO() as buffer, io.BytesIO(raw_image) as raw_image:
             control_data = ControlData(f=format, s=width, v=cell_height, c=r_width, r=1)
             trans = Transmission(control_data, raw_image.read(bytes_per_line))
             fill = " " * r_width
