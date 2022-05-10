@@ -7,6 +7,10 @@ from term_image.image.kitty import LINES, WHOLE, KittyImage
 from .common import *  # noqa:F401
 from .common import python_img, setup_common
 
+for name in tuple(globals()):
+    if name.endswith("_Text"):
+        del globals()[name]
+
 
 @pytest.mark.order("first")
 def test_setup_common():
