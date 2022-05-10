@@ -43,13 +43,13 @@ class KittyImage(BaseImage):
 
        Pros:
 
-         - Good for use cases where it might be required to trim some lines of the
+         * Good for use cases where it might be required to trim some lines of the
            image.
 
        Cons:
 
-         - Drawing of large (in resolution and pixel density) images might can seem
-           glitchy.
+         * Drawing of non-animated images that are large in resolution and pixel
+           density might seem glitchy.
 
     whole
        Renders an image all at once i.e the entire image data is encoded into the first
@@ -58,8 +58,10 @@ class KittyImage(BaseImage):
 
        Pros:
 
-         - Render results are slighly less (in number of characters) compared to the
+         * Render results are less in number of characters compared to the
            ``lines`` method since the entire image is encoded at once.
+         * Better for non-animated images that are large in resolution and pixel
+           density as images are drawn once.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
