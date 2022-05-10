@@ -28,7 +28,7 @@ class TestRender:
     def render_image(self, alpha):
         return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
 
-    def test_transparency(self):
+    def test_size(self):
         self.trans.set_size(height=_size)
         self.trans.scale = 1.0
 
@@ -36,6 +36,10 @@ class TestRender:
         # No '\n' after the last line, hence the `+ 1`
         assert render.count("\n") + 1 == self.trans.height
         assert render.partition("\n")[0].count(" ") == self.trans.width
+
+    def test_transparency(self):
+        self.trans.set_size(height=_size)
+        self.trans.scale = 1.0
 
         # Transparency enabled
         assert all(
