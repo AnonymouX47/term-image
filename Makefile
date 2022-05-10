@@ -1,21 +1,21 @@
 py_files = *.py docs/source/conf.py term_img/ term_image/ tests/
 
-check: lint check-format check-imports test test-text
+_: check test test-text
+
+check: lint check-format check-imports
 
 check-format:
-	black --check --diff --color $(py_files)
-	echo
+	black --check --diff --color $(py_files) && echo
 
 check-imports:
-	isort --check --diff --color $(py_files)
-	echo
+	isort --check --diff --color $(py_files) && echo
 
 clean-docs:
-	cd docs/; make clean
+	cd docs/ && make clean
 
 .PHONY: docs
 docs:
-	cd docs/; make html
+	cd docs/ && make html
 
 format:
 	black $(py_files)
@@ -24,8 +24,7 @@ imports:
 	isort $(py_files)
 
 lint:
-	flake8 $(py_files)
-	echo
+	flake8 $(py_files) && echo
 
 
 # Executing using `python -m` adds CWD to `sys.path`.
