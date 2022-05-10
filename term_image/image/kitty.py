@@ -123,17 +123,15 @@ class KittyImage(BaseImage):
         with io.StringIO() as buffer, raw_image:
             control_data = ControlData(f=format, s=width, v=cell_height, c=r_width, r=1)
             trans = Transmission(control_data, raw_image.read(bytes_per_line))
+            fill = " " * r_width
 
-            buffer.write("\0337")  # Save cursor position
             buffer.write(trans.get_chunked())
+            # Writing spaces clears any text under transparent areas of an image
             for _ in range(r_height - 1):
-                # Restore last saved cursor position, write spaces behind the image and
-                # save the cursor position for the next line.
-                # Writing spaces clears any text under transparent areas of an image.
-                buffer.write(f"\0338{' ' * r_width}\n\0337")
+                buffer.write(fill + "\n")
                 trans = Transmission(control_data, raw_image.read(bytes_per_line))
                 buffer.write(trans.get_chunked())
-            buffer.write(f"\0338{' ' * r_width}")
+            buffer.write(fill)
 
             return buffer.getvalue()
 
@@ -250,6 +248,7 @@ class ControlData:
     v: Optional[int] = None  # image height
     z: Optional[int] = z.IN_FRONT  # z-index
     o: Optional[str] = o.ZLIB  # compression
+    C: Optional[int] = C.STAY  # cursor movement policy
 
     # # Image display size in columns and rows/lines
     # # The image is shrunk or enlarged to fit
@@ -266,7 +265,6 @@ class _ControlData:  # Currently Unused
     i: Optional[int] = None  # image ID
     d: Optional[str] = None  # delete images
     m: Optional[int] = None  # payload chunk
-    C: Optional[int] = C.STAY  # cursor movement policy
     O: Optional[int] = None  # data start offset; with t=s or t=f
     S: Optional[int] = None  # data size in bytes; with f=100,o=z or t=s or t=f
 
