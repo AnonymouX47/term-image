@@ -180,6 +180,24 @@ class KittyImage(BaseImage):
 
             return buffer.getvalue()
 
+    @staticmethod
+    def _render_image_whole(
+        raw_image: bytes,
+        format: int,
+        width: int,
+        height: int,
+        r_width: int,
+        r_height: int,
+    ) -> str:
+        return (
+            Transmission(
+                ControlData(f=format, s=width, v=height, c=r_width, r=r_height),
+                raw_image,
+            ).get_chunked()
+            + (" " * r_width + "\n") * (r_height - 1)
+            + " " * r_width
+        )
+
 
 @dataclass
 class Transmission:
