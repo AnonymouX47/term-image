@@ -1653,7 +1653,7 @@ class ImageIterator:
                 sent = yield frame
                 n = n + 1 if sent is None else sent - 1
 
-            image._seek_position = 0
+            image._seek_position = n = 0
             if repeat > 0:  # Avoid infinitely large negative numbers
                 repeat -= 1
 
