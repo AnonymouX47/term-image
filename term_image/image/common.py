@@ -1459,15 +1459,20 @@ class ImageIterator:
           * If ``int``, caching is enabled only if the framecount of the image
             is less than or equal to the given number.
 
+    Raises:
+        TypeError: An argument is of an inappropriate type.
+        ValueError: An argument has an unexpected/invalid value but of an
+          appropriate type.
+
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size
       and :term:`scale`.
     * If the image size is :ref:`unset <unset-size>`, it's automatically
       calculated per frame.
     * The number of the last yielded frame is set as the image's seek position.
-    * Directly adjusting the seek position of the image doesn't affect the iteration.
+    * Directly adjusting the seek position of the image doesn't affect iteration.
       Use :py:meth:`ImageIterator.seek` instead.
-    * After the iterator is exhausted, the underlying image is set to frame `0`.
+    * After the iterator is exhausted, the underlying image is set to frame ``0``.
     """
 
     def __init__(
@@ -1542,7 +1547,7 @@ class ImageIterator:
         Does not reset the frame number of the underlying image.
 
         NOTE:
-            This methods is automatically called when the iterator is exhausted or
+            This method is automatically called when the iterator is exhausted or
             garbage-collected.
         """
         try:
@@ -1565,7 +1570,7 @@ class ImageIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument has an unexpected/invalid value but of an
               appropriate type.
-            term_image.image.TermImageException: The iterator is unused.
+            term_image.exceptions.TermImageException: The iterator is unused.
 
         Frame numbers start from ``0`` (zero).
         """
