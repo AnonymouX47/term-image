@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Intensive performance drop while populating large image grids ([#41]).
+
 ### Added
 - [lib] A common interface to be shared across all image classes ([#34]).
 - [lib] `BaseImage`, the baseclass of all image classes ([#34]).
@@ -26,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
 [#37]: https://github.com/AnonymouX47/term-image/pull/37
 [#38]: https://github.com/AnonymouX47/term-image/pull/38
+[#41]: https://github.com/AnonymouX47/term-image/pull/41
 
 
 ## [0.3.1] - 2022-05-04
