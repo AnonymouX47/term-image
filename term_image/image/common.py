@@ -1466,6 +1466,7 @@ class ImageIterator:
       calculated per frame.
     * The number of the last yielded frame is set as the image's seek position.
     * Directly adjusting the seek position of the image doesn't affect the iteration.
+      Use :py:meth:`ImageIterator.seek` instead.
     * After the iterator is exhausted, the underlying image is set to frame `0`.
     """
 
@@ -1553,6 +1554,34 @@ class ImageIterator:
         except AttributeError:
             pass
 
+    def seek(self, pos: int) -> None:
+        """Sets the frame number to be yielded on the next iteration without affecting
+        the repeat count.
+
+        Args:
+            pos: Next frame number.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument has an unexpected/invalid value but of an
+              appropriate type.
+            term_image.image.TermImageException: The iterator is unused.
+
+        Frame numbers start from ``0`` (zero).
+        """
+        if not isinstance(pos, int):
+            raise TypeError(f"Invalid frame number type (got: {type(pos).__name__})")
+        if not 0 <= pos < self._image.n_frames:
+            raise ValueError(
+                "Frame number out of range "
+                f"(got: {pos}, n_frames={self._image._n_frames})"
+            )
+
+        try:
+            self._animator.send(pos)
+        except TypeError:
+            raise TermImageException("Iteration has not yet started") from None
+
     def _animate(
         self,
         img: PIL.Image.Image,
@@ -1567,40 +1596,12 @@ class ImageIterator:
         cached = self._cached
         repeat = self._repeat
         if cached:
-            cache = []
+            cache = [(None,) * 2] * image.n_frames
 
+        sent = None
         n = 0
         while repeat:
-            # Size must be set before hashing, since `None` will always
-            # compare equal but doesn't mean the size is the same.
-            unset_size = not image._size
-            if unset_size:
-                image.set_size()
-
-            image._seek_position = n
-            try:
-                frame = image._format_render(image._render_image(img, alpha), *fmt)
-            except EOFError:
-                image._seek_position = n = 0
-                if repeat > 0:  # Avoid infinitely large negative numbers
-                    repeat -= 1
-                if cached:
-                    break
-                continue
-            else:
-                if cached:
-                    cache.append((frame, hash(image._size)))
-            finally:
-                if unset_size:
-                    image._size = None
-
-            yield frame
-            n += 1
-
-        if cached:
-            n_frames = len(cache)
-        while repeat:
-            while n < n_frames:
+            if sent is None:
                 # Size must be set before hashing, since `None` will always
                 # compare equal but doesn't mean the size is the same.
                 unset_size = not image._size
@@ -1608,16 +1609,49 @@ class ImageIterator:
                     image.set_size()
 
                 image._seek_position = n
-                frame, size_hash = cache[n]
-                if hash(image._size) != size_hash:
+                try:
                     frame = image._format_render(image._render_image(img, alpha), *fmt)
-                    cache[n] = (frame, hash(image._size))
+                except EOFError:
+                    image._seek_position = n = 0
+                    if repeat > 0:  # Avoid infinitely large negative numbers
+                        repeat -= 1
+                    if cached:
+                        break
+                    continue
+                else:
+                    if cached:
+                        cache[n] = (frame, hash(image._size))
+                finally:
+                    if unset_size:
+                        image._size = None
 
-                if unset_size:
-                    image._size = None
+            sent = yield frame
+            n = n + 1 if sent is None else sent - 1
 
-                yield frame
-                n += 1
+        if cached:
+            n_frames = len(cache)
+        while repeat:
+            while n < n_frames:
+                if sent is None:
+                    # Size must be set before hashing, since `None` will always
+                    # compare equal but doesn't mean the size is the same.
+                    unset_size = not image._size
+                    if unset_size:
+                        image.set_size()
+
+                    image._seek_position = n
+                    frame, size_hash = cache[n]
+                    if hash(image._size) != size_hash:
+                        frame = image._format_render(
+                            image._render_image(img, alpha), *fmt
+                        )
+                        cache[n] = (frame, hash(image._size))
+
+                    if unset_size:
+                        image._size = None
+
+                sent = yield frame
+                n = n + 1 if sent is None else sent - 1
 
             image._seek_position = 0
             if repeat > 0:  # Avoid infinitely large negative numbers
