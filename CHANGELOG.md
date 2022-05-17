@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
+- [tui] Navigation across animated images ([#42]).
+  - No more waiting for the first frame to be rendered before moving on.
+
 ### Added
 - [lib] A common interface to be shared across all image classes ([#34]).
 - [lib] `BaseImage`, the baseclass of all image classes ([#34]).
@@ -12,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Convenience functions for automatic render style selection ([#37]).
   - `AutoImage()`, `from_file()` and `from_url()` in `term_image.image`.
 - [lib] `BaseImage.source_type` property ([#38]).
+- [lib] Non-linear image iteration via `ImageIterator.seek()` ([#42]).
+- [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [cli,tui] `--style` command-line option for render style selection ([#37]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
 
@@ -26,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
 [#37]: https://github.com/AnonymouX47/term-image/pull/37
 [#38]: https://github.com/AnonymouX47/term-image/pull/38
+[#42]: https://github.com/AnonymouX47/term-image/pull/42
 
 
 ## [0.3.1] - 2022-05-04
