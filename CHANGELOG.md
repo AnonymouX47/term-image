@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
+- [tui] Intensive performance drop while populating large image grids ([#41]).
 - [tui] Navigation across animated images ([#42]).
   - No more waiting for the first frame to be rendered before moving on.
 
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
 [#37]: https://github.com/AnonymouX47/term-image/pull/37
 [#38]: https://github.com/AnonymouX47/term-image/pull/38
+[#41]: https://github.com/AnonymouX47/term-image/pull/41
 [#42]: https://github.com/AnonymouX47/term-image/pull/42
 
 

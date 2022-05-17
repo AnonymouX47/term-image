@@ -35,7 +35,7 @@ class GridListBox(urwid.ListBox):
         self._ncontent = 0
         self._page_ncell = 1  # Used by GridScanner
 
-        return super().__init__(self._grid_contents((grid.cell_width,)))
+        return super().__init__([urwid.Divider()])
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return self._grid.rows(size[:1], focus)
@@ -89,7 +89,16 @@ class GridListBox(urwid.ListBox):
                     + (self._ncell and self.focus.focus_position)
                 )
 
-            self.body[:] = self._grid_contents(size[:1])
+            self._update_grid_contents(
+                size[:1],
+                ncell,
+                new=(
+                    self._grid_path != grid_path  # Different grids
+                    or not (ncell or self._ncell)  # maxcol is and was < cell_width
+                    or ncell != self._ncell  # Number of cells per row changed
+                    or self._cell_width != self._grid.cell_width  # cell_width changed
+                ),
+            )
 
             if transfer_row_pos:
                 # Ensure focus-position is not out-of-bounds
@@ -132,19 +141,59 @@ class GridListBox(urwid.ListBox):
 
         return canv
 
-    def _grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
+    def _update_grid_contents(
+        self, size: Tuple[int, int], ncell: int, new: bool = True
+    ) -> None:
         # The display widget is a `Divider` when the grid is empty
         if not self._grid.contents:
-            return [self._grid.generate_display_widget(size)]
+            self._next_index = 0
+            self.body[:] = [urwid.Divider()]
+            return
 
-        contents = [
-            content[0] if isinstance(content[0], urwid.Divider)
-            # `.original_widget` gets rid of an unnecessary padding
-            else content[0].original_widget
-            for content in self._grid.generate_display_widget(size).contents
-        ]
+        if new:
+            self._next_index = 0
+            self.body.clear()
+        else:
+            if self._next_index:
+                # Remove all cells after the previous *next_index* cos they are
+                # officially just being added.
+                # For the `* 2`, see the comments on cell_index calculation in
+                # `render()` above.
+                self.body[(self._next_index // ncell) * 2 - 1 :] = [urwid.Divider()]
+            else:
+                self.body.clear()  # Remove the empty-grid Divider
 
-        return contents
+        original = self._grid._contents
+        next_index = (len(original) // ncell) * ncell
+
+        # Must include incomplete rows becaused the cells might've been counted with
+        # *ncontent*.
+        # They'll be removed before the next re-population if the grid wasn't complete
+        # yet when *ncontent* was computed.
+        # This way, the population can never be behind *ncontent*, ensuring the listbox
+        # is always complete when the grid is complete.
+        dummy = original[self._next_index :]
+        if not dummy:
+            if not self._next_index:
+                # Would've been cleared earlier
+                self.body[:] = [urwid.Divider()]
+            return
+
+        # Does not affect GridScanner as it uses a direct reference to the grid's
+        # original contents list
+        self._grid._contents = urwid.MonitoredFocusList(dummy)
+
+        self.body.extend(
+            [
+                content[0] if isinstance(content[0], urwid.Divider)
+                # `.original_widget` gets rid of an unnecessary padding
+                else content[0].original_widget
+                for content in self._grid.generate_display_widget(size).contents
+            ]
+        )
+
+        self._grid._contents = original
+        self._next_index = next_index
 
 
 class Image(urwid.Widget):
