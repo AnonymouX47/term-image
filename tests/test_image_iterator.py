@@ -75,6 +75,14 @@ class TestInit:
             image_it = ImageIterator(gif_image, 1, cached=value)
             assert image_it._cached is False
 
+    def test_image_seek_position_unchanged(self):
+        gif_image.seek(2)
+        image_it = ImageIterator(gif_image)
+        assert gif_image.tell() == 2
+
+        next(image_it)
+        assert gif_image.tell() == 0
+
 
 def test_next():
     image_it = ImageIterator(gif_image, 1, "1.1")
@@ -99,9 +107,23 @@ def test_next():
             next(image_it)
 
 
+def test_image_seek_has_no_effect():
+    image_it = ImageIterator(gif_image, 1)
+    next(image_it)
+    assert gif_image.tell() == 0
+
+    gif_image.seek(4)
+    next(image_it)
+    assert gif_image.tell() == 1
+
+
 def test_iter():
     image_it = ImageIterator(gif_image, 1, "1.1")
     assert iter(image_it) is image_it
+
+    # Image seek position is updated
+    for n, _ in enumerate(ImageIterator(gif_image, 1, "1.1")):
+        assert gif_image.tell() == n
 
     for image in (gif_image, webp_image):
         frames = tuple(ImageIterator(image, 1, "1.1"))
