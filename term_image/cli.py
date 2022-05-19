@@ -22,7 +22,7 @@ from . import __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
 from .exceptions import URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import TermImage, _best_style
+from .image import KittyImage, TermImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
@@ -568,9 +568,13 @@ For example, `$ term-image [options] -- -image.jpg --image.png`
 
 Render Styles:
     auto: The best style is automatically determined based on the detected terminal
-          support.
+        support.
+    kitty: Uses the kitty graphics protocol. Currently supported terminal emulators
+        include (but might not be limited to):
+        - Kitty >= 0.20.0
+        - Konsole >= 22.04.0
     term: Uses unicode half blocks with 24-bit color escape codes to represent images
-          with a density of two pixels per character cell.
+        with a density of two pixels per character cell.
 
     Using a terminal-graphics-based style not supported by the active terminal is not
     allowed.
@@ -636,13 +640,14 @@ FOOTNOTES:
     )
     general.add_argument(
         "--style",
-        choices=("auto", "term"),
+        choices=("auto", "kitty", "term"),
         default="auto",
         help=(
-            "Specify the image render style (default: auto) "
-            '[See "Render Styles" below]'
+            "Specify the image render style (default: auto). "
+            'See "Render Styles" below'
         ),
     )
+
     mode_options = general.add_mutually_exclusive_group()
     mode_options.add_argument(
         "--cli",
@@ -1075,7 +1080,9 @@ FOOTNOTES:
 
     set_font_ratio(args.font_ratio)
 
-    ImageClass = {"auto": _best_style(), "term": TermImage}[args.style]
+    ImageClass = {"auto": _best_style(), "kitty": KittyImage, "term": TermImage}[
+        args.style
+    ]
 
     log("Processing sources", logger, loading=True)
 
