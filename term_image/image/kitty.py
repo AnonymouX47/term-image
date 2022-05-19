@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ("KittyImage",)
 
 import io
+import os
 import sys
 from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
@@ -93,14 +94,19 @@ class KittyImage(BaseImage):
             # The second query is to speed up the query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                b"\033_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\033\\\033[c",
+                (
+                    f"{_START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{_END}\033[c"
+                ).encode(),
                 lambda s: not s.endswith(b"c"),
             )
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            cls._supported = bool(response and response.rpartition(b"\033")[0])
+            cls._supported = response and (
+                response.rpartition(b"\033")[0] == f"{_START}i=31;OK{_END}".encode()
+            )
 
-            # Currently, only kitty >= 0.20.0 implements the protocol features utilized
+            # Currently, only kitty >= 0.20.0 and Konsole 22.04.0 implement the
+            # protocol features utilized
             if cls._supported:
                 result = run(
                     "kitty +kitten query-terminal --wait-for=0.1 name version",
@@ -116,6 +122,7 @@ class KittyImage(BaseImage):
                     not result.returncode
                     and name == "xterm-kitty"
                     and tuple(map(int, version.split("."))) >= (0, 20, 0)
+                    or int(os.environ.get("KONSOLE_VERSION", "0")) >= 220400
                 )
 
         return cls._supported
