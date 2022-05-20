@@ -70,6 +70,10 @@ def expand_control_data(control_data):
 
 
 def decode_image(data):
+    empty, start, data = data.partition(_START)
+    assert empty == ""
+    assert start == _START
+
     transmission, end, spaces = data.rpartition(_END)
     assert end == _END
 
@@ -156,7 +160,7 @@ class TestRenderLines:
 
         assert render.count("\n") + 1 == lines
         for line in render.splitlines():
-            control_codes, raw_image, spaces = decode_image(line[len(_START) :])
+            control_codes, raw_image, spaces = decode_image(line)
             assert (
                 code in control_codes
                 for code in expand_control_data(size_control_data)
@@ -169,7 +173,7 @@ class TestRenderLines:
         # Size is tested in `test_size()`
         self.trans.scale = 1.0
         for line in self.render_image(_ALPHA_THRESHOLD).splitlines():
-            decode_image(line[len(_START) :])
+            decode_image(line)
 
         # Chunked (image data is very sparse, so it's still large after compression)
         hori = KittyImage.from_file("tests/images/hori.jpg")
@@ -177,7 +181,7 @@ class TestRenderLines:
         w, h = get_actual_render_size(hori)
         bytes_per_line = w * (h // self.trans.height) * 3
         for line in str(hori).splitlines():
-            raw_image = decode_image(line[len(_START) :])[1]
+            raw_image = decode_image(line)[1]
             assert len(raw_image) == bytes_per_line
 
     def test_minimal_render_size(self):
@@ -214,13 +218,13 @@ class TestRenderLines:
 
         # Transparency enabled
         for line in self.render_image(_ALPHA_THRESHOLD).splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "32") in control_codes
             assert len(raw_image) == pixels_per_line * 4
             assert raw_image.count(b"\0" * 4) == pixels_per_line
         # Transparency disabled
         for line in self.render_image(None).splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\0\0\0") == pixels_per_line
@@ -232,25 +236,25 @@ class TestRenderLines:
 
         # red
         for line in self.render_image("#ff0000").splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\xff\0\0") == pixels_per_line
         # green
         for line in self.render_image("#00ff00").splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\0\xff\0") == pixels_per_line
         # blue
         for line in self.render_image("#0000ff").splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\0\0\xff") == pixels_per_line
         # white
         for line in self.render_image("#ffffff").splitlines():
-            control_codes, raw_image, _ = decode_image(line[len(_START) :])
+            control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\xff" * 3) == pixels_per_line
