@@ -137,44 +137,6 @@ def get_actual_render_size(image):
     return width, height
 
 
-def test_minimal_render_size():
-    image = KittyImage.from_file("tests/images/trans.png")
-    lines_for_original_height = KittyImage._pixels_lines(pixels=image.original_size[1])
-
-    # Using render size
-    image.height = lines_for_original_height // 2
-    w, h = image._get_render_size()
-    lines = image.height
-    bytes_per_line = w * (h // lines) * 4
-
-    assert get_actual_render_size(image) == (w, h)
-    for line in str(image).splitlines():
-        control_codes, raw_image, _ = decode_image(line[len(_START) :])
-        assert (
-            code in control_codes
-            for code in expand_control_data(f"s={w},v={h // lines}")
-        )
-        assert len(raw_image) == bytes_per_line
-
-    # Using original size
-    image.height = lines_for_original_height * 2
-    w, h = image._original_size
-    lines = image.height
-    extra = h % (lines or 1)
-    if extra:
-        h = h - extra + lines
-    bytes_per_line = w * (h // lines) * 4
-
-    assert get_actual_render_size(image) == (w, h)
-    for line in str(image).splitlines():
-        control_codes, raw_image, _ = decode_image(line[len(_START) :])
-        assert (
-            code in control_codes
-            for code in expand_control_data(f"s={w},v={h // lines}")
-        )
-        assert len(raw_image) == bytes_per_line
-
-
 class TestRenderLines:
     # Fully transparent image
     # It's easy to predict it's pixel values
@@ -185,18 +147,19 @@ class TestRenderLines:
     def render_image(self, alpha):
         return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
 
-    def _test_image_size(self):
-        w, h = get_actual_render_size(self.trans)
-        cols, lines = self.trans.rendered_size
+    def _test_image_size(self, image):
+        w, h = get_actual_render_size(image)
+        cols, lines = image.rendered_size
         bytes_per_line = w * (h // lines) * 4
-        render = self.render_image(_ALPHA_THRESHOLD)
+        size_control_data = f"s={w},v={h // lines},c={cols},r=1"
+        render = str(image)
 
         assert render.count("\n") + 1 == lines
         for line in render.splitlines():
             control_codes, raw_image, spaces = decode_image(line[len(_START) :])
             assert (
                 code in control_codes
-                for code in expand_control_data(f"s={w},v={h // lines},c={cols},r=1")
+                for code in expand_control_data(size_control_data)
             )
             assert len(raw_image) == bytes_per_line
             assert spaces == " " * cols
@@ -217,9 +180,32 @@ class TestRenderLines:
             raw_image = decode_image(line[len(_START) :])[1]
             assert len(raw_image) == bytes_per_line
 
+    def test_minimal_render_size(self):
+        image = KittyImage.from_file("tests/images/trans.png")
+        lines_for_original_height = KittyImage._pixels_lines(
+            pixels=image.original_size[1]
+        )
+
+        # Using render size
+        image.height = lines_for_original_height // 2
+        w, h = image._get_render_size()
+        bytes_per_line = w * (h // image.height) * 4
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
+        # Using original size
+        image.height = lines_for_original_height * 2
+        w, h = image._original_size
+        extra = h % (image.height or 1)
+        if extra:
+            h = h - extra + image.height
+        bytes_per_line = w * (h // image.height) * 4
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
     def test_size(self):
         self.trans.scale = 1.0
-        self._test_image_size()
+        self._test_image_size(self.trans)
 
     def test_image_data_and_transparency(self):
         self.trans.scale = 1.0
@@ -272,7 +258,7 @@ class TestRenderLines:
     def test_scaled(self):
         # At varying scales
         for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
-            self._test_image_size()
+            self._test_image_size(self.trans)
 
         # Random scales
         for _ in range(20):
@@ -282,4 +268,4 @@ class TestRenderLines:
             self.trans.scale = scale
             if 0 in self.trans.rendered_size:
                 continue
-            self._test_image_size()
+            self._test_image_size(self.trans)
