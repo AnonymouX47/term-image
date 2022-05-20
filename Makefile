@@ -42,6 +42,9 @@ test-iterator:
 test-others:
 	python -m pytest -v tests/test_others.py
 
+test-kitty:
+	python -m pytest -v tests/test_kitty.py
+
 test-term:
 	python -m pytest -v tests/test_term.py
 

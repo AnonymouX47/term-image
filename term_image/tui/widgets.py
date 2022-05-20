@@ -34,6 +34,8 @@ class GridListBox(urwid.ListBox):
         self._grid_path = None
         self._ncontent = 0
         self._page_ncell = 1  # Used by GridScanner
+        self._topmost = None
+        self._top_trim = 0
 
         return super().__init__([urwid.Divider()])
 
@@ -60,6 +62,21 @@ class GridListBox(urwid.ListBox):
 
         _row_pos = self.focus_position
         transfer_col_pos = False
+
+        visible = self.calculate_visible(size)
+        if visible[0]:
+            (_, middle, *_), (top_trim, top), _ = visible
+            topmost = top[-1][0] if top else middle
+        else:
+            topmost = top_trim = None
+
+        if self._grid_path == grid_path and not (
+            self._topmost is topmost and self._top_trim == top_trim
+        ):
+            tui_main.ImageClass._clear_images() and ImageCanvas.change()
+
+        self._topmost = topmost
+        self._top_trim = top_trim
 
         if (
             self._grid_path != grid_path  # Different grids
@@ -210,6 +227,7 @@ class Image(urwid.Widget):
     _forced_anim_size_hash = None
 
     _frame = None
+    _frame_no = 0
     _anim_starting = _anim_finished = False
 
     _faulty = False
@@ -323,6 +341,10 @@ class Image(urwid.Widget):
                 anim_render_queue.put(((repeat, frame_no), size, self._force_render))
                 canv = __class__._placeholder.render(size)
                 self._frame = (canv, repeat, frame_no)
+                tui_main.ImageClass._clear_images()
+            elif frame_no != self._frame_no:
+                self._frame_no = frame_no
+                tui_main.ImageClass._clear_images() and ImageCanvas.change()
         elif self._canv and self._canv.size == size:
             canv = self._canv
         else:
@@ -337,12 +359,14 @@ class Image(urwid.Widget):
             elif (self, size, self._alpha) != __class__._rendering_image_info:
                 image_render_queue.put((self, size, self._alpha))
             canv = __class__._placeholder.render(size)
+            tui_main.ImageClass._clear_images()
 
         return canv
 
 
 class ImageCanvas(urwid.Canvas):
     cacheable = False
+    _change = False
 
     def __init__(
         self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
@@ -370,7 +394,7 @@ class ImageCanvas(urwid.Canvas):
 
         fill = b" " * cols
         pad_left = b" " * pad_left
-        pad_right = b" " * pad_right
+        pad_right = b" " * pad_right + b"\b " * self._change
 
         # Upper padding reduces when the top is trimmed
         for _ in range(pad_up - trim_top):
@@ -389,6 +413,20 @@ class ImageCanvas(urwid.Canvas):
         # otherwise only _rows_ rows of padding
         for _ in range(min(rows, pad_down)):
             yield [(None, "U", fill)]
+
+    @classmethod
+    def change(cls):
+        """Causes the canvas to embed or not embed some hidden text on every line of
+        the image, such that every line of the image is seen as different in each state.
+
+        ``urwid`` will not redraw lines that have not changed since the last redaw.
+        So this is to trick ``urwid`` into taking every line containing a part of an
+        image as different in each state.
+
+        This is used to force redraws of all images on screen, particularly when their
+        positions do not change much e.g when images need to be cleared in kitty.
+        """
+        cls._change = not cls._change
 
 
 class LineSquare(urwid.LineBox):

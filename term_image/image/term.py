@@ -87,6 +87,8 @@ class TermImage(BaseImage):
 
         width, height = self._get_render_size()
         img, rgb, a = self._get_render_data(img, alpha)
+        alpha = img.mode == "RGBA"
+
         # clean up
         if img is not self._source:
             img.close()
@@ -145,4 +147,5 @@ class TermImage(BaseImage):
         buf_write(_RESET)  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
 
-        return buffer.getvalue()
+        with buffer:
+            return buffer.getvalue()

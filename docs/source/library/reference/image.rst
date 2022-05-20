@@ -35,6 +35,10 @@ Core Library Definitions
       :members:
       :show-inheritance:
 
+   .. autoclass:: KittyImage
+      :members:
+      :show-inheritance:
+
    .. autoclass:: TermImage
       :members:
       :show-inheritance:

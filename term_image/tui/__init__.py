@@ -126,6 +126,7 @@ class Loop(urwid.MainLoop):
         if "window resize" in keys:
             # Adjust bottom bar upon window resize
             keys.append("resized")
+            main.ImageClass._clear_images()
         return super().process_input(keys)
 
 

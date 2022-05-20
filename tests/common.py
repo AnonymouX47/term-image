@@ -3,6 +3,7 @@
 from operator import gt, lt
 from types import SimpleNamespace
 
+import pytest
 from PIL import Image
 
 from term_image import set_font_ratio
@@ -101,6 +102,20 @@ def test_format_All():
 
 def test_is_supported_All():
     assert isinstance(ImageClass.is_supported(), bool)
+
+
+def test_set_render_method_All():
+    for value in (2, 2.0, ()):
+        with pytest.raises(TypeError):
+            ImageClass.set_render_method(value)
+
+    assert ImageClass.set_render_method() is True
+    assert ImageClass.set_render_method("") is False
+
+    image = ImageClass(python_img)
+    assert image.set_render_method() is True
+    assert image.set_render_method(None) is True
+    assert image.set_render_method("") is False
 
 
 # Size-setting is taken as style-dependent because the major underlying API is

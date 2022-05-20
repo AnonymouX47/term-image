@@ -69,7 +69,21 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-# Decorators
+# Decorator Classes
+
+
+class ClassInstanceMethod(classmethod):
+    """A method which when invoked via the owner, behaves like a class method
+    and when invoked via an instance, behaves like an instance method.
+    """
+
+    def __get__(self, obj, cls=None):
+        # classmethod just uses cls directly if present.
+        # Otherwise, type(obj) but we're not concerned with that.
+        return super().__get__(None, obj or cls)
+
+
+# Decorator Functions
 
 
 def no_redecorate(decor: Callable) -> FunctionType:
@@ -504,6 +518,7 @@ _RESET = "\033[0m"
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
 
+_input_lock = RLock()
 _tty: Optional[int] = None
 if OS_IS_UNIX:
     # In order of priority
@@ -531,8 +546,6 @@ if OS_IS_UNIX:
     if _tty:
         if isinstance(_tty, str):
             _tty = os.open(_tty, os.O_RDWR)
-
-        _input_lock = RLock()
 
         Process.start = wraps(Process.start)(_process_start_wrapper)
         Process.run = wraps(Process.run)(_process_run_wrapper)
