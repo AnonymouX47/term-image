@@ -16,7 +16,7 @@ from ..image import BaseImage
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
-from .render import grid_render_queue, image_render_queue
+from .render import anim_render_queue, grid_render_queue, image_render_queue
 
 command = urwid.Widget._command_map._command_defaults.copy()
 for action, (key, _) in _nav.items():
@@ -37,7 +37,7 @@ class GridListBox(urwid.ListBox):
         self._topmost = None
         self._top_trim = 0
 
-        return super().__init__(self._grid_contents((grid.cell_width,)))
+        return super().__init__([urwid.Divider()])
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return self._grid.rows(size[:1], focus)
@@ -106,7 +106,16 @@ class GridListBox(urwid.ListBox):
                     + (self._ncell and self.focus.focus_position)
                 )
 
-            self.body[:] = self._grid_contents(size[:1])
+            self._update_grid_contents(
+                size[:1],
+                ncell,
+                new=(
+                    self._grid_path != grid_path  # Different grids
+                    or not (ncell or self._ncell)  # maxcol is and was < cell_width
+                    or ncell != self._ncell  # Number of cells per row changed
+                    or self._cell_width != self._grid.cell_width  # cell_width changed
+                ),
+            )
 
             if transfer_row_pos:
                 # Ensure focus-position is not out-of-bounds
@@ -149,19 +158,59 @@ class GridListBox(urwid.ListBox):
 
         return canv
 
-    def _grid_contents(self, size: Tuple[int, int]) -> List[urwid.Widget]:
+    def _update_grid_contents(
+        self, size: Tuple[int, int], ncell: int, new: bool = True
+    ) -> None:
         # The display widget is a `Divider` when the grid is empty
         if not self._grid.contents:
-            return [self._grid.generate_display_widget(size)]
+            self._next_index = 0
+            self.body[:] = [urwid.Divider()]
+            return
 
-        contents = [
-            content[0] if isinstance(content[0], urwid.Divider)
-            # `.original_widget` gets rid of an unnecessary padding
-            else content[0].original_widget
-            for content in self._grid.generate_display_widget(size).contents
-        ]
+        if new:
+            self._next_index = 0
+            self.body.clear()
+        else:
+            if self._next_index:
+                # Remove all cells after the previous *next_index* cos they are
+                # officially just being added.
+                # For the `* 2`, see the comments on cell_index calculation in
+                # `render()` above.
+                self.body[(self._next_index // ncell) * 2 - 1 :] = [urwid.Divider()]
+            else:
+                self.body.clear()  # Remove the empty-grid Divider
 
-        return contents
+        original = self._grid._contents
+        next_index = (len(original) // ncell) * ncell
+
+        # Must include incomplete rows becaused the cells might've been counted with
+        # *ncontent*.
+        # They'll be removed before the next re-population if the grid wasn't complete
+        # yet when *ncontent* was computed.
+        # This way, the population can never be behind *ncontent*, ensuring the listbox
+        # is always complete when the grid is complete.
+        dummy = original[self._next_index :]
+        if not dummy:
+            if not self._next_index:
+                # Would've been cleared earlier
+                self.body[:] = [urwid.Divider()]
+            return
+
+        # Does not affect GridScanner as it uses a direct reference to the grid's
+        # original contents list
+        self._grid._contents = urwid.MonitoredFocusList(dummy)
+
+        self.body.extend(
+            [
+                content[0] if isinstance(content[0], urwid.Divider)
+                # `.original_widget` gets rid of an unnecessary padding
+                else content[0].original_widget
+                for content in self._grid.generate_display_widget(size).contents
+            ]
+        )
+
+        self._grid._contents = original
+        self._next_index = next_index
 
 
 class Image(urwid.Widget):
@@ -177,7 +226,9 @@ class Image(urwid.Widget):
     _force_render_contexts = {"image", "full-image", "full-grid-image"}
     _forced_anim_size_hash = None
 
-    _frame = _frame_changed = _frame_size_hash = None
+    _frame = None
+    _frame_no = 0
+    _anim_starting = _anim_finished = False
 
     _faulty = False
     _canv = None
@@ -213,10 +264,11 @@ class Image(urwid.Widget):
             or (self, size, self._alpha) == __class__._rendering_image_info
         ):
             if self._force_render:
-                # `.main.animate_image()` deletes `_force_render` when done with an
-                # image to avoid the cost of attribute creation and deletion per frame
-                if image._is_animated:
-                    if image._seek_position == 0:
+                # AnimRendermanager or `.tui.main.animate_image()` deletes
+                # `_force_render` when the animation is done to avoid attribute
+                # creation and deletion per frame
+                if image._is_animated and not tui_main.NO_ANIMATION:
+                    if not (self._frame or self._anim_finished):
                         self._forced_anim_size_hash = hash(size)
                     elif hash(size) != self._forced_anim_size_hash:
                         self._force_render = False
@@ -273,25 +325,7 @@ class Image(urwid.Widget):
 
         # Rendering
 
-        if hasattr(self, "_animator"):
-            if self._frame_changed:
-                try:
-                    self._frame = next(self._animator)
-                except StopIteration:
-                    canv = __class__._placeholder.render(size)
-                self._frame_changed = False
-                self._frame_size_hash = hash(size)
-                tui_main.ImageClass._clear_images() and ImageCanvas.change()
-            elif hash(size) != self._frame_size_hash:
-                # If size changed, re-render the current frame the usual way,
-                # with the new size
-                self._frame = f"{image:1.1{self._alpha}}"
-                self._frame_size_hash = hash(size)
-                tui_main.ImageClass._clear_images() and ImageCanvas.change()
-            canv = ImageCanvas(
-                self._frame.encode().split(b"\n"), size, image.rendered_size
-            )
-        elif view.original_widget is image_grid_box and context != "full-grid-image":
+        if view.original_widget is image_grid_box and context != "full-grid-image":
             # When the grid render cell width adjusts; when _maxcols_ < _cell_width_
             try:
                 canv = ImageCanvas(
@@ -301,10 +335,28 @@ class Image(urwid.Widget):
                 )
             except Exception:
                 canv = __class__._faulty_image.render(size, focus)
+        elif self._frame:
+            canv, repeat, frame_no = self._frame
+            if size != canv.size:
+                anim_render_queue.put(((repeat, frame_no), size, self._force_render))
+                canv = __class__._placeholder.render(size)
+                self._frame = (canv, repeat, frame_no)
+                tui_main.ImageClass._clear_images()
+            elif frame_no != self._frame_no:
+                self._frame_no = frame_no
+                tui_main.ImageClass._clear_images() and ImageCanvas.change()
         elif self._canv and self._canv.size == size:
             canv = self._canv
         else:
-            if (self, size, self._alpha) != __class__._rendering_image_info:
+            if (
+                image._is_animated
+                and not tui_main.NO_ANIMATION
+                and not self._anim_finished
+            ):
+                if not self._anim_starting:
+                    anim_render_queue.put((self, size, self._force_render))
+                    self._anim_starting = True
+            elif (self, size, self._alpha) != __class__._rendering_image_info:
                 image_render_queue.put((self, size, self._alpha))
             canv = __class__._placeholder.render(size)
             tui_main.ImageClass._clear_images()

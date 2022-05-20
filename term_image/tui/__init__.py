@@ -13,9 +13,8 @@ import urwid
 from .. import logging
 from ..config import max_notifications
 from ..utils import lock_input
-from . import main
+from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .render import image_render_queue, manage_grid_renders, manage_image_renders
 from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
 
 
@@ -35,20 +34,21 @@ def init(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
         )
 
-    main.ANIM_CACHED = not args.cache_no_anim and (
-        args.cache_all_anim or args.anim_cache
-    )
     main.DEBUG = args.debug
-    main.FRAME_DURATION = args.frame_duration
     main.GRID_RENDERERS = args.grid_renderers
     main.MAX_PIXELS = args.max_pixels
     main.NO_ANIMATION = args.no_anim
-    main.REPEAT = args.repeat
     main.RECURSIVE = args.recursive
     main.SHOW_HIDDEN = args.all
     main.ImageClass = ImageClass
     main.loop = Loop(main_widget, palette, unhandled_input=process_input)
     main.update_pipe = main.loop.watch_pipe(lambda _: None)
+
+    render.ANIM_CACHED = not args.cache_no_anim and (
+        args.cache_all_anim or args.anim_cache
+    )
+    render.FRAME_DURATION = args.frame_duration
+    render.REPEAT = args.repeat
 
     images.sort(
         key=lambda x: sort_key_lexi(Path(x[0] if x[1] is ... else x[1]._image._source))
@@ -59,14 +59,19 @@ def init(
     menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
     grid_scanner = logging.Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
     grid_render_manager = logging.Thread(
-        target=manage_grid_renders,
+        target=render.manage_grid_renders,
         args=(args.grid_renderers,),
         name="GridRenderManager",
         daemon=True,
     )
     image_render_manager = logging.Thread(
-        target=manage_image_renders,
+        target=render.manage_image_renders,
         name="ImageRenderManager",
+        daemon=True,
+    )
+    anim_render_manager = logging.Thread(
+        target=render.manage_anim_renders,
+        name="AnimRenderManager",
         daemon=True,
     )
 
@@ -88,14 +93,17 @@ def init(
     grid_scanner.start()
     grid_render_manager.start()
     image_render_manager.start()
+    anim_render_manager.start()
 
     try:
         print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
         grid_render_manager.join()
-        image_render_queue.put((None,) * 3)
+        render.image_render_queue.put((None,) * 3)
         image_render_manager.join()
+        render.anim_render_queue.put((None,) * 3)
+        anim_render_manager.join()
         logging.log("Exited TUI normally", logger, direct=False)
     except (KeyboardInterrupt, Exception):
         main.interrupted.set()  # Signal interruption to other threads.

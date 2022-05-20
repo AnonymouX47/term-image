@@ -17,7 +17,6 @@ import urwid
 
 from .. import logging, notify, tui
 from ..config import context_keys, expand_key
-from ..image import ImageIterator
 from .keys import (
     disable_actions,
     display_context_keys,
@@ -47,74 +46,30 @@ from .widgets import (
 )
 
 
-def animate_image(image: Image, forced_render: bool = False) -> None:
-    """Changes frames of an animated image"""
-    if NO_ANIMATION or (
-        mul(*image._image._original_size) > MAX_PIXELS and not forced_render
+def animate_image(image_w: Image, forced_render: bool = False) -> None:
+    """Initializes an animation."""
+    if not NO_ANIMATION and (
+        mul(*image_w._image._original_size) <= MAX_PIXELS or forced_render
     ):
-        return
+        # Animations with finite repetition that got completed
+        try:
+            del image_w._anim_finished
+            image_w._canv = None  # Deleting will break `ImageRenderManager`
+        except AttributeError:
+            pass
 
-    def next_frame(*_) -> None:
-        nonlocal last_alarm
+        # Switched from this animated image earlier, to another animated image while
+        # AnimRenderManager was waiting on a frame's duration
+        try:
+            del image_w._frame
+            del image_w._force_render
+            del image_w._forced_anim_size_hash
+        except AttributeError:
+            pass
 
-        loop.remove_alarm(last_alarm)
-        if (
-            image_box.original_widget is image
-            # In case you switch from and back to the image within one frame duration
-            and image._animator is animator
-            # The animator is not yet exhausted; repeat count is not yet zero
-            and image._animator.gi_frame
-            and (not forced_render or image._force_render)
-        ):
-            image._frame_changed = True
-            last_alarm = loop.set_alarm_in(frame_duration, next_frame)
-        # In case you switch from and back to the image within one frame duration
-        elif image._animator is animator:
-            # When you switch back and forth between an animated image and another
-            # image rapidly, all within one frame duration and the other image ends up
-            # as the current image, the last alarm from the first animation of the
-            # image in question and the first alarm from the second animation both
-            # meet the other image as the current one when they're triggered.
-            # So, they both try to clean up but the second alarm one meets nothing
-            # since the previous alarm had already cleaned up.
-            try:
-                image._animator.close()
-                del (
-                    image._animator,
-                    image._frame,
-                    image._frame_changed,
-                    image._frame_size_hash,
-                )
-            except AttributeError:
-                pass
-
-            # The above issue shouldn't apply to forced renders since no new
-            # animation is started until forced and that can't happen until the current
-            # forced animation is over.
-            # Going back to the image with the forced animation within one frame
-            # duration simply continues the ongoing animation.
-            #
-            # Also, see "Forced render" section of `.widgets.Image.render()`.
-            if forced_render:
-                del image._force_render
-                del image._forced_anim_size_hash
-
-    frame_duration = FRAME_DURATION or image._image._frame_duration
-    animator = image._animator = ImageIterator(
-        image._image, REPEAT, f"1.1{image._alpha}", ANIM_CACHED
-    )._animator
-
-    # `Image.render()` checks for this. It has to be set here since `ImageIterator`
-    # doesn't set it until the first `next()` is called.
-    image._image._seek_position = 0
-
-    # Only needs to be set once for an animated image, not per frame
-    # See `Image.render()`
-    if forced_render:
-        image._force_render = True
-
-    image._frame_changed = True
-    last_alarm = loop.set_alarm_in(frame_duration, next_frame)
+        # Only needs to be set once for an animation, not per frame
+        if forced_render:
+            image_w._force_render = True
 
 
 def display_images(
@@ -755,12 +710,9 @@ loop: Optional[tui.Loop] = None
 update_pipe: Optional[int] = None
 
 # # Corresponsing to command-line args
-ANIM_CACHED: Union[None, bool, int] = None
 DEBUG: Optional[bool] = None
-FRAME_DURATION: Optional[float] = None
 GRID_RENDERERS: Optional[int] = None
 MAX_PIXELS: Optional[int] = None
 NO_ANIMATION: Optional[bool] = None
-REPEAT: Optional[int] = None
 RECURSIVE: Optional[bool] = None
 SHOW_HIDDEN: Optional[bool] = None
