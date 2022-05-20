@@ -12,8 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Convenience functions for automatic render style selection ([#37]).
   - `AutoImage()`, `from_file()` and `from_url()` in `term_image.image`.
 - [lib] `BaseImage.source_type` property ([#38]).
+- [lib] `KittyImage` class ([#39]).
+- [lib] Support for multiple render methods per render style via `BaseImage.set_render_method()` ([#39]).
+- [cli] `kitty` render style choice for the `--style` CL option ([#39]).
 - [cli,tui] `--style` command-line option for render style selection ([#37]).
+- [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
+
 
 ### Changed
 - [lib] `TermImage` is now a subclass of `BaseImage` ([#34]).
@@ -26,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
 [#37]: https://github.com/AnonymouX47/term-image/pull/37
 [#38]: https://github.com/AnonymouX47/term-image/pull/38
+[#39]: https://github.com/AnonymouX47/term-image/pull/39
 
 
 ## [0.3.1] - 2022-05-04
