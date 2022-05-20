@@ -271,3 +271,127 @@ class TestRenderLines:
             if 0 in self.trans.rendered_size:
                 continue
             self._test_image_size(self.trans)
+
+
+class TestRenderWhole:
+    # Fully transparent image
+    # It's easy to predict it's pixel values
+    trans = KittyImage.from_file("tests/images/trans.png")
+    trans.height = _size
+    trans.set_render_method(WHOLE)
+
+    def render_image(self, alpha):
+        return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
+
+    def _test_image_size(self, image):
+        w, h = get_actual_render_size(image)
+        cols, lines = image.rendered_size
+        size_control_data = f"s={w},v={h},c={cols},r={lines}"
+        render = str(image)
+
+        assert render.count("\n") + 1 == lines
+        control_codes, raw_image, spaces = decode_image(render)
+        assert (
+            code in control_codes for code in expand_control_data(size_control_data)
+        )
+        assert len(raw_image) == w * h * 4
+        assert spaces.count("\n") + 1 == lines
+        assert (line == " " * cols for line in spaces.splitlines())
+
+    def test_transmission(self):
+        # Not chunked (image data is entirely contiguous, so it's highly compressed)
+        # Image data size is tested in `test_size()`
+        self.trans.scale = 1.0
+        decode_image(self.render_image(_ALPHA_THRESHOLD))
+
+        # Chunked (image data is very sparse, so it's still large after compression)
+        hori = KittyImage.from_file("tests/images/hori.jpg")
+        hori.height = _size
+        hori.set_render_method(WHOLE)
+        w, h = get_actual_render_size(hori)
+        assert len(decode_image(str(hori))[1]) == w * h * 3
+
+    def test_minimal_render_size(self):
+        image = KittyImage.from_file("tests/images/trans.png")
+        image.set_render_method(WHOLE)
+        lines_for_original_height = KittyImage._pixels_lines(
+            pixels=image.original_size[1]
+        )
+
+        # Using render size
+        image.height = lines_for_original_height // 2
+        w, h = image._get_render_size()
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
+        # Using original size
+        image.height = lines_for_original_height * 2
+        w, h = image._original_size
+        extra = h % (image.height or 1)
+        if extra:
+            h = h - extra + image.height
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
+    def test_size(self):
+        self.trans.scale = 1.0
+        self._test_image_size(self.trans)
+
+    def test_image_data_and_transparency(self):
+        self.trans.scale = 1.0
+        w, h = get_actual_render_size(self.trans)
+
+        # Transparency enabled
+        control_codes, raw_image, _ = decode_image(self.render_image(_ALPHA_THRESHOLD))
+        assert ("f", "32") in control_codes
+        assert len(raw_image) == w * h * 4
+        assert raw_image.count(b"\0" * 4) == w * h
+
+        # Transparency disabled
+        control_codes, raw_image, _ = decode_image(self.render_image(None))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\0\0") == w * h
+
+    def test_image_data_and_background_colour(self):
+        self.trans.scale = 1.0
+        w, h = get_actual_render_size(self.trans)
+
+        # red
+        control_codes, raw_image, _ = decode_image(self.render_image("#ff0000"))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\xff\0\0") == w * h
+
+        # green
+        control_codes, raw_image, _ = decode_image(self.render_image("#00ff00"))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\xff\0") == w * h
+
+        # blue
+        control_codes, raw_image, _ = decode_image(self.render_image("#0000ff"))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\0\xff") == w * h
+
+        # white
+        control_codes, raw_image, _ = decode_image(self.render_image("#ffffff"))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\xff" * 3) == w * h
+
+    def test_scaled(self):
+        # At varying scales
+        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
+            self._test_image_size(self.trans)
+
+        # Random scales
+        for _ in range(20):
+            scale = random()
+            if scale == 0.0:
+                continue
+            self.trans.scale = scale
+            if 0 in self.trans.rendered_size:
+                continue
+            self._test_image_size(self.trans)
