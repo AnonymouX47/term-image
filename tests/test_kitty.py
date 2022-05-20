@@ -162,8 +162,7 @@ class TestRenderLines:
         for line in render.splitlines():
             control_codes, raw_image, spaces = decode_image(line)
             assert (
-                code in control_codes
-                for code in expand_control_data(size_control_data)
+                code in control_codes for code in expand_control_data(size_control_data)
             )
             assert len(raw_image) == bytes_per_line
             assert spaces == " " * cols
@@ -178,14 +177,15 @@ class TestRenderLines:
         # Chunked (image data is very sparse, so it's still large after compression)
         hori = KittyImage.from_file("tests/images/hori.jpg")
         hori.height = _size
+        hori.set_render_method(LINES)
         w, h = get_actual_render_size(hori)
         bytes_per_line = w * (h // self.trans.height) * 3
         for line in str(hori).splitlines():
-            raw_image = decode_image(line)[1]
-            assert len(raw_image) == bytes_per_line
+            assert len(decode_image(line)[1]) == bytes_per_line
 
     def test_minimal_render_size(self):
         image = KittyImage.from_file("tests/images/trans.png")
+        image.set_render_method(LINES)
         lines_for_original_height = KittyImage._pixels_lines(
             pixels=image.original_size[1]
         )
@@ -193,7 +193,6 @@ class TestRenderLines:
         # Using render size
         image.height = lines_for_original_height // 2
         w, h = image._get_render_size()
-        bytes_per_line = w * (h // image.height) * 4
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
@@ -203,7 +202,6 @@ class TestRenderLines:
         extra = h % (image.height or 1)
         if extra:
             h = h - extra + image.height
-        bytes_per_line = w * (h // image.height) * 4
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
