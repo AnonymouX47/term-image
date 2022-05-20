@@ -35,7 +35,7 @@ class KittyImage(BaseImage):
 
     **Render Methods:**
 
-    ``KittyImage`` provides two methods of :term:`rendering` images, namely:
+    :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
 
     lines
        Renders an image line-by-line i.e the image if evenly split up across
@@ -46,11 +46,6 @@ class KittyImage(BaseImage):
 
          * Good for use cases where it might be required to trim some lines of the
            image.
-
-       Cons:
-
-         * Drawing of non-animated images that are large in resolution and pixel
-           density might seem glitchy.
 
     whole
        Renders an image all at once i.e the entire image data is encoded into the first
@@ -69,7 +64,10 @@ class KittyImage(BaseImage):
     specified above.
 
     ATTENTION:
-        Requires `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
+        Currently supported terminal emulators include:
+
+          * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
+          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
     """
 
     # Size unit conversion already involves cell size calculation
