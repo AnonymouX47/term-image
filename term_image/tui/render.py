@@ -3,13 +3,115 @@
 from __future__ import annotations
 
 import logging as _logging
-from multiprocessing import Queue as mp_Queue
+from multiprocessing import Event as mp_Event, Queue as mp_Queue
 from os.path import split
 from queue import Empty, Queue
-from typing import Union
+from threading import Event
+from typing import Optional, Union
 
 from .. import get_font_ratio, logging, notify, set_font_ratio
 from ..logging_multi import Process
+
+
+def clear_queue(queue: Union[Queue, mp_Queue]):
+    while True:
+        try:
+            queue.get(timeout=0.005)
+        except Empty:
+            break
+
+
+def manage_anim_renders() -> bool:
+    from .main import ImageClass, update_screen
+    from .widgets import ImageCanvas, image_box
+
+    def next_frame() -> None:
+        if image_box.original_widget is image_w and (
+            not forced or image_w._force_render
+        ):
+            frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
+            if frame:
+                canv = ImageCanvas(frame.encode().split(b"\n"), size, rendered_size)
+                image_w._image._seek_position = frame_no
+                image_w._frame = (canv, repeat, frame_no)
+            else:
+                image_w._anim_finished = True
+        else:
+            frame_render_in.put((..., None, None))
+            clear_queue(frame_render_out)  # In case output is full
+            frame = None
+
+        if not frame:
+            try:
+                del image_w._frame
+                if forced:
+                    # See "Forced render" section of `.widgets.Image.render()`
+                    del image_w._force_render
+                    del image_w._forced_anim_size_hash
+            except AttributeError:
+                pass
+
+        update_screen()
+        return bool(frame)
+
+    frame_render_in = (mp_Queue if logging.MULTI else Queue)()
+    frame_render_out = (mp_Queue if logging.MULTI else Queue)(20)
+    ready = (mp_Event if logging.MULTI else Event)()
+    renderer = (Process if logging.MULTI else logging.Thread)(
+        target=render_frames,
+        args=(
+            frame_render_in,
+            frame_render_out,
+            ready,
+            get_font_ratio(),
+            ImageClass,
+            REPEAT,
+            ANIM_CACHED,
+        ),
+        name="FrameRenderer",
+    )
+    renderer.start()
+
+    image_w = None  # Silence flake8's F821
+    frame_duration = None
+    while True:
+        try:
+            data, size, forced = anim_render_queue.get(timeout=frame_duration)
+        except Empty:
+            if not next_frame():
+                frame_duration = None
+        else:
+            if not data:
+                break
+
+            notify.start_loading()
+
+            ready.clear()
+            frame_render_in.put((..., None, None))
+            clear_queue(frame_render_out)  # In case output is full
+            ready.wait()
+            clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
+
+            if isinstance(data, tuple):
+                frame_render_in.put((data, size, image_w._alpha))
+                if not next_frame():
+                    frame_duration = None
+            else:
+                image_w = data
+                frame_render_in.put((image_w._image._source, size, image_w._alpha))
+                frame_duration = FRAME_DURATION or image_w._image._frame_duration
+                # Ensures successful deletion when the displayed image has changed
+                image_w._frame = None
+                if not next_frame():
+                    frame_duration = None
+                del image_w._anim_starting
+
+            notify.stop_loading()
+
+    clear_queue(frame_render_in)
+    frame_render_in.put((None,) * 3)
+    clear_queue(frame_render_out)  # In case output is full
+    renderer.join()
 
 
 def manage_image_renders():
@@ -181,6 +283,74 @@ def manage_grid_renders(n_renderers: int):
         renderer.join()
 
 
+def render_frames(
+    input: Union[Queue, mp_Queue],
+    output: Union[Queue, mp_Queue],
+    ready: Union[Event, mp_Event],
+    font_ratio: float,
+    ImageClass: type,
+    repeat: int,
+    cached: Union[bool, int],
+):
+    """Renders animation frames.
+
+    Intended to be executed in a subprocess or thread.
+    """
+    from ..image import ImageIterator
+
+    if logging.MULTI:
+        set_font_ratio(font_ratio)
+
+    image = animator = None  # Silence flake8's F821
+    block = True
+    while True:
+        try:
+            data, size, alpha = input.get(block)
+        except Empty:
+            try:
+                output.put(
+                    (
+                        next(animator),
+                        animator._animator.gi_frame.f_locals["repeat"],
+                        image.tell(),
+                        size,
+                        image.rendered_size,
+                    )
+                )
+            except StopIteration:
+                output.put((None,) * 5)
+                block = True
+        else:
+            if not data:
+                break
+
+            if data is ...:
+                try:
+                    animator.close()
+                except AttributeError:  # First time
+                    pass
+                clear_queue(output)
+                ready.set()
+                block = True
+            elif isinstance(data, tuple):
+                new_repeat, frame_no = data
+                animator = ImageIterator(image, new_repeat, f"1.1{alpha}", cached)
+                next(animator)
+                animator.seek(frame_no)
+                image.set_size(maxsize=size)
+                block = False
+            else:
+                # A new image is always created to ensure the seek position of the image
+                # in MainProcess::MainThread is always correct, since frames should be
+                # rendered ahead.
+                image = ImageClass.from_file(data)
+                animator = ImageIterator(image, repeat, f"1.1{alpha}", cached)
+                image.set_size(maxsize=size)
+                block = False
+
+    clear_queue(output)
+
+
 def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
@@ -241,5 +411,12 @@ def render_images(
 
 
 logger = _logging.getLogger(__name__)
+anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
+
+# Set from `.tui.init()`
+# # Corresponsing to command-line args
+ANIM_CACHED: Union[None, bool, int] = None
+FRAME_DURATION: Optional[float] = None
+REPEAT: Optional[int] = None
