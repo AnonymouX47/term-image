@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging as _logging
 import os
-from multiprocessing import Event as mp_Event
 from operator import mul
 from os.path import abspath, basename, islink
 from pathlib import Path
@@ -643,13 +642,16 @@ def update_menu(
 
 
 def update_screen():
-    """Triggers a screeen redraw.
+    """Triggers a screen redraw.
 
     Meant to be called from threads other than the thread in which the MainLoop is
     running.
     """
-    if not (interrupted.is_set() or quitting.is_set()):
+    try:
         os.write(update_pipe, b" ")
+    except OSError as e:
+        if e.errno != 9:
+            logging.log_exception("Screen update failed", logger)
 
 
 logger = _logging.getLogger(__name__)
@@ -698,10 +700,6 @@ DIR = 3
 # Set by `update_menu()`
 menu_list = None  #: Optional[list]
 at_top_level = None  #: Optional[bool]
-
-# Intially set from `.__main__.main()`
-# Will be updated from `.logging.init_log()` if multiprocessing is enabled
-interrupted: Union[None, Event, mp_Event] = None
 
 # Set from `.tui.init()`
 ImageClass: type

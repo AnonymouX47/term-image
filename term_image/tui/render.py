@@ -112,6 +112,7 @@ def manage_anim_renders() -> bool:
     frame_render_in.put((None,) * 3)
     clear_queue(frame_render_out)  # In case output is full
     renderer.join()
+    clear_queue(anim_render_queue)
 
 
 def manage_image_renders():
@@ -174,8 +175,10 @@ def manage_image_renders():
             last_image_w = image_w
         notify.stop_loading()
 
+    clear_queue(image_render_in)
     image_render_in.put((None,) * 4)
     renderer.join()
+    clear_queue(image_render_queue)
 
 
 def manage_grid_renders(n_renderers: int):
@@ -225,12 +228,13 @@ def manage_grid_renders(n_renderers: int):
             if not new_grid:  # The starting `None` hasn't been gotten
                 while grid_render_queue.get():
                     pass
-            while not grid_render_in.empty():
-                grid_render_in.get()
-                notify.stop_loading()
-            while not grid_render_out.empty():
-                grid_render_out.get()
-                notify.stop_loading()
+            for q in (grid_render_in, grid_render_out):
+                while True:
+                    try:
+                        q.get(timeout=0.005)
+                        notify.stop_loading()
+                    except Empty:
+                        break
             cell_width = image_grid.cell_width
             grid_path = main.grid_path
             new_grid = False
@@ -275,12 +279,12 @@ def manage_grid_renders(n_renderers: int):
                     update_screen()
             notify.stop_loading()
 
-    while not grid_render_in.empty():
-        grid_render_in.get()
+    clear_queue(grid_render_in)
     for renderer in renderers:
         grid_render_in.put((None,) * 3)
     for renderer in renderers:
         renderer.join()
+    clear_queue(grid_render_queue)
 
 
 def render_frames(
@@ -408,6 +412,8 @@ def render_images(
                         logger,
                     )
                 notify.notify(str(e), level=notify.ERROR)
+
+    clear_queue(output)
 
 
 logger = _logging.getLogger(__name__)

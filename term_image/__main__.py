@@ -26,14 +26,13 @@ def main() -> int:
     from .tui import main
 
     def finish_loading():
-        if logging.QUIET:
-            return
-        notify.end_loading()
-        if not main.loop:  # TUI not yet launched
-            while notify.is_loading():
-                pass
+        if not logging.QUIET:
             notify.end_loading()
-        notify.loading_indicator.join()
+            if not main.loop:  # TUI was not launched
+                while notify.is_loading():
+                    pass
+                notify.end_loading()
+            notify.loading_indicator.join()
 
     def finish_multi_logging():
         if logging.MULTI:
@@ -50,11 +49,11 @@ def main() -> int:
     logger = _logging.getLogger("term-image")
     logger.setLevel(_logging.INFO)
 
-    cli.interrupted = main.interrupted = Event()
+    cli.interrupted = Event()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
-        cli.interrupted.set()  # Signal interruption to other threads.
+        cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
         finish_loading()
         finish_multi_logging()
         logging.log(
@@ -70,7 +69,7 @@ def main() -> int:
             raise
         return INTERRUPTED
     except Exception as e:
-        cli.interrupted.set()  # Signal interruption to other threads.
+        cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
         finish_loading()
         finish_multi_logging()
         logger.exception("Session terminated due to:")
