@@ -26,14 +26,13 @@ def main() -> int:
     from .tui import main
 
     def finish_loading():
-        if logging.QUIET:
-            return
-        notify.end_loading()
-        if not main.loop:  # TUI not yet launched
-            while notify.is_loading():
-                pass
+        if not logging.QUIET:
             notify.end_loading()
-        notify.loading_indicator.join()
+            if not main.loop:  # TUI was not launched
+                while notify.is_loading():
+                    pass
+                notify.end_loading()
+            notify.loading_indicator.join()
 
     def finish_multi_logging():
         if logging.MULTI:

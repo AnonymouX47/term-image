@@ -11,7 +11,7 @@ from typing import Any, Optional, Tuple, Union
 
 import urwid
 
-from . import logging, tui
+from . import cli, logging, tui
 from .config import max_notifications
 from .tui import main, widgets
 
@@ -136,8 +136,9 @@ def start_loading() -> None:
     """Signals the start of a progressive operation."""
     global _n_loading
 
-    _n_loading += 1
-    _loading.set()
+    if not (cli.interrupted.is_set() or main.quitting.is_set()):
+        _n_loading += 1
+        _loading.set()
 
 
 def stop_loading() -> None:
