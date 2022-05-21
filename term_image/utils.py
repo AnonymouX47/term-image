@@ -344,9 +344,14 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         size = response and tuple(
             map(int, response.partition(b"\033")[2][3:-1].split(b";"))
         )
-        # non-VTE-based terminals seem to respond with (height, width)
-        if size and "VTE_VERSION" not in os.environ:
-            size = size[::-1]
+        if size:
+            size = size[::-1]  # XTerm spicifies (height, width)
+
+            # Termux seems to respond with (height / 2, width), though the values are
+            # incorrect as they change with different zoom levels but still always
+            # give a reasonable (almost always the same) cell size and ratio.
+            if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                size = (size[0], size[1] * 2)
     except ValueError:
         size = None
 
@@ -382,8 +387,7 @@ def query_terminal(
     new_attr[3] &= ~termios.ECHO  # Disable input echo
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
-        os.write(_tty, request)
-        termios.tcdrain(_tty)
+        write_output(request)
         return read_input(more, timeout)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
@@ -473,6 +477,17 @@ def read_input(
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
     return bytes(input) if input else None
+
+
+def write_output(data: bytes) -> None:
+    """Writes *data* to the :term:`active terminal` and waits until it's completely
+    transmitted.
+    """
+    os.write(_tty, data)
+    try:
+        termios.tcdrain(_tty)
+    except termios.error:  # "Permission denied" on some platforms e.g Termux
+        pass
 
 
 def _process_start_wrapper(self, *args, **kwargs):
