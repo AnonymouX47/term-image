@@ -12,7 +12,7 @@ from multiprocessing import Event as mp_Event
 from threading import Thread
 from typing import Optional, Set
 
-from . import cli, notify, tui
+from . import cli, notify
 
 
 def init_log(
@@ -93,7 +93,7 @@ def init_log(
         del process_multi_logs.started
 
         # Inherited by instances of `.logging_multi.Process`
-        cli.interrupted = tui.main.interrupted = mp_Event()
+        cli.interrupted = mp_Event()
 
 
 def log(

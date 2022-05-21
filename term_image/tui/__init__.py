@@ -105,9 +105,6 @@ def init(
         render.anim_render_queue.put((None,) * 3)
         anim_render_manager.join()
         logging.log("Exited TUI normally", logger, direct=False)
-    except (KeyboardInterrupt, Exception):
-        main.interrupted.set()  # Signal interruption to other threads.
-        raise
     finally:
         # urwid fails to restore the normal buffer on some terminals
         print("\033[?1049l", end="", flush=True)  # Switch back to the normal buffer

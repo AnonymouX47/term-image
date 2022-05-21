@@ -49,11 +49,11 @@ def main() -> int:
     logger = _logging.getLogger("term-image")
     logger.setLevel(_logging.INFO)
 
-    cli.interrupted = main.interrupted = Event()
+    cli.interrupted = Event()
     try:
         exit_code = cli.main()
     except KeyboardInterrupt:
-        cli.interrupted.set()  # Signal interruption to other threads.
+        cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
         finish_loading()
         finish_multi_logging()
         logging.log(
@@ -69,7 +69,7 @@ def main() -> int:
             raise
         return INTERRUPTED
     except Exception as e:
-        cli.interrupted.set()  # Signal interruption to other threads.
+        cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
         finish_loading()
         finish_multi_logging()
         logger.exception("Session terminated due to:")
