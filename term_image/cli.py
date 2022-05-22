@@ -577,7 +577,8 @@ Render Styles:
         with a density of two pixels per character cell.
 
     Using a terminal-graphics-based style not supported by the active terminal is not
-    allowed.
+    allowed by default.
+    To force a style that is normally unsupported, add the '--force-style' flag.
 
 FOOTNOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
@@ -645,6 +646,14 @@ FOOTNOTES:
         help=(
             "Specify the image render style (default: auto). "
             'See "Render Styles" below'
+        ),
+    )
+    general.add_argument(
+        "--force-style",
+        action="store_true",
+        help=(
+            "Use the specified render style even if it's reported as unsupported by "
+            "the active terminal"
         ),
     )
 
@@ -1083,6 +1092,11 @@ FOOTNOTES:
     ImageClass = {"auto": _best_style(), "kitty": KittyImage, "term": TermImage}[
         args.style
     ]
+
+    style = ImageClass.__name__[:-5].lower()
+    if args.force_style:
+        ImageClass._supported = True
+    log(f"Using {style!r} render style", logger, direct=False)
 
     log("Processing sources", logger, loading=True)
 

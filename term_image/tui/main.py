@@ -702,7 +702,7 @@ menu_list = None  #: Optional[list]
 at_top_level = None  #: Optional[bool]
 
 # Set from `.tui.init()`
-ImageClass: type
+ImageClass: Optional[type] = None
 displayer: Optional[Generator[None, int, bool]] = None
 loop: Optional[tui.Loop] = None
 update_pipe: Optional[int] = None

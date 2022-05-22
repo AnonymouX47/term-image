@@ -7,7 +7,7 @@ import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-from . import cli, logging, notify
+from . import cli, logging, notify, tui
 
 
 def process_multi_logs() -> None:
@@ -56,6 +56,8 @@ class Process(Process):
             "redirect_notifs": redirect_notifs,
         }
         self._main_process_interruped = cli.interrupted
+        self._ImageClass = tui.main.ImageClass
+        self._force_style = cli.args.force_style
         child_processes.append(self)
 
     def run(self):
@@ -63,6 +65,9 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
+            if self._force_style and self._ImageClass:
+                # The unpickled class object is in the originally defined state
+                self._ImageClass._supported = True
             super().run()
         except KeyboardInterrupt:
             # Log only if the main process was not interruped
