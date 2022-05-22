@@ -15,7 +15,6 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..exceptions import TermImageException
 from ..utils import get_cell_size, lock_input, query_terminal
 from .common import GraphicsImage
 
@@ -26,10 +25,6 @@ WHOLE = "whole"
 
 class KittyImage(GraphicsImage):
     """A render style using the Kitty terminal graphics protocol.
-
-    Raises:
-        term_image.exceptions.TermImageException: The :term:`active terminal` doesn't
-          support the protocol.
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
@@ -73,13 +68,6 @@ class KittyImage(GraphicsImage):
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
-
-    def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
-        if not self.is_supported():
-            raise TermImageException(
-                "This image render style is not supported in the current terminal"
-            )
-        super().__init__(image, **kwargs)
 
     @classmethod
     @lock_input

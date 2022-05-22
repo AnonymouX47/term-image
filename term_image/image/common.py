@@ -1521,6 +1521,10 @@ class BaseImage(ABC):
 class GraphicsImage(BaseImage):
     """Base of all render styles using terminal graphics protocols.
 
+    Raises:
+        term_image.exceptions.TermImageException: The :term:`active terminal` doesn't
+          support the render style.
+
     See :py:class:`BaseImage` for the description of the constructor.
 
     ATTENTION:
@@ -1531,11 +1535,25 @@ class GraphicsImage(BaseImage):
     # Size unit conversion already involves cell size calculation
     _pixel_ratio: float = 1.0
 
+    def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
+        if not self.is_supported():
+            raise TermImageException(
+                "This image render style is not supported in the active terminal"
+            )
+        super().__init__(image, **kwargs)
+
 
 class TextImage(BaseImage):
     """Base of all render styles using ASCII/Unicode symbols [with ANSI color codes].
 
     See :py:class:`BaseImage` for the description of the constructor.
+
+    IMPORTANT:
+        Instantiation of subclasses is always allowed, even if the current terminal
+        does not [fully] support the render style.
+
+        To check if the render style is fully supported in the current terminal, use
+        :py:meth:`is_supported() <BaseImage.is_supported>`.
 
     ATTENTION:
         This class cannot be directly instantiated. Image instances should be created
