@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("ImageSource", "BaseImage", "ImageIterator")
+__all__ = ("ImageSource", "BaseImage", "GraphicsImage", "TextImage", "ImageIterator")
 
 import io
 import os
@@ -96,7 +96,7 @@ class ImageSource(Enum):
 
 
 class BaseImage(ABC):
-    """Baseclass of all image classes.
+    """Base of all render styles.
 
     Args:
         image: Source image.
@@ -143,7 +143,7 @@ class BaseImage(ABC):
         height: Optional[int] = None,
         scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
-        """See class description"""
+        """See the class description"""
         if not isinstance(image, Image.Image):
             raise TypeError(
                 "Expected a 'PIL.Image.Image' instance for 'image' "
@@ -429,11 +429,11 @@ class BaseImage(ABC):
 
     # # Private
 
-    # This default implementation is for text-based render styles
-    # There are two pixels vertically arranged in one character cell
-    # pixel-size == width * height/2
-    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
-    _pixel_ratio = property(lambda _: get_font_ratio() * 2)
+    @property
+    @abstractmethod
+    def _pixel_ratio(self):
+        """The width-to-height ratio of a pixel drawn in the terminal"""
+        raise NotImplementedError
 
     # Public Methods
 
@@ -1516,6 +1516,36 @@ class BaseImage(ABC):
             if w is not None
             else (h / ori_height) * ori_width
         )
+
+
+class GraphicsImage(BaseImage):
+    """Base of all render styles using terminal graphics protocols.
+
+    See :py:class:`BaseImage` for the description of the constructor.
+
+    ATTENTION:
+        This class cannot be directly instantiated. Image instances should be created
+        from its subclasses.
+    """
+
+    # Size unit conversion already involves cell size calculation
+    _pixel_ratio: float = 1.0
+
+
+class TextImage(BaseImage):
+    """Base of all render styles using ASCII/Unicode symbols [with ANSI color codes].
+
+    See :py:class:`BaseImage` for the description of the constructor.
+
+    ATTENTION:
+        This class cannot be directly instantiated. Image instances should be created
+        from its subclasses.
+    """
+
+    # Pixels are represented in a 1-to-2 ratio within one character cell
+    # pixel-size == width * height/2
+    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
+    _pixel_ratio = property(lambda _: get_font_ratio() * 2)
 
 
 class ImageIterator:

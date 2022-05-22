@@ -11,16 +11,16 @@ from typing import Optional, Tuple, Union
 import PIL
 
 from ..utils import _BG_FMT, _FG_FMT, _RESET
-from .common import BaseImage
+from .common import TextImage
 
 _LOWER_PIXEL = "\u2584"  # lower-half block element
 _UPPER_PIXEL = "\u2580"  # upper-half block element
 
 
-class TermImage(BaseImage):
-    """Text-based image using unicode blocks and ANSI 24-bit colour escape codes.
+class TermImage(TextImage):
+    """A render style using unicode half blocks and ANSI 24-bit colour escape codes.
 
-    See :py:class:`BaseImage` for the description of the constructor.
+    See :py:class:`TextImage` for the description of the constructor.
     """
 
     @classmethod

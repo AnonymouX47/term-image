@@ -17,21 +17,21 @@ import PIL
 
 from ..exceptions import TermImageException
 from ..utils import get_cell_size, lock_input, query_terminal
-from .common import BaseImage
+from .common import GraphicsImage
 
 # Constants for ``KittyImage`` render method
 LINES = "lines"
 WHOLE = "whole"
 
 
-class KittyImage(BaseImage):
-    """An image based on the Kitty terminal graphics protocol.
+class KittyImage(GraphicsImage):
+    """A render style using the Kitty terminal graphics protocol.
 
     Raises:
         term_image.exceptions.TermImageException: The :term:`active terminal` doesn't
           support the protocol.
 
-    See :py:class:`BaseImage` for the complete description of the constructor.
+    See :py:class:`GraphicsImage` for the complete description of the constructor.
 
     **Render Methods:**
 
@@ -69,9 +69,6 @@ class KittyImage(BaseImage):
           * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
           * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
     """
-
-    # Size unit conversion already involves cell size calculation
-    _pixel_ratio: float = 1.0
 
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
