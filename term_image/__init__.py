@@ -19,51 +19,95 @@ Copyright (c) 2022
 
 from __future__ import annotations
 
-__all__ = ("set_font_ratio", "get_font_ratio")
+__all__ = ("FontRatio", "set_font_ratio", "get_font_ratio")
 __author__ = "AnonymouX47"
+
+from enum import Enum, auto
+from operator import truediv
+from typing import Union
+
+from .exceptions import TermImageException
+from .utils import get_cell_size
 
 version_info = (0, 4, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
 
 
 def get_font_ratio() -> float:
-    """Returns the set libray-wide :term:`font ratio`."""
-    return _font_ratio
+    """Returns the libray-wide :term:`font ratio`.
+
+    See :py:func:`set_font_ratio`.
+    """
+    # `(1, 2)` is a fallback in case the terminal doesn't respond in time
+    return _font_ratio or truediv(*(get_cell_size() or (1, 2)))
 
 
-def set_font_ratio(ratio: float) -> None:
+def set_font_ratio(ratio: Union[float, FontRatio]) -> None:
     """Sets the library-wide :term:`font ratio`.
 
     Args:
-        ratio: The aspect ratio (i.e `width / height`) of a character cell in the
-        terminal emulator.
+        ratio: Can be one of the following values.
 
-    This value is taken into consideration when setting image sizes in order for images
-    drawn to the terminal to have correct proportion.
+          * A positive ``float``: a fixed aspect ratio of a character cell in the
+            terminal emulator.
+          * :py:attr:`FontRatio.AUTO`: the ratio is immediately determined from the
+            :term:`active terminal`.
+          * :py:attr:`FontRatio.FULL_AUTO`: the ratio is determined from the
+            :term:`active terminal` whenever :py:func:`get_font_ratio` is called,
+            though with some caching involved, such that the ratio is re-determined
+            only if the terminal size changes.
 
-    If you can't determine this value from your terminal's configuration,
-    you might have to try different values till you get a good fit.
-    Normally, this value should be between 0 and 1, but not too close to either.
+    Raises:
+        TypeError: An argument is of an inappropriate type.
+        ValueError: An argument is of an appropriate type but has an
+          unexpected/invalid value.
+        term_image.exceptions.TermImageException: Auto font ratio is not supported
+          in the :term:`active terminal` or on the current platform.
+
+    This value is taken into consideration when setting image sizes for **text-based**
+    render styles, in order for images drawn to the terminal to have correct
+    proportion.
 
     NOTE:
-        The font ratio is only required and used by text-based rendering styles, not
-        those based on terminal graphics protocols.
+        Changing the font ratio does not automatically affect any image that already
+        has it's size set. For a change in font ratio to have any effect, the image's
+        size has to be set again.
 
-    IMPORTANT:
-        Changing the font ratio does not automatically affect any image whose size has
-        already been set. For a change in font ratio to have any effect, it's size has
-        to be set again.
+    ATTENTION:
+        See :ref:`auto-font-ratio` for details about the auto modes.
     """
-    global _font_ratio
+    global _auto_font_ratio, _font_ratio
 
-    if not isinstance(ratio, float):
-        raise TypeError(f"Font ratio must be a float (got: {type(ratio).__name__})")
-    if ratio <= 0:
-        raise ValueError(f"Font ratio must be positive (got: {ratio})")
+    if isinstance(ratio, FontRatio):
+        if _auto_font_ratio is None:
+            _auto_font_ratio = get_cell_size() is not None
 
-    # cell-size == width * height
-    # font-ratio == width / height
-    _font_ratio = ratio
+        if not _auto_font_ratio:
+            raise TermImageException(
+                "Auto font ratio is not supported in the active terminal or on the "
+                "current platform"
+            )
+        elif ratio is FontRatio.AUTO:
+            # `(1, 2)` is a fallback in case the terminal doesn't respond in time
+            _font_ratio = truediv(*(get_cell_size() or (1, 2)))
+        else:
+            _font_ratio = None
+    elif isinstance(ratio, float):
+        if ratio <= 0.0:
+            raise ValueError(f"'ratio' must be greater than zero (got: {ratio})")
+        _font_ratio = ratio
+    else:
+        raise TypeError(
+            f"'ratio' must be a float or FontRatio enum (got: {type(ratio).__name__})"
+        )
 
 
-_font_ratio = 0.5  # Default
+class FontRatio(Enum):
+    """Constants for auto font ratio modes"""
+
+    AUTO = auto()
+    FULL_AUTO = auto()
+
+
+_font_ratio = 0.5
+_auto_font_ratio = None
