@@ -18,9 +18,9 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import __version__, config, logging, notify, set_font_ratio, tui
+from . import FontRatio, __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
-from .exceptions import URLNotFoundError
+from .exceptions import TermImageException, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import KittyImage, TermImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
@@ -634,8 +634,8 @@ FOOTNOTES:
         metavar="N",
         default=config.font_ratio,
         help=(
-            "Specify the width-to-height ratio of a character cell in your terminal "
-            f"for proper image scaling (default: {config.font_ratio})"
+            "The width-to-height ratio of a character cell in the terminal, for "
+            f"correct image proportion (default: {config.font_ratio or 'auto'})"
         ),
     )
     general.add_argument(
@@ -1078,7 +1078,15 @@ FOOTNOTES:
             )
             setattr(args, var_name, getattr(config, var_name))
 
-    set_font_ratio(args.font_ratio)
+    try:
+        set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
+    except TermImageException:
+        notify.notify(
+            "Auto font ratio is not supported in the active terminal or on this "
+            "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
+            level=notify.WARNING,
+        )
+        args.font_ratio = 0.5
 
     ImageClass = {"auto": _best_style(), "kitty": KittyImage, "term": TermImage}[
         args.style
