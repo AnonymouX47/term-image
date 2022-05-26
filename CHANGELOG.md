@@ -23,10 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Support for multiple render methods per render style via `BaseImage.set_render_method()` ([#39]).
 - [lib] Non-linear image iteration via `ImageIterator.seek()` ([#42]).
 - [lib] Image category subclasses (of `BaseImage`), `TextImage` and `GraphicsImage` ([#44]).
+- [lib] Automatic font ratio computation ([#45]).
+- [lib] `term_image.FontRatio` enumeration class ([#45]).
+- [cli] `--style` command-line option for render style selection ([#37]).
 - [cli] `kitty` render style choice for the `--style` CL option ([#39]).
 - [cli] `--force-style` to bypass render style support checks ([#44]).
+- [cli] `--auto-font-ratio` for automatic font ratio determination ([#45]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
-- [cli,tui] `--style` command-line option for render style selection ([#37]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
 
@@ -38,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Improved `repr()` of image instances ([#38]).
 - [lib] Direct baseclass of `TermImage` to `TextImage` ([#44]).
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
+- [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
 
 [#34]: https://github.com/AnonymouX47/term-image/pull/34
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
@@ -48,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#42]: https://github.com/AnonymouX47/term-image/pull/42
 [#43]: https://github.com/AnonymouX47/term-image/pull/43
 [#44]: https://github.com/AnonymouX47/term-image/pull/44
+[#45]: https://github.com/AnonymouX47/term-image/pull/45
 
 
 ## [0.3.1] - 2022-05-04

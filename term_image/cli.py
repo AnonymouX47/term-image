@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import __version__, config, logging, notify, set_font_ratio, tui
+from . import FontRatio, __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
 from .exceptions import TermImageException, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
@@ -629,17 +629,6 @@ FOOTNOTES:
         help="Restore default config and exit (Overwrites the config file)",
     )
     general.add_argument(
-        "-F",
-        "--font-ratio",
-        type=float,
-        metavar="N",
-        default=config.font_ratio,
-        help=(
-            "Specify the width-to-height ratio of a character cell in your terminal "
-            f"for proper image scaling (default: {config.font_ratio})"
-        ),
-    )
-    general.add_argument(
         "-S",
         "--style",
         choices=("auto", "kitty", "term"),
@@ -656,6 +645,24 @@ FOOTNOTES:
             "Use the specified render style even if it's reported as unsupported by "
             "the active terminal"
         ),
+    )
+
+    font_ratio_options = general.add_mutually_exclusive_group()
+    font_ratio_options.add_argument(
+        "-F",
+        "--font-ratio",
+        type=float,
+        metavar="N",
+        default=config.font_ratio,
+        help=(
+            "The width-to-height ratio of a character cell in the terminal, for "
+            f"correct image proportion (default: {config.font_ratio or 'auto'})"
+        ),
+    )
+    font_ratio_options.add_argument(
+        "--auto-font-ratio",
+        action="store_true",
+        help="Determine the font ratio from the terminal, if possible",
     )
 
     mode_options = general.add_mutually_exclusive_group()
@@ -1087,7 +1094,17 @@ FOOTNOTES:
             )
             setattr(args, var_name, getattr(config, var_name))
 
-    set_font_ratio(args.font_ratio)
+    if args.auto_font_ratio:
+        args.font_ratio = None
+    try:
+        set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
+    except TermImageException:
+        notify.notify(
+            "Auto font ratio is not supported in the active terminal or on this "
+            "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
+            level=notify.WARNING,
+        )
+        args.font_ratio = 0.5
 
     ImageClass = {"auto": None, "kitty": KittyImage, "term": TermImage}[args.style]
     if not ImageClass:

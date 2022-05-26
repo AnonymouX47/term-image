@@ -7,7 +7,9 @@ import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-from . import cli, logging, notify, tui
+import term_image
+
+from . import FontRatio, cli, logging, notify, set_font_ratio, tui
 
 
 def process_multi_logs() -> None:
@@ -58,6 +60,7 @@ class Process(Process):
         self._main_process_interruped = cli.interrupted
         self._ImageClass = tui.main.ImageClass
         self._force_style = cli.args.force_style
+        self._font_ratio = cli.args.font_ratio
         child_processes.append(self)
 
     def run(self):
@@ -68,6 +71,12 @@ class Process(Process):
             if self._force_style and self._ImageClass:
                 # The unpickled class object is in the originally defined state
                 self._ImageClass._supported = True
+
+            if not self._font_ratio:
+                # Avoid error in case the terminal would not respond on time
+                term_image._auto_font_ratio = True
+            set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
+
             super().run()
         except KeyboardInterrupt:
             # Log only if the main process was not interruped
