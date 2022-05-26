@@ -628,6 +628,17 @@ FOOTNOTES:
         help="Restore default config and exit (Overwrites the config file)",
     )
     general.add_argument(
+        "--style",
+        choices=("auto", "kitty", "term"),
+        default="auto",
+        help=(
+            "Specify the image render style (default: auto). "
+            'See "Render Styles" below'
+        ),
+    )
+
+    font_ratio_options = general.add_mutually_exclusive_group()
+    font_ratio_options.add_argument(
         "-F",
         "--font-ratio",
         type=float,
@@ -638,14 +649,10 @@ FOOTNOTES:
             f"correct image proportion (default: {config.font_ratio or 'auto'})"
         ),
     )
-    general.add_argument(
-        "--style",
-        choices=("auto", "kitty", "term"),
-        default="auto",
-        help=(
-            "Specify the image render style (default: auto). "
-            'See "Render Styles" below'
-        ),
+    font_ratio_options.add_argument(
+        "--auto-font-ratio",
+        action="store_true",
+        help="Determine the font ratio from the terminal, if possible",
     )
 
     mode_options = general.add_mutually_exclusive_group()
@@ -1078,6 +1085,8 @@ FOOTNOTES:
             )
             setattr(args, var_name, getattr(config, var_name))
 
+    if args.auto_font_ratio:
+        args.font_ratio = None
     try:
         set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
     except TermImageException:
