@@ -9,7 +9,7 @@ from queue import Empty, Queue
 from threading import Event
 from typing import Optional, Union
 
-from .. import get_font_ratio, logging, notify, set_font_ratio
+from .. import logging, notify
 from ..logging_multi import Process
 
 
@@ -63,7 +63,6 @@ def manage_anim_renders() -> bool:
             frame_render_in,
             frame_render_out,
             ready,
-            get_font_ratio(),
             ImageClass,
             REPEAT,
             ANIM_CACHED,
@@ -124,7 +123,7 @@ def manage_image_renders():
     image_render_out = (mp_Queue if multi else Queue)()
     renderer = (Process if multi else logging.Thread)(
         target=render_images,
-        args=(image_render_in, image_render_out, get_font_ratio(), ImageClass),
+        args=(image_render_in, image_render_out, ImageClass),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
         redirect_notifs=True,
@@ -200,7 +199,7 @@ def manage_grid_renders(n_renderers: int):
     renderers = [
         (Process if multi else logging.Thread)(
             target=render_images,
-            args=(grid_render_in, grid_render_out, get_font_ratio(), ImageClass),
+            args=(grid_render_in, grid_render_out, ImageClass),
             kwargs=dict(multi=multi, out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
@@ -291,7 +290,6 @@ def render_frames(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     ready: Union[Event, mp_Event],
-    font_ratio: float,
     ImageClass: type,
     repeat: int,
     cached: Union[bool, int],
@@ -301,9 +299,6 @@ def render_frames(
     Intended to be executed in a subprocess or thread.
     """
     from ..image import ImageIterator
-
-    if logging.MULTI:
-        set_font_ratio(font_ratio)
 
     image = animator = None  # Silence flake8's F821
     block = True
@@ -358,7 +353,6 @@ def render_frames(
 def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
-    font_ratio: float,
     ImageClass: type,
     *,
     multi: bool,
@@ -372,9 +366,6 @@ def render_images(
         out_extras: If True, image details other than the render output are passed out.
     Intended to be executed in a subprocess or thread.
     """
-    if multi:
-        set_font_ratio(font_ratio)
-
     while True:
         if log_faults:
             image, size, alpha, faulty = input.get()

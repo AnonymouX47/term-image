@@ -7,7 +7,9 @@ import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-from . import cli, logging, notify
+import term_image
+
+from . import FontRatio, cli, logging, notify, set_font_ratio
 
 
 def process_multi_logs() -> None:
@@ -47,6 +49,7 @@ class Process(Process):
 
     def __init__(self, *args, redirect_notifs: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
+        self._font_ratio = cli.args.font_ratio
         self._log_queue = log_queue
         self._logging_details = {
             "constants": {
@@ -63,6 +66,11 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
+            if not self._font_ratio:
+                # Avoid error in case the terminal would not respond on time
+                term_image._auto_font_ratio = True
+            set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
+
             super().run()
         except KeyboardInterrupt:
             # Log only if the main process was not interruped
