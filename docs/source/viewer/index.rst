@@ -42,26 +42,6 @@ The viewer can be used in two modes:
    | This mode is used whenever there are multiple image sources or at least one directory source, or when the ``--tui`` option is specified.
 
 
-Font Ratio
-----------
-
-The :term:`font ratio` is taken into consideration when setting image sizes for **text-based** render styles, in order for images drawn to the terminal to have correct proportion.
-
-| This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio`` OR either of the command-line options ``-F | --font-ratio`` and ``--auto-font-ratio``.
-| The command-line options are mutually exclusive and override the config option.
-
-| By default (i.e without changing the config option value or specifying the command-line option), ``term-image`` tries to determine the value from the :term:`active terminal` which works on most mordern terminal emulators (currently supported on UNIX-like platforms only).
-| This is probably the best choice, except the terminal emulator or platform doesn't support this feature.
-
-| If ``term-image`` is unable to determine this value automatically, it falls back to ``0.5``, which is a reasonable value in most cases.
-| In case *auto* font ratio is not supported and the fallback value does not give expected results, a different value can be specified using the config or command-line option.
-
-.. attention::
-   If using *auto* font ratio and the :term:`active terminal` is not the controlling terminal of the `term-image` process (e.g output is redirected to another terminal), ensure no process that might read input (e.g a shell) is currently running in the active terminal, as such a process might interfere with determining the font ratio on some terminal emulators (e.g VTE-based ones).
-
-   For instance, the ``sleep`` command can be executed if a shell is currently running in the active terminal.
-
-
 Usage
 -----
 
@@ -86,6 +66,26 @@ See :ref:`render-styles`.
 | If the specified render style is text-based and not [fully] supported, a warning notification is emitted but execution still proceeds with the style.
 
 The ``--force-style`` command-line option can be used to bypass style support checks and force the usage of any style whether it's supported or not.
+
+
+Font Ratio
+----------
+
+The :term:`font ratio` is taken into consideration when setting image sizes for **text-based** render styles, in order for images drawn to the terminal to have correct proportion.
+
+| This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio`` OR either of the command-line options ``-F | --font-ratio`` and ``--auto-font-ratio``.
+| The command-line options are mutually exclusive and override the config option.
+
+| By default (i.e without changing the config option value or specifying the command-line option), ``term-image`` tries to determine the value from the :term:`active terminal` which works on most mordern terminal emulators (currently supported on UNIX-like platforms only).
+| This is probably the best choice, except the terminal emulator or platform doesn't support this feature.
+
+| If ``term-image`` is unable to determine this value automatically, it falls back to ``0.5``, which is a reasonable value in most cases.
+| In case *auto* font ratio is not supported and the fallback value does not give expected results, a different value can be specified using the config or command-line option.
+
+.. attention::
+   If using *auto* font ratio and the :term:`active terminal` is not the controlling terminal of the `term-image` process (e.g output is redirected to another terminal), ensure no process that might read input (e.g a shell) is currently running in the active terminal, as such a process might interfere with determining the font ratio on some terminal emulators (e.g VTE-based ones).
+
+   For instance, the ``sleep`` command can be executed if a shell is currently running in the active terminal.
 
 
 Notifications
