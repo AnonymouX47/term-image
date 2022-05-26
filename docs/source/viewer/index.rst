@@ -54,6 +54,20 @@ Note that some options are only applicable to a specific mode. If used with the 
 | All footnotes are at the bottom of the help text.
 
 
+Render Styles
+-------------
+
+See :ref:`render-styles`.
+
+| By default, ``term-image`` automatically detects the best style supported by the :term:`active terminal`.
+
+| A particular render style can be specified using the ``-S | --style`` command-line option.
+| If the specified render style is graphics-based and not supported, an error notification is emitted and the process exits with code ``1``.
+| If the specified render style is text-based and not [fully] supported, a warning notification is emitted but execution still proceeds with the style.
+
+The ``--force-style`` command-line option can be used to bypass style support checks and force the usage of any style whether it's supported or not.
+
+
 Notifications
 -------------
 

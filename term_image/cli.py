@@ -20,14 +20,14 @@ import requests
 
 from . import __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
-from .exceptions import URLNotFoundError
+from .exceptions import TermImageException, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import KittyImage, TermImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import OS_IS_UNIX
+from .utils import OS_IS_UNIX, write_output
 
 
 def check_dir(
@@ -577,13 +577,14 @@ Render Styles:
         with a density of two pixels per character cell.
 
     Using a terminal-graphics-based style not supported by the active terminal is not
-    allowed.
+    allowed by default.
+    To force a style that is normally unsupported, add the '--force-style' flag.
 
 FOOTNOTES:
   1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
      on the WIDTH and the FONT RATIO.
      The auto sizing is calculated such that the image always fits into the available
-     terminal size (i.e terminal size minus allowances) except when `-S` is
+     terminal size (i.e terminal size minus allowances) except when `--scroll` is
      specified, which allows the image height to go beyond the terminal height.
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
@@ -639,12 +640,21 @@ FOOTNOTES:
         ),
     )
     general.add_argument(
+        "-S",
         "--style",
         choices=("auto", "kitty", "term"),
         default="auto",
         help=(
             "Specify the image render style (default: auto). "
             'See "Render Styles" below'
+        ),
+    )
+    general.add_argument(
+        "--force-style",
+        action="store_true",
+        help=(
+            "Use the specified render style even if it's reported as unsupported by "
+            "the active terminal"
         ),
     )
 
@@ -795,7 +805,6 @@ FOOTNOTES:
         ),
     )
     cli_options.add_argument(
-        "-S",
         "--scroll",
         action="store_true",
         help=(
@@ -1080,9 +1089,37 @@ FOOTNOTES:
 
     set_font_ratio(args.font_ratio)
 
-    ImageClass = {"auto": _best_style(), "kitty": KittyImage, "term": TermImage}[
-        args.style
-    ]
+    ImageClass = {"auto": None, "kitty": KittyImage, "term": TermImage}[args.style]
+    if not ImageClass:
+        ImageClass = _best_style()
+
+    style = ImageClass.__name__[:-5].lower()
+    if args.force_style:
+        ImageClass._supported = True
+    else:
+        try:
+            ImageClass(None)
+        except TermImageException:  # Instantiation isn't permitted
+            log(
+                f"The {style!r} render style is not supported in the current "
+                "terminal! To use it anyways, add '--force-style'.",
+                logger,
+                level=_logging.CRITICAL,
+            )
+            return FAILURE
+        except TypeError:  # Instantiation is permitted
+            if not ImageClass.is_supported():
+                log(
+                    f"The {style!r} render style might not be fully supported in "
+                    "the current terminal... using it anyways.",
+                    logger,
+                    level=_logging.WARNING,
+                )
+    log(f"Using {style!r} render style", logger, direct=False)
+
+    # Some APCs used for render style support detection get emitted on some
+    # non-supporting terminal emulators
+    write_output(b"\033[1K\r")
 
     log("Processing sources", logger, loading=True)
 
