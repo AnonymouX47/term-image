@@ -20,6 +20,40 @@ Top-Level Functions
 
 .. _format-spec:
 
+
+.. _render-styles:
+
+Render Styles
+-------------
+
+A render style is a specific implementation of representing or drawing images in a terminal emulator and each is implemented as a class.
+
+All render styles are designed to share a common interface (with some having extensions), making the usage of one class directly compatibile with another.
+
+| Hence, the covenience functions :py:class:`AutoImage <term_image.image.AutoImage>`, :py:class:`from_file() <term_image.image.from_file>` and :py:class:`from_url() <term_image.image.from_url>` provide a means of render-style-independent usage of the library.
+| These functions automatically detect the best render style supported by the :term:`active terminal`.
+
+There a two categories of render styles:
+
+Text-based Render Styles
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Represent images using ASCII or Unicode symbols, and in some cases, in conjunction with ANSI colour escape codes.
+
+Classes for render styles in this category are subclasses of :py:class:`TextImage <term_image.image.TextImage>`. These include:
+
+- :py:class:`TermImage <term_image.image.TermImage>`.
+
+Graphics-based Render Styles
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Represent images with actual pixels, using terminal graphics protocols.
+
+Classes for render styles in this category are subclasses of :py:class:`GraphicsImage <term_image.image.GraphicsImage>`. These include:
+
+- :py:class:`KittyImage <term_image.image.KittyImage>`.
+
+
 Image Format Specification
 --------------------------
 
