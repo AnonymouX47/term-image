@@ -194,6 +194,9 @@ def update_config(config: Dict[str, Any], old_version: str):
             ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
             ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
         ],
+        "0.3": [
+            ("['font ratio']", 0.5, None),
+        ],
     }
 
     versions = tuple(changes)
@@ -318,7 +321,7 @@ def update_context_nav_keys(
 
 user_dir = os.path.join(os.path.expanduser("~"), ".term_image")
 config_file = os.path.join(user_dir, "config.json")
-version = "0.2"  # For config upgrades
+version = "0.3"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
@@ -368,7 +371,7 @@ valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 _anim_cache = 100
 _cell_width = 30
 _checkers = None
-_font_ratio = 0.5
+_font_ratio = None
 _getters = 4
 _grid_renderers = 1
 _log_file = os.path.join(user_dir, "term_image.log")
@@ -495,8 +498,8 @@ config_options = {
         "must be `null` or a non-negative integer",
     ),
     "font ratio": (
-        lambda x: isinstance(x, float) and x > 0.0,
-        "must be a float greater than zero",
+        lambda x: x is None or isinstance(x, float) and x > 0.0,
+        "must be `null` or a float greater than zero",
     ),
     "getters": (
         lambda x: isinstance(x, int) and x > 0,
