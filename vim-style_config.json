@@ -1,9 +1,9 @@
 {
-    "version": "0.2",
+    "version": "0.3",
     "anim cache": 100,
     "cell width": 30,
     "checkers": null,
-    "font ratio": 0.5,
+    "font ratio": null,
     "getters": 4,
     "grid renderers": 1,
     "log file": "/home/anonymoux47/.term_image/term_image.log",
