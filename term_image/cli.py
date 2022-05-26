@@ -581,9 +581,8 @@ Render Styles:
     To force a style that is normally unsupported, add the '--force-style' flag.
 
 FOOTNOTES:
-  1. The displayed image uses HEIGHT/2 lines, while the number of columns is dependent
-     on the WIDTH and the FONT RATIO.
-     The auto sizing is calculated such that the image always fits into the available
+  1. Width and height are in units of columns and lines repectively.
+     AUTO size is calculated such that the image always fits into the available
      terminal size (i.e terminal size minus allowances) except when `--scroll` is
      specified, which allows the image height to go beyond the terminal height.
   2. The size is multiplied by the scale on each axis respectively before the image
@@ -633,10 +632,7 @@ FOOTNOTES:
         "--style",
         choices=("auto", "kitty", "term"),
         default="auto",
-        help=(
-            "Specify the image render style (default: auto). "
-            'See "Render Styles" below'
-        ),
+        help='Image render style (default: auto). See "Render Styles" below',
     )
     general.add_argument(
         "--force-style",
@@ -688,7 +684,7 @@ FOOTNOTES:
         type=float,
         metavar="N",
         help=(
-            "Specify the time (in seconds) between frames for all animated images "
+            "The time (in seconds) between frames for all animated images "
             "(default: Determined per image from it's metadata OR 0.1)"
         ),
     )
@@ -823,7 +819,7 @@ FOOTNOTES:
         "--fit-to-width",
         action="store_true",
         help=(
-            "Automatically fit the image to the available terminal width. "
+            "Fit the image to the available terminal width. "
             "`--v-allow` has no effect i.e vertical allowance is overriden."
         ),
     )
@@ -997,13 +993,13 @@ FOOTNOTES:
         "--log-file",
         metavar="FILE",
         default=config.log_file,
-        help=f"Specify a file to write logs to (default: {config.log_file})",
+        help=f"The file to write logs to (default: {config.log_file})",
     )
     log_options.add_argument(
         "--log-level",
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
         default="WARNING",
-        help="Specify the logging level for the session (default: WARNING) [6]",
+        help="Logging level for the session (default: WARNING) [6]",
     )
     log_options.add_argument(
         "-q",
