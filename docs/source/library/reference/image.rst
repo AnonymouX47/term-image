@@ -35,6 +35,14 @@ Core Library Definitions
       :members:
       :show-inheritance:
 
+   .. autoclass:: GraphicsImage
+      :members:
+      :show-inheritance:
+
+   .. autoclass:: TextImage
+      :members:
+      :show-inheritance:
+
    .. autoclass:: KittyImage
       :members:
       :show-inheritance:

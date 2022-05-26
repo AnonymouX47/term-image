@@ -22,10 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] `KittyImage` class ([#39]).
 - [lib] Support for multiple render methods per render style via `BaseImage.set_render_method()` ([#39]).
 - [lib] Non-linear image iteration via `ImageIterator.seek()` ([#42]).
+- [lib] Image category subclasses (of `BaseImage`), `TextImage` and `GraphicsImage` ([#44]).
 - [lib] Automatic font ratio computation ([#45]).
 - [lib] `term_image.FontRatio` enumeration class ([#45]).
 - [cli] `--style` command-line option for render style selection ([#37]).
 - [cli] `kitty` render style choice for the `--style` CL option ([#39]).
+- [cli] `--force-style` to bypass render style support checks ([#44]).
 - [cli] `--auto-font-ratio` for automatic font ratio determination ([#45]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
@@ -37,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] On UNIX, the library now attempts to determine the proper terminal device to use when standard streams are redirected to files or pipes ([#36]).
 - [lib] `BaseImage.source` now raises `TermImageException` when invoked after the instance has been finalized ([#38]).
 - [lib] Improved `repr()` of image instances ([#38]).
+- [lib] Direct baseclass of `TermImage` to `TextImage` ([#44]).
+- [cli] `-S` from `--scroll` to `--style` ([#44]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
 
 [#34]: https://github.com/AnonymouX47/term-image/pull/34
@@ -47,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#41]: https://github.com/AnonymouX47/term-image/pull/41
 [#42]: https://github.com/AnonymouX47/term-image/pull/42
 [#43]: https://github.com/AnonymouX47/term-image/pull/43
+[#44]: https://github.com/AnonymouX47/term-image/pull/44
 [#45]: https://github.com/AnonymouX47/term-image/pull/45
 
 

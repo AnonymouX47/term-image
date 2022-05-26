@@ -9,7 +9,7 @@ from traceback import format_exception
 
 import term_image
 
-from . import FontRatio, cli, logging, notify, set_font_ratio
+from . import FontRatio, cli, logging, notify, set_font_ratio, tui
 
 
 def process_multi_logs() -> None:
@@ -49,7 +49,6 @@ class Process(Process):
 
     def __init__(self, *args, redirect_notifs: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
-        self._font_ratio = cli.args.font_ratio
         self._log_queue = log_queue
         self._logging_details = {
             "constants": {
@@ -59,6 +58,9 @@ class Process(Process):
             "redirect_notifs": redirect_notifs,
         }
         self._main_process_interruped = cli.interrupted
+        self._ImageClass = tui.main.ImageClass
+        self._force_style = cli.args.force_style
+        self._font_ratio = cli.args.font_ratio
         child_processes.append(self)
 
     def run(self):
@@ -66,6 +68,10 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
+            if self._force_style and self._ImageClass:
+                # The unpickled class object is in the originally defined state
+                self._ImageClass._supported = True
+
             if not self._font_ratio:
                 # Avoid error in case the terminal would not respond on time
                 term_image._auto_font_ratio = True

@@ -7,7 +7,8 @@ import pytest
 from PIL import Image
 
 from term_image import set_font_ratio
-from term_image.image.common import _ALPHA_THRESHOLD
+from term_image.exceptions import TermImageException
+from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
 from term_image.utils import get_terminal_size
 
 columns, lines = get_terminal_size()
@@ -89,6 +90,29 @@ def width_height(image, *, w=None, h=None):
     )
 
 
+def test_instantiation_Text():
+    original = ImageClass._supported
+    try:
+        ImageClass._supported = True
+        assert isinstance(ImageClass(python_img), TextImage)
+        ImageClass._supported = False
+        assert isinstance(ImageClass(python_img), TextImage)
+    finally:
+        ImageClass._supported = original
+
+
+def test_instantiation_Graphics():
+    original = ImageClass._supported
+    try:
+        ImageClass._supported = True
+        assert isinstance(ImageClass(python_img), GraphicsImage)
+        ImageClass._supported = False
+        with pytest.raises(TermImageException):
+            ImageClass(python_img)
+    finally:
+        ImageClass._supported = original
+
+
 def test_str_All():
     image = ImageClass(python_img, width=_size)
     assert str(image) == image._render_image(python_img, _ALPHA_THRESHOLD)
@@ -97,6 +121,7 @@ def test_str_All():
 def test_format_All():
     image = ImageClass(python_img)
     image.set_size()
+    image.scale = 0.5  # Leave some space for formatting
     assert format(image) == image._format_render(str(image))
 
 
@@ -265,7 +290,7 @@ class TestFontRatio_Text:
             set_font_ratio(0.5)
 
 
-class TestFontRatio_Graphic:
+class TestFontRatio_Graphics:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
 

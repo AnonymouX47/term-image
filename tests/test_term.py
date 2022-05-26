@@ -11,7 +11,7 @@ from .common import *  # noqa:F401
 from .common import _size, setup_common
 
 for name in tuple(globals()):
-    if name.endswith("_Graphic"):
+    if name.endswith("_Graphics"):
         del globals()[name]
 
 
