@@ -52,4 +52,4 @@ jobs:
         pip install dist/*.tar.gz
 
     - name: Test with pytest
-      run: make test test-url test-text
+      run: make test test-url

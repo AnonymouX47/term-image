@@ -11,6 +11,8 @@ from term_image.exceptions import TermImageException
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
 from term_image.utils import get_terminal_size
 
+from . import set_cell_size
+
 columns, lines = get_terminal_size()
 
 # For square images
@@ -25,6 +27,9 @@ python_img = Image.open("tests/images/python.png")
 
 def setup_common(ImageClass):
     globals().update(locals())  # width_height() requires ImageClass
+
+    set_cell_size((9, 18))
+    set_font_ratio(0.5)
 
     if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(
         lines=lines - 2

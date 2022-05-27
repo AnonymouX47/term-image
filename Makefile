@@ -1,6 +1,6 @@
 py_files = *.py docs/source/conf.py term_img/ term_image/ tests/
 
-_: check test test-text
+_: check test
 
 check: lint check-format check-imports
 
@@ -29,9 +29,9 @@ lint:
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
-test: test-base test-iterator test-others
-
+test: test-base test-iterator test-others test-text test-graphics
 test-text: test-term
+test-graphics: test-kitty
 
 test-base:
 	python -m pytest -v tests/test_base.py

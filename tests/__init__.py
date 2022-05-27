@@ -14,3 +14,8 @@ def set_cell_size(size):
 
 cell_size = None
 term_image.get_cell_size = get_cell_size
+term_image.utils.get_cell_size = get_cell_size
+
+import term_image.image  # noqa: E402
+
+term_image.image.GraphicsImage._supported = True
