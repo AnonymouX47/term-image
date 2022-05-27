@@ -106,7 +106,8 @@ class BaseImage(ABC):
 
     Raises:
         TypeError: An argument is of an inappropriate type.
-        ValueError: An argument has an unexpected/invalid value.
+        ValueError: An argument is of an appropriate type but has an
+          unexpected/invalid value.
 
     Propagates exceptions raised by :py:meth:`set_size`, if *width* or *height* is
     given.
@@ -745,8 +746,8 @@ class BaseImage(ABC):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument has an unexpected/invalid value but of an
-              appropriate type.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
 
         Frame numbers start from 0 (zero).
         """
@@ -1584,8 +1585,8 @@ class ImageIterator:
 
     Raises:
         TypeError: An argument is of an inappropriate type.
-        ValueError: An argument has an unexpected/invalid value but of an
-          appropriate type.
+        ValueError: An argument is of an appropriate type but has an
+          unexpected/invalid value.
 
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size
@@ -1691,8 +1692,8 @@ class ImageIterator:
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument has an unexpected/invalid value but of an
-              appropriate type.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
             term_image.exceptions.TermImageException: The iterator is unused.
 
         Frame numbers start from ``0`` (zero).
