@@ -42,6 +42,7 @@ __all__ = (
     "get_window_size",
     "query_terminal",
     "read_input",
+    "write_output",
 )
 
 import os
@@ -479,6 +480,8 @@ def read_input(
     return bytes(input) if input else None
 
 
+@unix_tty_only
+@lock_input
 def write_output(data: bytes) -> None:
     """Writes *data* to the :term:`active terminal` and waits until it's completely
     transmitted.
