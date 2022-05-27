@@ -108,7 +108,7 @@ class GridListBox(urwid.ListBox):
 
             self._update_grid_contents(
                 size[:1],
-                ncell,
+                ncell or 1,
                 new=(
                     self._grid_path != grid_path  # Different grids
                     or not (ncell or self._ncell)  # maxcol is and was < cell_width
