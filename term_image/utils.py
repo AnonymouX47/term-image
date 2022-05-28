@@ -33,7 +33,7 @@ __all__ = (
     "OS_IS_UNIX",
     "no_redecorate",
     "cached",
-    "lock_input",
+    "lock_tty",
     "unix_tty_only",
     "terminal_size_cached",
     "color",
@@ -41,8 +41,8 @@ __all__ = (
     "get_terminal_size",
     "get_window_size",
     "query_terminal",
-    "read_input",
-    "write_output",
+    "read_tty",
+    "write_tty",
 )
 
 import os
@@ -150,8 +150,8 @@ def cached(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def lock_input(func: Callable) -> FunctionType:
-    """Enables global cooperative input synchronization on the decorated callable.
+def lock_tty(func: Callable) -> FunctionType:
+    """Synchronizes access to the active terminal among decorated callables.
 
     Args:
         func: The object to be decorated.
@@ -178,12 +178,12 @@ def lock_input(func: Callable) -> FunctionType:
     """
 
     @wraps(func)
-    def lock_input_wrapper(*args, **kwargs):
-        with _input_lock:
-            # logging.debug(f"{func.__name__} acquired input lock", stacklevel=3)
+    def lock_tty_wrapper(*args, **kwargs):
+        with _tty_lock:
+            # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
 
-    return lock_input_wrapper
+    return lock_tty_wrapper
 
 
 @no_redecorate
@@ -360,7 +360,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
 
 
 @unix_tty_only
-@lock_input
+@lock_tty
 def query_terminal(
     request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
 ) -> Optional[bytes]:
@@ -381,22 +381,22 @@ def query_terminal(
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
-        it can be read using :py:func:`read_input()` before calling this fucntion.
+        it can be read using :py:func:`read_tty()` before calling this fucntion.
     """
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
-        write_output(request)
-        return read_input(more, timeout)
+        write_tty(request)
+        return read_tty(more, timeout)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
 
 @unix_tty_only
-@lock_input
-def read_input(
+@lock_tty
+def read_tty(
     more: Callable[[bytearray], bool] = lambda _: True,
     timeout: Optional[float] = None,
     min: int = 0,
@@ -481,8 +481,8 @@ def read_input(
 
 
 @unix_tty_only
-@lock_input
-def write_output(data: bytes) -> None:
+@lock_tty
+def write_tty(data: bytes) -> None:
     """Writes *data* to the :term:`active terminal` and waits until it's completely
     transmitted.
     """
@@ -494,18 +494,18 @@ def write_output(data: bytes) -> None:
 
 
 def _process_start_wrapper(self, *args, **kwargs):
-    global _input_lock
+    global _tty_lock
 
-    if isinstance(_input_lock, type(RLock())):
+    if isinstance(_tty_lock, type(RLock())):
         try:
             # Ensure it's not acquired by another process/thread before changing it.
             # The only way this can be countered is if the owner process/thread is the
             # one starting a process, which is very unlikely within a function meant
             # for input :|
-            with _input_lock:
-                self._input_lock = _input_lock = mp_RLock()
+            with _tty_lock:
+                self._tty_lock = _tty_lock = mp_RLock()
         except ImportError:
-            self._input_lock = None
+            self._tty_lock = None
             warnings.warn(
                 "Multi-process synchronization is not supported on this platform! "
                 "Hence, if any subprocess will be reading from STDIN, "
@@ -516,16 +516,16 @@ def _process_start_wrapper(self, *args, **kwargs):
                 UserWarning,
             )
     else:
-        self._input_lock = _input_lock
+        self._tty_lock = _tty_lock
 
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
 def _process_run_wrapper(self, *args, **kwargs):
-    global _input_lock
+    global _tty_lock
 
-    if self._input_lock:
-        _input_lock = self._input_lock
+    if self._tty_lock:
+        _tty_lock = self._tty_lock
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
@@ -536,7 +536,7 @@ _RESET = "\033[0m"
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
 
-_input_lock = RLock()
+_tty_lock = RLock()
 _tty: Optional[int] = None
 if OS_IS_UNIX:
     # In order of priority
@@ -573,5 +573,5 @@ if OS_IS_UNIX:
         """
         for name, value in vars(termios).items():
             if isinstance(value, BuiltinFunctionType):
-                setattr(termios, name, lock_input(value))
+                setattr(termios, name, lock_tty(value))
         """

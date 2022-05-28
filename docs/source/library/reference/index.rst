@@ -80,7 +80,7 @@ About #1
    Otherwise i.e if the program will be expecting input:
 
      * Use ``AUTO`` mode.
-     * Use :py:func:`utils.read_input() <term_image.utils.read_input>` (simply calling it without any argument is enough) to read all unread input (**without blocking**) before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
+     * Use :py:func:`utils.read_tty() <term_image.utils.read_tty>` (simply calling it without any argument is enough) to read all unread input (**without blocking**) before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
 
 About #2 and #3
    If the program includes any other function that could write to the terminal OR especially, read from the terminal or modify it's attributes, while a query is in progress, decorate it with :py:func:`utils.lock_input <term_image.utils.lock_input>` to ensure it doesn't interfere.

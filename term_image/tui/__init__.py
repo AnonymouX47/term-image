@@ -12,7 +12,7 @@ import urwid
 
 from .. import logging
 from ..config import max_notifications
-from ..utils import lock_input
+from ..utils import lock_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
@@ -75,7 +75,7 @@ def init(
         daemon=True,
     )
 
-    urwid.raw_display.Screen.get_available_raw_input = lock_input(
+    urwid.raw_display.Screen.get_available_raw_input = lock_tty(
         urwid.raw_display.Screen.get_available_raw_input
     )
     main.loop.screen.clear()

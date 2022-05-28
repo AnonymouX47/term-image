@@ -15,7 +15,7 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..utils import get_cell_size, lock_input, query_terminal
+from ..utils import get_cell_size, lock_tty, query_terminal
 from .common import GraphicsImage
 
 # Constants for ``KittyImage`` render method
@@ -70,7 +70,7 @@ class KittyImage(GraphicsImage):
     _render_method: str = LINES
 
     @classmethod
-    @lock_input
+    @lock_tty
     def is_supported(cls):
         if cls._supported is None:
             # Kitty graphics query + terminal attribute query
