@@ -71,7 +71,7 @@ The ``--force-style`` command-line option can be used to bypass style support ch
 Font Ratio
 ----------
 
-The :term:`font ratio` is taken into consideration when setting image sizes for **text-based** render styles, in order for images drawn to the terminal to have correct proportion.
+The :term:`font ratio` is taken into consideration when setting image sizes for **text-based** render styles, in order to preserve the aspect ratio of images drawn to the terminal.
 
 | This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio`` OR either of the command-line options ``-F | --font-ratio`` and ``--auto-font-ratio``.
 | The command-line options are mutually exclusive and override the config option.

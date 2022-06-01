@@ -65,8 +65,8 @@ def set_font_ratio(ratio: Union[float, FontRatio]) -> None:
           in the :term:`active terminal` or on the current platform.
 
     This value is taken into consideration when setting image sizes for **text-based**
-    render styles, in order for images drawn to the terminal to have correct
-    proportion.
+    render styles, in order to preserve the aspect ratio of images drawn to the
+    terminal.
 
     NOTE:
         Changing the font ratio does not automatically affect any image that already

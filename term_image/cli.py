@@ -651,8 +651,8 @@ FOOTNOTES:
         metavar="N",
         default=config.font_ratio,
         help=(
-            "The width-to-height ratio of a character cell in the terminal, for "
-            f"correct image proportion (default: {config.font_ratio or 'auto'})"
+            "The width-to-height ratio of a character cell in the terminal, to "
+            f"preserve image aspect ratio (default: {config.font_ratio or 'auto'})"
         ),
     )
     font_ratio_options.add_argument(

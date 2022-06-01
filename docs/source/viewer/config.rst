@@ -46,7 +46,7 @@ font ratio
    * Type: null or float
    * Valid values: ``null`` or x > ``0.0``
 
-   If ``null``, the ratio is determined from the :term:`active terminal` such that the proportion of any image is always correct. If this is not supported in the :term:`active terminal` or on the platform, ``0.5`` is used instead.
+   If ``null``, the ratio is determined from the :term:`active terminal` such that the aspect ratio of any image is always preserved. If this is not supported in the :term:`active terminal` or on the platform, ``0.5`` is used instead.
 
 getters
    Number of threads for downloading images from URL sources.
