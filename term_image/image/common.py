@@ -39,11 +39,8 @@ _HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
 
 @no_redecorate
 def _close_validated(func: FunctionType) -> FunctionType:
-    """Decorates an instance method of an image class to check if the instance has
-    been finalized, before performing an operation with the instance.
-
-    Raises:
-        TermImageException: The instance has been finalized.
+    """Enables finalization status validation before performing an operation with a
+    `BaseImage` instance.
     """
 
     @wraps(func)
@@ -221,7 +218,10 @@ class BaseImage(ABC):
 
     closed = property(
         lambda self: self._closed,
-        doc="Instance finalization status",
+        doc="""Instance finalization status
+
+        :rtype: bool
+        """,
     )
 
     frame_duration = property(
@@ -229,6 +229,8 @@ class BaseImage(ABC):
         doc="""Duration (in seconds) of a single frame for :term:`animated` images
 
         Setting this on non-animated images is simply ignored, no exception is raised.
+
+        :rtype: float
         """,
     )
 
@@ -255,6 +257,8 @@ class BaseImage(ABC):
             based on the current terminal size.
           * A positive ``int``: Sets the image height to the given value and
             the width proportionally.
+
+        :rtype: int
         """,
     )
 
@@ -269,7 +273,10 @@ class BaseImage(ABC):
 
     @property
     def n_frames(self) -> int:
-        """The number of frames in the image"""
+        """The number of frames in the image
+
+        :rtype: int
+        """
         if not self._is_animated:
             return 1
 
@@ -286,6 +293,8 @@ class BaseImage(ABC):
         The **scaled** height of the image.
 
         Also the exact number of lines that the drawn image will occupy in a terminal.
+
+        :rtype: int
         """,
     )
 
@@ -301,6 +310,8 @@ class BaseImage(ABC):
 
         Also the exact number of columns and lines (respectively) that the drawn image
         will occupy in a terminal.
+
+        :rtype: Tuple[int, int]
         """,
     )
 
@@ -312,6 +323,8 @@ class BaseImage(ABC):
         The **scaled** width of the image.
 
         Also the exact number of columns that the drawn image will occupy in a terminal.
+
+        :rtype: int
         """,
     )
 
@@ -326,6 +339,8 @@ class BaseImage(ABC):
           * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
 
         A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
+
+        :rtype: Tuple[float, float]
         """,
     )
 
@@ -346,6 +361,8 @@ class BaseImage(ABC):
         Horizontal :term:`scale`
 
         A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
+
+        :rtype: float
         """,
     )
 
@@ -359,6 +376,8 @@ class BaseImage(ABC):
         Vertical :term:`scale`
 
         A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
+
+        :rtype: float
         """,
     )
 
@@ -379,6 +398,8 @@ class BaseImage(ABC):
 
         This is multiplied by the :term:`scale` on respective axes before the image
         is :term:`rendered`.
+
+        :rtype: Tuple[int, int]
         """,
     )
 
@@ -396,8 +417,7 @@ class BaseImage(ABC):
         doc="""
         The :term:`source` from which the instance was initialized.
 
-        Returns:
-            A PIL image, file path or URL.
+        :rtype: Union[PIL.Image.Image, str]
         """,
     )
 
@@ -406,8 +426,7 @@ class BaseImage(ABC):
         doc="""
         The kind of :term:`source` from which the instance was initialized.
 
-        Returns:
-            A member of :py:class:`ImageSource`.
+        :rtype: ImageSource
         """,
     )
 
@@ -425,6 +444,8 @@ class BaseImage(ABC):
             based on the current terminal size.
           * A positive ``int``: Sets the image width to the given value and
             the height proportionally.
+
+        :rtype: int
         """,
     )
 
@@ -476,7 +497,7 @@ class BaseImage(ABC):
         check_size: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Draws/Displays an image in the terminal.
+        """Draws an image to standard output.
 
         Args:
             h_align: Horizontal alignment ("left" / "<", "center" / "|" or

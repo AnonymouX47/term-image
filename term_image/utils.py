@@ -88,13 +88,10 @@ class ClassInstanceMethod(classmethod):
 
 
 def no_redecorate(decor: Callable) -> FunctionType:
-    """Decorates a decorator to prevent it from re-decorating objects.
+    """Prevents a decorator from re-decorating objects.
 
     Args:
-        decor: A decorator.
-
-    Returns:
-        The wrapper.
+        decor: The decorator to be wrapped.
     """
     if getattr(decor, "_no_redecorate_", False):
         return decor
@@ -112,13 +109,10 @@ def no_redecorate(decor: Callable) -> FunctionType:
 
 @no_redecorate
 def cached(func: Callable) -> FunctionType:
-    """Enables return value caching on the decorated callable.
+    """Enables return value caching.
 
     Args:
-        func: The object to be decorated.
-
-    Returns:
-        The wrapper.
+        func: The function to be wrapped.
 
     The wrapper adds a *_cached* keyword-only parameter. When *_cached* is:
 
@@ -151,17 +145,14 @@ def cached(func: Callable) -> FunctionType:
 
 @no_redecorate
 def lock_tty(func: Callable) -> FunctionType:
-    """Synchronizes access to the active terminal among decorated callables.
+    """Synchronizes access to the active terminal.
 
     Args:
-        func: The object to be decorated.
+        func: The function to be wrapped.
 
-    Returns:
-        The wrapper.
-
-    When any decorated object is called, a re-entrant lock is acquired by the current
+    When any decorated function is called, a re-entrant lock is acquired by the current
     process or thread and released after the call, such that any other decorated
-    object called within another thread or subprocess has to wait till the lock is
+    function called within another thread or subprocess has to wait till the lock is
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
@@ -188,25 +179,22 @@ def lock_tty(func: Callable) -> FunctionType:
 
 @no_redecorate
 def terminal_size_cached(func: Callable) -> FunctionType:
-    """Enables return value caching on the decorated callable, based on the current
-    size of the :term:`active terminal`.
+    """Enables return value caching based on the size of the :term:`active terminal`.
 
     Args:
-        func: The object to be decorated.
-
-    Returns:
-        The wrapper.
+        func: The function to be wrapped.
 
     If the terminal size is the same as for the last call, the last return value is
-    returned. Otherwise the wrapped object is called and the new return value is
+    returned. Otherwise the wrapped function is called and the new return value is
     stored and returned.
-
-    It's thread-safe, i.e there is no race condition between calls to the same
-    decorated callable across threads of the same process.
 
     An *_invalidate_terminal_size_cache* function is also set as an attribute of the
     returned wrapper which when called clears the cache, so that the next call actually
     calls the wrapped function.
+
+    NOTE:
+        It's thread-safe, i.e there is no race condition between calls to the same
+        decorated callable across threads of the same process.
     """
 
     @wraps(func)
@@ -226,14 +214,11 @@ def terminal_size_cached(func: Callable) -> FunctionType:
 
 @no_redecorate
 def unix_tty_only(func: Callable) -> FunctionType:
-    """Any decorated callable always returns ``None`` on a non-unix-like platform
-    or when there is no :term:`active terminal`.
+    """Disable invokation of a function on a non-unix-like platform or when there is no
+    :term:`active terminal`.
 
     Args:
-        func: The object to be decorated.
-
-    Returns:
-        The wrapper.
+        func: The function to be wrapped.
     """
 
     @wraps(func)
@@ -242,7 +227,8 @@ def unix_tty_only(func: Callable) -> FunctionType:
 
     unix_only_wrapper.__doc__ += """
     NOTE:
-        Currently works on UNIX only, always returns ``None`` on any other flatform.
+        Currently works on UNIX only, returns ``None`` on any other platform or when
+        there is no :term:`active terminal`.
     """
 
     return unix_only_wrapper
