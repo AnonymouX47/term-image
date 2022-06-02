@@ -30,31 +30,31 @@ def test_set_render_method():
         image = KittyImage(python_img)
         assert image._render_method == KittyImage._default_render_method
 
-        assert KittyImage.set_render_method(WHOLE) is True
+        assert KittyImage.set_render_method(WHOLE) is None
         assert KittyImage._render_method == WHOLE
         assert image._render_method == WHOLE
 
-        assert image.set_render_method(LINES) is True
+        assert image.set_render_method(LINES) is None
         assert image._render_method == LINES
 
-        assert image.set_render_method() is True
+        assert image.set_render_method() is None
         assert image._render_method == WHOLE
 
-        assert KittyImage.set_render_method(LINES) is True
+        assert KittyImage.set_render_method(LINES) is None
         assert KittyImage._render_method == LINES
         assert image._render_method == LINES
 
-        assert image.set_render_method(WHOLE) is True
+        assert image.set_render_method(WHOLE) is None
         assert image._render_method == WHOLE
 
-        assert image.set_render_method() is True
+        assert image.set_render_method() is None
         assert image._render_method == LINES
 
-        assert KittyImage.set_render_method(WHOLE) is True
+        assert KittyImage.set_render_method(WHOLE) is None
         assert KittyImage._render_method == WHOLE
         assert image._render_method == WHOLE
 
-        assert KittyImage.set_render_method() is True
+        assert KittyImage.set_render_method() is None
         assert KittyImage._render_method == KittyImage._default_render_method
         assert image._render_method == KittyImage._default_render_method
     finally:

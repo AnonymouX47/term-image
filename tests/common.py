@@ -6,8 +6,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from term_image import set_font_ratio
-from term_image.exceptions import TermImageError
+from term_image import exceptions, set_font_ratio
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
 from term_image.utils import get_terminal_size
 
@@ -112,7 +111,7 @@ def test_instantiation_Graphics():
         ImageClass._supported = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
         ImageClass._supported = False
-        with pytest.raises(TermImageError):
+        with pytest.raises(exceptions.TermImageError):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original
@@ -139,13 +138,35 @@ def test_set_render_method_All():
         with pytest.raises(TypeError):
             ImageClass.set_render_method(value)
 
-    assert ImageClass.set_render_method() is True
-    assert ImageClass.set_render_method("") is False
+    default = ImageClass._default_render_method if ImageClass._render_methods else None
+
+    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        ImageClass.set_render_method("")
+
+    assert ImageClass._render_method == default
+    assert ImageClass.set_render_method() is None
+    for method in ImageClass._render_methods:
+        assert ImageClass.set_render_method(method) is None
+
+    assert ImageClass.set_render_method(None) is None
+    assert ImageClass._render_method == default
+    if default is None:
+        assert "_render_method" not in vars(ImageClass)
 
     image = ImageClass(python_img)
-    assert image.set_render_method() is True
-    assert image.set_render_method(None) is True
-    assert image.set_render_method("") is False
+
+    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        image.set_render_method("")
+
+    assert image._render_method == default
+    assert image.set_render_method() is None
+    for method in image._render_methods:
+        assert image.set_render_method(method) is None
+
+    assert image.set_render_method(None) is None
+    assert image._render_method == default
+    if default is None:
+        assert "_render_method" not in vars(image)
 
 
 # Size-setting is taken as style-dependent because the major underlying API is
