@@ -25,22 +25,26 @@ for action, (key, _) in _nav.items():
 urwid.Widget._command_map._command = command
 del command
 
+# NOTE: Any new "private" attribute set on any subclass or instance of an urwid class
+# should be prepended with "_ti" to prevent clashes with names used by urwid itself.
+
 
 class GridListBox(urwid.ListBox):
     def __init__(self, grid: urwid.GridFlow):
-        self._grid = grid
-        self._ncell = 1
-        self._cell_width = grid.cell_width
-        self._grid_path = None
-        self._ncontent = 0
-        self._page_ncell = 1  # Used by GridScanner
-        self._topmost = None
-        self._top_trim = 0
+        self._ti_grid = grid
+        self._ti_ncell = 1
+        self._ti_cell_width = grid.cell_width
+        self._ti_grid_path = None
+        self._ti_ncontent = 0
+        self._ti_page_ncell = 1  # Used by GridScanner
+        self._ti_topmost = None
+        self._ti_top_trim = 0
+        self._ti_next_index = 0
 
         return super().__init__([urwid.Divider()])
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
-        return self._grid.rows(size[:1], focus)
+        return self._ti_grid.rows(size[:1], focus)
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         # 0, if maxcol < cell_width (maxcol = size[0]).
@@ -49,16 +53,16 @@ class GridListBox(urwid.ListBox):
             map(
                 floordiv,
                 # No of whole (cell_width + h_sep), columns left after last h_sep
-                divmod(size[0], self._grid.cell_width + self._grid.h_sep),
+                divmod(size[0], self._ti_grid.cell_width + self._ti_grid.h_sep),
                 # if one cell_width can fit into the remaining space
-                (1, self._grid.cell_width),
+                (1, self._ti_grid.cell_width),
             )
         )
 
         # The path takes care of "same directory"
         # The number of cells takes care of deletions in that directory.
         grid_path = tui_main.grid_path
-        ncontent = len(self._grid.contents)
+        ncontent = len(self._ti_grid.contents)
 
         _row_pos = self.focus_position
         transfer_col_pos = False
@@ -70,7 +74,7 @@ class GridListBox(urwid.ListBox):
         else:
             topmost = top_trim = None
 
-        if self._grid_path == grid_path and not (
+        if self._ti_grid_path == grid_path and not (
             self._topmost is topmost and self._top_trim == top_trim
         ):
             tui_main.ImageClass._clear_images() and ImageCanvas.change()
@@ -79,41 +83,42 @@ class GridListBox(urwid.ListBox):
         self._top_trim = top_trim
 
         if (
-            self._grid_path != grid_path  # Different grids
-            or self._ncontent != ncontent  # Different no of cells
-            or not (ncell or self._ncell)  # maxcol is and was < cell_width
-            or ncell != self._ncell  # Number of cells per row changed
-            or self._cell_width != self._grid.cell_width  # cell_width changed
+            self._ti_grid_path != grid_path  # Different grids
+            or self._ti_ncontent != ncontent  # Different no of cells
+            or not (ncell or self._ti_ncell)  # maxcol is and was < cell_width
+            or ncell != self._ti_ncell  # Number of cells per row changed
+            or self._ti_cell_width != self._ti_grid.cell_width  # cell_width changed
         ):
             # When maxcol < cell_width, the grid contents are not `Columns` widgets.
             # Instead, they're what would normally be the contents of the `Columns`.
             # If the grid is empty, then the `GridListBox` only contains a `Divider`
 
             # Old and new grids are both non-empty
-            both_non_empty = self._ncontent and ncontent
+            both_non_empty = self._ti_ncontent and ncontent
             # Conditions for transferring GridListBox's focus position
-            transfer_row_pos = self._grid_path == grid_path and both_non_empty
+            transfer_row_pos = self._ti_grid_path == grid_path and both_non_empty
 
             if transfer_row_pos:
                 # Conditions for transferring column focus position
-                transfer_col_pos = ncell and self._ncell
+                transfer_col_pos = ncell and self._ti_ncell
                 # The 0-based index of the focused cell if the grid were laid out flat
                 cell_index = (
                     # The GridListBox also contains dividers between columns
                     # i.e Column - Divider - Column - DIvider - Column - ...
                     # Hence the `// 2`
-                    (self.focus_position // 2) * (self._ncell or 1)
-                    + (self._ncell and self.focus.focus_position)
+                    (self.focus_position // 2) * (self._ti_ncell or 1)
+                    + (self._ti_ncell and self.focus.focus_position)
                 )
 
             self._update_grid_contents(
                 size[:1],
                 ncell or 1,
                 new=(
-                    self._grid_path != grid_path  # Different grids
-                    or not (ncell or self._ncell)  # maxcol is and was < cell_width
-                    or ncell != self._ncell  # Number of cells per row changed
-                    or self._cell_width != self._grid.cell_width  # cell_width changed
+                    self._ti_grid_path != grid_path  # Different grids
+                    or not (ncell or self._ti_ncell)  # maxcol is and was < cell_width
+                    or ncell != self._ti_ncell  # Number of cells per row changed
+                    # cell_width changed
+                    or self._ti_cell_width != self._ti_grid.cell_width
                 ),
             )
 
@@ -134,16 +139,16 @@ class GridListBox(urwid.ListBox):
             elif ncontent and ncell:
                 self.focus.focus_position = 0
 
-            if grid_path != self._grid_path:
+            if grid_path != self._ti_grid_path:
                 # Maximum number of cells per grid page. Used by GridScanner
-                self._page_ncell = ncell * ceil(
-                    size[1] / (ceil(self._grid.cell_width / 2) + self._grid.v_sep)
+                self._ti_page_ncell = ncell * ceil(
+                    size[1] / (ceil(self._ti_grid.cell_width / 2) + self._ti_grid.v_sep)
                 )
 
-            self._grid_path = grid_path
-            self._ncontent = ncontent
-            self._ncell = ncell
-            self._cell_width = self._grid.cell_width
+            self._ti_grid_path = grid_path
+            self._ti_ncontent = ncontent
+            self._ti_ncell = ncell
+            self._ti_cell_width = self._ti_grid.cell_width
 
         canv = super().render(size, focus)
 
@@ -162,25 +167,25 @@ class GridListBox(urwid.ListBox):
         self, size: Tuple[int, int], ncell: int, new: bool = True
     ) -> None:
         # The display widget is a `Divider` when the grid is empty
-        if not self._grid.contents:
-            self._next_index = 0
+        if not self._ti_grid.contents:
+            self._ti_next_index = 0
             self.body[:] = [urwid.Divider()]
             return
 
         if new:
-            self._next_index = 0
+            self._ti_next_index = 0
             self.body.clear()
         else:
-            if self._next_index:
+            if self._ti_next_index:
                 # Remove all cells after the previous *next_index* cos they are
                 # officially just being added.
                 # For the `* 2`, see the comments on cell_index calculation in
                 # `render()` above.
-                self.body[(self._next_index // ncell) * 2 - 1 :] = [urwid.Divider()]
+                self.body[(self._ti_next_index // ncell) * 2 - 1 :] = [urwid.Divider()]
             else:
                 self.body.clear()  # Remove the empty-grid Divider
 
-        original = self._grid._contents
+        original = self._ti_grid._contents
         next_index = (len(original) // ncell) * ncell
 
         # Must include incomplete rows becaused the cells might've been counted with
@@ -189,28 +194,28 @@ class GridListBox(urwid.ListBox):
         # yet when *ncontent* was computed.
         # This way, the population can never be behind *ncontent*, ensuring the listbox
         # is always complete when the grid is complete.
-        dummy = original[self._next_index :]
+        dummy = original[self._ti_next_index :]
         if not dummy:
-            if not self._next_index:
+            if not self._ti_next_index:
                 # Would've been cleared earlier
                 self.body[:] = [urwid.Divider()]
             return
 
         # Does not affect GridScanner as it uses a direct reference to the grid's
         # original contents list
-        self._grid._contents = urwid.MonitoredFocusList(dummy)
+        self._ti_grid._contents = urwid.MonitoredFocusList(dummy)
 
         self.body.extend(
             [
                 content[0] if isinstance(content[0], urwid.Divider)
                 # `.original_widget` gets rid of an unnecessary padding
                 else content[0].original_widget
-                for content in self._grid.generate_display_widget(size).contents
+                for content in self._ti_grid.generate_display_widget(size).contents
             ]
         )
 
-        self._grid._contents = original
-        self._next_index = next_index
+        self._ti_grid._contents = original
+        self._ti_next_index = next_index
 
 
 class Image(urwid.Widget):
@@ -218,35 +223,35 @@ class Image(urwid.Widget):
     _selectable = True
     no_cache = ["render", "rows"]
 
-    _faulty_image = urwid.SolidFill("?")
-    _large_image = urwid.SolidFill("!")
-    _placeholder = urwid.SolidFill(".")
+    _ti_faulty_image = urwid.SolidFill("?")
+    _ti_large_image = urwid.SolidFill("!")
+    _ti_placeholder = urwid.SolidFill(".")
 
-    _force_render = False
-    _force_render_contexts = {"image", "full-image", "full-grid-image"}
-    _forced_anim_size_hash = None
+    _ti_force_render = False
+    _ti_force_render_contexts = {"image", "full-image", "full-grid-image"}
+    _ti_forced_anim_size_hash = None
 
-    _frame = None
-    _frame_no = 0
-    _anim_starting = _anim_finished = False
+    _ti_frame = None
+    _ti_frame_no = 0
+    _ti_anim_starting = _ti_anim_finished = False
 
-    _faulty = False
-    _canv = None
-    _rendering_image_info = (None,) * 3
+    _ti_faulty = False
+    _ti_canv = None
+    _ti_rendering_image_info = (None,) * 3
 
-    _grid_cache = {}
+    _ti_grid_cache = {}
 
-    _alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
+    _ti_alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
 
     def __init__(self, image: BaseImage):
-        self._image = image
+        self._ti_image = image
 
     def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
 
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         # Incompetent implementation due to the lack of *maxrows*
-        return self._image._valid_size(
+        return self._ti_image._valid_size(
             size[0],
             None,
             maxsize=get_terminal_size(),  # Omit 2-line allowance
@@ -254,35 +259,35 @@ class Image(urwid.Widget):
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         context = tui_main.get_context()
-        image = self._image
+        image = self._ti_image
 
         # Forced render
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
-            self._canv
-            and self._canv.size == size
-            or (self, size, self._alpha) == __class__._rendering_image_info
+            self._ti_canv
+            and self._ti_canv.size == size
+            or (self, size, self._ti_alpha) == __class__._ti_rendering_image_info
         ):
-            if self._force_render:
+            if self._ti_force_render:
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
                 # `_force_render` when the animation is done to avoid attribute
                 # creation and deletion per frame
                 if image._is_animated and not tui_main.NO_ANIMATION:
-                    if not (self._frame or self._anim_finished):
-                        self._forced_anim_size_hash = hash(size)
-                    elif hash(size) != self._forced_anim_size_hash:
-                        self._force_render = False
-                        if context in self._force_render_contexts:
+                    if not (self._ti_frame or self._ti_anim_finished):
+                        self._ti_forced_anim_size_hash = hash(size)
+                    elif hash(size) != self._ti_forced_anim_size_hash:
+                        self._ti_force_render = False
+                        if context in self._ti_force_render_contexts:
                             keys.enable_actions(context, "Force Render")
-                        return __class__._large_image.render(size, focus)
+                        return __class__._ti_large_image.render(size, focus)
                 else:
-                    del self._force_render
+                    del self._ti_force_render
             else:
-                if context in self._force_render_contexts:
+                if context in self._ti_force_render_contexts:
                     keys.enable_actions(context, "Force Render")
-                return __class__._large_image.render(size, focus)
+                return __class__._ti_large_image.render(size, focus)
 
-        if context in self._force_render_contexts:
+        if context in self._ti_force_render_contexts:
             keys.disable_actions(context, "Force Render")
 
         # Grid cells
@@ -294,7 +299,7 @@ class Image(urwid.Widget):
             # `+2` cos `LineSquare` subtracts the columns for surrounding lines
             and size[0] + 2 == image_grid.cell_width
         ):
-            canv = __class__._grid_cache.get(basename(image._source))
+            canv = __class__._ti_grid_cache.get(basename(image._source))
             if not canv:
                 grid_render_queue.put(
                     (
@@ -304,13 +309,13 @@ class Image(urwid.Widget):
                             else image
                         ),
                         size,
-                        self._alpha,
+                        self._ti_alpha,
                     )
                 )
-                __class__._grid_cache[basename(image._source)] = ...
-                canv = __class__._placeholder.render(size, focus)
+                __class__._ti_grid_cache[basename(image._source)] = ...
+                canv = __class__._ti_placeholder.render(size, focus)
             elif canv is ...:
-                canv = __class__._placeholder.render(size, focus)
+                canv = __class__._ti_placeholder.render(size, focus)
             return canv
 
         # Size augmentation and setting
@@ -329,36 +334,36 @@ class Image(urwid.Widget):
             # When the grid render cell width adjusts; when _maxcols_ < _cell_width_
             try:
                 canv = ImageCanvas(
-                    f"{image:1.1{self._alpha}}".encode().split(b"\n"),
+                    f"{image:1.1{self._ti_alpha}}".encode().split(b"\n"),
                     size,
                     image.rendered_size,
                 )
             except Exception:
-                canv = __class__._faulty_image.render(size, focus)
-        elif self._frame:
-            canv, repeat, frame_no = self._frame
+                canv = __class__._ti_faulty_image.render(size, focus)
+        elif self._ti_frame:
+            canv, repeat, frame_no = self._ti_frame
             if size != canv.size:
-                anim_render_queue.put(((repeat, frame_no), size, self._force_render))
-                canv = __class__._placeholder.render(size)
-                self._frame = (canv, repeat, frame_no)
+                anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
+                canv = __class__._ti_placeholder.render(size)
+                self._ti_frame = (canv, repeat, frame_no)
                 tui_main.ImageClass._clear_images()
-            elif frame_no != self._frame_no:
-                self._frame_no = frame_no
+            elif frame_no != self._ti_frame_no:
+                self._ti_frame_no = frame_no
                 tui_main.ImageClass._clear_images() and ImageCanvas.change()
-        elif self._canv and self._canv.size == size:
-            canv = self._canv
+        elif self._ti_canv and self._ti_canv.size == size:
+            canv = self._ti_canv
         else:
             if (
                 image._is_animated
                 and not tui_main.NO_ANIMATION
-                and not self._anim_finished
+                and not self._ti_anim_finished
             ):
-                if not self._anim_starting:
-                    anim_render_queue.put((self, size, self._force_render))
-                    self._anim_starting = True
-            elif (self, size, self._alpha) != __class__._rendering_image_info:
-                image_render_queue.put((self, size, self._alpha))
-            canv = __class__._placeholder.render(size)
+                if not self._ti_anim_starting:
+                    anim_render_queue.put((self, size, self._ti_force_render))
+                    self._ti_anim_starting = True
+            elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
+                image_render_queue.put((self, size, self._ti_alpha))
+            canv = __class__._ti_placeholder.render(size)
             tui_main.ImageClass._clear_images()
 
         return canv
@@ -366,7 +371,7 @@ class Image(urwid.Widget):
 
 class ImageCanvas(urwid.Canvas):
     cacheable = False
-    _change = False
+    _ti_change = False
 
     def __init__(
         self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
@@ -374,7 +379,7 @@ class ImageCanvas(urwid.Canvas):
         super().__init__()
         self.size = size
         self.lines = lines
-        self._image_size = image_size
+        self._ti_image_size = image_size
 
     def cols(self) -> int:
         return self.size[0]
@@ -383,7 +388,7 @@ class ImageCanvas(urwid.Canvas):
         return self.size[1]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
-        diff_x, diff_y = map(sub, self.size, self._image_size)
+        diff_x, diff_y = map(sub, self.size, self._ti_image_size)
         pad_up = diff_y // 2
         pad_down = diff_y - pad_up
         pad_left = diff_x // 2
@@ -394,7 +399,7 @@ class ImageCanvas(urwid.Canvas):
 
         fill = b" " * cols
         pad_left = b" " * pad_left
-        pad_right = b" " * pad_right + b"\b " * self._change
+        pad_right = b" " * pad_right + b"\b " * self._ti_change
 
         # Upper padding reduces when the top is trimmed
         for _ in range(pad_up - trim_top):
@@ -426,7 +431,7 @@ class ImageCanvas(urwid.Canvas):
         This is used to force redraws of all images on screen, particularly when their
         positions do not change much e.g when images need to be cleared in kitty.
         """
-        cls._change = not cls._change
+        cls._ti_change = not cls._ti_change
 
 
 class LineSquare(urwid.LineBox):
@@ -476,7 +481,7 @@ class MenuListBox(urwid.ListBox):
         return key if any(key == v[0] for v in nav.values()) else ret
 
     def render(self, size: Tuple[int, int], focus: bool = False):
-        self._height = size[1]  # Used by MenuScanner
+        self._ti_height = size[1]  # Used by MenuScanner
         return super().render(size, focus)
 
 

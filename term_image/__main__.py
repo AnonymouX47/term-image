@@ -94,7 +94,7 @@ def main() -> int:
         # will still hold references to the `BaseImage` instances
         if cli.url_images is not None:
             for _, value in cli.url_images:
-                value._image.close()
+                value._ti_image.close()
 
 
 if __name__ == "__main__":

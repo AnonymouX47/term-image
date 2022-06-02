@@ -48,27 +48,27 @@ from .widgets import (
 def animate_image(image_w: Image, forced_render: bool = False) -> None:
     """Initializes an animation."""
     if not NO_ANIMATION and (
-        mul(*image_w._image._original_size) <= MAX_PIXELS or forced_render
+        mul(*image_w._ti_image._original_size) <= MAX_PIXELS or forced_render
     ):
         # Animations with finite repetition that got completed
         try:
-            del image_w._anim_finished
-            image_w._canv = None  # Deleting will break `ImageRenderManager`
+            del image_w._ti_anim_finished
+            image_w._ti_canv = None  # Deleting will break `ImageRenderManager`
         except AttributeError:
             pass
 
         # Switched from this animated image earlier, to another animated image while
         # AnimRenderManager was waiting on a frame's duration
         try:
-            del image_w._frame
-            del image_w._force_render
-            del image_w._forced_anim_size_hash
+            del image_w._ti_frame
+            del image_w._ti_force_render
+            del image_w._ti_forced_anim_size_hash
         except AttributeError:
             pass
 
         # Only needs to be set once for an animation, not per frame
         if forced_render:
-            image_w._force_render = True
+            image_w._ti_force_render = True
 
 
 def display_images(
@@ -238,7 +238,7 @@ def display_images(
                 image_box.set_title(entry)
                 view.original_widget = image_box
                 image_box.original_widget = value  # For image animation
-                if value._image._is_animated:
+                if value._ti_image._is_animated:
                     animate_image(value)
             else:  # Directory
                 grid_acknowledge.clear()
@@ -483,7 +483,7 @@ def scan_dir_grid() -> None:
                 )
                 image_grid_box.base_widget._invalidate()
                 if page_not_complete:
-                    if len(grid_contents) <= image_grid_box.base_widget._page_ncell:
+                    if len(grid_contents) <= image_grid_box.base_widget._ti_page_ncell:
                         update_screen()
                     else:
                         page_not_complete = False
@@ -536,7 +536,7 @@ def scan_dir_menu() -> None:
                     )
                 )
                 if page_not_complete:
-                    if len(items) <= menu._height:
+                    if len(items) <= menu._ti_height:
                         update_screen()
                     else:
                         page_not_complete = False
@@ -550,7 +550,7 @@ def scan_dir_menu() -> None:
                     )
                 )
                 if page_not_complete:
-                    if len(items) <= menu._height:
+                    if len(items) <= menu._ti_height:
                         update_screen()
                     else:
                         page_not_complete = False

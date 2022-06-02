@@ -470,11 +470,11 @@ def maximize_cell():
     ).original_widget.original_widget  # The Image is in a LineSquare in an AttrMap
 
     image_box._w.contents[1][0].contents[1] = (image, ("weight", 1, True))
-    image_box.set_title(basename(image._image._source))
+    image_box.set_title(basename(image._ti_image._source))
     main_widget.contents[0] = (image_box, ("weight", 1))
 
     image_box.original_widget = image  # For image animation
-    if image._image._is_animated:
+    if image._ti_image._is_animated:
         main.animate_image(image)
 
     main.ImageClass._clear_images()
@@ -494,10 +494,10 @@ def force_render_maximized_cell():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
     image = image_box._w.contents[1][0].contents[1][0]
-    if image._image._is_animated:
+    if image._ti_image._is_animated:
         main.animate_image(image, True)
     else:
-        image._force_render = True
+        image._ti_force_render = True
 
 
 # full-image, full-grid-image
@@ -506,7 +506,7 @@ def restore():
     # For image animation
     if (
         main.get_context() == "full-grid-image"
-        and image_box.original_widget._image._is_animated
+        and image_box.original_widget._ti_image._is_animated
     ):
         image_box.original_widget = placeholder
 
@@ -551,10 +551,10 @@ def force_render():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
     image = main.menu_list[menu.focus_position - 1][1]
-    if image._image._is_animated:
+    if image._ti_image._is_animated:
         main.animate_image(image, True)
     else:
-        image._force_render = True
+        image._ti_force_render = True
 
 
 def set_image_view_actions(context: str = None):

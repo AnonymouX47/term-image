@@ -27,15 +27,15 @@ def manage_anim_renders() -> bool:
 
     def next_frame() -> None:
         if image_box.original_widget is image_w and (
-            not forced or image_w._force_render
+            not forced or image_w._ti_force_render
         ):
             frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
             if frame:
                 canv = ImageCanvas(frame.encode().split(b"\n"), size, rendered_size)
-                image_w._image._seek_position = frame_no
-                image_w._frame = (canv, repeat, frame_no)
+                image_w._ti_image._seek_position = frame_no
+                image_w._ti_frame = (canv, repeat, frame_no)
             else:
-                image_w._anim_finished = True
+                image_w._ti_anim_finished = True
         else:
             frame_render_in.put((..., None, None))
             clear_queue(frame_render_out)  # In case output is full
@@ -43,11 +43,11 @@ def manage_anim_renders() -> bool:
 
         if not frame:
             try:
-                del image_w._frame
+                del image_w._ti_frame
                 if forced:
                     # See "Forced render" section of `.widgets.Image.render()`
-                    del image_w._force_render
-                    del image_w._forced_anim_size_hash
+                    del image_w._ti_force_render
+                    del image_w._ti_forced_anim_size_hash
             except AttributeError:
                 pass
 
@@ -92,18 +92,20 @@ def manage_anim_renders() -> bool:
             clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
 
             if isinstance(data, tuple):
-                frame_render_in.put((data, size, image_w._alpha))
+                frame_render_in.put((data, size, image_w._ti_alpha))
                 if not next_frame():
                     frame_duration = None
             else:
                 image_w = data
-                frame_render_in.put((image_w._image._source, size, image_w._alpha))
-                frame_duration = FRAME_DURATION or image_w._image._frame_duration
+                frame_render_in.put(
+                    (image_w._ti_image._source, size, image_w._ti_alpha)
+                )
+                frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
                 # Ensures successful deletion when the displayed image has changed
-                image_w._frame = None
+                image_w._ti_frame = None
                 if not next_frame():
                     frame_duration = None
-                del image_w._anim_starting
+                del image_w._ti_anim_starting
 
             notify.stop_loading()
 
@@ -129,10 +131,10 @@ def manage_image_renders():
         redirect_notifs=True,
     )
     renderer.start()
-    faulty_image = Image._faulty_image
+    faulty_image = Image._ti_faulty_image
     last_image_w = image_box.original_widget
     # To prevent an `AttributeError` with the first deletion, while avoiding `hasattr()`
-    last_image_w._canv = None
+    last_image_w._ti_canv = None
 
     while True:
         image_w, size, alpha = image_render_queue.get()
@@ -144,32 +146,32 @@ def manage_image_renders():
         # Stored at this point to prevent an incorrect *rendered_size* for the
         # Imagecanvas, since the image's size might've changed by the time the canvas is
         # being created.
-        rendered_size = image_w._image.rendered_size
+        rendered_size = image_w._ti_image.rendered_size
 
-        Image._rendering_image_info = (image_w, size, alpha)
+        Image._ti_rendering_image_info = (image_w, size, alpha)
         image_render_in.put(
             (
-                image_w._image._source if multi else image_w._image,
+                image_w._ti_image._source if multi else image_w._ti_image,
                 size,
                 alpha,
-                image_w._faulty,
+                image_w._ti_faulty,
             )
         )
         notify.start_loading()
         render = image_render_out.get()
-        Image._rendering_image_info = (None,) * 3
+        Image._ti_rendering_image_info = (None,) * 3
 
         if image_w is image_box.original_widget:
-            del last_image_w._canv
+            del last_image_w._ti_canv
             if render:
-                image_w._canv = ImageCanvas(
+                image_w._ti_canv = ImageCanvas(
                     render.encode().split(b"\n"), size, rendered_size
                 )
             else:
-                image_w._canv = faulty_image.render(size)
+                image_w._ti_canv = faulty_image.render(size)
                 # Ensures a fault is logged only once per `Image` instance
-                if not image_w._faulty:
-                    image_w._faulty = True
+                if not image_w._ti_faulty:
+                    image_w._ti_faulty = True
             update_screen()
             last_image_w = image_w
         notify.stop_loading()
@@ -209,8 +211,8 @@ def manage_grid_renders(n_renderers: int):
         renderer.start()
 
     cell_width = grid_path = None  # Silence flake8's F821
-    faulty_image = Image._faulty_image
-    grid_cache = Image._grid_cache
+    faulty_image = Image._ti_faulty_image
+    grid_cache = Image._ti_grid_cache
     new_grid = False
 
     while True:

@@ -51,7 +51,9 @@ def init(
     render.REPEAT = args.repeat
 
     images.sort(
-        key=lambda x: sort_key_lexi(Path(x[0] if x[1] is ... else x[1]._image._source))
+        key=lambda x: sort_key_lexi(
+            Path(x[0] if x[1] is ... else x[1]._ti_image._source)
+        )
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
@@ -81,7 +83,7 @@ def init(
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2**24)
 
-    Image._alpha = (
+    Image._ti_alpha = (
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
     )
 

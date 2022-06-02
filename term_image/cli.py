@@ -1239,7 +1239,7 @@ FOOTNOTES:
 
         show_name = len(args.sources) > 1
         for entry in images:
-            image = entry[1]._image
+            image = entry[1]._ti_image
             if args.max_pixels_cli and mul(*image._original_size) > args.max_pixels:
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
