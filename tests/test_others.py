@@ -4,7 +4,7 @@ from random import randint, random
 import pytest
 
 from term_image import FontRatio, get_font_ratio, set_font_ratio
-from term_image.exceptions import TermImageException
+from term_image.exceptions import TermImageError
 from term_image.image import AutoImage, BaseImage, from_file
 
 from . import set_cell_size
@@ -52,7 +52,7 @@ class TestFontRatio:
 
         set_cell_size(None)
         for value in FontRatio:
-            with pytest.raises(TermImageException):
+            with pytest.raises(TermImageError):
                 set_font_ratio(value)
 
     def test_fixed(self):

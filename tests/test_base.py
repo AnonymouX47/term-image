@@ -9,7 +9,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_image import set_font_ratio
-from term_image.exceptions import InvalidSize, TermImageException
+from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BlockImage, ImageIterator, ImageSource
 
 from .common import _size, columns, lines, python_img, setup_common
@@ -330,13 +330,13 @@ def test_close():
     assert image.closed
     with pytest.raises(AttributeError):
         image._source
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         image.source
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         str(image)
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         format(image)
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         image.draw()
 
 
@@ -445,19 +445,19 @@ class TestSetSize:
                 self.image.set_size(maxsize=(1, 1), **{arg: True})
 
     def test_cannot_exceed_maxsize(self):
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(height=51, maxsize=(200, 50))  # Exceeds Vertically
 
         # Horizontal image in a (supposedly) square space; Exceeds horizontally
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.h_image.set_size(height=100, maxsize=(100, 50))
 
         # Vertical image in a (supposedly) square space; Exceeds Vertically
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.v_image.set_size(width=100, maxsize=(100, 50))
 
 
@@ -792,21 +792,21 @@ class TestDraw:
     def test_size_validation(self):
         sys.stdout = stdout
         self.image._size = (columns + 1, 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image._size = (1, lines - 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image.set_size(h_allow=2)
         self.image._size = (columns - 1, 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image.set_size(v_allow=4)
         self.image._size = (1, lines - 3)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
     class TestNonAnimated:
@@ -873,33 +873,37 @@ class TestDraw:
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw()
 
         def test_scroll(self):
             sys.stdout = stdout
             self.anim_image.size = None
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw(scroll=True)
 
         def test_fit_scroll(self):
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw(scroll=True)
 
         def test_check_size(self):
             sys.stdout = stdout
             self.anim_image.size = None
             self.anim_image._size = (columns + 1, lines)
-            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw(check_size=False)
 
         def test_fit_scroll_check_size(self):
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns + 1, lines + 1)
-            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw(scroll=True, check_size=False)

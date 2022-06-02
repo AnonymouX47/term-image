@@ -3,7 +3,7 @@ from types import GeneratorType
 import pytest
 from PIL import Image
 
-from term_image.exceptions import TermImageException
+from term_image.exceptions import TermImageError
 from term_image.image import BlockImage, ImageIterator
 
 _size = (30, 15)
@@ -262,7 +262,7 @@ class TestSeek:
             with pytest.raises(ValueError):
                 image_it.seek(value)
 
-        with pytest.raises(TermImageException):
+        with pytest.raises(TermImageError):
             image_it.seek(1)
 
     def test_seek(self):
