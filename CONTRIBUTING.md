@@ -10,19 +10,31 @@
 To install/upgrade all the required python packages for core development, run:
 
 ```shell
+make requires
+```
+OR
+```shell
 pip install --upgrade -r requirements.txt
 ```
 
 To install the required packages for building the documentation, run:
 
 ```shell
+make requires-docs
+```
+OR
+```shell
 pip install --upgrade -r docs/requirements.txt
 ```
 
-You probably also want to install the package in `develop` mode:
+To install the package in `develop` mode:
 
 ```shell
-pip install -e .
+make install
+```
+OR
+```shell
+python -m pip install -e .
 ```
 This way, the package and the CLI command are always available in the virtual environment.
 
