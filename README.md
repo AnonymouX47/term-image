@@ -66,8 +66,10 @@ Also, if you're having an issue with terminal support, you may report or view in
 
 ### Library features
 - Multiple image format support
-  - Basically supports all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
+  - Basically all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
 - Multiple image sources (PIL image, local file, URL)
+- Multiple render styles
+- Support for multiple terminal graphics protocols
 - Transparency support (with multiple options)
 - Animated image support (including transparent ones)
   - Fully controllable and efficient iteration over frames of animated images
@@ -77,7 +79,7 @@ Also, if you're having an issue with terminal support, you may report or view in
 - Automatic image sizing; best fit within the terminal window or a given size
 - Variable image scale
 - Horizontal and vertical alignment/padding
-- Font-ratio adjustment
+- Automatic and manual font-ratio adjustment
 - and more... :grin:
 
 ### CLI/TUI features
@@ -142,25 +144,25 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 <summary>Click to expand</summary>
 
 ```python
-from term_image.image import TermImage
+from term_image.image import from_file
 
-image = TermImage.from_file("path/to/image.png")
+image = from_file("path/to/image.png")
 ```
 
 You can also use a URL if you don't have the file stored locally
 ```python
-from term_image.image import TermImage
+from term_image.image import from_url
 
-image = TermImage.from_url("https://www.example.com/image.png")
+image = from_url("https://www.example.com/image.png")
 ```
 
 The library can also be used with PIL images
 ```python
 from PIL import Image
-from term_image.image import TermImage
+from term_image.image import AutoImage
 
 img = Image.open("path/to/image.png")
-image = TermImage(img)
+image = AutoImage(img)
 ```
 
 </details>
@@ -220,13 +222,13 @@ Renders the image with:
 <details>
 <summary>Click to expand</summary>
 
-There are two ways to draw an image to the terminal screen.
+There are two ways to draw an image to the terminal.
 
 #### 1. The `draw()` method
 ```python
 image.draw()
 ```
-**NOTE:** `TermImage.draw()` method has various parameters for **alignment/padding**, **transparency** and **animation** control.
+**NOTE:** `draw()` method has various parameters for **alignment/padding**, **transparency** and **animation** control.
 
 #### 2. Using `print()` with an image render output (i.e printing the rendered string)
 ```python
