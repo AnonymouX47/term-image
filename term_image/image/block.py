@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-__all__ = ("TermImage",)
+__all__ = ("BlockImage", "TermImage")
 
 import io
 import os
+import warnings
 from math import ceil
 from operator import mul
 from typing import Optional, Tuple, Union
@@ -13,11 +14,13 @@ import PIL
 from ..utils import _BG_FMT, _FG_FMT, _RESET
 from .common import TextImage
 
+warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
+
 _LOWER_PIXEL = "\u2584"  # lower-half block element
 _UPPER_PIXEL = "\u2580"  # upper-half block element
 
 
-class TermImage(TextImage):
+class BlockImage(TextImage):
     """A render style using unicode half blocks and ANSI 24-bit colour escape codes.
 
     See :py:class:`TextImage` for the description of the constructor.
@@ -149,3 +152,15 @@ class TermImage(TextImage):
 
         with buffer:
             return buffer.getvalue()
+
+
+class TermImage(BlockImage):
+    """Deprecated alias of :py:class:`BlockImage`."""
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "`TermImage` has been deprecated and will be removed in version 1.0.0, "
+            "use `BlockImage` instead.",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)
