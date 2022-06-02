@@ -371,7 +371,7 @@ class Image(urwid.Widget):
 
 class ImageCanvas(urwid.Canvas):
     cacheable = False
-    _ti_change_state = False
+    _ti_change_state = 0
 
     def __init__(
         self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
@@ -431,7 +431,7 @@ class ImageCanvas(urwid.Canvas):
         This is used to force redraws of all images on screen, particularly when their
         positions do not change much e.g when images need to be cleared in kitty.
         """
-        cls._ti_change_state = not cls._ti_change_state
+        cls._ti_change_state = (cls._ti_change_state + 1) % 3
 
 
 class LineSquare(urwid.LineBox):
