@@ -181,7 +181,7 @@ The size of an image can be in either of two states:
 2. Unset
 
    | The size is said to be *unset* when the image doesn't have a fixed size.
-   | In this case, the size with which the image is rendered is automatically calculated (based on the current `term:`terminal size`) whenever the image is to be rendered.
+   | In this case, the size with which the image is rendered is automatically calculated (based on the current :term:`terminal size`) whenever the image is to be rendered.
    | In this state, the ``size``, ``width`` and ``height`` properties are ``None``.
 
 | The size of an image can be set when creating the instance by passing valid values to **either** the *width* **or** the *height* **keyword-only** parameter.

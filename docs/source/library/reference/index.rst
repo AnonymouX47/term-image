@@ -119,23 +119,29 @@ Image Format Specification
   * ``<`` → left
   * ``|`` → center
   * ``>`` → right
-  * *absent* → center
+  * *Default* → center
 
-* ``width``: Integer padding width (default: :term:`terminal width` minus :term:`horizontal allowance`)
+* ``width``: padding width
+
+  * Positive integer
+  * *Default*: :term:`terminal width` minus :term:`horizontal allowance`
 
 * ``v_align``: This can be one of:
 
   * ``^`` → top
   * ``-`` → middle
   * ``_`` → bottom
-  * *absent* → middle
+  * *Default* → middle
 
-* ``height``: Integer padding height (default: :term:`terminal height` minus :term:`vertical allowance`)
+* ``height``: padding height
+
+  * Positive integer
+  * *Default*: :term:`terminal height` minus :term:`vertical allowance`
 
 * ``#``: Transparency setting:
 
-  * If absent, transparency is enabled.
-  * ``threshold``: Alpha ratio above which pixels are taken as opaque e.g ``.0``, ``.325043``, ``.99999``.
+  * *Default*: transparency is enabled with default :term:`alpha threshold`.
+  * ``threshold``: :term:`alpha threshold` e.g ``.0``, ``.325043``, ``.99999``.
 
     * The value must be in the range **0.0 <= threshold < 1.0**.
     * **Applies to only text-based render styles**, (i.e those not based on terminal
