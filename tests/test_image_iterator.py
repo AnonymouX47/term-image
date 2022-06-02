@@ -4,15 +4,15 @@ import pytest
 from PIL import Image
 
 from term_image.exceptions import TermImageException
-from term_image.image import ImageIterator, TermImage
+from term_image.image import BlockImage, ImageIterator
 
 _size = (30, 15)
 
-png_image = TermImage(Image.open("tests/images/python.png"))
+png_image = BlockImage(Image.open("tests/images/python.png"))
 gif_img = Image.open("tests/images/lion.gif")
-gif_image = TermImage(gif_img)
+gif_image = BlockImage(gif_img)
 webp_img = Image.open("tests/images/anim.webp")
-webp_image = TermImage(webp_img)
+webp_image = BlockImage(webp_img)
 
 gif_image._size = _size
 webp_image._size = _size
@@ -138,7 +138,7 @@ def test_iter():
             prev_frame = frame
 
     # Frames are the same as for manual iteration
-    gif_image2 = TermImage.from_file(gif_image._source.filename)
+    gif_image2 = BlockImage.from_file(gif_image._source.filename)
     gif_image2._size = _size
     for n, frame in enumerate(ImageIterator(gif_image, 1, "1.1")):
         gif_image2.seek(n)
@@ -164,7 +164,7 @@ def test_caching():
 
     return ""
 
-    gif_image2 = TermImage.from_file(gif_image._source.filename)
+    gif_image2 = BlockImage.from_file(gif_image._source.filename)
     gif_image2._size = _size
     gif_image2._render_image = render
 
@@ -194,7 +194,7 @@ def test_sizing():
             assert next(image_it).count("\n") + 1 == 10
             assert gif_image2._size == (20, 10)
 
-    gif_image2 = TermImage.from_file(gif_image._source.filename)
+    gif_image2 = BlockImage.from_file(gif_image._source.filename)
 
     # Uncached loop
     image_it = ImageIterator(gif_image2, 1, "1.1")
@@ -239,7 +239,7 @@ def test_close():
     assert not hasattr(image_it, "_img")
     assert img.load()
 
-    image_it = ImageIterator(TermImage.from_file(gif_image._source.filename), 1)
+    image_it = ImageIterator(BlockImage.from_file(gif_image._source.filename), 1)
     next(image_it)
     img = image_it._img
     image_it.close()
