@@ -40,8 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] `BaseImage.source` now raises `TermImageException` when invoked after the instance has been finalized ([#38]).
 - [lib] Improved `repr()` of image instances ([#38]).
 - [lib] Direct baseclass of `TermImage` to `TextImage` ([#44]).
+- [lib] `TermImage` to `BlockImage` ([#46]).
+- [lib] Exception naming scheme ([#46]).
+  - `TermImageException` to `TermImageError`.
+  - `InvalidSize` to `InvalidSizError`.
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
+
+### Deprecated
+- [lib] `term_image.image.TermImage` ([#46]).
+- [lib] `TermImageException` and `InvalidSize` in `term_image.exceptions` ([#46]).
 
 [#34]: https://github.com/AnonymouX47/term-image/pull/34
 [#36]: https://github.com/AnonymouX47/term-image/pull/36
@@ -53,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#43]: https://github.com/AnonymouX47/term-image/pull/43
 [#44]: https://github.com/AnonymouX47/term-image/pull/44
 [#45]: https://github.com/AnonymouX47/term-image/pull/45
+[#46]: https://github.com/AnonymouX47/term-image/pull/46
 
 
 ## [0.3.1] - 2022-05-04
