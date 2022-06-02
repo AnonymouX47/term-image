@@ -371,7 +371,7 @@ class Image(urwid.Widget):
 
 class ImageCanvas(urwid.Canvas):
     cacheable = False
-    _ti_change = False
+    _ti_change_state = False
 
     def __init__(
         self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
@@ -399,7 +399,7 @@ class ImageCanvas(urwid.Canvas):
 
         fill = b" " * cols
         pad_left = b" " * pad_left
-        pad_right = b" " * pad_right + b"\b " * self._ti_change
+        pad_right = b" " * pad_right + b"\b " * self._ti_change_state
 
         # Upper padding reduces when the top is trimmed
         for _ in range(pad_up - trim_top):
@@ -431,7 +431,7 @@ class ImageCanvas(urwid.Canvas):
         This is used to force redraws of all images on screen, particularly when their
         positions do not change much e.g when images need to be cleared in kitty.
         """
-        cls._ti_change = not cls._ti_change
+        cls._ti_change_state = not cls._ti_change_state
 
 
 class LineSquare(urwid.LineBox):
