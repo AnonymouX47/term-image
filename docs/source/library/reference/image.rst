@@ -43,6 +43,10 @@ Core Library Definitions
       :members:
       :show-inheritance:
 
+   .. autoclass:: BlockImage
+      :members:
+      :show-inheritance:
+
    .. autoclass:: KittyImage
       :members:
       :show-inheritance:
@@ -62,20 +66,20 @@ Core Library Definitions
 Context Management Protocol Support
 -----------------------------------
 
-``TermImage`` instances are context managers i.e they can be used with the ``with`` statement as in::
+``BaseImage`` instances are context managers i.e they can be used with the ``with`` statement as in::
 
-   with TermImage.from_url(url) as image:
+   with from_url(url) as image:
        ...
 
-Using an instance as a context manager more surely guarantees **object finalization** (i.e clean-up/release of resources), especially for instances with URL sources (see :py:meth:`TermImage.from_url`).
+Using an instance as a context manager more surely guarantees **object finalization** (i.e clean-up/release of resources), especially for instances with URL sources (see :py:meth:`BaseImage.from_url`).
 
 
 Iteration Support
 -----------------
 
-:term:`Animated` ``TermImage`` instances are iterable i.e they can be used with the ``for`` statement (and other means of iteration such as unpacking) as in::
+:term:`Animated` ``BaseImage`` instances are iterable i.e they can be used with the ``for`` statement (and other means of iteration such as unpacking) as in::
 
-   for frame in TermImage.from_file("animated.gif"):
+   for frame in from_file("animated.gif"):
        ...
 
 Subsequent frames of the image are yielded on subsequent iterations.
