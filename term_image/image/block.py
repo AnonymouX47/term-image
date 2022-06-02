@@ -155,7 +155,7 @@ class BlockImage(TextImage):
 
 
 class TermImage(BlockImage):
-    """Deprecated alias of :py:class:`BlockImage`."""
+    """*Deprecated since version 0.4.0:* Replaced by :py:class:`BlockImage`."""
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
