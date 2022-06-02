@@ -24,7 +24,7 @@ import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .. import get_font_ratio
+from .. import exceptions, get_font_ratio
 from ..exceptions import InvalidSizeError, TermImageError, URLNotFoundError
 from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
@@ -129,6 +129,7 @@ class BaseImage(ABC):
     # Data Attributes
 
     _supported = None
+    _render_method = None
     _render_methods: Set[str] = {}
 
     # Special Methods
@@ -782,43 +783,40 @@ class BaseImage(ABC):
             self._seek_position = pos
 
     @ClassInstanceMethod
-    def set_render_method(self_or_cls, method: Optional[str] = None) -> bool:
+    def set_render_method(self_or_cls, method: Optional[str] = None) -> None:
         """Sets the render method used by the instances of subclasses providing
         multiple render methods.
 
         Args:
             method: The render method to be set or ``None`` for a reset.
 
-        Returns:
-
-            * ``False``, if the given method is not recognized/implmented by the
-              calling class (or class of the calling instance).
-            * ``True``, if the given method is implemented and has been set or
-              *method* is ``None``.
-
         Raises:
             TypeError: *method* is not a string or ``None``.
+            term_image.exceptions.<Style>ImageError: the given method is not implmented
+              by the calling class (or class of the calling instance), **where**
+              *<Style>* **is the name of the render style** e.g
+              :py:class:`KittyImageError <term_image.exceptions.KittyImageError>`.
 
         See the **Render Methods** section in the description of the subclasses that
         implement such for their specific usage.
 
         If called via:
 
-           - the class, sets the class-wide render method.
+           - a class, sets the class-wide render method.
            - an instance, sets the instance-specifc render method.
 
         If *method* is ``None`` and this method is called via:
 
-           - the class, the class-wide render method is reset to the default.
+           - a class, the class-wide render method is reset to the default.
            - an instance, the instance-specific render method is removed, so that it
              uses the class-wide render method thenceforth.
 
-        Any instance without a specific render method set, uses the class-wide render
+        Any instance without a specific render method set uses the class-wide render
         method.
 
-        Any class not implementing multiple render methods simply returns ``False``
-        for any value of *method* other than ``None``, so it's safe to blindly try to
-        set a render method for any subclass on another subclass.
+        NOTE:
+            *method* = ``None`` is always allowed, even if the render style doesn't
+            implement multiple render methods.
         """
         if method is not None and not isinstance(method, str):
             raise TypeError(
@@ -826,7 +824,12 @@ class BaseImage(ABC):
             )
 
         if None is not method not in self_or_cls._render_methods:
-            return False
+            cls = (
+                type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
+            )
+            raise getattr(exceptions, f"{cls.__name__}Error")(
+                f"Unknown render method {method!r}"
+            )
 
         if not method:
             if isinstance(self_or_cls, __class__):
@@ -838,8 +841,6 @@ class BaseImage(ABC):
                 self_or_cls._render_method = self_or_cls._default_render_method
         else:
             self_or_cls._render_method = method
-
-        return True
 
     def set_size(
         self,

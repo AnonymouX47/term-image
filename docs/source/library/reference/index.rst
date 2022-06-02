@@ -35,7 +35,7 @@ Render Styles
 
 A render style is a specific implementation of representing or drawing images in a terminal emulator and each is implemented as a class.
 
-All render styles are designed to share a common interface (with some having extensions), making the usage of one class directly compatibile with another.
+All render styles are designed to share a common interface (with some styles having extensions), making the usage of one class directly compatibile with another, except when using style-specific features.
 
 | Hence, the covenience functions :py:class:`AutoImage <term_image.image.AutoImage>`, :py:class:`from_file() <term_image.image.from_file>` and :py:class:`from_url() <term_image.image.from_url>` provide a means of render-style-independent usage of the library.
 | These functions automatically detect the best render style supported by the :term:`active terminal`.

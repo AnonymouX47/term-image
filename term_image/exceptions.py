@@ -24,3 +24,18 @@ class InvalidSizeError(ValueError, TermImageError):
 
 class InvalidSize(InvalidSizeError):
     """*Deprecated since version 0.4.0:* Replaced by :py:class:`InvalidSizeError`."""
+
+
+# Style-specific exceptions
+
+
+class BlockImageError(TermImageError):
+    """Raised for errors specific to
+    :py:class:`BlockImage <term_image.image.BlockImage>`
+    """
+
+
+class KittyImageError(TermImageError):
+    """Raised for errors specific to
+    :py:class:`KittyImage <term_image.image.KittyImage>`
+    """
