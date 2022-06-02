@@ -151,13 +151,20 @@ python -m pytest -v tests/test_<style>.py
 ```
 if you don't have the `make` utility.
 
-Where `<style>` is the portion of the class name for that render style with "Image" striped off, in **lowercase** e.g "term" for `TermImage`.
+Where `<style>` is the portion of the class name for that render style with "Image" striped off, in **lowercase** e.g "block" for `BlockImage`.
 
 ### Run tests for all text-based render styles
 Run:
 
 ```shell
 make test-text
+```
+
+### Run tests for all graphics-based render styles
+Run:
+
+```shell
+make test-graphics
 ```
 
 * * *
