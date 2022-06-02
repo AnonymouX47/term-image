@@ -49,7 +49,7 @@ Represent images using ASCII or Unicode symbols, and in some cases, in conjuncti
 
 Classes for render styles in this category are subclasses of :py:class:`TextImage <term_image.image.TextImage>`. These include:
 
-- :py:class:`TermImage <term_image.image.TermImage>`.
+- :py:class:`BlockImage <term_image.image.BlockImage>`.
 
 Graphics-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -139,7 +139,7 @@ Image Format Specification
 
     * The value must be in the range **0.0 <= threshold < 1.0**.
     * **Applies to only text-based render styles**, (i.e those not based on terminal
-      graphics protocols) e.g. :py:class:`TermImage <term_image.image.TermImage>`.
+      graphics protocols) e.g. :py:class:`BlockImage <term_image.image.BlockImage>`.
 
   * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
   * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled (uses the image's default background color, or black if none).

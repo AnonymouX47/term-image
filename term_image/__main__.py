@@ -91,8 +91,7 @@ def main() -> int:
         return exit_code
     finally:
         # Explicit cleanup is neccessary since the top-level `Image` widgets
-        # (and by implication, `TermImage` instances) will probably still have
-        # references to them hidden deep somewhere :)
+        # will still hold references to the `BaseImage` instances
         if cli.url_images is not None:
             for _, value in cli.url_images:
                 value._image.close()

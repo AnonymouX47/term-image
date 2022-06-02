@@ -1,10 +1,10 @@
-"""TermImage-specific tests"""
+"""BlockImage-specific tests"""
 
 from random import random
 
 import pytest
 
-from term_image.image import TermImage
+from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 
 from .common import *  # noqa:F401
@@ -17,13 +17,13 @@ for name in tuple(globals()):
 
 @pytest.mark.order("first")
 def test_setup_common():
-    setup_common(TermImage)
+    setup_common(BlockImage)
 
 
 class TestRender:
     # Fully transparent image
     # It's easy to predict it's pixel values
-    trans = TermImage.from_file("tests/images/trans.png")
+    trans = BlockImage.from_file("tests/images/trans.png")
     trans.height = _size
 
     def render_image(self, alpha):

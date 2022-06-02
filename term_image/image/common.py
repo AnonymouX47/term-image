@@ -25,7 +25,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .. import get_font_ratio
-from ..exceptions import InvalidSize, TermImageException, URLNotFoundError
+from ..exceptions import InvalidSizeError, TermImageError, URLNotFoundError
 from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
@@ -46,7 +46,7 @@ def _close_validated(func: FunctionType) -> FunctionType:
     @wraps(func)
     def close_validated_wrapper(self, *args, **kwargs):
         if self._closed:
-            raise TermImageException("This image has been finalized")
+            raise TermImageError("This image has been finalized")
         return func(self, *args, **kwargs)
 
     return close_validated_wrapper
@@ -558,8 +558,8 @@ class BaseImage(ABC):
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
             ValueError: Image size or :term:`scale` too small.
-            term_image.exceptions.InvalidSize: The image's :term:`rendered size` can not
-              fit into the :term:`available terminal size <available size>`.
+            term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
+              can not fit into the :term:`available terminal size <available size>`.
 
         * If :py:meth:`set_size` was directly used to set the image size, the values
           of the *fit_to_width*, *h_allow* and *v_allow* arguments
@@ -872,8 +872,8 @@ class BaseImage(ABC):
             ValueError: *fit_to_width* or *fit_to_height* is ``True`` when *width*,
               *height* or *maxsize* is given.
             ValueError: The :term:`available size` is too small for automatic sizing.
-            term_image.exceptions.InvalidSize: *maxsize* is given and the resulting
-              size will not fit into it.
+            term_image.exceptions.InvalidSizeError: *maxsize* is given and the
+              resulting size will not fit into it.
 
         If neither *width* nor *height* is given or anyone given is ``None``,
         **automatic sizing** applies. In such a case, if:
@@ -900,7 +900,7 @@ class BaseImage(ABC):
             3. Be careful when setting *fit_to_height* to ``True`` as it might result
                in the image's :term:`rendered width` being larger than the terminal
                width (or maxsize[0]) because :py:meth:`draw` will (by default) raise
-               :py:exc:`term_image.exceptions.InvalidSize` if such is the case.
+               :py:exc:`term_image.exceptions.InvalidSizeError` if such is the case.
 
         | :term:`Vertical allowance` does not apply when *fit_to_width* is ``True``.
         | :term:`horizontal allowance` does not apply when *fit_to_height* is ``True``.
@@ -1350,10 +1350,10 @@ class BaseImage(ABC):
             The return value of *renderer*.
 
         Raises:
-            term_image.exceptions.InvalidSize: *check_size* or *animated* is ``True``
-              and the image's :term:`rendered size` can not fit into the
+            term_image.exceptions.InvalidSizeError: *check_size* or *animated* is
+              ``True`` and the image's :term:`rendered size` can not fit into the
               :term:`available terminal size <available size>`.
-            term_image.exceptions.TermImageException: The image has been finalized.
+            term_image.exceptions.TermImageError: The image has been finalized.
 
         NOTE:
             If the ``set_size()`` method was previously used to set the image size,
@@ -1391,7 +1391,7 @@ class BaseImage(ABC):
                         (columns, lines),
                     )
                 ):
-                    raise InvalidSize(
+                    raise InvalidSizeError(
                         "The "
                         + ("animation" if animated else "image")
                         + " cannot fit into the available terminal size"
@@ -1400,7 +1400,7 @@ class BaseImage(ABC):
                 # Reaching here means it's either valid or *_fit_to_width* and/or
                 # *scroll* is/are `True`.
                 if animated and self.rendered_height > lines:
-                    raise InvalidSize(
+                    raise InvalidSizeError(
                         "The rendered height cannot be greater than the terminal "
                         "height for animations"
                     )
@@ -1519,7 +1519,7 @@ class BaseImage(ABC):
             height = self._pixels_lines(pixels=height_px)
 
         if maxsize and (width > columns or height > lines):
-            raise InvalidSize(
+            raise InvalidSizeError(
                 f"The resulting size {width, height} will not fit into "
                 f"'maxsize' {maxsize}"
             )
@@ -1544,7 +1544,7 @@ class GraphicsImage(BaseImage):
     """Base of all render styles using terminal graphics protocols.
 
     Raises:
-        term_image.exceptions.TermImageException: The :term:`active terminal` doesn't
+        term_image.exceptions.TermImageError: The :term:`active terminal` doesn't
           support the render style.
 
     See :py:class:`BaseImage` for the description of the constructor.
@@ -1559,7 +1559,7 @@ class GraphicsImage(BaseImage):
 
     def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
         if not self.is_supported():
-            raise TermImageException(
+            raise TermImageError(
                 "This image render style is not supported in the active terminal"
             )
         super().__init__(image, **kwargs)
@@ -1715,7 +1715,7 @@ class ImageIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.TermImageException: The iterator is unused.
+            term_image.exceptions.TermImageError: The iterator is unused.
 
         Frame numbers start from ``0`` (zero).
         """
@@ -1730,7 +1730,7 @@ class ImageIterator:
         try:
             self._animator.send(pos)
         except TypeError:
-            raise TermImageException("Iteration has not yet started") from None
+            raise TermImageError("Iteration has not yet started") from None
 
     def _animate(
         self,

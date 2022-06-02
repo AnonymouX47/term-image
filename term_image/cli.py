@@ -20,9 +20,9 @@ import requests
 
 from . import FontRatio, __version__, config, logging, notify, set_font_ratio, tui
 from .config import config_options, store_config
-from .exceptions import TermImageException, URLNotFoundError
+from .exceptions import TermImageError, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import KittyImage, TermImage, _best_style
+from .image import BlockImage, KittyImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
@@ -573,7 +573,7 @@ Render Styles:
         include (but might not be limited to):
         - Kitty >= 0.20.0
         - Konsole >= 22.04.0
-    term: Uses unicode half blocks with 24-bit color escape codes to represent images
+    block: Uses unicode half blocks with 24-bit color escape codes to represent images
         with a density of two pixels per character cell.
 
     Using a terminal-graphics-based style not supported by the active terminal is not
@@ -630,7 +630,7 @@ FOOTNOTES:
     general.add_argument(
         "-S",
         "--style",
-        choices=("auto", "kitty", "term"),
+        choices=("auto", "kitty", "block"),
         default="auto",
         help='Image render style (default: auto). See "Render Styles" below',
     )
@@ -1094,7 +1094,7 @@ FOOTNOTES:
         args.font_ratio = None
     try:
         set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
-    except TermImageException:
+    except TermImageError:
         notify.notify(
             "Auto font ratio is not supported in the active terminal or on this "
             "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
@@ -1102,7 +1102,7 @@ FOOTNOTES:
         )
         args.font_ratio = 0.5
 
-    ImageClass = {"auto": None, "kitty": KittyImage, "term": TermImage}[args.style]
+    ImageClass = {"auto": None, "kitty": KittyImage, "block": BlockImage}[args.style]
     if not ImageClass:
         ImageClass = _best_style()
 
@@ -1112,7 +1112,7 @@ FOOTNOTES:
     else:
         try:
             ImageClass(None)
-        except TermImageException:  # Instantiation isn't permitted
+        except TermImageError:  # Instantiation isn't permitted
             log(
                 f"The {style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
@@ -1295,7 +1295,7 @@ FOOTNOTES:
                     check_size=not args.oversize,
                 )
 
-            # Handles `ValueError` and `.exceptions.InvalidSize`
+            # Handles `ValueError` and `.exceptions.InvalidSizeError`
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except ValueError as e:

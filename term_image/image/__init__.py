@@ -12,6 +12,7 @@ __all__ = (
     "BaseImage",
     "GraphicsImage",
     "TextImage",
+    "BlockImage",
     "KittyImage",
     "TermImage",
     "ImageIterator",
@@ -21,6 +22,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
+from .block import BlockImage, TermImage  # noqa:F401
 from .common import (  # noqa:F401
     BaseImage,
     GraphicsImage,
@@ -29,7 +31,6 @@ from .common import (  # noqa:F401
     TextImage,
 )
 from .kitty import KittyImage  # noqa:F401
-from .term import TermImage  # noqa:F401
 
 
 def AutoImage(
@@ -85,4 +86,4 @@ def _best_style():
 
 
 # In order of preference
-_styles = (KittyImage, TermImage)
+_styles = (KittyImage, BlockImage)

@@ -9,8 +9,8 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_image import set_font_ratio
-from term_image.exceptions import InvalidSize, TermImageException
-from term_image.image import ImageIterator, ImageSource, TermImage
+from term_image.exceptions import InvalidSizeError, TermImageError
+from term_image.image import BlockImage, ImageIterator, ImageSource
 
 from .common import _size, columns, lines, python_img, setup_common
 
@@ -19,7 +19,7 @@ python_sym = "tests/images/python_sym.png"  # Symlink to "python.png"
 anim_img = Image.open("tests/images/lion.gif")
 stdout = io.StringIO()
 
-setup_common(TermImage)
+setup_common(BlockImage)
 from .common import _height, _width  # noqa:E402
 
 
@@ -31,20 +31,20 @@ def clear_stdout():
 class TestConstructor:
     def test_args(self):
         with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
-            TermImage(python_image)
+            BlockImage(python_image)
 
         # Ensure size arguments get through to `set_size()`
         with pytest.raises(ValueError, match=r".* both width and height"):
-            TermImage(python_img, width=1, height=1)
+            BlockImage(python_img, width=1, height=1)
 
         with pytest.raises(TypeError, match=r"'scale'"):
-            TermImage(python_img, scale=0.5)
+            BlockImage(python_img, scale=0.5)
         for value in ((0.0, 0.0), (-0.4, -0.4)):
             with pytest.raises(ValueError, match=r"'scale'"):
-                TermImage(python_img, scale=value)
+                BlockImage(python_img, scale=value)
 
     def test_init(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image._size is None
         assert isinstance(image._scale, list)
         assert image._scale == [1.0, 1.0]
@@ -53,18 +53,18 @@ class TestConstructor:
         assert isinstance(image._original_size, tuple)
         assert image._original_size == python_img.size
 
-        image = TermImage(python_img, width=_size)
+        image = BlockImage(python_img, width=_size)
         assert isinstance(image._size, tuple)
-        image = TermImage(python_img, height=_size)
+        image = BlockImage(python_img, height=_size)
         assert isinstance(image._size, tuple)
 
-        image = TermImage(python_img, scale=(0.5, 0.4))
+        image = BlockImage(python_img, scale=(0.5, 0.4))
         assert image._scale == [0.5, 0.4]
 
         assert image._is_animated is False
 
     def test_init_animated(self):
-        image = TermImage(anim_img)
+        image = BlockImage(anim_img)
         assert image._is_animated is True
         assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
         assert image._seek_position == 0
@@ -72,7 +72,7 @@ class TestConstructor:
 
         try:
             anim_img.seek(2)
-            assert TermImage(anim_img)._seek_position == 2
+            assert BlockImage(anim_img)._seek_position == 2
         finally:
             anim_img.seek(0)
 
@@ -80,25 +80,25 @@ class TestConstructor:
 class TestFromFile:
     def test_args(self):
         with pytest.raises(TypeError, match=r"a string"):
-            TermImage.from_file(python_img)
+            BlockImage.from_file(python_img)
         with pytest.raises(FileNotFoundError):
-            TermImage.from_file(python_image + "e")
+            BlockImage.from_file(python_image + "e")
         with pytest.raises(IsADirectoryError):
-            TermImage.from_file("tests")
+            BlockImage.from_file("tests")
         with pytest.raises(UnidentifiedImageError):
-            TermImage.from_file("LICENSE")
+            BlockImage.from_file("LICENSE")
 
         # Ensure size arguments get through
         with pytest.raises(ValueError, match=r"both width and height"):
-            TermImage.from_file(python_image, width=1, height=1)
+            BlockImage.from_file(python_image, width=1, height=1)
 
         # Ensure scale argument gets through
         with pytest.raises(TypeError, match=r"'scale'"):
-            TermImage.from_file(python_image, scale=1.0)
+            BlockImage.from_file(python_image, scale=1.0)
 
     def test_filepath(self):
-        image = TermImage.from_file(python_image)
-        assert isinstance(image, TermImage)
+        image = BlockImage.from_file(python_image)
+        assert isinstance(image, BlockImage)
         assert image._source == os.path.abspath(python_image)
         assert image._source_type is ImageSource.FILE_PATH
 
@@ -108,15 +108,15 @@ class TestFromFile:
         "doesn't support symlinks",
     )
     def test_symlink(self):
-        image = TermImage.from_file(python_sym)
-        assert isinstance(image, TermImage)
+        image = BlockImage.from_file(python_sym)
+        assert isinstance(image, BlockImage)
         assert image._source == os.path.abspath(python_sym)
         assert image._source_type is ImageSource.FILE_PATH
 
 
 class TestProperties:
     def test_closed(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert not image.closed
 
         with pytest.raises(AttributeError):
@@ -126,12 +126,12 @@ class TestProperties:
         assert image.closed
 
     def test_frame_duration(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image.frame_duration is None
         image.frame_duration = 0.5
         assert image.frame_duration is None
 
-        image = TermImage(anim_img)
+        image = BlockImage(anim_img)
         assert image._frame_duration == (anim_img.info.get("duration") or 100) / 1000
 
         for duration in (0, 1, "0.1", "1", 0.3j):
@@ -145,20 +145,20 @@ class TestProperties:
         assert image.frame_duration == 0.5
 
     def test_is_animated(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert not image.is_animated
 
-        image = TermImage(anim_img)
+        image = BlockImage(anim_img)
         assert image.is_animated
 
         with pytest.raises(AttributeError):
             image.is_animated = False
 
     def test_n_frames(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image.n_frames == 1
 
-        image = TermImage(anim_img)
+        image = BlockImage(anim_img)
         assert 1 < image.n_frames == anim_img.n_frames
         assert image.n_frames == anim_img.n_frames  # Ensure consistency
 
@@ -166,7 +166,7 @@ class TestProperties:
             image.n_frames = 2
 
     def test_rendered_size_height_width(self):
-        image = TermImage(python_img)  # Square
+        image = BlockImage(python_img)  # Square
 
         with pytest.raises(AttributeError):
             image.rendered_size = (_size,) * 2
@@ -211,7 +211,7 @@ class TestProperties:
             set_font_ratio(0.5)
 
     def test_scale_value_checks(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
 
         # Value type
         for value in (0, 1, None, "1", "1.0"):
@@ -255,7 +255,7 @@ class TestProperties:
                 image.scale = value
 
     def test_scale_x_y(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image.scale == (1.0, 1.0)
         assert image.scale_x == image.scale_y == 1.0
 
@@ -276,7 +276,7 @@ class TestProperties:
         assert image.scale_x == 0.25
 
     def test_size_height_width(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image.original_size == python_img.size
         assert image.size is image.height is image.width is None
 
@@ -299,11 +299,11 @@ class TestProperties:
         assert image.size is image.height is image.width is None
 
     def test_source(self):
-        image = TermImage(python_img)
+        image = BlockImage(python_img)
         assert image.source is python_img
         assert image.source_type is ImageSource.PIL_IMAGE
 
-        image = TermImage.from_file(python_image)
+        image = BlockImage.from_file(python_image)
         assert image.source == os.path.abspath(python_image)
         assert image.source_type is ImageSource.FILE_PATH
 
@@ -316,7 +316,7 @@ class TestProperties:
         "doesn't support symlinks",
     )
     def test_source_symlink(self):
-        image = TermImage.from_file(python_sym)
+        image = BlockImage.from_file(python_sym)
         assert os.path.basename(image.source) == "python_sym.png"
         assert (
             image.source == os.path.abspath(python_sym) != os.path.realpath(python_sym)
@@ -325,34 +325,34 @@ class TestProperties:
 
 
 def test_close():
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
     image.close()
     assert image.closed
     with pytest.raises(AttributeError):
         image._source
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         image.source
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         str(image)
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         format(image)
-    with pytest.raises(TermImageException):
+    with pytest.raises(TermImageError):
         image.draw()
 
 
 def test_context_management():
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
     with image as image2:
         assert image2 is image
     assert image.closed
 
 
 def test_iter():
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
     with pytest.raises(ValueError, match="not animated"):
         iter(image)
 
-    anim_image = TermImage(anim_img)
+    anim_image = BlockImage(anim_img)
     image_it = iter(anim_image)
     assert isinstance(image_it, ImageIterator)
     assert image_it._image is anim_image
@@ -360,7 +360,7 @@ def test_iter():
 
 def test_seek_tell():
     # Non-animated
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
     assert image.tell() == 0
     image.seek(0)
     assert image.tell() == 0
@@ -369,7 +369,7 @@ def test_seek_tell():
     assert image.tell() == 0
 
     # Animated
-    image = TermImage(anim_img)
+    image = BlockImage(anim_img)
     assert image.tell() == 0
     n_frames = anim_img.n_frames
 
@@ -392,9 +392,9 @@ def test_seek_tell():
 
 
 class TestSetSize:
-    image = TermImage(python_img)  # Square
-    h_image = TermImage.from_file("tests/images/hori.jpg")  # Horizontally-oriented
-    v_image = TermImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
+    image = BlockImage(python_img)  # Square
+    h_image = BlockImage.from_file("tests/images/hori.jpg")  # Horizontally-oriented
+    v_image = BlockImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
 
     def test_args_width_height(self):
         with pytest.raises(ValueError, match=".* both width and height"):
@@ -445,19 +445,19 @@ class TestSetSize:
                 self.image.set_size(maxsize=(1, 1), **{arg: True})
 
     def test_cannot_exceed_maxsize(self):
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.image.set_size(height=51, maxsize=(200, 50))  # Exceeds Vertically
 
         # Horizontal image in a (supposedly) square space; Exceeds horizontally
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.h_image.set_size(height=100, maxsize=(100, 50))
 
         # Vertical image in a (supposedly) square space; Exceeds Vertically
-        with pytest.raises(InvalidSize, match="will not fit into"):
+        with pytest.raises(InvalidSizeError, match="will not fit into"):
             self.v_image.set_size(width=100, maxsize=(100, 50))
 
 
@@ -465,7 +465,7 @@ def test_renderer():
     def test(img, *args, **kwargs):
         return img, args, kwargs
 
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
 
     for positionals, keywords in (
         ((), {}),
@@ -481,7 +481,7 @@ def test_renderer():
 class TestRender:
     # Fully transparent image
     # It's easy to predict it's pixel values
-    trans = TermImage.from_file("tests/images/trans.png")
+    trans = BlockImage.from_file("tests/images/trans.png")
 
     def render_image(self, alpha):
         return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
@@ -503,7 +503,7 @@ class TestRender:
 # size of the render results), then testing formatting with a single style should
 # suffice.
 class TestFormatting:
-    image = TermImage(python_img)
+    image = BlockImage(python_img)
     image.scale = 0.5  # To ensure there's padding
     render = str(image)
     check_formatting = image._check_formatting
@@ -753,8 +753,8 @@ class TestFormatting:
 # Testing with one style should suffice for all since it's simply testing the method
 # and nothing perculiar to the style
 class TestDraw:
-    image = TermImage(python_img, width=_size)
-    anim_image = TermImage(anim_img, width=_size)
+    image = BlockImage(python_img, width=_size)
+    anim_image = BlockImage(anim_img, width=_size)
 
     def test_args(self):
         sys.stdout = stdout
@@ -792,26 +792,26 @@ class TestDraw:
     def test_size_validation(self):
         sys.stdout = stdout
         self.image._size = (columns + 1, 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image._size = (1, lines - 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image.set_size(h_allow=2)
         self.image._size = (columns - 1, 1)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
         self.image.set_size(v_allow=4)
         self.image._size = (1, lines - 3)
-        with pytest.raises(InvalidSize, match="image cannot .* terminal size"):
+        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
     class TestNonAnimated:
-        image = TermImage(python_img, width=_size)
-        anim_image = TermImage(anim_img, width=_size)
+        image = BlockImage(python_img, width=_size)
+        anim_image = BlockImage(anim_img, width=_size)
 
         def test_fit_to_width(self):
             sys.stdout = stdout
@@ -838,8 +838,8 @@ class TestDraw:
             clear_stdout()
 
     class TestAnimatedFalse:
-        image = TermImage(python_img, width=_size)
-        anim_image = TermImage(anim_img, width=_size)
+        image = BlockImage(python_img, width=_size)
+        anim_image = BlockImage(anim_img, width=_size)
 
         def test_fit_to_width(self):
             sys.stdout = stdout
@@ -866,40 +866,44 @@ class TestDraw:
             clear_stdout()
 
     class TestAnimated:
-        image = TermImage(python_img)
-        anim_image = TermImage(anim_img)
+        image = BlockImage(python_img)
+        anim_image = BlockImage(anim_img)
 
         def test_fit_to_width(self):
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw()
 
         def test_scroll(self):
             sys.stdout = stdout
             self.anim_image.size = None
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw(scroll=True)
 
         def test_fit_scroll(self):
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSize, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw(scroll=True)
 
         def test_check_size(self):
             sys.stdout = stdout
             self.anim_image.size = None
             self.anim_image._size = (columns + 1, lines)
-            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw(check_size=False)
 
         def test_fit_scroll_check_size(self):
             sys.stdout = stdout
             self.anim_image.set_size(fit_to_width=True)
             self.anim_image._size = (columns + 1, lines + 1)
-            with pytest.raises(InvalidSize, match="animation cannot .* terminal size"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw(scroll=True, check_size=False)

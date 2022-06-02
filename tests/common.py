@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 from term_image import set_font_ratio
-from term_image.exceptions import TermImageException
+from term_image.exceptions import TermImageError
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
 from term_image.utils import get_terminal_size
 
@@ -112,7 +112,7 @@ def test_instantiation_Graphics():
         ImageClass._supported = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
         ImageClass._supported = False
-        with pytest.raises(TermImageException):
+        with pytest.raises(TermImageError):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original
