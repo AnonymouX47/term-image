@@ -26,7 +26,7 @@ from enum import Enum, auto
 from operator import truediv
 from typing import Union
 
-from .exceptions import TermImageException
+from .exceptions import TermImageError
 from .utils import get_cell_size
 
 version_info = (0, 4, 0, "dev0")
@@ -61,7 +61,7 @@ def set_font_ratio(ratio: Union[float, FontRatio]) -> None:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
-        term_image.exceptions.TermImageException: Auto font ratio is not supported
+        term_image.exceptions.TermImageError: Auto font ratio is not supported
           in the :term:`active terminal` or on the current platform.
 
     This value is taken into consideration when setting image sizes for **text-based**
@@ -83,7 +83,7 @@ def set_font_ratio(ratio: Union[float, FontRatio]) -> None:
             _auto_font_ratio = get_cell_size() is not None
 
         if not _auto_font_ratio:
-            raise TermImageException(
+            raise TermImageError(
                 "Auto font ratio is not supported in the active terminal or on the "
                 "current platform"
             )
