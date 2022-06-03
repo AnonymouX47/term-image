@@ -35,7 +35,7 @@ from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?(\+(.+))?",
     re.ASCII,
 )
 _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
@@ -194,11 +194,13 @@ class BaseImage(ABC):
     def __format__(self, spec: str) -> str:
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
-        h_align, width, v_align, height, alpha = self._check_format_spec(spec)
+        h_align, width, v_align, height, alpha, style_args = self._check_format_spec(
+            spec
+        )
 
         return self._renderer(
             lambda image: self._format_render(
-                self._render_image(image, alpha),
+                self._render_image(image, alpha, **style_args),
                 h_align,
                 width,
                 v_align,
@@ -1008,21 +1010,42 @@ class BaseImage(ABC):
 
     # Private Methods
 
-    def _check_format_spec(self, spec: str):
+    @classmethod
+    def _check_format_spec(
+        cls, spec: str
+    ) -> Tuple[
+        Optional[str],
+        Optional[int],
+        Optional[str],
+        Optional[int],
+        Union[None, float, str],
+        Dict[str, Any],
+    ]:
         """Validates a format specification and translates it into the required values.
 
         Returns:
-            A tuple ``(h_align, width, v_align, height, alpha)`` containing values
-            as required by ``_format_render()`` and ``_render_image()``.
+            A tuple ``(h_align, width, v_align, height, alpha, style_args)`` containing
+            values as required by ``_format_render()`` and ``_render_image()``.
         """
         match_ = _FORMAT_SPEC.fullmatch(spec)
         if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
             raise ValueError(f"Invalid format specification (got: {spec!r})")
 
-        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()
+        (
+            _,
+            h_align,
+            width,
+            _,
+            v_align,
+            height,
+            alpha,
+            threshold_or_bg,
+            _,
+            style_spec,
+        ) = match_.groups()
 
         return (
-            *self._check_formatting(
+            *cls._check_formatting(
                 h_align, width and int(width), v_align, height and int(height)
             ),
             (
@@ -1035,10 +1058,11 @@ class BaseImage(ABC):
                 if alpha
                 else _ALPHA_THRESHOLD
             ),
+            style_spec and cls._check_style_format_spec(style_spec) or {},
         )
 
+    @staticmethod
     def _check_formatting(
-        self,
         h_align: Optional[str] = None,
         width: Optional[int] = None,
         v_align: Optional[str] = None,
@@ -1163,6 +1187,48 @@ class BaseImage(ABC):
                 raise ValueError(f"{value_msg} (got: {value!r})")
 
         return style_args
+
+    @classmethod
+    def _check_style_format_spec(cls, spec: str) -> Dict[str, Any]:
+        """Validates a style-specific format specification and translates it into
+        the required values.
+
+        Returns:
+            A mapping of keyword arguments.
+
+        Raises:
+            term_image.exceptions.<Style>ImageError: Invalid style-specific format
+              specification.
+
+        **Every style-specific format spec should be treated as follows:**
+
+        Every overriding method must call the overriden method.
+        At every step in the call chain, the specification should be of the form::
+
+            [up] [current] [invalid]
+
+        where:
+
+        - *current* is the portion to be interpreted at the current level in the chain
+        - *up* is the portion to be interpreted at an higher level in the chain
+        - the *invalid* portion determines the validity of the format spec
+        - **at least one portion must exist**
+
+        Take care of the portions in the order *invalid*, *up*, *current*, so that
+        validity can be determined before processing any part of the format spec.
+
+        At any point in the chain where the *invalid* portion exists (i.e is non-empty),
+        the format spec can be correctly taken to be invalid.
+
+        An overriding method must call the overridden method with the *up* portion
+        of the given format spec, **if not empty**, such that every successful check
+        ends up at `BaseImage._check_style_args()` or when *up* is empty.
+        """
+        if spec:
+            raise _style_error(cls)(
+                f"Invalid style-specific format specification {spec!r}"
+            )
+        return {}
 
     @classmethod
     def _clear_images(self, *args, **kwargs) -> bool:
@@ -1702,7 +1768,7 @@ class ImageIterator:
             raise TypeError(
                 "Invalid type for 'format' " f"(got: {type(format).__name__})"
             )
-        *fmt, alpha = image._check_format_spec(format)
+        *fmt, alpha, style_args = image._check_format_spec(format)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")

@@ -506,7 +506,7 @@ class TestFormatting:
     image = BlockImage(python_img)
     image.scale = 0.5  # To ensure there's padding
     render = str(image)
-    check_formatting = image._check_formatting
+    check_formatting = staticmethod(image._check_formatting)
     format_render = image._format_render
 
     def test_args(self):
