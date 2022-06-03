@@ -17,7 +17,7 @@ from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
-from typing import Any, Optional, Set, Tuple, Union
+from typing import Any, Dict, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -133,9 +133,12 @@ class BaseImage(ABC):
 
     # Data Attributes
 
-    _supported = None
-    _render_method = None
-    _render_methods: Set[str] = {}
+    _supported: Optional[bool] = None
+    _render_method: Optional[str] = None
+    _render_methods: Set[str] = set()
+    _style_args: Dict[
+        str, Tuple[Tuple[FunctionType, str], Tuple[FunctionType, str]]
+    ] = {}
 
     # Special Methods
 
@@ -501,7 +504,7 @@ class BaseImage(ABC):
         repeat: int = -1,
         cached: Union[bool, int] = 100,
         check_size: bool = True,
-        **kwargs: Any,
+        **style: Any,
     ) -> None:
         """Draws an image to standard output.
 
@@ -555,9 +558,7 @@ class BaseImage(ABC):
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
-            kwargs: Style-specific parameters. See each subclass for it's own usage.
-
-              Every subclass simply extracts the ones it defines and ignores any others.
+            style: Style-specific parameters. See each subclass for it's own usage.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -566,6 +567,8 @@ class BaseImage(ABC):
             ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
+            term_image.exceptions.<Style>ImageError: Unrecognized style-specific
+              parameters.
 
         * If :py:meth:`set_size` was directly used to set the image size, the values
           of the *fit_to_width*, *h_allow* and *v_allow* arguments
@@ -628,11 +631,17 @@ class BaseImage(ABC):
             # Hide the cursor immediately if the output is a terminal device
             sys.stdout.isatty() and print("\033[?25l", end="", flush=True)
             try:
+                style_args = self._check_style_args(style)
                 if self._is_animated and animate:
-                    self._display_animated(image, alpha, fmt, repeat, cached)
+                    self._display_animated(
+                        image, alpha, fmt, repeat, cached, **style_args
+                    )
                 else:
                     print(
-                        self._format_render(self._render_image(image, alpha), *fmt),
+                        self._format_render(
+                            self._render_image(image, alpha, **style_args),
+                            *fmt,
+                        ),
                         end="",
                         flush=True,
                     )
@@ -1109,6 +1118,53 @@ class BaseImage(ABC):
         return value
 
     @classmethod
+    def _check_style_args(cls, style_args: Dict[str, Any]) -> Dict[str, Any]:
+        """Validates style-specific arguments and translate them into the required
+        values.
+
+        Returns:
+            A mapping of keyword arguments.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
+            term_image.exceptions.<Style>ImageError: An unknown style-specific
+              parameter is given.
+        """
+        error = _style_error(cls)
+        for name, value in style_args.items():
+            try:
+                (check_type, type_msg), (check_value, value_msg) = cls._style_args[name]
+            except KeyError:
+                for other_cls in cls.__mro__:
+                    # less costly than memebership tests on every class' __bases__
+                    if other_cls is __class__:
+                        raise error(f"Unknown style-specific parameter {name!r}")
+
+                    if not issubclass(
+                        other_cls, __class__
+                    ) or "_style_args" not in vars(other_cls):
+                        continue
+
+                    try:
+                        (check_type, type_msg), (check_value, value_msg) = super(
+                            other_cls, cls
+                        )._style_args[name]
+                        break
+                    except KeyError:
+                        pass
+                else:
+                    raise error(f"Unknown style-specific parameter {name!r}")
+
+            if not check_type(value):
+                raise TypeError(f"{type_msg} (got: {type(value).__name__})")
+            if not check_value(value):
+                raise ValueError(f"{value_msg} (got: {value!r})")
+
+        return style_args
+
+    @classmethod
     def _clear_images(self, *args, **kwargs) -> bool:
         """Used by some graphics-protocol-based styles to clear images on-screen.
 
@@ -1123,6 +1179,7 @@ class BaseImage(ABC):
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
         cached: Union[bool, int],
+        **style_args: Any,
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
@@ -1338,7 +1395,7 @@ class BaseImage(ABC):
         """Performs common render preparations and a rendering operation.
 
         Args:
-            renderer: The function to perform the specifc rendering operation for the
+            renderer: The function to perform the specific rendering operation for the
               caller of this method, ``_renderer()``.
               This function must accept at least one positional argument, the
               ``PIL.Image.Image`` instance corresponding to the source.
