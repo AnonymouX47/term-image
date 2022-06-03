@@ -332,4 +332,17 @@ class TestFontRatio_Graphics:
             set_font_ratio(0.5)
 
 
+def test_style_args_All():
+    image = ImageClass(python_img)
+    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        image.draw(_=None)
+
+
+def test_style_format_spec_All():
+    image = ImageClass(python_img)
+    for spec in ("+\t", "20+\r", ".^+\a", "#+\0"):
+        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+            format(image, spec)
+
+
 __all__ = [name for name in globals() if name.startswith(("test_", "Test"))]

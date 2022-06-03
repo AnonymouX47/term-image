@@ -722,6 +722,11 @@ class TestFormatting:
             "#fffffff",
             "#a45gh4",
             " ",
+            # style-specific section
+            "+",
+            "20+",
+            ".^+",
+            "#+",
         ):
             with pytest.raises(ValueError, match=r"Invalid format specification"):
                 self.image._check_format_spec(spec)
