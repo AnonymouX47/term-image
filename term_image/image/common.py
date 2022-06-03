@@ -1264,7 +1264,7 @@ class BaseImage(ABC):
         try:
             duration = self._frame_duration
             start = time.time()
-            for frame in image_it._animate(img, alpha, fmt):
+            for frame in image_it._animate(img, alpha, fmt, style_args):
                 self._clear_images()
                 print(frame, end="", flush=True)  # Current frame
 
@@ -1735,6 +1735,8 @@ class ImageIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
+        term_image.exceptions.<Style>ImageError: Invalid style-specific format
+          specification.
 
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size
@@ -1781,7 +1783,9 @@ class ImageIterator:
         self._cached = (
             cached if isinstance(cached, bool) else image.n_frames <= cached
         ) and repeat != 1
-        self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
+        self._animator = image._renderer(
+            self._animate, alpha, fmt, style_args, check_size=False
+        )
 
     def __del__(self) -> None:
         self.close()
@@ -1864,6 +1868,7 @@ class ImageIterator:
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
+        style_args: Dict[str, Any],
     ) -> None:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
@@ -1887,7 +1892,9 @@ class ImageIterator:
 
                 image._seek_position = n
                 try:
-                    frame = image._format_render(image._render_image(img, alpha), *fmt)
+                    frame = image._format_render(
+                        image._render_image(img, alpha, **style_args), *fmt
+                    )
                 except EOFError:
                     image._seek_position = n = 0
                     if repeat > 0:  # Avoid infinitely large negative numbers
@@ -1920,7 +1927,7 @@ class ImageIterator:
                     frame, size_hash = cache[n]
                     if hash(image._size) != size_hash:
                         frame = image._format_render(
-                            image._render_image(img, alpha), *fmt
+                            image._render_image(img, alpha, **style_args), *fmt
                         )
                         cache[n] = (frame, hash(image._size))
 
