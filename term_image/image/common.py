@@ -24,8 +24,13 @@ import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .. import exceptions, get_font_ratio
-from ..exceptions import InvalidSizeError, TermImageError, URLNotFoundError
+from .. import get_font_ratio
+from ..exceptions import (
+    InvalidSizeError,
+    TermImageError,
+    URLNotFoundError,
+    _style_error,
+)
 from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
@@ -803,7 +808,7 @@ class BaseImage(ABC):
         If called via:
 
            - a class, sets the class-wide render method.
-           - an instance, sets the instance-specifc render method.
+           - an instance, sets the instance-specific render method.
 
         If *method* is ``None`` and this method is called via:
 
@@ -827,9 +832,7 @@ class BaseImage(ABC):
             cls = (
                 type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
             )
-            raise getattr(exceptions, f"{cls.__name__}Error")(
-                f"Unknown render method {method!r}"
-            )
+            raise _style_error(cls)(f"Unknown render method {method!r}")
 
         if not method:
             if isinstance(self_or_cls, __class__):

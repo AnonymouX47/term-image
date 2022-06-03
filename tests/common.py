@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from term_image import exceptions, set_font_ratio
+from term_image import set_font_ratio
+from term_image.exceptions import TermImageError, _style_error
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
 from term_image.utils import get_terminal_size
 
@@ -111,7 +112,7 @@ def test_instantiation_Graphics():
         ImageClass._supported = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
         ImageClass._supported = False
-        with pytest.raises(exceptions.TermImageError):
+        with pytest.raises(TermImageError):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original
@@ -140,7 +141,7 @@ def test_set_render_method_All():
 
     default = ImageClass._default_render_method if ImageClass._render_methods else None
 
-    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+    with pytest.raises(_style_error(ImageClass)):
         ImageClass.set_render_method("")
 
     assert ImageClass._render_method == default
@@ -155,7 +156,7 @@ def test_set_render_method_All():
 
     image = ImageClass(python_img)
 
-    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+    with pytest.raises(_style_error(ImageClass)):
         image.set_render_method("")
 
     assert image._render_method == default

@@ -29,13 +29,41 @@ class InvalidSize(InvalidSizeError):
 # Style-specific exceptions
 
 
+class BaseImageError(TermImageError):
+    """Raised for style-specific errors for subclasses of
+    :py:class:`BaseImage <term_image.image.BaseImage>` defined outside this package.
+    """
+
+
+class GraphicsImageError(TermImageError):
+    """Raised for errors specific to
+    :py:class:`GraphicsImage <term_image.image.GraphicsImage>` and style-specific
+    errors for subclasses defined outside this package.
+    """
+
+
+class TextImageError(TermImageError):
+    """Raised for errors specific to
+    :py:class:`TextImage <term_image.image.TextImage>` and style-specific
+    errors for subclasses defined outside this package.
+    """
+
+
 class BlockImageError(TermImageError):
     """Raised for errors specific to
-    :py:class:`BlockImage <term_image.image.BlockImage>`
+    :py:class:`BlockImage <term_image.image.BlockImage>` and style-specific
+    errors for subclasses defined outside this package.
     """
 
 
 class KittyImageError(TermImageError):
     """Raised for errors specific to
-    :py:class:`KittyImage <term_image.image.KittyImage>`
+    :py:class:`KittyImage <term_image.image.KittyImage>` and style-specific
+    errors for subclasses defined outside this package.
     """
+
+
+def _style_error(cls: type):
+    for cls in cls.__mro__:
+        if cls.__module__.startswith("term_image.image"):
+            return globals()[f"{cls.__name__}Error"]
