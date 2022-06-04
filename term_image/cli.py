@@ -1035,6 +1035,8 @@ FOOTNOTES:
         ),
     )
 
+    style_parsers = {}
+
     args = parser.parse_args()
     MAX_DEPTH = args.max_depth
     RECURSIVE = args.recursive
@@ -1129,6 +1131,9 @@ FOOTNOTES:
                     level=_logging.WARNING,
                 )
     log(f"Using {style!r} render style", logger, direct=False)
+
+    style_parser = style_parsers.get(style)
+    style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
 
     # Some APCs used for render style support detection get emitted on some
     # non-supporting terminal emulators
@@ -1293,6 +1298,7 @@ FOOTNOTES:
                         and (args.cache_all_anim or args.anim_cache)
                     ),
                     check_size=not args.oversize,
+                    **style_args,
                 )
 
             # Handles `ValueError` and `.exceptions.InvalidSizeError`
