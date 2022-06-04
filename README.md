@@ -251,8 +251,6 @@ For animated images, only the first method can animate the output, the second on
 ### Library
 See the [tutorial](https://term-image.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
 
-_**PLEASE NOTE:** This project is currently at a stage where the public API might change without warning but significant changes will always be specified in the [changelog](https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md)._
-
 ### CLI (Command-Line Interface)
 Run `term-image --help` to see the full usage info and list of options.
 
@@ -260,15 +258,16 @@ Run `term-image --help` to see the full usage info and list of options.
 The controls are **context-based** and displayed at the bottom of the terminal window.
 Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
 
-The TUI controls can be configured by modifying the config file `~/.term_image/config.json`. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section.
+The TUI can be configured by modifying the config file `~/.term_image/config.json`. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section of the docs.
 
 [Here](https://github.com/AnonymouX47/term-image/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
+
 
 ## Contribution
 
 If you've found any bug or want to suggest a new feature, please open a new [issue](https://github.com/AnonymouX47/term-image/issues) with proper description, after browsing/searching through the existing issues and making sure you won't create a duplicate.
 
-For code contributions, please make sure you read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
+For code contributions, please read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
 
 Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
 If you wish to work on any of the listed tasks, please go through the [issues](https://github.com/AnonymouX47/term-image/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
