@@ -1058,7 +1058,7 @@ class BaseImage(ABC):
                 if alpha
                 else _ALPHA_THRESHOLD
             ),
-            style_spec and cls._check_style_format_spec(style_spec) or {},
+            style_spec and cls._check_style_format_spec(style_spec, style_spec) or {},
         )
 
     @staticmethod
@@ -1189,7 +1189,7 @@ class BaseImage(ABC):
         return style_args
 
     @classmethod
-    def _check_style_format_spec(cls, spec: str) -> Dict[str, Any]:
+    def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
         """Validates a style-specific format specification and translates it into
         the required values.
 
@@ -1205,28 +1205,29 @@ class BaseImage(ABC):
         Every overriding method must call the overriden method.
         At every step in the call chain, the specification should be of the form::
 
-            [up] [current] [invalid]
+            [parent] [current] [invalid]
 
         where:
 
         - *current* is the portion to be interpreted at the current level in the chain
-        - *up* is the portion to be interpreted at an higher level in the chain
+        - *parent* is the portion to be interpreted at an higher level in the chain
         - the *invalid* portion determines the validity of the format spec
         - **at least one portion must exist**
 
-        Take care of the portions in the order *invalid*, *up*, *current*, so that
+        Take care of the portions in the order *invalid*, *parent*, *current*, so that
         validity can be determined before processing any part of the format spec.
 
         At any point in the chain where the *invalid* portion exists (i.e is non-empty),
         the format spec can be correctly taken to be invalid.
 
-        An overriding method must call the overridden method with the *up* portion
-        of the given format spec, **if not empty**, such that every successful check
-        ends up at `BaseImage._check_style_args()` or when *up* is empty.
+        An overriding method must call the overridden method with the *parent* portion
+        and the original format spec, **if** *parent* **is not empty**, such that every
+        successful check ends up at `BaseImage._check_style_args()` or when *parent* is
+        empty.
         """
         if spec:
             raise _style_error(cls)(
-                f"Invalid style-specific format specification {spec!r}"
+                f"Invalid style-specific format specification {original!r}"
             )
         return {}
 
