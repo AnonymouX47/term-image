@@ -110,10 +110,12 @@ class KittyImage(GraphicsImage):
 
         return cls._supported
 
-    @classmethod
-    def _clear_images(cls):
+    @staticmethod
+    def _clear_images():
         _stdout_write(b"\033_Ga=d;\033\\")
         return True
+
+    _clear_frame = _clear_images
 
     def _get_render_size(self) -> Tuple[int, int]:
         return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))

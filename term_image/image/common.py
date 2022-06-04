@@ -1231,9 +1231,22 @@ class BaseImage(ABC):
             )
         return {}
 
-    @classmethod
-    def _clear_images(self, *args, **kwargs) -> bool:
-        """Used by some graphics-protocol-based styles to clear images on-screen.
+    @staticmethod
+    def _clear_frame() -> bool:
+        """Clear the animation frame on-screen, if necessary.
+
+        Used by some graphics-based styles.
+
+        Returns:
+            ``True`` if the frame was cleared. Otherwise, ``False``.
+        """
+        return False
+
+    @staticmethod
+    def _clear_images() -> bool:
+        """Clear images on-screen.
+
+        Used by some graphics-based styles.
 
         Any overriding method should return ``True``.
         """
@@ -1266,7 +1279,7 @@ class BaseImage(ABC):
             duration = self._frame_duration
             start = time.time()
             for frame in image_it._animate(img, alpha, fmt, style_args):
-                self._clear_images()
+                self._clear_frame()
                 print(frame, end="", flush=True)  # Current frame
 
                 # Left-over of current frame's duration
