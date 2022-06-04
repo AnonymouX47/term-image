@@ -103,7 +103,7 @@ Image Format Specification
 
 .. code-block:: none
 
-   [h_align] [width] [ . [v_align] [height] ] [ # [threshold | bgcolor] ]
+   [h_align] [width] [ . [v_align] [height] ] [ # [threshold | bgcolor] ] [ + style ]
 
 .. note::
 
@@ -149,5 +149,13 @@ Image Format Specification
 
   * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
   * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled (uses the image's default background color, or black if none).
+
+* ``style``: Style-specific format specification.
+
+  See each render style class for its own specification, if it defines.
+
+  ``style`` can be broken down into ``[parent] [current]``, where ``current`` is the
+  spec defined by a class and ``parent`` is the spec defined by a parent of that class.
+  ``parent`` can in turn be **recursively** broken down as such.
 
 See :ref:`Formatted rendering <formatted-render>` for examples.

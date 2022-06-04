@@ -17,20 +17,25 @@ from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
-from typing import Any, Optional, Set, Tuple, Union
+from typing import Any, Dict, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .. import exceptions, get_font_ratio
-from ..exceptions import InvalidSizeError, TermImageError, URLNotFoundError
+from .. import get_font_ratio
+from ..exceptions import (
+    InvalidSizeError,
+    TermImageError,
+    URLNotFoundError,
+    _style_error,
+)
 from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?(\+(.+))?",
     re.ASCII,
 )
 _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
@@ -128,9 +133,12 @@ class BaseImage(ABC):
 
     # Data Attributes
 
-    _supported = None
-    _render_method = None
-    _render_methods: Set[str] = {}
+    _supported: Optional[bool] = None
+    _render_method: Optional[str] = None
+    _render_methods: Set[str] = set()
+    _style_args: Dict[
+        str, Tuple[Tuple[FunctionType, str], Tuple[FunctionType, str]]
+    ] = {}
 
     # Special Methods
 
@@ -186,11 +194,13 @@ class BaseImage(ABC):
     def __format__(self, spec: str) -> str:
         """Renders the image with alignment, padding and transparency control"""
         # Only the currently set frame is rendered for animated images
-        h_align, width, v_align, height, alpha = self._check_format_spec(spec)
+        h_align, width, v_align, height, alpha, style_args = self._check_format_spec(
+            spec
+        )
 
         return self._renderer(
             lambda image: self._format_render(
-                self._render_image(image, alpha),
+                self._render_image(image, alpha, **style_args),
                 h_align,
                 width,
                 v_align,
@@ -496,7 +506,7 @@ class BaseImage(ABC):
         repeat: int = -1,
         cached: Union[bool, int] = 100,
         check_size: bool = True,
-        **kwargs: Any,
+        **style: Any,
     ) -> None:
         """Draws an image to standard output.
 
@@ -550,9 +560,7 @@ class BaseImage(ABC):
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
-            kwargs: Style-specific parameters. See each subclass for it's own usage.
-
-              Every subclass simply extracts the ones it defines and ignores any others.
+            style: Style-specific parameters. See each subclass for it's own usage.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -561,6 +569,8 @@ class BaseImage(ABC):
             ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
+            term_image.exceptions.<Style>ImageError: Unrecognized style-specific
+              parameters.
 
         * If :py:meth:`set_size` was directly used to set the image size, the values
           of the *fit_to_width*, *h_allow* and *v_allow* arguments
@@ -623,11 +633,17 @@ class BaseImage(ABC):
             # Hide the cursor immediately if the output is a terminal device
             sys.stdout.isatty() and print("\033[?25l", end="", flush=True)
             try:
+                style_args = self._check_style_args(style)
                 if self._is_animated and animate:
-                    self._display_animated(image, alpha, fmt, repeat, cached)
+                    self._display_animated(
+                        image, alpha, fmt, repeat, cached, **style_args
+                    )
                 else:
                     print(
-                        self._format_render(self._render_image(image, alpha), *fmt),
+                        self._format_render(
+                            self._render_image(image, alpha, **style_args),
+                            *fmt,
+                        ),
                         end="",
                         flush=True,
                     )
@@ -803,7 +819,7 @@ class BaseImage(ABC):
         If called via:
 
            - a class, sets the class-wide render method.
-           - an instance, sets the instance-specifc render method.
+           - an instance, sets the instance-specific render method.
 
         If *method* is ``None`` and this method is called via:
 
@@ -827,9 +843,7 @@ class BaseImage(ABC):
             cls = (
                 type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
             )
-            raise getattr(exceptions, f"{cls.__name__}Error")(
-                f"Unknown render method {method!r}"
-            )
+            raise _style_error(cls)(f"Unknown render method {method!r}")
 
         if not method:
             if isinstance(self_or_cls, __class__):
@@ -996,21 +1010,42 @@ class BaseImage(ABC):
 
     # Private Methods
 
-    def _check_format_spec(self, spec: str):
+    @classmethod
+    def _check_format_spec(
+        cls, spec: str
+    ) -> Tuple[
+        Optional[str],
+        Optional[int],
+        Optional[str],
+        Optional[int],
+        Union[None, float, str],
+        Dict[str, Any],
+    ]:
         """Validates a format specification and translates it into the required values.
 
         Returns:
-            A tuple ``(h_align, width, v_align, height, alpha)`` containing values
-            as required by ``_format_render()`` and ``_render_image()``.
+            A tuple ``(h_align, width, v_align, height, alpha, style_args)`` containing
+            values as required by ``_format_render()`` and ``_render_image()``.
         """
         match_ = _FORMAT_SPEC.fullmatch(spec)
         if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
             raise ValueError(f"Invalid format specification (got: {spec!r})")
 
-        _, h_align, width, _, v_align, height, alpha, threshold_or_bg = match_.groups()
+        (
+            _,
+            h_align,
+            width,
+            _,
+            v_align,
+            height,
+            alpha,
+            threshold_or_bg,
+            _,
+            style_spec,
+        ) = match_.groups()
 
         return (
-            *self._check_formatting(
+            *cls._check_formatting(
                 h_align, width and int(width), v_align, height and int(height)
             ),
             (
@@ -1023,10 +1058,11 @@ class BaseImage(ABC):
                 if alpha
                 else _ALPHA_THRESHOLD
             ),
+            style_spec and cls._check_style_format_spec(style_spec, style_spec) or {},
         )
 
+    @staticmethod
     def _check_formatting(
-        self,
         h_align: Optional[str] = None,
         width: Optional[int] = None,
         v_align: Optional[str] = None,
@@ -1106,6 +1142,96 @@ class BaseImage(ABC):
         return value
 
     @classmethod
+    def _check_style_args(cls, style_args: Dict[str, Any]) -> Dict[str, Any]:
+        """Validates style-specific arguments and translate them into the required
+        values.
+
+        Returns:
+            A mapping of keyword arguments.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
+            term_image.exceptions.<Style>ImageError: An unknown style-specific
+              parameter is given.
+        """
+        error = _style_error(cls)
+        for name, value in style_args.items():
+            try:
+                (check_type, type_msg), (check_value, value_msg) = cls._style_args[name]
+            except KeyError:
+                for other_cls in cls.__mro__:
+                    # less costly than memebership tests on every class' __bases__
+                    if other_cls is __class__:
+                        raise error(f"Unknown style-specific parameter {name!r}")
+
+                    if not issubclass(
+                        other_cls, __class__
+                    ) or "_style_args" not in vars(other_cls):
+                        continue
+
+                    try:
+                        (check_type, type_msg), (check_value, value_msg) = super(
+                            other_cls, cls
+                        )._style_args[name]
+                        break
+                    except KeyError:
+                        pass
+                else:
+                    raise error(f"Unknown style-specific parameter {name!r}")
+
+            if not check_type(value):
+                raise TypeError(f"{type_msg} (got: {type(value).__name__})")
+            if not check_value(value):
+                raise ValueError(f"{value_msg} (got: {value!r})")
+
+        return style_args
+
+    @classmethod
+    def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
+        """Validates a style-specific format specification and translates it into
+        the required values.
+
+        Returns:
+            A mapping of keyword arguments.
+
+        Raises:
+            term_image.exceptions.<Style>ImageError: Invalid style-specific format
+              specification.
+
+        **Every style-specific format spec should be treated as follows:**
+
+        Every overriding method must call the overriden method.
+        At every step in the call chain, the specification should be of the form::
+
+            [parent] [current] [invalid]
+
+        where:
+
+        - *current* is the portion to be interpreted at the current level in the chain
+        - *parent* is the portion to be interpreted at an higher level in the chain
+        - the *invalid* portion determines the validity of the format spec
+        - **at least one portion must exist**
+
+        Take care of the portions in the order *invalid*, *parent*, *current*, so that
+        validity can be determined before processing any part of the format spec.
+
+        At any point in the chain where the *invalid* portion exists (i.e is non-empty),
+        the format spec can be correctly taken to be invalid.
+
+        An overriding method must call the overridden method with the *parent* portion
+        and the original format spec, **if** *parent* **is not empty**, such that every
+        successful check ends up at `BaseImage._check_style_args()` or when *parent* is
+        empty.
+        """
+        if spec:
+            raise _style_error(cls)(
+                f"Invalid style-specific format specification {original!r}"
+            )
+        return {}
+
+    @classmethod
     def _clear_images(self, *args, **kwargs) -> bool:
         """Used by some graphics-protocol-based styles to clear images on-screen.
 
@@ -1120,6 +1246,7 @@ class BaseImage(ABC):
         fmt: Tuple[Union[None, str, int]],
         repeat: int,
         cached: Union[bool, int],
+        **style_args: Any,
     ) -> None:
         """Displays an animated GIF image in the terminal.
 
@@ -1138,7 +1265,7 @@ class BaseImage(ABC):
         try:
             duration = self._frame_duration
             start = time.time()
-            for frame in image_it._animate(img, alpha, fmt):
+            for frame in image_it._animate(img, alpha, fmt, style_args):
                 self._clear_images()
                 print(frame, end="", flush=True)  # Current frame
 
@@ -1335,7 +1462,7 @@ class BaseImage(ABC):
         """Performs common render preparations and a rendering operation.
 
         Args:
-            renderer: The function to perform the specifc rendering operation for the
+            renderer: The function to perform the specific rendering operation for the
               caller of this method, ``_renderer()``.
               This function must accept at least one positional argument, the
               ``PIL.Image.Image`` instance corresponding to the source.
@@ -1609,6 +1736,8 @@ class ImageIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
+        term_image.exceptions.<Style>ImageError: Invalid style-specific format
+          specification.
 
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size
@@ -1642,7 +1771,7 @@ class ImageIterator:
             raise TypeError(
                 "Invalid type for 'format' " f"(got: {type(format).__name__})"
             )
-        *fmt, alpha = image._check_format_spec(format)
+        *fmt, alpha, style_args = image._check_format_spec(format)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
@@ -1655,7 +1784,9 @@ class ImageIterator:
         self._cached = (
             cached if isinstance(cached, bool) else image.n_frames <= cached
         ) and repeat != 1
-        self._animator = image._renderer(self._animate, alpha, fmt, check_size=False)
+        self._animator = image._renderer(
+            self._animate, alpha, fmt, style_args, check_size=False
+        )
 
     def __del__(self) -> None:
         self.close()
@@ -1738,6 +1869,7 @@ class ImageIterator:
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
+        style_args: Dict[str, Any],
     ) -> None:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
@@ -1761,7 +1893,9 @@ class ImageIterator:
 
                 image._seek_position = n
                 try:
-                    frame = image._format_render(image._render_image(img, alpha), *fmt)
+                    frame = image._format_render(
+                        image._render_image(img, alpha, **style_args), *fmt
+                    )
                 except EOFError:
                     image._seek_position = n = 0
                     if repeat > 0:  # Avoid infinitely large negative numbers
@@ -1794,7 +1928,7 @@ class ImageIterator:
                     frame, size_hash = cache[n]
                     if hash(image._size) != size_hash:
                         frame = image._format_render(
-                            image._render_image(img, alpha), *fmt
+                            image._render_image(img, alpha, **style_args), *fmt
                         )
                         cache[n] = (frame, hash(image._size))
 
