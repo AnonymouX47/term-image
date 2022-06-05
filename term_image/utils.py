@@ -392,11 +392,11 @@ def read_tty(
     """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
-        more: A callable, which when passed the input recieved so far, returns a
-          boolean indicating if the input is incomplete or not. If it returns:
+        more: A callable, which when passed the input recieved so far, as a `bytearray`
+          object, returns a boolean. If it returns:
 
           * ``True``, more input is waited for.
-          * ``False``, the recieved input is returned immediately.
+          * ``False``, the input recieved so far is returned immediately.
 
         timeout: Time limit for awaiting input, in seconds.
         min: Causes to block until at least the given number of bytes have been read.
@@ -411,6 +411,7 @@ def read_tty(
 
     If *timeout* is not ``None`` and:
 
+      * *timeout* < ``0``, it's taken to be infinite.
       * *min* > ``0``, input is waited for until at least *min* bytes have been read.
 
         After *min* bytes have been read, the following points apply with *timeout*
@@ -423,8 +424,25 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    old_attr = termios.tcgetattr(_tty)
+    if not callable(more):
+        raise TypeError("'more' must be callable")
+    try:
+        ret = more(bytearray())
+    except Exception:
+        raise ValueError(
+            "'more' must be able to accept a single argument, a `bytearray` object"
+        ) from None
+    else:
+        if not isinstance(ret, bool):
+            raise TypeError("'more' must return a boolean")
+    if not isinstance(timeout, (type(None), float)):
+        raise TypeError("'timeout' must be `None` or a float")
+    if not isinstance(min, int):
+        raise TypeError("'min' must be an integer")
+    if not isinstance(echo, bool):
+        raise TypeError("'echo' must be a boolean")
 
+    old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
     new_attr[6][termios.VTIME] = 0  # Never block based on time
@@ -455,9 +473,10 @@ def read_tty(
                 termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
 
             r, w, x = [_tty], [], []
-            while monotonic() - start < timeout and more(input):
-                # Using select reduces CPU usage
-                if select(r, w, x, timeout - (monotonic() - start))[0]:
+            while (timeout < 0 or monotonic() - start < timeout) and more(input):
+                if select(  # Using select reduces CPU usage
+                    r, w, x, None if timeout < 0 else timeout - (monotonic() - start)
+                )[0]:
                     input.extend(os.read(_tty, 1))
             # logging.debug(f"{monotonic() - start}")
     finally:
