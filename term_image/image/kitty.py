@@ -81,6 +81,49 @@ class KittyImage(GraphicsImage):
         )
     }
 
+    # Only defined for the purpose of proper self-documentation
+    def draw(self, *args, z_index: Optional[int] = 0, **kwargs) -> None:
+        """Draws an image to standard output.
+
+        Extends the common interface with style-specific parameters.
+
+        Args:
+            args: Positional arguments passed up the inheritance chain.
+            z_index: The stacking order of images and text.
+
+              Images drawn in the same location with different z-index values will be
+              blended if they are semi-transparent. If *z_index* is:
+
+              * ``>= 0``, the image will be drawn above text.
+              * ``< 0``, the image will be drawn below text.
+              * ``< -(2 ** 31) / 2``, the image will be drawn below non-default text
+                background colors.
+              * ``None``, deletes any directly overlapping image.
+
+              .. note::
+                Currently, ``None`` is **only used internally** as it's buggy on
+                Kitty <= 0.25.0. It's only mentioned here for the sake of completeness.
+
+                Also, inter-mixing text with an image requires writing the text after
+                drawing the image, as any text within the region covered by the image is
+                overwritten when the image is drawn.
+
+            kwargs: Keyword arguments passed up the inheritance chain.
+
+        See the ``draw()`` method of the parent classes for full details, including the
+        description of other parameters.
+        """
+        arguments = locals()
+        super().draw(
+            *args,
+            **kwargs,
+            **{
+                var: arguments[var]
+                for var, default in __class__.draw.__kwdefaults__.items()
+                if arguments[var] != default
+            },
+        )
+
     @classmethod
     @lock_tty
     def is_supported(cls):
