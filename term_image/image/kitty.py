@@ -68,6 +68,18 @@ class KittyImage(GraphicsImage):
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
+    _style_args = {
+        "z_index": (
+            (
+                lambda x: x is None or isinstance(x, int),
+                "z-index must be `None` or an integer",
+            ),
+            (
+                lambda x: x is None or -(2**31) <= x < 2**31,
+                "z-index must be within the 32-bit signed integer range",
+            ),
+        )
+    }
 
     @classmethod
     @lock_tty
@@ -141,7 +153,10 @@ class KittyImage(GraphicsImage):
         )
 
     def _render_image(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        z_index: Optional[int] = 0,
     ) -> str:
         # Using `c` and `r` ensures that an image always occupies the correct amount
         # of columns and lines even if the cell size has changed when it's drawn.
@@ -173,16 +188,17 @@ class KittyImage(GraphicsImage):
             img.close()
 
         return getattr(self, f"_render_image_{self._render_method}")(
-            raw_image, format, width, height, r_width, r_height
+            raw_image,
+            ControlData(f=format, s=width, c=r_width, z=z_index),
+            height,
+            r_height,
         )
 
     @staticmethod
     def _render_image_lines(
         raw_image: bytes,
-        format: int,
-        width: int,
+        control_data: ControlData,
         height: int,
-        r_width: int,
         r_height: int,
     ) -> str:
         # NOTE:
@@ -190,18 +206,23 @@ class KittyImage(GraphicsImage):
         # than concatenate and write together.
 
         cell_height = height // r_height
-        bytes_per_line = width * cell_height * (format // 8)
+        bytes_per_line = control_data.s * cell_height * (control_data.f // 8)
+        vars(control_data).update(dict(v=cell_height, r=1))
+        fill = " " * control_data.c
+        if control_data.z is None:
+            delete = f"{_START}a=d,d=c;{_END}"
+            clear = f"{delete}\0337\033[{control_data.c}C{delete}\0338"
 
         with io.StringIO() as buffer, io.BytesIO(raw_image) as raw_image:
-            control_data = ControlData(f=format, s=width, v=cell_height, c=r_width, r=1)
             trans = Transmission(control_data, raw_image.read(bytes_per_line))
-            fill = " " * r_width
-
+            control_data.z is None and buffer.write(clear)
             buffer.write(trans.get_chunked())
             # Writing spaces clears any text under transparent areas of an image
             for _ in range(r_height - 1):
-                buffer.write(fill + "\n")
+                buffer.write(fill)
+                buffer.write("\n")
                 trans = Transmission(control_data, raw_image.read(bytes_per_line))
+                control_data.z is None and buffer.write(clear)
                 buffer.write(trans.get_chunked())
             buffer.write(fill)
 
@@ -210,19 +231,22 @@ class KittyImage(GraphicsImage):
     @staticmethod
     def _render_image_whole(
         raw_image: bytes,
-        format: int,
-        width: int,
+        control_data: ControlData,
         height: int,
-        r_width: int,
         r_height: int,
     ) -> str:
-        return (
-            Transmission(
-                ControlData(f=format, s=width, v=height, c=r_width, r=r_height),
-                raw_image,
-            ).get_chunked()
-            + (" " * r_width + "\n") * (r_height - 1)
-            + " " * r_width
+        vars(control_data).update(dict(v=height, r=r_height))
+        fill = " " * control_data.c
+        if control_data.z is None:
+            delete = f"{_START}a=d,d=c;{_END}"
+            clear = f"{delete}\0337\033[{control_data.c}C{delete}\0338"
+        return "".join(
+            (
+                control_data.z is None and clear or "",
+                Transmission(control_data, raw_image).get_chunked(),
+                (fill + "\n") * (r_height - 1),
+                fill,
+            )
         )
 
 
