@@ -4,20 +4,23 @@ __all__ = ("KittyImage",)
 
 import io
 import os
+import re
 import sys
 from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
 from subprocess import run
-from typing import Generator, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Optional, Set, Tuple, Union
 from zlib import compress, decompress
 
 import PIL
 
+from ..exceptions import _style_error
 from ..utils import get_cell_size, lock_tty, query_terminal
 from .common import GraphicsImage
 
+FORMAT_SPEC = re.compile(r"([^z]*)(z(-?\d+)?)?(.*)", re.ASCII)
 # Constants for ``KittyImage`` render method
 LINES = "lines"
 WHOLE = "whole"
@@ -28,7 +31,7 @@ class KittyImage(GraphicsImage):
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
-    **Render Methods:**
+    **Render Methods**
 
     :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
 
@@ -57,6 +60,27 @@ class KittyImage(GraphicsImage):
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
+
+
+    **Format Specification**
+
+    ::
+
+        [z [index] ]
+
+    * ``z``: Image/Text stacking order.
+
+      * ``index``: Image z-index. An integer in the **signed 32-bit range**.
+
+        Images drawn in the same location with different z-index values will be
+        blended if they are semi-transparent. If ``index`` is:
+
+        * ``>= 0``, the image will be drawn above text.
+        * ``< 0``, the image will be drawn below text.
+        * ``< -(2 ** 31) / 2``, the image will be drawn below non-default text
+          background colors.
+
+      * ``z`` without ``index`` is currently only used internally.
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -164,6 +188,22 @@ class KittyImage(GraphicsImage):
                 )
 
         return cls._supported
+
+    @classmethod
+    def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
+        parent, z, z_index, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        if invalid:
+            raise _style_error(cls)(
+                f"Invalid style-specific format specification {original!r}"
+            )
+
+        args = {}
+        if parent:
+            args.update(super()._check_style_format_spec(parent, original))
+        if z:
+            args["z_index"] = z_index and int(z_index)
+
+        return cls._check_style_args(args)
 
     @staticmethod
     def _clear_images():
