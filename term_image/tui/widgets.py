@@ -353,7 +353,6 @@ class Image(urwid.Widget):
                 tui_main.ImageClass._clear_images()
             elif frame_no != self._ti_frame_no:
                 self._ti_frame_no = frame_no
-                tui_main.ImageClass._clear_images() and ImageCanvas.change()
         elif self._ti_canv and self._ti_canv.size == size:
             canv = self._ti_canv
         else:
@@ -368,7 +367,6 @@ class Image(urwid.Widget):
             elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
                 image_render_queue.put((self, size, self._ti_alpha))
             canv = __class__._ti_placeholder.render(size)
-            tui_main.ImageClass._clear_images()
 
         return canv
 

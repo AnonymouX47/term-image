@@ -60,6 +60,10 @@ def init(
     Image._ti_alpha = (
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
     )
+    # KONSOLE does NOT blend images with the same z-index, hence is better off without
+    # `z_index=None`
+    if args.style == "kitty" and ImageClass._KONSOLE_VERSION:
+        del render.style_specs["kitty"]
     Image._ti_style_spec = render.style_specs.get(args.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted

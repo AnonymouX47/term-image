@@ -435,7 +435,7 @@ logger = _logging.getLogger(__name__)
 anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
-style_specs = {}
+style_specs = {"kitty": "+z"}
 
 # Set from `.tui.init()`
 # # Corresponsing to command-line args
