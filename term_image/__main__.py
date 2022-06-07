@@ -26,7 +26,7 @@ def main() -> int:
     from .tui import main
 
     def finish_loading():
-        if not logging.QUIET:
+        if not logging.QUIET and notify.loading_indicator:
             notify.end_loading()
             if not main.loop:  # TUI was not launched
                 while notify.is_loading():
@@ -63,9 +63,9 @@ def main() -> int:
             # If logging has been successfully initialized
             file=logging.VERBOSE is not None,
             # If the TUI was not launched, only print to console if verbosity is enabled
-            direct=bool(main.loop or cli.args.verbose or cli.args.debug),
+            direct=bool(main.loop or cli.args and (cli.args.verbose or cli.args.debug)),
         )
-        if cli.args.debug:
+        if cli.args and cli.args.debug:
             raise
         return INTERRUPTED
     except Exception as e:
@@ -81,7 +81,7 @@ def main() -> int:
             # If logging has been successfully initialized
             file=logging.VERBOSE is not None,
         )
-        if cli.args.debug:
+        if cli.args and cli.args.debug:
             raise
         return FAILURE
     else:
