@@ -3,14 +3,12 @@ from __future__ import annotations
 __all__ = ("KittyImage",)
 
 import io
-import os
 import re
 import sys
 from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
 from math import ceil
 from operator import mul
-from subprocess import run
 from typing import Any, Dict, Generator, Optional, Set, Tuple, Union
 from zlib import compress, decompress
 
@@ -105,6 +103,9 @@ class KittyImage(GraphicsImage):
         )
     }
 
+    _KITTY_VERSION: Tuple[int, int, int] = ()
+    _KONSOLE_VERSION: Tuple[int, int, int] = ()
+
     # Only defined for the purpose of proper self-documentation
     def draw(self, *args, z_index: Optional[int] = 0, **kwargs) -> None:
         """Draws an image to standard output.
@@ -170,22 +171,25 @@ class KittyImage(GraphicsImage):
             # Currently, only kitty >= 0.20.0 and Konsole 22.04.0 implement the
             # protocol features utilized
             if cls._supported:
-                result = run(
-                    "kitty +kitten query-terminal --wait-for=0.1 name version",
-                    shell=True,
-                    text=True,
-                    capture_output=True,
+                response = query_terminal(
+                    b"\033[>q", lambda s: not s.endswith(b"\033\\")
+                ).decode()
+                match = re.match(
+                    r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response, re.ASCII
                 )
-                name, version = map(
-                    lambda query: query.partition(" ")[2], result.stdout.split("\n", 1)
-                )
+                if match:
+                    name, version = match.groups()
+                    if name.casefold() == "kitty":
+                        cls._KITTY_VERSION = tuple(map(int, version.split(".")))
+                    elif name.casefold() == "konsole":
+                        cls._KONSOLE_VERSION = tuple(map(int, version.split(".")))
 
+                # fmt: off
                 cls._supported = (
-                    not result.returncode
-                    and name == "xterm-kitty"
-                    and tuple(map(int, version.split("."))) >= (0, 20, 0)
-                    or int(os.environ.get("KONSOLE_VERSION", "0")) >= 220400
+                    cls._KITTY_VERSION >= (0, 20, 0)
+                    or cls._KONSOLE_VERSION >= (22, 4, 0)
                 )
+                # fmt: on
 
         return cls._supported
 
