@@ -114,7 +114,7 @@ class KittyImage(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
-            z_index: The stacking order of images and text.
+            z_index: The stacking order of images and text **for non-animations**.
 
               Images drawn in the same location with different z-index values will be
               blended if they are semi-transparent. If *z_index* is:
@@ -214,7 +214,23 @@ class KittyImage(GraphicsImage):
         _stdout_write(b"\033_Ga=d;\033\\")
         return True
 
-    _clear_frame = _clear_images
+    @classmethod
+    def _clear_frame(cls):
+        if cls._KITTY_VERSION and cls._KITTY_VERSION <= (0, 25, 0):
+            cls._clear_images()
+            return True
+        return False
+
+    def _display_animated(self, *args, **kwargs) -> None:
+        if self._KITTY_VERSION > (0, 25, 0):
+            kwargs["z_index"] = None
+        else:
+            try:
+                del kwargs["z_index"]
+            except KeyError:
+                pass
+
+        super()._display_animated(*args, **kwargs)
 
     def _get_render_size(self) -> Tuple[int, int]:
         return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
