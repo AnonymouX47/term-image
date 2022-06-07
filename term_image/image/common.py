@@ -1272,32 +1272,35 @@ class BaseImage(ABC):
             self.rendered_height,
         )
         prev_seek_pos = self._seek_position
+        duration = self._frame_duration
         image_it = ImageIterator(self, repeat, "", cached)
-        del image_it._animator
+        image_it._animator = image_it._animate(img, alpha, fmt, style_args)
 
         try:
-            duration = self._frame_duration
-            start = time.time()
-            for frame in image_it._animate(img, alpha, fmt, style_args):
-                self._clear_frame()
-                print(frame, end="", flush=True)  # Current frame
+            print(next(image_it._animator), end="", flush=True)  # First frame
 
+            # Render next frame during current frame's duration
+            start = time.time()
+            for frame in image_it._animator:  # Renders next frame
                 # Left-over of current frame's duration
                 time.sleep(max(0, duration - (time.time() - start)))
 
+                # Clear the current frame, if necessary,
+                # move cursor up to the begining of the first line of the image
+                # and print the new current frame.
+                self._clear_frame()
+                print(f"\r\033[{lines - 1}A", frame, sep="", end="", flush=True)
+
                 # Render next frame during current frame's duration
                 start = time.time()
-
-                # Move cursor up to the begining of the first line of the image
-                # Not flushed until the next frame is printed
-                print("\r\033[%dA" % (lines - 1), end="")
         finally:
             if img is not self._source:
                 img.close()
+            image_it.close()
             self._seek_position = prev_seek_pos
-            # Move the cursor to the line after the image
-            # Prevents "overlayed" output in the terminal
-            print("\033[%dB" % lines, end="")
+            # Move the cursor to the last line of the image to prevent "overlayed"
+            # output in the terminal
+            print(f"\033[{lines}B", end="")
 
     def _format_render(
         self,
