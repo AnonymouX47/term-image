@@ -984,7 +984,7 @@ FOOTNOTES:
     # Logging
     log_options_ = parser.add_argument_group(
         "Logging Options",
-        "NOTE: These are mutually exclusive",
+        "NOTE: All these, except '-l/--log-file', are mutually exclusive",
     )
     log_options = log_options_.add_mutually_exclusive_group()
 
@@ -1035,7 +1035,27 @@ FOOTNOTES:
         ),
     )
 
-    style_parsers = {}
+    kitty_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    kitty_options = kitty_parser.add_argument_group(
+        "Kitty Style Options",
+        "These options apply only when the 'kitty' render style is used",
+    )
+    kitty_options.add_argument(
+        "--kitty-z-index",
+        metavar="N",
+        dest="z_index",
+        default=0,
+        type=int,
+        help="Image/Text stacking order",
+    )
+
+    style_parsers = {"kitty": kitty_parser}
+
+    for style_parser in style_parsers.values():
+        parser._action_groups.extend(style_parser._action_groups)
+        parser._mutually_exclusive_groups.extend(
+            style_parser._mutually_exclusive_groups
+        )
 
     args = parser.parse_args()
     MAX_DEPTH = args.max_depth
