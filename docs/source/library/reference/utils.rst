@@ -1,3 +1,3 @@
 .. automodule:: term_image.utils
-   :members:
+   :members: lock_tty, read_tty
    :show-inheritance:

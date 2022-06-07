@@ -19,11 +19,11 @@ The following streams/files are checked in the following order of priority
 * ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
   terminal, if any.
 
-The first one that is ascertained to be connected to a terminal device is used for
+The first one that is ascertained to be a terminal device is used for
 all terminal queries and terminal size computations.
 
 NOTE:
-   If none of the streams/files is connected to a terminal, then a warning is issued
+   If none of the streams/files is a terminal device, then a warning is issued
    and affected functionality disabled.
 """
 
