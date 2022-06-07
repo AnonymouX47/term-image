@@ -59,7 +59,6 @@ class Process(Process):
         }
         self._main_process_interruped = cli.interrupted
         self._ImageClass = tui.main.ImageClass
-        self._force_style = cli.args.force_style
         self._font_ratio = cli.args.font_ratio
         child_processes.append(self)
 
@@ -68,8 +67,9 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
-            if self._force_style and self._ImageClass:
-                # The unpickled class object is in the originally defined state
+            if self._ImageClass:  # Prevents errors before TUI init
+                # Avoids support checks as the unpickled class object is in the
+                # originally defined state
                 self._ImageClass._supported = True
 
             if not self._font_ratio:
