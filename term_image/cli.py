@@ -1127,8 +1127,8 @@ FOOTNOTES:
     ImageClass = {"auto": None, "kitty": KittyImage, "block": BlockImage}[args.style]
     if not ImageClass:
         ImageClass = _best_style()
+    args.style = ImageClass.__name__[:-5].lower()
 
-    style = ImageClass.__name__[:-5].lower()
     if args.force_style:
         ImageClass._supported = True
     else:
@@ -1136,7 +1136,7 @@ FOOTNOTES:
             ImageClass(None)
         except TermImageError:  # Instantiation isn't permitted
             log(
-                f"The {style!r} render style is not supported in the current "
+                f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
                 level=_logging.CRITICAL,
@@ -1145,14 +1145,14 @@ FOOTNOTES:
         except TypeError:  # Instantiation is permitted
             if not ImageClass.is_supported():
                 log(
-                    f"The {style!r} render style might not be fully supported in "
+                    f"The {args.style!r} render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
                     level=_logging.WARNING,
                 )
-    log(f"Using {style!r} render style", logger, direct=False)
+    log(f"Using {args.style!r} render style", logger, direct=False)
 
-    style_parser = style_parsers.get(style)
+    style_parser = style_parsers.get(args.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
 
     # Some APCs used for render style support detection get emitted on some
