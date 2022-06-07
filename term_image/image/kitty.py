@@ -236,6 +236,25 @@ class KittyImage(GraphicsImage):
         return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
 
     @staticmethod
+    def _handle_interrupted_draw():
+        """Performs neccessary actions when image drawing is interrupted.
+
+        If drawing is interruped while transmiting a command, it causes terminal to
+        wait for more data (in fact, it actually consumes any output following)
+        until the output reaches the expected payload size or ST (String Terminator)
+        is written.
+
+        Also, if the image data was chunked, it would be expecting the last chunk.
+        In this case, output is not consumed but the next graphics command sent
+        might not be treated as expected on some terminals e.g Konsole.
+        """
+
+        # End last command (does no harm if there wasn't an unterminated commanand)
+        # and send "last chunk" in case the last transmission was chunked.
+        # Konsole sometimes requires ST to be written twice.
+        print(f"{_END * 2}{_START}q=1,m=0;{_END}", end="", flush=True)
+
+    @staticmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
