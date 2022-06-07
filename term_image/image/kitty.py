@@ -100,14 +100,23 @@ class KittyImage(GraphicsImage):
                 lambda x: x is None or -(2**31) <= x < 2**31,
                 "z-index must be within the 32-bit signed integer range",
             ),
-        )
+        ),
+        "mix": (
+            (
+                lambda x: isinstance(x, bool),
+                "Inter-mixing policy must be a boolean",
+            ),
+            (lambda _: True, ""),
+        ),
     }
 
     _KITTY_VERSION: Tuple[int, int, int] = ()
     _KONSOLE_VERSION: Tuple[int, int, int] = ()
 
     # Only defined for the purpose of proper self-documentation
-    def draw(self, *args, z_index: Optional[int] = 0, **kwargs) -> None:
+    def draw(
+        self, *args, z_index: Optional[int] = 0, mix: bool = False, **kwargs
+    ) -> None:
         """Draws an image to standard output.
 
         Extends the common interface with style-specific parameters.
@@ -129,9 +138,15 @@ class KittyImage(GraphicsImage):
                 Currently, ``None`` is **only used internally** as it's buggy on
                 Kitty <= 0.25.0. It's only mentioned here for the sake of completeness.
 
-                Also, inter-mixing text with an image requires writing the text after
-                drawing the image, as any text within the region covered by the image is
-                overwritten when the image is drawn.
+                To inter-mixing text with the image, see the *mix* parameter.
+
+            mix: Image/Text inter-mixing policy **for non-animations**. If:
+
+              * ``True``, text within the region covered by the image will NOT be
+                overwriten.
+              * ``False``, text within the region covered by the image will be
+                overwriten, though text can be inter-mixed with the image after it's
+                been drawn.
 
             kwargs: Keyword arguments passed up the inheritance chain.
 
@@ -279,6 +294,7 @@ class KittyImage(GraphicsImage):
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
         z_index: Optional[int] = 0,
+        mix: bool = False,
     ) -> str:
         # NOTE: It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
@@ -313,7 +329,7 @@ class KittyImage(GraphicsImage):
             img.close()
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
-        fill = " " * r_width
+        fill = f"\033[{r_width}C" if mix else " " * r_width
         if z_index is None:
             delete = f"{_START}a=d,d=c;{_END}"
             clear = f"{delete}\0337\033[{r_width}C{delete}\0338"
