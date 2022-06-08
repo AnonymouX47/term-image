@@ -1052,6 +1052,8 @@ FOOTNOTES:
     style_parsers = {"kitty": kitty_parser}
 
     for style_parser in style_parsers.values():
+        parser._actions.extend(style_parser._actions)
+        parser._option_string_actions.update(style_parser._option_string_actions)
         parser._action_groups.extend(style_parser._action_groups)
         parser._mutually_exclusive_groups.extend(
             style_parser._mutually_exclusive_groups
