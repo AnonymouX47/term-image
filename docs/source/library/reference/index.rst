@@ -152,7 +152,7 @@ Image Format Specification
 
 * ``style``: Style-specific format specification.
 
-  See each render style class for its own specification, if it defines.
+  See each render style in :ref:`image-classes` for its own specification, if it defines.
 
   ``style`` can be broken down into ``[parent] [current]``, where ``current`` is the
   spec defined by a class and ``parent`` is the spec defined by a parent of that class.

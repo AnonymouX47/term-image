@@ -22,6 +22,8 @@ Core Library Definitions
    .. autofunction:: from_url
 
 
+   .. _image-classes:
+
    Image Classes
    -------------
 
