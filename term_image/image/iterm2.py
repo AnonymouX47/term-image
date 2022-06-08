@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+import sys
 from base64 import standard_b64encode
 from typing import Set, Union
 
@@ -100,6 +101,30 @@ class ITerm2Image(GraphicsImage):
 
         return cls._supported
 
+    @classmethod
+    def _clear_images(cls):
+        if cls._TERM == "konsole":
+            # Only works and required on Konsole, as text doesn't overwrite image cells.
+            # Seems Konsole utilizes the same image rendering implementation as it
+            # uses for the kiity graphics protocol.
+            _stdout_write(b"\033_Ga=d;\033\\")
+            return True
+        return False
+
+    @staticmethod
+    def _handle_interrupted_draw():
+        """Performs neccessary actions when image drawing is interrupted.
+
+        If drawing is interruped while transmiting an image, it causes terminal to
+        wait for more data (while consuming any output following) until the output
+        reaches the expected payload size or ST (String Terminator) is written.
+        """
+
+        # End last transmission (does no harm if there wasn't an unterminated
+        # transmission)
+        # Konsole sometimes requires ST to be written twice.
+        print(f"{ST * 2}", end="", flush=True)
+
     def _render_image(
         self, img: PIL.Image.Image, alpha: Union[None, float, str]
     ) -> str:
@@ -183,3 +208,4 @@ class ITerm2Image(GraphicsImage):
 
 
 ST = "\033\\"
+_stdout_write = sys.stdout.buffer.write
