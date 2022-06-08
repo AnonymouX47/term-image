@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ("ITerm2Image",)
+
 import io
 import re
 import sys
