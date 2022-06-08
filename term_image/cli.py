@@ -22,7 +22,7 @@ from . import FontRatio, __version__, config, logging, notify, set_font_ratio, t
 from .config import config_options, store_config
 from .exceptions import TermImageError, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import BlockImage, KittyImage, _best_style
+from .image import BlockImage, ITerm2Image, KittyImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
@@ -573,6 +573,11 @@ Render Styles:
         include (but might not be limited to):
         - Kitty >= 0.20.0
         - Konsole >= 22.04.0
+    iterm2: Uses the iTerm2 inline image protocol. Currently supported terminal
+        emulators include (but might not be limited to):
+        - `iTerm2
+        - `Konsole >= 22.04.0
+        - `WezTerm
     block: Uses unicode half blocks with 24-bit color escape codes to represent images
         with a density of two pixels per character cell.
 
@@ -630,7 +635,7 @@ FOOTNOTES:
     general.add_argument(
         "-S",
         "--style",
-        choices=("auto", "kitty", "block"),
+        choices=("auto", "kitty", "iterm2", "block"),
         default="auto",
         help='Image render style (default: auto). See "Render Styles" below',
     )
@@ -1104,7 +1109,12 @@ FOOTNOTES:
         )
         args.font_ratio = 0.5
 
-    ImageClass = {"auto": None, "kitty": KittyImage, "block": BlockImage}[args.style]
+    ImageClass = {
+        "auto": None,
+        "kitty": KittyImage,
+        "iterm2": ITerm2Image,
+        "block": BlockImage,
+    }[args.style]
     if not ImageClass:
         ImageClass = _best_style()
 
