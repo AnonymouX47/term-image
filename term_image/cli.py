@@ -1041,6 +1041,7 @@ FOOTNOTES:
         "These options apply only when the 'kitty' render style is used",
     )
     kitty_options.add_argument(
+        "--kz",
         "--kitty-z-index",
         metavar="N",
         dest="z_index",
