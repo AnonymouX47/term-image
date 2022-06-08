@@ -1160,7 +1160,6 @@ class BaseImage(ABC):
             term_image.exceptions.<Style>ImageError: An unknown style-specific
               parameter is given.
         """
-        error = _style_error(cls)
         for name, value in style_args.items():
             try:
                 (check_type, type_msg), (check_value, value_msg) = cls._style_args[name]
@@ -1168,7 +1167,9 @@ class BaseImage(ABC):
                 for other_cls in cls.__mro__:
                     # less costly than memebership tests on every class' __bases__
                     if other_cls is __class__:
-                        raise error(f"Unknown style-specific parameter {name!r}")
+                        raise _style_error(cls)(
+                            f"Unknown style-specific parameter {name!r}"
+                        )
 
                     if not issubclass(
                         other_cls, __class__
@@ -1183,7 +1184,9 @@ class BaseImage(ABC):
                     except KeyError:
                         pass
                 else:
-                    raise error(f"Unknown style-specific parameter {name!r}")
+                    raise _style_error(cls)(
+                        f"Unknown style-specific parameter {name!r}"
+                    )
 
             if not check_type(value):
                 raise TypeError(f"{type_msg} (got: {type(value).__name__})")
