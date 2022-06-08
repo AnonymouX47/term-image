@@ -7,15 +7,13 @@ import os
 import sys
 from base64 import standard_b64encode
 from dataclasses import asdict, dataclass
-from math import ceil
-from operator import mul
 from subprocess import run
-from typing import Generator, Optional, Set, Tuple, Union
+from typing import Generator, Optional, Set, Union
 from zlib import compress, decompress
 
 import PIL
 
-from ..utils import get_cell_size, lock_tty, query_terminal
+from ..utils import lock_tty, query_terminal
 from .common import GraphicsImage
 
 # Constants for ``KittyImage`` render method
@@ -117,29 +115,6 @@ class KittyImage(GraphicsImage):
 
     _clear_frame = _clear_images
 
-    def _get_render_size(self) -> Tuple[int, int]:
-        return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
-
-    @staticmethod
-    def _pixels_cols(
-        *, pixels: Optional[int] = None, cols: Optional[int] = None
-    ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[0])
-            if pixels is not None
-            else cols * (get_cell_size() or (1, 2))[0]
-        )
-
-    @staticmethod
-    def _pixels_lines(
-        *, pixels: Optional[int] = None, lines: Optional[int] = None
-    ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[1])
-            if pixels is not None
-            else lines * (get_cell_size() or (1, 2))[1]
-        )
-
     def _render_image(
         self, img: PIL.Image.Image, alpha: Union[None, float, str]
     ) -> str:
@@ -148,21 +123,8 @@ class KittyImage(GraphicsImage):
         # Since we use `c` and `r` control data keys, there's no need upscaling the
         # image on this end; ensures minimal payload.
 
-        render_size = self._get_render_size()
         r_width, r_height = self.rendered_size
-        width, height = (
-            render_size
-            if mul(*render_size) < mul(*self._original_size)
-            else self._original_size
-        )
-
-        # When `_original_size` is used, ensure the height is a multiple of the rendered
-        # height, so that pixels can be evenly distributed among all lines.
-        # If r_height == 0, height == 0, extra == 0; Handled in `_get_render_data()`.
-        extra = height % (r_height or 1)
-        if extra:
-            # Incremented to the greater multiple to avoid losing any data
-            height = height - extra + r_height
+        width, height = self._get_minimal_render_size()
 
         img = self._get_render_data(img, alpha, size=(width, height))[0]
         format = getattr(f, img.mode)

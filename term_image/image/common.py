@@ -14,6 +14,7 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import wraps
+from math import ceil
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
@@ -31,7 +32,7 @@ from ..exceptions import (
     URLNotFoundError,
     _style_error,
 )
-from ..utils import ClassInstanceMethod, get_terminal_size, no_redecorate
+from ..utils import ClassInstanceMethod, get_cell_size, get_terminal_size, no_redecorate
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
@@ -1721,6 +1722,48 @@ class GraphicsImage(BaseImage):
                 "This image render style is not supported in the active terminal"
             )
         super().__init__(image, **kwargs)
+
+    def _get_minimal_render_size(self) -> Tuple[int, int]:
+        render_size = self._get_render_size()
+        r_height = self.rendered_height
+        width, height = (
+            render_size
+            if mul(*render_size) < mul(*self._original_size)
+            else self._original_size
+        )
+
+        # When `_original_size` is used, ensure the height is a multiple of the rendered
+        # height, so that pixels can be evenly distributed among all lines.
+        # If r_height == 0, height == 0, extra == 0; Handled in `_get_render_data()`.
+        extra = height % (r_height or 1)
+        if extra:
+            # Incremented to the greater multiple to avoid losing any data
+            height = height - extra + r_height
+
+        return width, height
+
+    def _get_render_size(self) -> Tuple[int, int]:
+        return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
+
+    @staticmethod
+    def _pixels_cols(
+        *, pixels: Optional[int] = None, cols: Optional[int] = None
+    ) -> int:
+        return (
+            ceil(pixels // (get_cell_size() or (1, 2))[0])
+            if pixels is not None
+            else cols * (get_cell_size() or (1, 2))[0]
+        )
+
+    @staticmethod
+    def _pixels_lines(
+        *, pixels: Optional[int] = None, lines: Optional[int] = None
+    ) -> int:
+        return (
+            ceil(pixels // (get_cell_size() or (1, 2))[1])
+            if pixels is not None
+            else lines * (get_cell_size() or (1, 2))[1]
+        )
 
 
 class TextImage(BaseImage):
