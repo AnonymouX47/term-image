@@ -18,7 +18,7 @@ from ..exceptions import _style_error
 from ..utils import get_cell_size, lock_tty, query_terminal
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(r"([^z]*)(z(-?\d+)?)?(.*)", re.ASCII)
+FORMAT_SPEC = re.compile(r"([^zm]*)(z(-?\d+)?)?(m[01])?(.*)", re.ASCII)
 # Constants for ``KittyImage`` render method
 LINES = "lines"
 WHOLE = "whole"
@@ -62,9 +62,11 @@ class KittyImage(GraphicsImage):
 
     **Format Specification**
 
+    See :ref:`format-spec`.
+
     ::
 
-        [z [index] ]
+        [ z [index] ] [ m {0 | 1} ]
 
     * ``z``: Image/Text stacking order.
 
@@ -79,6 +81,20 @@ class KittyImage(GraphicsImage):
           background colors.
 
       * ``z`` without ``index`` is currently only used internally.
+      * If *absent*, defaults to z-index ``0``.
+      * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
+
+    * ``m``: Image/Text inter-mixing policy.
+
+      * If the character after ``m`` is:
+
+        * ``0``, text within the region covered by the image will be overwriten,
+          though text can be inter-mixed with the image after it's been drawn.
+        * ``1``, text within the region covered by the image will NOT be overwriten.
+
+      * If *absent*, defaults to ``m0``.
+      * e.g ``m0``, ``m1``.
+
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -160,7 +176,7 @@ class KittyImage(GraphicsImage):
             **{
                 var: arguments[var]
                 for var, default in __class__.draw.__kwdefaults__.items()
-                if arguments[var] != default
+                if arguments[var] is not default
             },
         )
 
@@ -210,7 +226,7 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, z, z_index, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        parent, z, index, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
         if invalid:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
@@ -220,7 +236,9 @@ class KittyImage(GraphicsImage):
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
         if z:
-            args["z_index"] = z_index and int(z_index)
+            args["z_index"] = index and int(index)
+        if mix:
+            args["mix"] = bool(int(mix[-1]))
 
         return cls._check_style_args(args)
 
