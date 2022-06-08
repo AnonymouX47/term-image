@@ -25,11 +25,11 @@ class ITerm2Image(GraphicsImage):
 
     **Render Methods:**
 
-    :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
+    :py:class:`ITerm2Image` provides two methods of :term:`rendering` images, namely:
 
     lines
        Renders an image line-by-line i.e the image if evenly split up across
-       the number of line it should occupy and all portions is joined together by
+       the number of lines it should occupy and all portions are joined together by
        ``\\n`` (newline sequence) to give the whole image.
 
        Pros:
@@ -38,7 +38,7 @@ class ITerm2Image(GraphicsImage):
            image.
 
     whole
-       Renders an image all at once i.e the entire image data is encoded into the first
+       Renders an image all at once i.e the entire image data is encoded into one
        line of the :term:`rendered` output, such that the entire image is drawn once
        by the terminal and still occupies the proper amount of lines and columns.
 
@@ -48,6 +48,10 @@ class ITerm2Image(GraphicsImage):
            compared to the ``lines`` method since the entire image is encoded at once.
          * Better for images that are large in resolution and pixel density.
 
+       .. attention::
+          This method currently doesn't work well on iTerm2 and WezTerm when the image
+          height is greater than the total terminal height.
+
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
@@ -55,9 +59,9 @@ class ITerm2Image(GraphicsImage):
     ATTENTION:
         Currently supported terminal emulators include:
 
-          * `iTerm2 <https://iterm2.com>`_.
-          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
-          * `WezTerm <https://wezfurlong.org/wezterm/>`_.
+          * `iTerm2 <https://iterm2.com>`_
+          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
+          * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
     _render_methods: Set[str] = {LINES, WHOLE}

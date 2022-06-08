@@ -49,7 +49,7 @@ Represent images using ASCII or Unicode symbols, and in some cases, in conjuncti
 
 Classes for render styles in this category are subclasses of :py:class:`TextImage <term_image.image.TextImage>`. These include:
 
-- :py:class:`BlockImage <term_image.image.BlockImage>`.
+* :py:class:`BlockImage <term_image.image.BlockImage>`
 
 Graphics-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -58,7 +58,8 @@ Represent images with actual pixels, using terminal graphics protocols.
 
 Classes for render styles in this category are subclasses of :py:class:`GraphicsImage <term_image.image.GraphicsImage>`. These include:
 
-- :py:class:`KittyImage <term_image.image.KittyImage>`.
+* :py:class:`KittyImage <term_image.image.KittyImage>`
+* :py:class:`ITerm2Image <term_image.image.ITerm2Image>`
 
 
 .. _auto-font-ratio:
