@@ -49,8 +49,9 @@ class ITerm2Image(GraphicsImage):
          * Render results are more compact (i.e less in character count) than with
            the ``lines`` method since the entire image is encoded at once.
          * Better for images that are large in resolution and pixel density.
+         * Smoother animations.
 
-       .. attention::
+       .. warning::
           This method currently doesn't work well on iTerm2 and WezTerm when the image
           height is greater than the total terminal height.
 
@@ -98,18 +99,33 @@ class ITerm2Image(GraphicsImage):
             ),
             (lambda _: True, ""),
         ),
+        "native": (
+            (
+                lambda x: isinstance(x, bool),
+                "Native animation policy must be a boolean",
+            ),
+            (lambda _: True, ""),
+        ),
     }
 
     _TERM: str = ""
     _TERM_VERSION: str = ""
 
-    def draw(self, *args, erase: bool = False, **kwargs):
+    def draw(
+        self,
+        *args,
+        animate: bool = True,
+        erase: bool = False,
+        native: bool = False,
+        **kwargs,
+    ):
         """Draws an image to standard output.
 
         Extends the common interface with style-specific parameters.
 
         Args:
             args: Positional arguments passed up the inheritance chain.
+            animate: See :py:meth:`BaseImage.draw`.
             erase: A workaround to erase contents of cells within the region covered
               by the image on some terminal emulators, particularly WezTerm. If:
 
@@ -118,11 +134,26 @@ class ITerm2Image(GraphicsImage):
               * ``False``, does otherwise. Thereby allowing existing text or image
                 pixels to show under transparent areas of the image, on some terminals.
 
+            native: If ``True``, use native animation (if supported).
+
+              * Ignored for non-animations.
+              * *animate* must be ``True``.
+              * *alpha*, *repeat*, *cached* and *style* do not apply.
+              * Always infinite.
+              * No control over frame duration.
+              * Not all animated image formats are supported by all supported
+                terminal emulators.
+
             kwargs: Keyword arguments passed up the inheritance chain.
+
+        Raises:
+            term_image.exceptions.ITerm2ImageError: Native animation is not supported
+              in the :term:`active terminal`.
 
         See the ``draw()`` method of the parent classes for full details, including the
         description of other parameters.
         """
+        native = native and self._is_animated and animate
         arguments = locals()
         super().draw(
             *args,
@@ -196,20 +227,52 @@ class ITerm2Image(GraphicsImage):
             return True
         return False
 
-    def _display_animated(self, img, alpha, fmt, *args, erase: bool = False, **kwargs):
-        if erase and self._TERM == "wezterm":
-            lines = max(
-                (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
-                self.rendered_height,
-            )
-            r_width = self.rendered_width
-            erase_and_jump = f"\033[{r_width}X\033[{r_width}C"
-            first_frame = self._format_render(
-                f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
-            )
-            print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
+    def _display_animated(
+        self,
+        img,
+        alpha,
+        fmt,
+        *args,
+        erase: bool = False,
+        native: bool = False,
+        **kwargs,
+    ):
+        if native:
+            if self._TERM == "konsole":
+                raise _style_error(type(self))(
+                    "Native animation is not supported in the active terminal"
+                )
+            if self._TERM == "wezterm" and img.format == "WEBP":
+                raise _style_error(type(self))(
+                    "Native WEBP animation is not supported in the active terminal"
+                )
 
-        super()._display_animated(img, alpha, fmt, *args, **kwargs)
+            try:
+                print(
+                    self._format_render(
+                        self._render_image(img, alpha, erase=erase, native=True),
+                        *fmt,
+                    ),
+                    end="",
+                    flush=True,
+                )
+            except (KeyboardInterrupt, Exception):
+                self._handle_interrupted_draw()
+                raise
+        else:
+            if erase and self._TERM == "wezterm":
+                lines = max(
+                    (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
+                    self.rendered_height,
+                )
+                r_width = self.rendered_width
+                erase_and_jump = f"\033[{r_width}X\033[{r_width}C"
+                first_frame = self._format_render(
+                    f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
+                )
+                print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
+
+            super()._display_animated(img, alpha, fmt, *args, **kwargs)
 
     @staticmethod
     def _handle_interrupted_draw():
@@ -226,7 +289,11 @@ class ITerm2Image(GraphicsImage):
         print(f"{ST * 2}", end="", flush=True)
 
     def _render_image(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str], erase: bool = False
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        erase: bool = False,
+        native: bool = False,
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
         # that an image always occupies the correct amount of columns and lines even if
@@ -235,8 +302,37 @@ class ITerm2Image(GraphicsImage):
         # upscaling an image on this end; ensures minimal payload.
 
         r_width, r_height = self.rendered_size
-        width, height = self._get_minimal_render_size()
 
+        # Workarounds
+        is_on_konsole = self._TERM == "konsole"
+        is_on_wezterm = self._TERM == "wezterm"
+        jump_right = f"\033[{r_width}C"
+        erase = f"\033[{r_width}X" if erase and is_on_wezterm else ""
+
+        if native and self._is_animated:  # and not frame:
+            with io.BytesIO() as compressed_image:
+                img.save(compressed_image, img.format, save_all=True)
+                if img is not self._source:
+                    img.close()
+                control_data = "".join(
+                    (
+                        f"size={compressed_image.tell()};width={r_width}"
+                        f";height={r_height};preserveAspectRatio=0;inline=1:"
+                    )
+                )
+                return "".join(
+                    (
+                        f"{erase}{jump_right}\n" * (r_height - 1),
+                        erase,
+                        f"\033[{r_height - 1}A",
+                        "\033]1337;File=",
+                        control_data,
+                        standard_b64encode(compressed_image.getvalue()).decode(),
+                        ST,
+                    )
+                )
+
+        width, height = self._get_minimal_render_size()
         img = self._get_render_data(
             img, alpha, size=(width, height), pixel_data=False  # fmt: skip
         )[0]
@@ -251,12 +347,6 @@ class ITerm2Image(GraphicsImage):
         # clean up
         if img is not self._source:
             img.close()
-
-        # Workarounds
-        is_on_konsole = self._TERM == "konsole"
-        is_on_wezterm = self._TERM == "wezterm"
-        jump_right = f"\033[{r_width}C"
-        erase = f"\033[{r_width}X" if erase and is_on_wezterm else ""
 
         if self._render_method == LINES:
             # NOTE: It's more efficient to write separate strings to the buffer
