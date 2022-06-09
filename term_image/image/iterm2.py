@@ -6,13 +6,15 @@ import io
 import re
 import sys
 from base64 import standard_b64encode
-from typing import Set, Union
+from typing import Any, Dict, Set, Union
 
 import PIL
 
+from ..exceptions import _style_error
 from ..utils import lock_tty, query_terminal, read_tty
 from .common import GraphicsImage
 
+FORMAT_SPEC = re.compile(r"([^e]*)(e[01])?(.*)", re.ASCII)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -56,6 +58,27 @@ class ITerm2Image(GraphicsImage):
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
 
+
+    **Format Specification**
+
+    See :ref:`format-spec`.
+
+    ::
+
+        [ e {0 | 1} ]
+
+    * ``e``: Cell content erasure workaround for some terminals, particularly WezTerm.
+
+      * If the character after ``e`` is:
+
+        * ``1``, contents of cells in the region covered by the image will be erased.
+        * ``0``, the opposite, thereby allowing existing cell contents to show under
+          transparent areas of the image.
+
+      * If *absent*, defaults to ``e0``.
+      * e.g ``e0``, ``e1``.
+
+
     ATTENTION:
         Currently supported terminal emulators include:
 
@@ -71,7 +94,7 @@ class ITerm2Image(GraphicsImage):
         "erase": (
             (
                 lambda x: isinstance(x, bool),
-                "Erasure policy must be a boolean",
+                "Cell content erasure workaround policy must be a boolean",
             ),
             (lambda _: True, ""),
         ),
@@ -87,11 +110,11 @@ class ITerm2Image(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
-            erase: A workaround to erase text within the region covered by the image
-              on some terminal emulators e.g WezTerm. If:
+            erase: A workaround to erase contents of cells within the region covered
+              by the image on some terminal emulators, particularly WezTerm. If:
 
-              * ``True``, existing text or image pixels within the region covered by
-                the image are erased.
+              * ``True``, contents of cells within the region covered by the image are
+                erased.
               * ``False``, does otherwise. Thereby allowing existing text or image
                 pixels to show under transparent areas of the image, on some terminals.
 
@@ -146,6 +169,22 @@ class ITerm2Image(GraphicsImage):
                 cls._supported = False
 
         return cls._supported
+
+    @classmethod
+    def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
+        parent, erase, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        if invalid:
+            raise _style_error(cls)(
+                f"Invalid style-specific format specification {original!r}"
+            )
+
+        args = {}
+        if parent:
+            args.update(super()._check_style_format_spec(parent, original))
+        if erase:
+            args["erase"] = bool(int(erase[-1]))
+
+        return cls._check_style_args(args)
 
     @classmethod
     def _clear_images(cls):
