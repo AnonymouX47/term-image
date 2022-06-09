@@ -44,8 +44,8 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-         * Renders faster and results are more compact (i.e less in character count)
-           compared to the ``lines`` method since the entire image is encoded at once.
+         * Render results are more compact (i.e less in character count) than with
+           the ``lines`` method since the entire image is encoded at once.
          * Better for images that are large in resolution and pixel density.
 
        .. attention::
@@ -67,9 +67,49 @@ class ITerm2Image(GraphicsImage):
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
+    _style_args = {
+        "erase": (
+            (
+                lambda x: isinstance(x, bool),
+                "Erasure policy must be a boolean",
+            ),
+            (lambda _: True, ""),
+        ),
+    }
 
     _TERM: str = ""
     _TERM_VERSION: str = ""
+
+    def draw(self, *args, erase: bool = False, **kwargs):
+        """Draws an image to standard output.
+
+        Extends the common interface with style-specific parameters.
+
+        Args:
+            args: Positional arguments passed up the inheritance chain.
+            erase: A workaround to erase text within the region covered by the image
+              on some terminal emulators e.g WezTerm. If:
+
+              * ``True``, existing text or image pixels within the region covered by
+                the image are erased.
+              * ``False``, does otherwise. Thereby allowing existing text or image
+                pixels to show under transparent areas of the image, on some terminals.
+
+            kwargs: Keyword arguments passed up the inheritance chain.
+
+        See the ``draw()`` method of the parent classes for full details, including the
+        description of other parameters.
+        """
+        arguments = locals()
+        super().draw(
+            *args,
+            **kwargs,
+            **{
+                var: arguments[var]
+                for var, default in __class__.draw.__kwdefaults__.items()
+                if arguments[var] is not default
+            },
+        )
 
     @classmethod
     @lock_tty  # the terminal's response to the query is not read all at once
@@ -117,6 +157,17 @@ class ITerm2Image(GraphicsImage):
             return True
         return False
 
+    def _display_animated(self, img, alpha, fmt, *args, erase: bool = False, **kwargs):
+        if erase and self._TERM == "wezterm":
+            cols, lines = self.rendered_size
+            erase = f"\033[{cols}X"
+            first_frame = self._format_render(
+                f"{erase}\033[{cols}C\n" * (lines - 1) + erase, *fmt
+            )
+            print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
+
+        super()._display_animated(img, alpha, fmt, *args, **kwargs)
+
     @staticmethod
     def _handle_interrupted_draw():
         """Performs neccessary actions when image drawing is interrupted.
@@ -132,7 +183,7 @@ class ITerm2Image(GraphicsImage):
         print(f"{ST * 2}", end="", flush=True)
 
     def _render_image(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+        self, img: PIL.Image.Image, alpha: Union[None, float, str], erase: bool = False
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
         # that an image always occupies the correct amount of columns and lines even if
@@ -143,9 +194,9 @@ class ITerm2Image(GraphicsImage):
         r_width, r_height = self.rendered_size
         width, height = self._get_minimal_render_size()
 
-        img = self._get_render_data(img, alpha, size=(width, height), pixel_data=False)[
-            0
-        ]
+        img = self._get_render_data(
+            img, alpha, size=(width, height), pixel_data=False  # fmt: skip
+        )[0]
         format = "jpeg" if img.mode == "RGB" else "png"
         if self._render_method == LINES:
             raw_image = io.BytesIO(img.tobytes())
@@ -160,7 +211,9 @@ class ITerm2Image(GraphicsImage):
 
         # Workarounds
         is_on_konsole = self._TERM == "konsole"
+        is_on_wezterm = self._TERM == "wezterm"
         jump_right = f"\033[{r_width}C"
+        erase = f"\033[{r_width}X" if erase and is_on_wezterm else ""
 
         if self._render_method == LINES:
             # NOTE: It's more efficient to write separate strings to the buffer
@@ -182,6 +235,7 @@ class ITerm2Image(GraphicsImage):
                     ) as img:
                         img.save(compressed_image, format)
 
+                    is_on_wezterm and buffer.write(erase)
                     buffer.write(f"\033]1337;File=size={compressed_image.tell()}")
                     buffer.write(control_data)
                     buffer.write(
@@ -203,6 +257,11 @@ class ITerm2Image(GraphicsImage):
                 )
                 return "".join(
                     (
+                        ""
+                        if is_on_konsole
+                        else f"{erase}{jump_right}\n" * (r_height - 1),
+                        erase,
+                        "" if is_on_konsole else f"\033[{r_height - 1}A",
                         "\033]1337;File=",
                         control_data,
                         standard_b64encode(compressed_image.getvalue()).decode(),
