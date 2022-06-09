@@ -11,7 +11,7 @@ from typing import Any, Dict, Set, Union
 import PIL
 
 from ..exceptions import _style_error
-from ..utils import lock_tty, query_terminal, read_tty
+from ..utils import get_terminal_size, lock_tty, query_terminal, read_tty
 from .common import GraphicsImage
 
 FORMAT_SPEC = re.compile(r"([^e]*)(e[01])?(.*)", re.ASCII)
@@ -198,10 +198,14 @@ class ITerm2Image(GraphicsImage):
 
     def _display_animated(self, img, alpha, fmt, *args, erase: bool = False, **kwargs):
         if erase and self._TERM == "wezterm":
-            cols, lines = self.rendered_size
-            erase = f"\033[{cols}X"
+            lines = max(
+                (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
+                self.rendered_height,
+            )
+            r_width = self.rendered_width
+            erase_and_jump = f"\033[{r_width}X\033[{r_width}C"
             first_frame = self._format_render(
-                f"{erase}\033[{cols}C\n" * (lines - 1) + erase, *fmt
+                f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
             )
             print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
 
