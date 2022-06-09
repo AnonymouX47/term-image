@@ -30,31 +30,41 @@ class ITerm2Image(GraphicsImage):
 
     :py:class:`ITerm2Image` provides two methods of :term:`rendering` images, namely:
 
-    lines
-       Renders an image line-by-line i.e the image if evenly split up across
-       the number of lines it should occupy and all portions are joined together by
-       ``\\n`` (newline sequence) to give the whole image.
+    lines (default)
+       Renders an image line-by-line i.e the image is evenly split across the number
+       of lines it should occupy.
 
        Pros:
 
          * Good for use cases where it might be required to trim some lines of the
            image.
 
+       Cons:
+
+         * Image drawing is very slow on iTerm2 due to the terminal emulator's
+           performance.
+
     whole
        Renders an image all at once i.e the entire image data is encoded into one
        line of the :term:`rendered` output, such that the entire image is drawn once
-       by the terminal and still occupies the proper amount of lines and columns.
+       by the terminal and still occupies the correct amount of lines and columns.
 
        Pros:
 
          * Render results are more compact (i.e less in character count) than with
            the ``lines`` method since the entire image is encoded at once.
-         * Better for images that are large in resolution and pixel density.
+         * Image drawing is faster than with ``lines`` on most terminals.
          * Smoother animations.
 
-       .. warning::
-          This method currently doesn't work well on iTerm2 and WezTerm when the image
-          height is greater than the total terminal height.
+       Cons:
+
+          * This method currently doesn't work well on iTerm2 and WezTerm when the image
+            height is greater than the terminal height.
+
+    NOTE:
+        The **lines** method is the default only because it works properly in all cases,
+        it's more advisable to use the **whole** method except when the image height is
+        greater than the terminal height or when trimming the image is required.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
@@ -150,8 +160,7 @@ class ITerm2Image(GraphicsImage):
               * *alpha*, *repeat*, *cached* and *style* do not apply.
               * Always infinite.
               * No control over frame duration.
-              * Not all animated image formats are supported by all supported
-                terminal emulators.
+              * Not all animated image formats are supported e.g WEBP.
 
             stall_native: Native animation execution control. If:
 
@@ -161,8 +170,7 @@ class ITerm2Image(GraphicsImage):
             kwargs: Keyword arguments passed up the inheritance chain.
 
         Raises:
-            term_image.exceptions.ITerm2ImageError: Native animation is not supported
-              in the :term:`active terminal`.
+            term_image.exceptions.ITerm2ImageError: Native animation is not supported.
 
         See the ``draw()`` method of the parent classes for full details, including the
         description of other parameters.
@@ -258,11 +266,8 @@ class ITerm2Image(GraphicsImage):
                 raise _style_error(type(self))(
                     "Native animation is not supported in the active terminal"
                 )
-            if self._TERM == "wezterm" and img.format == "WEBP":
-                raise _style_error(type(self))(
-                    "Native WEBP animation is not supported in the active terminal"
-                )
-
+            if img.format == "WEBP":
+                raise _style_error(type(self))("Native WEBP animation is not supported")
             try:
                 print(
                     self._format_render(
