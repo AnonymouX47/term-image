@@ -431,30 +431,29 @@ class ITerm2Image(GraphicsImage):
                     line < r_height and buffer.write("\n")
 
                 return buffer.getvalue()
-        else:
-            with compressed_image:
-                control_data = "".join(
-                    (
-                        f"size={compressed_image.tell()};width={r_width}"
-                        f";height={r_height};preserveAspectRatio=0;inline=1"
-                        f"{';doNotMoveCursor=1' * is_on_konsole}:"
-                    )
+
+        # WHOLE
+        with compressed_image:
+            control_data = "".join(
+                (
+                    f"size={compressed_image.tell()};width={r_width}"
+                    f";height={r_height};preserveAspectRatio=0;inline=1"
+                    f"{';doNotMoveCursor=1' * is_on_konsole}:"
                 )
-                return "".join(
-                    (
-                        ""
-                        if is_on_konsole
-                        else f"{erase}{jump_right}\n" * (r_height - 1),
-                        erase,
-                        "" if is_on_konsole else f"\033[{r_height - 1}A",
-                        "\033]1337;File=",
-                        control_data,
-                        standard_b64encode(compressed_image.getvalue()).decode(),
-                        ST,
-                        f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
-                        jump_right * is_on_konsole,
-                    )
+            )
+            return "".join(
+                (
+                    "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
+                    erase,
+                    "" if is_on_konsole else f"\033[{r_height - 1}A",
+                    "\033]1337;File=",
+                    control_data,
+                    standard_b64encode(compressed_image.getvalue()).decode(),
+                    ST,
+                    f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
+                    jump_right * is_on_konsole,
                 )
+            )
 
 
 ST = "\033\\"
