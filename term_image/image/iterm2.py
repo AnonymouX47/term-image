@@ -6,6 +6,7 @@ import io
 import re
 import sys
 from base64 import standard_b64encode
+from threading import Event
 from typing import Any, Dict, Set, Union
 
 import PIL
@@ -106,6 +107,13 @@ class ITerm2Image(GraphicsImage):
             ),
             (lambda _: True, ""),
         ),
+        "stall_native": (
+            (
+                lambda x: isinstance(x, bool),
+                "Native animation execution policy must be a boolean",
+            ),
+            (lambda _: True, ""),
+        ),
     }
 
     _TERM: str = ""
@@ -117,6 +125,7 @@ class ITerm2Image(GraphicsImage):
         animate: bool = True,
         erase: bool = False,
         native: bool = False,
+        stall_native: bool = True,
         **kwargs,
     ):
         """Draws an image to standard output.
@@ -144,6 +153,11 @@ class ITerm2Image(GraphicsImage):
               * Not all animated image formats are supported by all supported
                 terminal emulators.
 
+            stall_native: Native animation execution control. If:
+
+              * ``True``, block until ``SIGINT`` (Ctrl+C) is recieved.
+              * ``False``, return as soon as the image is transmitted.
+
             kwargs: Keyword arguments passed up the inheritance chain.
 
         Raises:
@@ -153,7 +167,8 @@ class ITerm2Image(GraphicsImage):
         See the ``draw()`` method of the parent classes for full details, including the
         description of other parameters.
         """
-        native = native and self._is_animated and animate
+        if not (self._is_animated and animate):
+            native = stall_native = False
         arguments = locals()
         super().draw(
             *args,
@@ -235,6 +250,7 @@ class ITerm2Image(GraphicsImage):
         *args,
         erase: bool = False,
         native: bool = False,
+        stall_native: bool = True,
         **kwargs,
     ):
         if native:
@@ -259,6 +275,8 @@ class ITerm2Image(GraphicsImage):
             except (KeyboardInterrupt, Exception):
                 self._handle_interrupted_draw()
                 raise
+            else:
+                stall_native and native_anim.wait()
         else:
             if erase and self._TERM == "wezterm":
                 lines = max(
@@ -406,4 +424,5 @@ class ITerm2Image(GraphicsImage):
 
 
 ST = "\033\\"
+native_anim = Event()
 _stdout_write = sys.stdout.buffer.write
