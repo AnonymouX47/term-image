@@ -7,7 +7,7 @@ import re
 import sys
 from base64 import standard_b64encode
 from threading import Event
-from typing import Any, Dict, Set, Union
+from typing import Any, Dict, Optional, Set, Union
 
 import PIL
 
@@ -15,7 +15,7 @@ from ..exceptions import _style_error
 from ..utils import get_terminal_size, lock_tty, query_terminal, read_tty
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(r"([^e]*)(e[01])?(.*)", re.ASCII)
+FORMAT_SPEC = re.compile(r"([^LWNe]*)([LWN])?(e[01])?(.*)", re.ASCII)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -77,7 +77,7 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [ e {0 | 1} ]
+        [method] [ e {0 | 1} ]
 
     * ``e``: Cell content erasure workaround for some terminals, particularly WezTerm.
 
@@ -89,6 +89,17 @@ class ITerm2Image(GraphicsImage):
 
       * If *absent*, defaults to ``e0``.
       * e.g ``e0``, ``e1``.
+
+    * ``method``: Render method override.
+
+      Can be one of:
+
+        * ``L``: **lines** render method (current frame only, for animated images).
+        * ``W``: **whole** render method (current frame only, for animated images).
+        * ``N``: Native animation. Ignored when used with non-animated images, WEBP
+          images or ``ImageIterator``.
+
+      Default: Current effective render method of the image.
 
 
     ATTENTION:
@@ -103,6 +114,16 @@ class ITerm2Image(GraphicsImage):
     _default_render_method: str = LINES
     _render_method: str = LINES
     _style_args = {
+        "method": (
+            (
+                lambda x: isinstance(x, str),
+                "Render method must be a string",
+            ),
+            (
+                lambda x: x in ITerm2Image._render_methods,
+                "Unknown render method",
+            ),
+        ),
         "erase": (
             (
                 lambda x: isinstance(x, bool),
@@ -226,7 +247,7 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, erase, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        parent, method, erase, invalid = FORMAT_SPEC.fullmatch(spec).groups()
         if invalid:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
@@ -237,6 +258,10 @@ class ITerm2Image(GraphicsImage):
             args.update(super()._check_style_format_spec(parent, original))
         if erase:
             args["erase"] = bool(int(erase[-1]))
+        if method == "N":
+            args["native"] = True
+        elif method:
+            args["method"] = LINES if method == "L" else WHOLE
 
         return cls._check_style_args(args)
 
@@ -315,6 +340,8 @@ class ITerm2Image(GraphicsImage):
         self,
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
+        *,
+        method: Optional[str] = None,
         erase: bool = False,
         native: bool = False,
     ) -> str:
@@ -332,7 +359,7 @@ class ITerm2Image(GraphicsImage):
         jump_right = f"\033[{r_width}C"
         erase = f"\033[{r_width}X" if erase and is_on_wezterm else ""
 
-        if native and self._is_animated:  # and not frame:
+        if native and self._is_animated and img.format != "WEBP":  # and not frame:
             with io.BytesIO() as compressed_image:
                 img.save(compressed_image, img.format, save_all=True)
                 if img is not self._source:
@@ -360,7 +387,9 @@ class ITerm2Image(GraphicsImage):
             img, alpha, size=(width, height), pixel_data=False  # fmt: skip
         )[0]
         format = "jpeg" if img.mode == "RGB" else "png"
-        if self._render_method == LINES:
+
+        render_method = method or self._render_method
+        if render_method == LINES:
             raw_image = io.BytesIO(img.tobytes())
             compressed_image = io.BytesIO()
         else:
@@ -371,7 +400,7 @@ class ITerm2Image(GraphicsImage):
         if img is not self._source:
             img.close()
 
-        if self._render_method == LINES:
+        if render_method == LINES:
             # NOTE: It's more efficient to write separate strings to the buffer
             # separately than concatenate and write together.
 
