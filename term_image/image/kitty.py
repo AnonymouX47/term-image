@@ -33,10 +33,9 @@ class KittyImage(GraphicsImage):
 
     :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
 
-    lines
-       Renders an image line-by-line i.e the image if evenly split up across
-       the number of line it should occupy and all portions is joined together by
-       ``\\n`` (newline sequence) to give the whole image.
+    lines (default)
+       Renders an image line-by-line i.e the image is evenly split across the number
+       of lines it should occupy.
 
        Pros:
 
@@ -44,16 +43,14 @@ class KittyImage(GraphicsImage):
            image.
 
     whole
-       Renders an image all at once i.e the entire image data is encoded into the first
+       Renders an image all at once i.e the entire image data is encoded into one
        line of the :term:`rendered` output, such that the entire image is drawn once
-       by the terminal and still occupies the proper amount of lines and columns.
+       by the terminal and still occupies the correct amount of lines and columns.
 
        Pros:
 
-         * Render results are less in number of characters compared to the
-           ``lines`` method since the entire image is encoded at once.
-         * Better for non-animated images that are large in resolution and pixel
-           density as images are drawn once.
+         * Render results are more compact (i.e less in character count) than with
+           the **lines** method since the entire image is encoded at once.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
@@ -184,6 +181,8 @@ class KittyImage(GraphicsImage):
     @lock_tty
     def is_supported(cls):
         if cls._supported is None:
+            cls._supported = False
+
             # Kitty graphics query + terminal attribute query
             # The second query is to speed up the query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
@@ -193,15 +192,14 @@ class KittyImage(GraphicsImage):
                 ).encode(),
                 lambda s: not s.endswith(b"c"),
             )
+
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            cls._supported = response and (
+            if response and (
                 response.rpartition(b"\033")[0] == f"{_START}i=31;OK{_END}".encode()
-            )
-
-            # Currently, only kitty >= 0.20.0 and Konsole 22.04.0 implement the
-            # protocol features utilized
-            if cls._supported:
+            ):
+                # Currently, only kitty >= 0.20.0 and Konsole >= 22.04.0 implement the
+                # protocol features utilized
                 response = query_terminal(
                     b"\033[>q", lambda s: not s.endswith(b"\033\\")
                 ).decode()
@@ -210,17 +208,22 @@ class KittyImage(GraphicsImage):
                 )
                 if match:
                     name, version = match.groups()
-                    if name.casefold() == "kitty":
-                        cls._KITTY_VERSION = tuple(map(int, version.split(".")))
-                    elif name.casefold() == "konsole":
-                        cls._KONSOLE_VERSION = tuple(map(int, version.split(".")))
+                    try:
+                        version = tuple(map(int, version.split(".")))
+                    except ValueError:  # Version string not "understood"
+                        pass
+                    else:
+                        if name.casefold() == "kitty":
+                            cls._KITTY_VERSION = version
+                        elif name.casefold() == "konsole":
+                            cls._KONSOLE_VERSION = version
 
-                # fmt: off
-                cls._supported = (
-                    cls._KITTY_VERSION >= (0, 20, 0)
-                    or cls._KONSOLE_VERSION >= (22, 4, 0)
-                )
-                # fmt: on
+                        # fmt: off
+                        cls._supported = (
+                            cls._KITTY_VERSION >= (0, 20, 0)
+                            or cls._KONSOLE_VERSION >= (22, 4, 0)
+                        )
+                        # fmt: on
 
         return cls._supported
 
@@ -311,6 +314,7 @@ class KittyImage(GraphicsImage):
         self,
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
+        *,
         z_index: Optional[int] = 0,
         mix: bool = False,
     ) -> str:
