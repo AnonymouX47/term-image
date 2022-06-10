@@ -85,9 +85,9 @@ class KittyImage(GraphicsImage):
 
       * If the character after ``m`` is:
 
-        * ``0``, text within the region covered by the image will be overwriten,
+        * ``0``, text within the region covered by the image will be erased,
           though text can be inter-mixed with the image after it's been drawn.
-        * ``1``, text within the region covered by the image will NOT be overwriten.
+        * ``1``, text within the region covered by the image will NOT be erased.
 
       * If *absent*, defaults to ``m0``.
       * e.g ``m0``, ``m1``.
@@ -156,9 +156,9 @@ class KittyImage(GraphicsImage):
             mix: Image/Text inter-mixing policy **for non-animations**. If:
 
               * ``True``, text within the region covered by the image will NOT be
-                overwriten.
+                erased.
               * ``False``, text within the region covered by the image will be
-                overwriten, though text can be inter-mixed with the image after it's
+                erased, though text can be inter-mixed with the image after it's
                 been drawn.
 
             kwargs: Keyword arguments passed up the inheritance chain.
@@ -342,7 +342,9 @@ class KittyImage(GraphicsImage):
             # Incremented to the greater multiple to avoid losing any data
             height = height - extra + r_height
 
-        img = self._get_render_data(img, alpha, size=(width, height))[0]
+        img = self._get_render_data(
+            img, alpha, size=(width, height), pixel_data=False  # fmt: skip
+        )[0]
         format = getattr(f, img.mode)
         raw_image = img.tobytes()
 
@@ -351,7 +353,8 @@ class KittyImage(GraphicsImage):
             img.close()
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
-        fill = f"\033[{r_width}C" if mix else " " * r_width
+        erase = "" if mix else f"\033[{r_width}X"
+        jump_right = f"\033[{r_width}C"
         if z_index is None:
             delete = f"{_START}a=d,d=c;{_END}"
             clear = f"{delete}\0337\033[{r_width}C{delete}\0338"
@@ -367,12 +370,14 @@ class KittyImage(GraphicsImage):
                 buffer.write(trans.get_chunked())
                 # Writing spaces clears any text under transparent areas of an image
                 for _ in range(r_height - 1):
-                    buffer.write(fill)
+                    buffer.write(erase)
+                    buffer.write(jump_right)
                     buffer.write("\n")
                     trans = Transmission(control_data, raw_image.read(bytes_per_line))
                     z_index is None and buffer.write(clear)
                     buffer.write(trans.get_chunked())
-                buffer.write(fill)
+                buffer.write(erase)
+                buffer.write(jump_right)
 
                 return buffer.getvalue()
         else:
@@ -381,8 +386,8 @@ class KittyImage(GraphicsImage):
                 (
                     z_index is None and clear or "",
                     Transmission(control_data, raw_image).get_chunked(),
-                    (fill + "\n") * (r_height - 1),
-                    fill,
+                    f"{erase}{jump_right}\n" * (r_height - 1),
+                    f"{erase}{jump_right}",
                 )
             )
 

@@ -74,7 +74,7 @@ def decode_image(data):
     assert empty == ""
     assert start == _START
 
-    transmission, end, spaces = data.rpartition(_END)
+    transmission, end, fill = data.rpartition(_END)
     assert end == _END
 
     control_data, chunked_payload = transmission.split(";", 1)
@@ -123,7 +123,7 @@ def decode_image(data):
 
         raw_image = decompress(standard_b64decode(full_payload.getvalue().encode()))
 
-    return control_codes, raw_image, spaces
+    return control_codes, raw_image, fill
 
 
 def get_actual_render_size(image):
@@ -160,12 +160,12 @@ class TestRenderLines:
 
         assert render.count("\n") + 1 == lines
         for line in render.splitlines():
-            control_codes, raw_image, spaces = decode_image(line)
+            control_codes, raw_image, fill = decode_image(line)
             assert (
                 code in control_codes for code in expand_control_data(size_control_data)
             )
             assert len(raw_image) == bytes_per_line
-            assert spaces == " " * cols
+            assert fill == fill_fmt.format(cols=cols)
 
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
@@ -290,13 +290,13 @@ class TestRenderWhole:
         render = str(image)
 
         assert render.count("\n") + 1 == lines
-        control_codes, raw_image, spaces = decode_image(render)
+        control_codes, raw_image, fill = decode_image(render)
         assert (
             code in control_codes for code in expand_control_data(size_control_data)
         )
         assert len(raw_image) == w * h * 4
-        assert spaces.count("\n") + 1 == lines
-        assert (line == " " * cols for line in spaces.splitlines())
+        assert fill.count("\n") + 1 == lines
+        assert (line == fill_fmt.format(cols=cols) for line in fill.splitlines())
 
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
@@ -395,3 +395,7 @@ class TestRenderWhole:
             if 0 in self.trans.rendered_size:
                 continue
             self._test_image_size(self.trans)
+
+
+jump_right = "\033[{cols}C"
+fill_fmt = f"\033[{{cols}}X{jump_right}"
