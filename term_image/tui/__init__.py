@@ -57,6 +57,15 @@ def init(
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
+    Image._ti_alpha = (
+        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
+    )
+    # KONSOLE does NOT blend images with the same z-index, hence is better off without
+    # `z_index=None`
+    if args.style == "kitty" and ImageClass._KONSOLE_VERSION:
+        del render.style_specs["kitty"]
+    Image._ti_style_spec = render.style_specs.get(args.style, "")
+
     # daemon, to avoid having to check if the main process has been interrupted
     menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
     grid_scanner = logging.Thread(target=scan_dir_grid, name="GridScanner", daemon=True)
@@ -82,10 +91,6 @@ def init(
     )
     main.loop.screen.clear()
     main.loop.screen.set_terminal_properties(2**24)
-
-    Image._ti_alpha = (
-        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
-    )
 
     logger = _logging.getLogger(__name__)
     logging.log("Launching TUI", logger, direct=False)

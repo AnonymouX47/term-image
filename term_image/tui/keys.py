@@ -656,10 +656,6 @@ def switch_pane():
             main.set_context("image-grid")
             set_image_grid_actions()
 
-    # Too glitchy for the grid
-    if main.get_context() == "image" or main.get_prev_context() == "image":
-        main.ImageClass._clear_images() and ImageCanvas.change()
-
 
 # confirmation
 @register_key(("confirmation", "Confirm"))

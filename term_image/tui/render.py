@@ -9,7 +9,7 @@ from queue import Empty, Queue
 from threading import Event
 from typing import Optional, Union
 
-from .. import logging, notify
+from .. import cli, logging, notify
 from ..logging_multi import Process
 
 
@@ -64,6 +64,7 @@ def manage_anim_renders() -> bool:
             frame_render_out,
             ready,
             ImageClass,
+            style_specs.get(cli.args.style, ""),
             REPEAT,
             ANIM_CACHED,
         ),
@@ -125,7 +126,12 @@ def manage_image_renders():
     image_render_out = (mp_Queue if multi else Queue)()
     renderer = (Process if multi else logging.Thread)(
         target=render_images,
-        args=(image_render_in, image_render_out, ImageClass),
+        args=(
+            image_render_in,
+            image_render_out,
+            ImageClass,
+            style_specs.get(cli.args.style, ""),
+        ),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
         redirect_notifs=True,
@@ -201,7 +207,12 @@ def manage_grid_renders(n_renderers: int):
     renderers = [
         (Process if multi else logging.Thread)(
             target=render_images,
-            args=(grid_render_in, grid_render_out, ImageClass),
+            args=(
+                grid_render_in,
+                grid_render_out,
+                ImageClass,
+                style_specs.get(cli.args.style, ""),
+            ),
             kwargs=dict(multi=multi, out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
@@ -293,6 +304,7 @@ def render_frames(
     output: Union[Queue, mp_Queue],
     ready: Union[Event, mp_Event],
     ImageClass: type,
+    style_spec: str,
     repeat: int,
     cached: Union[bool, int],
 ):
@@ -335,7 +347,9 @@ def render_frames(
                 block = True
             elif isinstance(data, tuple):
                 new_repeat, frame_no = data
-                animator = ImageIterator(image, new_repeat, f"1.1{alpha}", cached)
+                animator = ImageIterator(
+                    image, new_repeat, f"1.1{alpha}{style_spec}", cached
+                )
                 next(animator)
                 animator.seek(frame_no)
                 image.set_size(maxsize=size)
@@ -345,7 +359,9 @@ def render_frames(
                 # in MainProcess::MainThread is always correct, since frames should be
                 # rendered ahead.
                 image = ImageClass.from_file(data)
-                animator = ImageIterator(image, repeat, f"1.1{alpha}", cached)
+                animator = ImageIterator(
+                    image, repeat, f"1.1{alpha}{style_spec}", cached
+                )
                 image.set_size(maxsize=size)
                 block = False
 
@@ -356,6 +372,7 @@ def render_images(
     input: Union[Queue, mp_Queue],
     output: Union[Queue, mp_Queue],
     ImageClass: type,
+    style_spec: str,
     *,
     multi: bool,
     out_extras: bool,
@@ -389,9 +406,14 @@ def render_images(
         # **as needed**. Trimmed padding lines are never generated at all.
         try:
             output.put(
-                (image._source, f"{image:1.1{alpha}}", size, image.rendered_size)
+                (
+                    image._source,
+                    f"{image:1.1{alpha}{style_spec}}",
+                    size,
+                    image.rendered_size,
+                )
                 if out_extras
-                else f"{image:1.1{alpha}}"
+                else f"{image:1.1{alpha}{style_spec}}"
             )
         except Exception as e:
             output.put(
@@ -413,6 +435,7 @@ logger = _logging.getLogger(__name__)
 anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
+style_specs = {"kitty": "+z"}
 
 # Set from `.tui.init()`
 # # Corresponsing to command-line args

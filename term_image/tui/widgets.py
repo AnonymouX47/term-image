@@ -241,7 +241,9 @@ class Image(urwid.Widget):
 
     _ti_grid_cache = {}
 
-    _ti_alpha = f"{_ALPHA_THRESHOLD}"[1:]  # Updated from `.tui.init()`
+    # Updated from `.tui.init()`
+    _ti_alpha = f"{_ALPHA_THRESHOLD}"[1:]
+    _ti_style_spec = ""
 
     def __init__(self, image: BaseImage):
         self._ti_image = image
@@ -334,7 +336,9 @@ class Image(urwid.Widget):
             # When the grid render cell width adjusts; when _maxcols_ < _cell_width_
             try:
                 canv = ImageCanvas(
-                    f"{image:1.1{self._ti_alpha}}".encode().split(b"\n"),
+                    f"{image:1.1{self._ti_alpha}{self._ti_style_spec}}".encode().split(
+                        b"\n"
+                    ),
                     size,
                     image.rendered_size,
                 )
@@ -349,7 +353,6 @@ class Image(urwid.Widget):
                 tui_main.ImageClass._clear_images()
             elif frame_no != self._ti_frame_no:
                 self._ti_frame_no = frame_no
-                tui_main.ImageClass._clear_images() and ImageCanvas.change()
         elif self._ti_canv and self._ti_canv.size == size:
             canv = self._ti_canv
         else:
@@ -364,7 +367,6 @@ class Image(urwid.Widget):
             elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
                 image_render_queue.put((self, size, self._ti_alpha))
             canv = __class__._ti_placeholder.render(size)
-            tui_main.ImageClass._clear_images()
 
         return canv
 
