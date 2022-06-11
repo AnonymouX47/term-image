@@ -15,7 +15,7 @@ from ..exceptions import _style_error
 from ..utils import get_terminal_size, lock_tty, query_terminal, read_tty
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(r"([^LWNe]*)([LWN])?(e[01])?(.*)", re.ASCII)
+FORMAT_SPEC = re.compile(r"([^LWNm]*)([LWN])?(m[01])?(.*)", re.ASCII)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -77,7 +77,7 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [method] [ e {0 | 1} ]
+        [method] [ m {0 | 1} ]
 
     * ``method``: Render method override.
 
@@ -90,16 +90,17 @@ class ITerm2Image(GraphicsImage):
 
       Default: Current effective render method of the image.
 
-    * ``e``: Cell content erasure workaround for some terminals, particularly WezTerm.
+    * ``m``: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
+      otherwise).
 
-      * If the character after ``e`` is:
+      * If the character after ``m`` is:
 
-        * ``1``, contents of cells in the region covered by the image will be erased.
-        * ``0``, the opposite, thereby allowing existing cell contents to show under
+        * ``0``, contents of cells in the region covered by the image will be erased.
+        * ``1``, the opposite, thereby allowing existing cell contents to show under
           transparent areas of the image.
 
-      * If *absent*, defaults to ``e0``.
-      * e.g ``e0``, ``e1``.
+      * If *absent*, defaults to ``m0``.
+      * e.g ``m0``, ``m1``.
 
 
     ATTENTION:
@@ -124,10 +125,10 @@ class ITerm2Image(GraphicsImage):
                 "Unknown render method",
             ),
         ),
-        "erase": (
+        "mix": (
             (
                 lambda x: isinstance(x, bool),
-                "Cell content erasure workaround policy must be a boolean",
+                "Cell content inter-mix policy must be a boolean",
             ),
             (lambda _: True, ""),
         ),
@@ -153,7 +154,7 @@ class ITerm2Image(GraphicsImage):
     def draw(
         self,
         *args,
-        erase: bool = False,
+        mix: bool = False,
         native: bool = False,
         stall_native: bool = True,
         **kwargs,
@@ -164,13 +165,13 @@ class ITerm2Image(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
-            erase: A workaround to erase contents of cells within the region covered
-              by the image on some terminal emulators, particularly WezTerm. If:
+            mix: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
+              otherwise). If:
 
-              * ``True``, contents of cells within the region covered by the image are
+              * ``False``, contents of cells within the region covered by the image are
                 erased.
-              * ``False``, does otherwise. Thereby allowing existing text or image
-                pixels to show under transparent areas of the image, on some terminals.
+              * ``True``, the opposite, thereby allowing existing text or image pixels
+                to show under transparent areas of the image.
 
             native: If ``True``, use native animation (if supported).
 
@@ -248,7 +249,7 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, method, erase, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        parent, method, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
         if invalid:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
@@ -257,8 +258,8 @@ class ITerm2Image(GraphicsImage):
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
-        if erase:
-            args["erase"] = bool(int(erase[-1]))
+        if mix:
+            args["mix"] = bool(int(mix[-1]))
         if method == "N":
             args["native"] = True
         elif method:
@@ -282,7 +283,7 @@ class ITerm2Image(GraphicsImage):
         alpha,
         fmt,
         *args,
-        erase: bool = False,
+        mix: bool = False,
         native: bool = False,
         stall_native: bool = True,
         **kwargs,
@@ -297,7 +298,7 @@ class ITerm2Image(GraphicsImage):
             try:
                 print(
                     self._format_render(
-                        self._render_image(img, alpha, erase=erase, native=True),
+                        self._render_image(img, alpha, mix=mix, native=True),
                         *fmt,
                     ),
                     end="",
@@ -309,7 +310,7 @@ class ITerm2Image(GraphicsImage):
             else:
                 stall_native and native_anim.wait()
         else:
-            if erase and self._TERM == "wezterm":
+            if not mix and self._TERM == "wezterm":
                 lines = max(
                     (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
                     self.rendered_height,
@@ -321,7 +322,7 @@ class ITerm2Image(GraphicsImage):
                 )
                 print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
 
-            super()._display_animated(img, alpha, fmt, *args, **kwargs)
+            super()._display_animated(img, alpha, fmt, *args, mix=True, **kwargs)
 
     @staticmethod
     def _handle_interrupted_draw():
@@ -344,7 +345,7 @@ class ITerm2Image(GraphicsImage):
         *,
         frame: bool = False,
         method: Optional[str] = None,
-        erase: bool = False,
+        mix: bool = False,
         native: bool = False,
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
@@ -359,7 +360,7 @@ class ITerm2Image(GraphicsImage):
         is_on_konsole = self._TERM == "konsole"
         is_on_wezterm = self._TERM == "wezterm"
         jump_right = f"\033[{r_width}C"
-        erase = f"\033[{r_width}X" if erase and is_on_wezterm else ""
+        erase = f"\033[{r_width}X" if not mix and is_on_wezterm else ""
 
         if native and self._is_animated and img.format != "WEBP":  # and not frame:
             with io.BytesIO() as compressed_image:
