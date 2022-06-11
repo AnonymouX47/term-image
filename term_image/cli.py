@@ -984,7 +984,7 @@ FOOTNOTES:
     # Logging
     log_options_ = parser.add_argument_group(
         "Logging Options",
-        "NOTE: These are mutually exclusive",
+        "NOTE: All these, except '-l/--log-file', are mutually exclusive",
     )
     log_options = log_options_.add_mutually_exclusive_group()
 
@@ -1035,7 +1035,30 @@ FOOTNOTES:
         ),
     )
 
-    style_parsers = {}
+    kitty_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    kitty_options = kitty_parser.add_argument_group(
+        "Kitty Style Options",
+        "These options apply only when the 'kitty' render style is used",
+    )
+    kitty_options.add_argument(
+        "--kz",
+        "--kitty-z-index",
+        metavar="N",
+        dest="z_index",
+        default=0,
+        type=int,
+        help="Image/Text stacking order",
+    )
+
+    style_parsers = {"kitty": kitty_parser}
+
+    for style_parser in style_parsers.values():
+        parser._actions.extend(style_parser._actions)
+        parser._option_string_actions.update(style_parser._option_string_actions)
+        parser._action_groups.extend(style_parser._action_groups)
+        parser._mutually_exclusive_groups.extend(
+            style_parser._mutually_exclusive_groups
+        )
 
     args = parser.parse_args()
     MAX_DEPTH = args.max_depth
@@ -1107,8 +1130,8 @@ FOOTNOTES:
     ImageClass = {"auto": None, "kitty": KittyImage, "block": BlockImage}[args.style]
     if not ImageClass:
         ImageClass = _best_style()
+    args.style = ImageClass.__name__[:-5].lower()
 
-    style = ImageClass.__name__[:-5].lower()
     if args.force_style:
         ImageClass._supported = True
     else:
@@ -1116,7 +1139,7 @@ FOOTNOTES:
             ImageClass(None)
         except TermImageError:  # Instantiation isn't permitted
             log(
-                f"The {style!r} render style is not supported in the current "
+                f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
                 level=_logging.CRITICAL,
@@ -1125,14 +1148,14 @@ FOOTNOTES:
         except TypeError:  # Instantiation is permitted
             if not ImageClass.is_supported():
                 log(
-                    f"The {style!r} render style might not be fully supported in "
+                    f"The {args.style!r} render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
                     level=_logging.WARNING,
                 )
-    log(f"Using {style!r} render style", logger, direct=False)
+    log(f"Using {args.style!r} render style", logger, direct=False)
 
-    style_parser = style_parsers.get(style)
+    style_parser = style_parsers.get(args.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
 
     # Some APCs used for render style support detection get emitted on some
