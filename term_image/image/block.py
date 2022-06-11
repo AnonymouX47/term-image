@@ -53,7 +53,11 @@ class BlockImage(TextImage):
         return ceil(pixels / 2) if pixels is not None else lines * 2
 
     def _render_image(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        *,
+        frame: bool = False,
     ) -> str:
         # NOTE:
         # It's more efficient to write separate strings to the buffer separately
