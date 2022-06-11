@@ -290,6 +290,7 @@ class KittyImage(GraphicsImage):
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
         *,
+        frame: bool = False,
         z_index: Optional[int] = 0,
         mix: bool = False,
     ) -> str:

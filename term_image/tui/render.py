@@ -64,7 +64,7 @@ def manage_anim_renders() -> bool:
             frame_render_out,
             ready,
             ImageClass,
-            style_specs.get(cli.args.style, ""),
+            anim_style_specs.get(cli.args.style, ""),
             REPEAT,
             ANIM_CACHED,
         ),
@@ -130,7 +130,7 @@ def manage_image_renders():
             image_render_in,
             image_render_out,
             ImageClass,
-            style_specs.get(cli.args.style, ""),
+            image_style_specs.get(cli.args.style, ""),
         ),
         kwargs=dict(multi=multi, out_extras=False, log_faults=True),
         name="ImageRenderer",
@@ -211,7 +211,7 @@ def manage_grid_renders(n_renderers: int):
                 grid_render_in,
                 grid_render_out,
                 ImageClass,
-                style_specs.get(cli.args.style, ""),
+                grid_style_specs.get(cli.args.style, ""),
             ),
             kwargs=dict(multi=multi, out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
@@ -435,7 +435,10 @@ logger = _logging.getLogger(__name__)
 anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
-style_specs = {"kitty": "+z"}
+
+anim_style_specs = {"kitty": "+z"}
+grid_style_specs = {"kitty": "+z"}
+image_style_specs = {"kitty": "+z"}
 
 # Set from `.tui.init()`
 # # Corresponsing to command-line args

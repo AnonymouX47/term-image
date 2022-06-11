@@ -1476,7 +1476,11 @@ class BaseImage(ABC):
 
     @abstractmethod
     def _render_image(
-        self, img: PIL.Image.Image, alpha: Union[None, float, str]
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        *,
+        frame: bool = False,  # For `ImageIterator`
     ) -> str:
         """Converts an image into a string which reproduces the image when printed
         to the terminal.
@@ -1973,7 +1977,7 @@ class ImageIterator:
                 image._seek_position = n
                 try:
                     frame = image._format_render(
-                        image._render_image(img, alpha, **style_args), *fmt
+                        image._render_image(img, alpha, frame=True, **style_args), *fmt
                     )
                 except EOFError:
                     image._seek_position = n = 0
@@ -2007,7 +2011,8 @@ class ImageIterator:
                     frame, size_hash = cache[n]
                     if hash(image._size) != size_hash:
                         frame = image._format_render(
-                            image._render_image(img, alpha, **style_args), *fmt
+                            image._render_image(img, alpha, frame=True, **style_args),
+                            *fmt,
                         )
                         cache[n] = (frame, hash(image._size))
 

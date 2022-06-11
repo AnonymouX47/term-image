@@ -63,8 +63,9 @@ def init(
     # KONSOLE does NOT blend images with the same z-index, hence is better off without
     # `z_index=None`
     if args.style == "kitty" and ImageClass._KONSOLE_VERSION:
-        del render.style_specs["kitty"]
-    Image._ti_style_spec = render.style_specs.get(args.style, "")
+        for name in ("anim", "grid", "image"):
+            del getattr(render, f"{name}_style_specs")["kitty"]
+    Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted
     menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)

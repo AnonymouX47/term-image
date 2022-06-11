@@ -342,6 +342,7 @@ class ITerm2Image(GraphicsImage):
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
         *,
+        frame: bool = False,
         method: Optional[str] = None,
         erase: bool = False,
         native: bool = False,
