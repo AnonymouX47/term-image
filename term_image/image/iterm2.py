@@ -79,17 +79,6 @@ class ITerm2Image(GraphicsImage):
 
         [method] [ e {0 | 1} ]
 
-    * ``e``: Cell content erasure workaround for some terminals, particularly WezTerm.
-
-      * If the character after ``e`` is:
-
-        * ``1``, contents of cells in the region covered by the image will be erased.
-        * ``0``, the opposite, thereby allowing existing cell contents to show under
-          transparent areas of the image.
-
-      * If *absent*, defaults to ``e0``.
-      * e.g ``e0``, ``e1``.
-
     * ``method``: Render method override.
 
       Can be one of:
@@ -100,6 +89,17 @@ class ITerm2Image(GraphicsImage):
           images or ``ImageIterator``.
 
       Default: Current effective render method of the image.
+
+    * ``e``: Cell content erasure workaround for some terminals, particularly WezTerm.
+
+      * If the character after ``e`` is:
+
+        * ``1``, contents of cells in the region covered by the image will be erased.
+        * ``0``, the opposite, thereby allowing existing cell contents to show under
+          transparent areas of the image.
+
+      * If *absent*, defaults to ``e0``.
+      * e.g ``e0``, ``e1``.
 
 
     ATTENTION:
@@ -153,7 +153,6 @@ class ITerm2Image(GraphicsImage):
     def draw(
         self,
         *args,
-        animate: bool = True,
         erase: bool = False,
         native: bool = False,
         stall_native: bool = True,
@@ -165,7 +164,6 @@ class ITerm2Image(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
-            animate: See :py:meth:`BaseImage.draw`.
             erase: A workaround to erase contents of cells within the region covered
               by the image on some terminal emulators, particularly WezTerm. If:
 
@@ -196,8 +194,11 @@ class ITerm2Image(GraphicsImage):
         See the ``draw()`` method of the parent classes for full details, including the
         description of other parameters.
         """
-        if not (self._is_animated and animate):
-            native = stall_native = False
+        if not (self._is_animated and kwargs.get("animate", True)):
+            # Prevent the arguments from being passed on
+            native = False
+            stall_native = True
+
         arguments = locals()
         super().draw(
             *args,
