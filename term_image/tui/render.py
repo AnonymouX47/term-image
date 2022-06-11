@@ -96,6 +96,10 @@ def manage_anim_renders() -> bool:
                 frame_render_in.put((data, size, image_w._ti_alpha))
                 if not next_frame():
                     frame_duration = None
+                try:
+                    del image_w._ti_canv  # Set in `.widgets.Image.render()`
+                except AttributeError:
+                    pass
             else:
                 image_w = data
                 frame_render_in.put(
@@ -436,9 +440,9 @@ anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
 
-anim_style_specs = {"kitty": "+z"}
+anim_style_specs = {"kitty": "+z", "iterm2": "+Wm1"}
 grid_style_specs = {"kitty": "+z"}
-image_style_specs = {"kitty": "+z"}
+image_style_specs = {"kitty": "+z", "iterm2": "+W"}
 
 # Set from `.tui.init()`
 # # Corresponsing to command-line args
