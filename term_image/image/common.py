@@ -17,7 +17,7 @@ from functools import wraps
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
-from typing import Any, Dict, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -1379,8 +1379,9 @@ class BaseImage(ABC):
         *,
         size: Optional[Tuple[int, int]] = None,
         pixel_data: bool = True,
+        round_alpha: bool = True,
     ) -> Tuple[
-        PIL.Image.Image, Optional[Tuple[Tuple[int, int, int]]], Optional[Tuple[int]]
+        PIL.Image.Image, Optional[List[Tuple[int, int, int]]], Optional[List[int]]
     ]:
         """Returns the PIL image instance and pixel data required to render an image.
 
@@ -1388,15 +1389,18 @@ class BaseImage(ABC):
             size: If given (in pixels), it is used instead of the pixel-equivalent of
               the image size (or auto size, if size is unset).
             pixel_data: If ``False``, ``None`` is returned for all pixel data.
+            round_alpha: If ``False``, alpha values are bi-level (``0`` or ``255``),
+              based on the given alpha threshold (Only applies when *pixel_data* is
+              ``True`` and *alpha* is a ``float``).
 
         The returned image is appropriately converted, resized and composited
         (if need be).
 
         The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
-          * ``rgb`` is a tuple of ``(r, g, b)`` tuples containing the colour channels of
+          * ``rgb`` is a list of ``(r, g, b)`` tuples containing the colour channels of
             the image's pixels in a flattened row-major order where ``r``, ``g``, ``b``
             are integers in the range [0, 255].
-          * ``a`` is a tuple of integers in the range [0, 255] representing the alpha
+          * ``a`` is a list of integers in the range [0, 255] representing the alpha
             channel of the image's pixels in a flattened row-major order.
         """
         if self._is_animated:
@@ -1410,8 +1414,8 @@ class BaseImage(ABC):
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
             if pixel_data:
-                rgb = tuple(img.getdata())
-                a = (255,) * (width * height)
+                rgb = list(img.getdata())
+                a = [255] * (width * height)
         else:
             try:
                 img = img.convert("RGBA").resize((width, height))
@@ -1425,13 +1429,15 @@ class BaseImage(ABC):
                     img.close()
                 img = bg.convert("RGB")
                 if pixel_data:
-                    a = (255,) * (width * height)
+                    a = [255] * (width * height)
             elif pixel_data:
-                alpha = round(alpha * 255)
-                a = [0 if val < alpha else val for val in img.getdata(3)]
+                a = list(img.getdata(3))
+                if round_alpha:
+                    alpha = round(alpha * 255)
+                    a = [0 if val < alpha else val for val in a]
 
             if pixel_data:
-                rgb = tuple(img.convert("RGB").getdata())
+                rgb = list(img.convert("RGB").getdata())
 
         return (img, *(pixel_data and (rgb, a) or (None, None)))
 
