@@ -587,15 +587,15 @@ Render Styles:
         - Konsole >= 22.04.0
     iterm2: Uses the iTerm2 inline image protocol. Currently supported terminal
         emulators include (but might not be limited to):
-        - `iTerm2
-        - `Konsole >= 22.04.0
-        - `WezTerm
+        - iTerm2
+        - Konsole >= 22.04.0
+        - WezTerm
     block: Uses unicode half blocks with 24-bit color escape codes to represent images
         with a density of two pixels per character cell.
 
-    Using a terminal-graphics-based style not supported by the active terminal is not
-    allowed by default.
-    To force a style that is normally unsupported, add the '--force-style' flag.
+    Using a terminal graphics-based style not supported by the active terminal is not
+    allowed by default. To force a style that is normally unsupported, add the
+    '--force-style' flag.
 
 FOOTNOTES:
   1. Width and height are in units of columns and lines repectively.
@@ -1065,7 +1065,7 @@ FOOTNOTES:
         dest="z_index",
         default=0,
         type=int,
-        help="Image stacking order",
+        help="Image stacking order (default: 0)",
     )
 
     iterm2_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
@@ -1356,13 +1356,15 @@ FOOTNOTES:
                     image.frame_duration = args.frame_duration
 
                 if args.style == "iterm2":
-                    if ImageClass._TERM == "konsole":
-                        image.set_render_method("whole")
-                    # Always applies to non-native animations also
-                    elif image.rendered_height <= get_terminal_size()[1]:
-                        image.set_render_method("whole")
-                    else:
-                        image.set_render_method("lines")
+                    image.set_render_method(
+                        "whole"
+                        if (
+                            ImageClass._TERM == "konsole"
+                            # Always applies to non-native animations also
+                            or image.rendered_height <= get_terminal_size()[1]
+                        )
+                        else "lines"
+                    )
 
                 image.draw(
                     *(
