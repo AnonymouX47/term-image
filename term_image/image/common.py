@@ -500,7 +500,7 @@ class BaseImage(ABC):
         pad_width: Optional[int] = None,
         v_align: Optional[str] = None,
         pad_height: Optional[int] = None,
-        alpha: Optional[float] = _ALPHA_THRESHOLD,
+        alpha: Optional[float, str] = _ALPHA_THRESHOLD,
         *,
         scroll: bool = False,
         animate: bool = True,
@@ -587,9 +587,10 @@ class BaseImage(ABC):
 
           * *scroll* is ignored.
           * Image size and :term:`padding height` are always validated, if set or given.
+          * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
-          with ``Ctrl-C`` (``SIGINT``), raising ``KeyboardInterrupt``.
+          with **Ctrl+C** (``SIGINT``), raising ``KeyboardInterrupt``.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -615,7 +616,8 @@ class BaseImage(ABC):
             )
 
         if (
-            self._is_animated
+            not style.get("native")
+            and self._is_animated
             and animate
             and None is not pad_height > get_terminal_size()[1]
         ):
@@ -660,7 +662,7 @@ class BaseImage(ABC):
             render,
             scroll=scroll,
             check_size=check_size,
-            animated=self._is_animated and animate,
+            animated=not style.get("native") and self._is_animated and animate,
         )
 
     @classmethod

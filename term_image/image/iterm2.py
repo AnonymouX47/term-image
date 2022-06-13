@@ -5,15 +5,17 @@ __all__ = ("ITerm2Image",)
 import io
 import re
 import sys
+import warnings
 from base64 import standard_b64encode
 from threading import Event
 from typing import Any, Dict, Optional, Set, Union
 
 import PIL
 
+from .. import TermImageWarning
 from ..exceptions import _style_error
 from ..utils import get_terminal_size, lock_tty, query_terminal, read_tty
-from .common import GraphicsImage
+from .common import GraphicsImage, ImageSource
 
 FORMAT_SPEC = re.compile(r"([^LWNm]*)([LWN])?(m[01])?(.*)", re.ASCII)
 # Constants for render methods
@@ -111,6 +113,15 @@ class ITerm2Image(GraphicsImage):
           * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
+    #: Maximum size (in bytes) of image data for native animation.
+    #:
+    #: | :py:class:`TermImageWarning<term_image.TermImageWarning>` is issued
+    #:   (and shown **only the first time**, except a filter is set to do otherwise)
+    #:   if the image data size for a native animation is above this value.
+    #: | This value can be altered but should be done with caution to avoid excessive
+    #:   memory usage.
+    NATIVE_ANIM_MAXSIZE = 2 * 2**20
+
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
@@ -178,9 +189,12 @@ class ITerm2Image(GraphicsImage):
               * Ignored for non-animations.
               * *animate* must be ``True``.
               * *alpha*, *repeat*, *cached* and *style* do not apply.
-              * Always infinite.
+              * Always loops infinitely.
               * No control over frame duration.
               * Not all animated image formats are supported e.g WEBP.
+              * The limitations of the **WHOLE** render method also apply.
+              * Normal restrictions for rendered/padding height of animations do not
+                apply.
 
             stall_native: Native animation execution control. If:
 
@@ -362,17 +376,40 @@ class ITerm2Image(GraphicsImage):
         jump_right = f"\033[{r_width}C"
         erase = f"\033[{r_width}X" if not mix and is_on_wezterm else ""
 
-        if native and self._is_animated and img.format != "WEBP":  # and not frame:
-            with io.BytesIO() as compressed_image:
-                img.save(compressed_image, img.format, save_all=True)
-                if img is not self._source:
-                    img.close()
+        if native and self._is_animated and not frame and img.format != "WEBP":
+            if self._source_type is ImageSource.PIL_IMAGE:
+                try:
+                    compressed_image = open(img.filename, "rb")
+                except (AttributeError, OSError):
+                    try:
+                        compressed_image = io.BytesIO()
+                        img.save(compressed_image, img.format, save_all=True)
+                    except ValueError:
+                        raise _style_error(type(self))(
+                            "Native animation not supported: This image was sourced "
+                            "from a PIL image of an unknown format"
+                        ) from None
+            else:
+                compressed_image = open(self._source, "rb")
+
+            if img is not self._source:
+                img.close()
+
+            with compressed_image:
+                compressed_image.seek(0, 2)
+                if compressed_image.tell() > __class__.NATIVE_ANIM_MAXSIZE:
+                    warnings.warn(
+                        "Image data size above the maximum for native animation",
+                        TermImageWarning,
+                    )
+
                 control_data = "".join(
                     (
                         f"size={compressed_image.tell()};width={r_width}"
                         f";height={r_height};preserveAspectRatio=0;inline=1:"
                     )
                 )
+                compressed_image.seek(0, 0)
                 return "".join(
                     (
                         f"{erase}{jump_right}\n" * (r_height - 1),
@@ -380,7 +417,7 @@ class ITerm2Image(GraphicsImage):
                         f"\033[{r_height - 1}A",
                         "\033]1337;File=",
                         control_data,
-                        standard_b64encode(compressed_image.getvalue()).decode(),
+                        standard_b64encode(compressed_image.read()).decode(),
                         ST,
                     )
                 )
