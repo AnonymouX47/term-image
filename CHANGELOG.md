@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `--force-style` to bypass render style support checks ([#44]).
 - [cli] `--auto-font-ratio` for automatic font ratio determination ([#45]).
 - [cli] Support for style-specific options ([#47]).
+- [cli] `--kz/--kitty-z-index` 'kitty' style-specific option ([#49]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
@@ -66,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#45]: https://github.com/AnonymouX47/term-image/pull/45
 [#46]: https://github.com/AnonymouX47/term-image/pull/46
 [#47]: https://github.com/AnonymouX47/term-image/pull/47
+[#49]: https://github.com/AnonymouX47/term-image/pull/49
 
 
 ## [0.3.1] - 2022-05-04
