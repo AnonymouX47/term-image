@@ -1,13 +1,14 @@
 """
 term-image
 
-Display images in a terminal
+Display images in the terminal
 
 Provides
 ========
-    1. A library with utilities to display images in a terminal in various ways.
-    2. A CLI to display individual images from a local filesystem or URLs.
-    3. A TUI to browse multiple images on a local filesystem or from URLS.
+    1. A library with features to display images in a terminal in various ways.
+    2. A CLI to display images from a local filesystem or URLs.
+    3. A TUI to browse through images and directories on a local filesystem
+       or from URLS.
 
 It basically works by converting images into text, since that's all conventional
 terminals can represent.
@@ -19,7 +20,7 @@ Copyright (c) 2022
 
 from __future__ import annotations
 
-__all__ = ("FontRatio", "set_font_ratio", "get_font_ratio")
+__all__ = ("set_font_ratio", "get_font_ratio", "FontRatio", "TermImageWarning")
 __author__ = "AnonymouX47"
 
 from enum import Enum, auto
@@ -107,6 +108,10 @@ class FontRatio(Enum):
 
     AUTO = auto()
     FULL_AUTO = auto()
+
+
+class TermImageWarning(UserWarning):
+    """Package-specific warning category"""
 
 
 _font_ratio = 0.5

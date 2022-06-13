@@ -12,6 +12,10 @@ Reference
 Top-Level Definitions
 ---------------------
 
+.. autofunction:: term_image.set_font_ratio
+
+.. autofunction:: term_image.get_font_ratio
+
 .. autoclass:: term_image.FontRatio
    :show-inheritance:
 
@@ -21,9 +25,8 @@ Top-Level Definitions
    .. autoattribute:: FULL_AUTO
       :annotation:
 
-.. autofunction:: term_image.set_font_ratio
-
-.. autofunction:: term_image.get_font_ratio
+.. autoclass:: term_image.TermImageWarning
+   :show-inheritance:
 
 |
 
