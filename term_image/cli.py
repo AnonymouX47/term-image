@@ -6,6 +6,7 @@ import argparse
 import logging as _logging
 import os
 import sys
+import warnings
 from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
@@ -18,7 +19,16 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, __version__, config, logging, notify, set_font_ratio, tui
+from . import (
+    FontRatio,
+    TermImageWarning,
+    __version__,
+    config,
+    logging,
+    notify,
+    set_font_ratio,
+    tui,
+)
 from .config import config_options, store_config
 from .exceptions import TermImageError, URLNotFoundError, _style_error
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
@@ -509,6 +519,8 @@ def open_files(
 def main() -> None:
     """CLI execution sub-entry-point"""
     global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
+
+    warnings.filterwarnings("error", "", TermImageWarning, "term_image.image.iterm2")
 
     def check_arg(
         name: str,
@@ -1068,6 +1080,18 @@ FOOTNOTES:
         dest="native",
         help="Use iTerm2's native animation (Animations will not be skipped)",
     )
+    iterm2_options.add_argument(
+        "--itn-max",
+        "--iterm2-native-maxsize",
+        metavar="N",
+        dest="native_maxsize",
+        default=ITerm2Image.NATIVE_ANIM_MAXSIZE,
+        type=int,
+        help=(
+            "Maximum size (in bytes) of image data for native animation "
+            f"(default: {ITerm2Image.NATIVE_ANIM_MAXSIZE})"
+        ),
+    )
 
     style_parsers = {"kitty": kitty_parser, "iterm2": iterm2_parser}
     for style_parser in style_parsers.values():
@@ -1289,6 +1313,8 @@ FOOTNOTES:
         log("Running in CLI mode", logger, direct=False)
 
         style_error = _style_error(ImageClass)
+        if args.style == "iterm2":
+            ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
         if style_args.get("native") and len(images) > 1:
             style_args["stall_native"] = False
 
@@ -1368,7 +1394,7 @@ FOOTNOTES:
             # Handles `ValueError` and `.exceptions.InvalidSizeError`
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
-            except (ValueError, style_error) as e:
+            except (ValueError, style_error, TermImageWarning) as e:
                 notify.notify(str(e), level=notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()
