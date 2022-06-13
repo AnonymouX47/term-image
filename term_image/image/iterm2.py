@@ -7,6 +7,7 @@ import re
 import sys
 import warnings
 from base64 import standard_b64encode
+from operator import mul
 from threading import Event
 from typing import Any, Dict, Optional, Set, Union
 
@@ -376,11 +377,18 @@ class ITerm2Image(GraphicsImage):
         jump_right = f"\033[{r_width}C"
         erase = f"\033[{r_width}X" if not mix and is_on_wezterm else ""
 
+        file_is_readable = True
+        if self._source_type is ImageSource.PIL_IMAGE:
+            try:
+                img.filename
+            except (AttributeError, OSError):
+                file_is_readable = False
+
         if native and self._is_animated and not frame and img.format != "WEBP":
             if self._source_type is ImageSource.PIL_IMAGE:
-                try:
+                if file_is_readable:
                     compressed_image = open(img.filename, "rb")
-                except (AttributeError, OSError):
+                else:
                     try:
                         compressed_image = io.BytesIO()
                         img.save(compressed_image, img.format, save_all=True)
@@ -409,7 +417,7 @@ class ITerm2Image(GraphicsImage):
                         f";height={r_height};preserveAspectRatio=0;inline=1:"
                     )
                 )
-                compressed_image.seek(0, 0)
+                compressed_image.seek(0)
                 return "".join(
                     (
                         f"{erase}{jump_right}\n" * (r_height - 1),
@@ -422,19 +430,40 @@ class ITerm2Image(GraphicsImage):
                     )
                 )
 
-        width, height = self._get_minimal_render_size()
-        img = self._get_render_data(
-            img, alpha, size=(width, height), pixel_data=False  # fmt: skip
-        )[0]
-        format = "jpeg" if img.mode == "RGB" else "png"
-
         render_method = method or self._render_method
-        if render_method == LINES:
-            raw_image = io.BytesIO(img.tobytes())
-            compressed_image = io.BytesIO()
+        width, height = self._get_minimal_render_size()
+
+        if (  # Read directly from file when possible and reasonable
+            not self._is_animated
+            and file_is_readable
+            and render_method == WHOLE
+            and mul(*self._original_size) <= mul(*self._get_render_size())
+            and (
+                # None of the *alpha* options can affect these
+                img.mode in {"1", "L", "RGB", "HSV", "CMYK"}
+                # Alpha threshold is unused with graphics-based styles.
+                # The transparency of some "P" mode images is missing on some terminals
+                # Making the output inconsistent with other render styles.
+                or (isinstance(alpha, float) and img.mode not in {"P", "PA"})
+            )
+        ):
+            compressed_image = open(
+                img.filename
+                if self._source_type is ImageSource.PIL_IMAGE
+                else self._source,
+                "rb",
+            )
         else:
-            compressed_image = io.BytesIO()
-            img.save(compressed_image, format)
+            img = self._get_render_data(
+                img, alpha, size=(width, height), pixel_data=False  # fmt: skip
+            )[0]
+            format = "jpeg" if img.mode == "RGB" else "png"
+            if render_method == LINES:
+                raw_image = io.BytesIO(img.tobytes())
+                compressed_image = io.BytesIO()
+            else:
+                compressed_image = io.BytesIO()
+                img.save(compressed_image, format)
 
         # clean up
         if img is not self._source:
@@ -474,6 +503,7 @@ class ITerm2Image(GraphicsImage):
 
         # WHOLE
         with compressed_image:
+            compressed_image.seek(0, 2)
             control_data = "".join(
                 (
                     f"size={compressed_image.tell()};width={r_width}"
@@ -481,6 +511,7 @@ class ITerm2Image(GraphicsImage):
                     f"{';doNotMoveCursor=1' * is_on_konsole}:"
                 )
             )
+            compressed_image.seek(0)
             return "".join(
                 (
                     "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
@@ -488,7 +519,7 @@ class ITerm2Image(GraphicsImage):
                     "" if is_on_konsole else f"\033[{r_height - 1}A",
                     "\033]1337;File=",
                     control_data,
-                    standard_b64encode(compressed_image.getvalue()).decode(),
+                    standard_b64encode(compressed_image.read()).decode(),
                     ST,
                     f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
                     jump_right * is_on_konsole,
