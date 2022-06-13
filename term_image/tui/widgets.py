@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 
 import urwid
 
-from .. import logging
+from .. import cli, logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import BaseImage
 from ..image.common import _ALPHA_THRESHOLD
@@ -346,9 +346,17 @@ class Image(urwid.Widget):
         elif self._ti_frame:
             canv, repeat, frame_no = self._ti_frame
             if size != canv.size:
+                self._ti_canv = canv = (
+                    placeholder
+                    if (
+                        # Workaround to erase text on wezterm without glitchy animation
+                        cli.args.style == "iterm2"
+                        and tui_main.ImageClass._TERM == "wezterm"
+                    )
+                    else __class__._ti_placeholder
+                ).render(size)
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
-                canv = __class__._ti_placeholder.render(size)
-                self._ti_frame = (canv, repeat, frame_no)
+                self._ti_frame = None  # Avoid resending
                 tui_main.ImageClass._clear_images()
             elif frame_no != self._ti_frame_no:
                 self._ti_frame_no = frame_no
@@ -365,7 +373,17 @@ class Image(urwid.Widget):
                     self._ti_anim_starting = True
             elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
                 image_render_queue.put((self, size, self._ti_alpha))
-            canv = __class__._ti_placeholder.render(size)
+            canv = (
+                placeholder
+                if (
+                    # Workaround to erase text on wezterm without glitchy animation
+                    image._is_animated
+                    and not tui_main.NO_ANIMATION
+                    and cli.args.style == "iterm2"
+                    and tui_main.ImageClass._TERM == "wezterm"
+                )
+                else __class__._ti_placeholder
+            ).render(size)
 
         return canv
 

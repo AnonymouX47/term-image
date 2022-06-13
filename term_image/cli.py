@@ -6,6 +6,7 @@ import argparse
 import logging as _logging
 import os
 import sys
+import warnings
 from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
@@ -18,16 +19,25 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, __version__, config, logging, notify, set_font_ratio, tui
+from . import (
+    FontRatio,
+    TermImageWarning,
+    __version__,
+    config,
+    logging,
+    notify,
+    set_font_ratio,
+    tui,
+)
 from .config import config_options, store_config
-from .exceptions import TermImageError, URLNotFoundError
+from .exceptions import TermImageError, URLNotFoundError, _style_error
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import BlockImage, KittyImage, _best_style
+from .image import BlockImage, ITerm2Image, KittyImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import OS_IS_UNIX, write_tty
+from .utils import OS_IS_UNIX, get_terminal_size, write_tty
 
 
 def check_dir(
@@ -510,6 +520,8 @@ def main() -> None:
     """CLI execution sub-entry-point"""
     global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
 
+    warnings.filterwarnings("error", "", TermImageWarning, "term_image.image.iterm2")
+
     def check_arg(
         name: str,
         check: Callable[[Any], Any],
@@ -573,12 +585,17 @@ Render Styles:
         include (but might not be limited to):
         - Kitty >= 0.20.0
         - Konsole >= 22.04.0
+    iterm2: Uses the iTerm2 inline image protocol. Currently supported terminal
+        emulators include (but might not be limited to):
+        - iTerm2
+        - Konsole >= 22.04.0
+        - WezTerm
     block: Uses unicode half blocks with 24-bit color escape codes to represent images
         with a density of two pixels per character cell.
 
-    Using a terminal-graphics-based style not supported by the active terminal is not
-    allowed by default.
-    To force a style that is normally unsupported, add the '--force-style' flag.
+    Using a terminal graphics-based style not supported by the active terminal is not
+    allowed by default. To force a style that is normally unsupported, add the
+    '--force-style' flag.
 
 FOOTNOTES:
   1. Width and height are in units of columns and lines repectively.
@@ -588,8 +605,9 @@ FOOTNOTES:
   2. The size is multiplied by the scale on each axis respectively before the image
      is rendered. A scale value must be such that 0.0 < value <= 1.0.
   3. In CLI mode, only image sources are used, directory sources are skipped.
-     Animated images are displayed only when animation is disabled (with `--no-anim`)
-     or when there's only one image source.
+     Animated images are displayed only when animation is disabled (with `--no-anim`),
+     when there's only one image source or when using native animation of some render
+     styles.
   4. Any image having more pixels than the specified maximum will be:
      - skipped, in CLI mode, if '--max-pixels-cli' is specified.
      - replaced, in TUI mode, with a placeholder when displayed but can still be forced
@@ -630,7 +648,7 @@ FOOTNOTES:
     general.add_argument(
         "-S",
         "--style",
-        choices=("auto", "kitty", "block"),
+        choices=("auto", "kitty", "iterm2", "block"),
         default="auto",
         help='Image render style (default: auto). See "Render Styles" below',
     )
@@ -1037,7 +1055,7 @@ FOOTNOTES:
 
     kitty_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
     kitty_options = kitty_parser.add_argument_group(
-        "Kitty Style Options",
+        "Kitty Style Options (CLI-only)",
         "These options apply only when the 'kitty' render style is used",
     )
     kitty_options.add_argument(
@@ -1047,11 +1065,35 @@ FOOTNOTES:
         dest="z_index",
         default=0,
         type=int,
-        help="Image/Text stacking order",
+        help="Image stacking order (default: 0)",
     )
 
-    style_parsers = {"kitty": kitty_parser}
+    iterm2_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    iterm2_options = iterm2_parser.add_argument_group(
+        "iTerm2 Style Options (CLI-only)",
+        "These options apply only when the 'iterm2' render style is used",
+    )
+    iterm2_options.add_argument(
+        "--itn",
+        "--iterm2-native",
+        action="store_true",
+        dest="native",
+        help="Use iTerm2's native animation (Animations will not be skipped)",
+    )
+    iterm2_options.add_argument(
+        "--itn-max",
+        "--iterm2-native-maxsize",
+        metavar="N",
+        dest="native_maxsize",
+        default=ITerm2Image.NATIVE_ANIM_MAXSIZE,
+        type=int,
+        help=(
+            "Maximum size (in bytes) of image data for native animation "
+            f"(default: {ITerm2Image.NATIVE_ANIM_MAXSIZE})"
+        ),
+    )
 
+    style_parsers = {"kitty": kitty_parser, "iterm2": iterm2_parser}
     for style_parser in style_parsers.values():
         parser._actions.extend(style_parser._actions)
         parser._option_string_actions.update(style_parser._option_string_actions)
@@ -1127,7 +1169,12 @@ FOOTNOTES:
         )
         args.font_ratio = 0.5
 
-    ImageClass = {"auto": None, "kitty": KittyImage, "block": BlockImage}[args.style]
+    ImageClass = {
+        "auto": None,
+        "kitty": KittyImage,
+        "iterm2": ITerm2Image,
+        "block": BlockImage,
+    }[args.style]
     if not ImageClass:
         ImageClass = _best_style()
     args.style = ImageClass.__name__[:-5].lower()
@@ -1265,6 +1312,12 @@ FOOTNOTES:
     ):
         log("Running in CLI mode", logger, direct=False)
 
+        style_error = _style_error(ImageClass)
+        if args.style == "iterm2":
+            ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
+        if style_args.get("native") and len(images) > 1:
+            style_args["stall_native"] = False
+
         show_name = len(args.sources) > 1
         for entry in images:
             image = entry[1]._ti_image
@@ -1277,7 +1330,12 @@ FOOTNOTES:
                 )
                 continue
 
-            if not args.no_anim and image._is_animated and len(images) > 1:
+            if (
+                not args.no_anim
+                and image._is_animated
+                and not style_args.get("native")
+                and len(images) > 1
+            ):
                 log(f"Skipping animated image: {entry[0]!r}", logger, verbose=True)
                 continue
 
@@ -1296,6 +1354,17 @@ FOOTNOTES:
                 )
                 if args.frame_duration:
                     image.frame_duration = args.frame_duration
+
+                if args.style == "iterm2":
+                    image.set_render_method(
+                        "whole"
+                        if (
+                            ImageClass._TERM == "konsole"
+                            # Always applies to non-native animations also
+                            or image.rendered_height <= get_terminal_size()[1]
+                        )
+                        else "lines"
+                    )
 
                 image.draw(
                     *(
@@ -1327,7 +1396,7 @@ FOOTNOTES:
             # Handles `ValueError` and `.exceptions.InvalidSizeError`
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
-            except ValueError as e:
+            except (ValueError, style_error, TermImageWarning) as e:
                 notify.notify(str(e), level=notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()

@@ -27,12 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] `term_image.FontRatio` enumeration class ([#45]).
 - [lib] Support for style-specific parameters and format specification ([#47]).
 - [lib] Style-specific exception classes ([#47]).
+- [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
+- [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
 - [cli] `--style` command-line option for render style selection ([#37]).
-- [cli] `kitty` render style choice for the `--style` CL option ([#39]).
+- [cli] `kitty` render style choice for the `--style` command-line option ([#39]).
 - [cli] `--force-style` to bypass render style support checks ([#44]).
 - [cli] `--auto-font-ratio` for automatic font ratio determination ([#45]).
 - [cli] Support for style-specific options ([#47]).
 - [cli] `--kz/--kitty-z-index` 'kitty' style-specific option ([#49]).
+- [cli] `iterm2` render style choice for the `--style` command-line option ([#50]).
+- [cli] `--itn/--iterm2-native` and `--itn-max/--iterm2-native-maxsize` style-specific CL options for 'iterm2' native animation ([#50]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
@@ -68,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#46]: https://github.com/AnonymouX47/term-image/pull/46
 [#47]: https://github.com/AnonymouX47/term-image/pull/47
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
+[#50]: https://github.com/AnonymouX47/term-image/pull/50
 
 
 ## [0.3.1] - 2022-05-04

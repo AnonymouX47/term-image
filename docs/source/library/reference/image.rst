@@ -49,6 +49,10 @@ Core Library Definitions
       :members:
       :show-inheritance:
 
+   .. autoclass:: ITerm2Image
+      :members:
+      :show-inheritance:
+
    .. autoclass:: KittyImage
       :members:
       :show-inheritance:

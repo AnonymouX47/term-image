@@ -56,6 +56,13 @@ class BlockImageError(TermImageError):
     """
 
 
+class ITerm2ImageError(TermImageError):
+    """Raised for errors specific to
+    :py:class:`ITerm2Image <term_image.image.ITerm2Image>` and style-specific
+    errors for subclasses defined outside this package.
+    """
+
+
 class KittyImageError(TermImageError):
     """Raised for errors specific to
     :py:class:`KittyImage <term_image.image.KittyImage>` and style-specific

@@ -13,6 +13,7 @@ __all__ = (
     "GraphicsImage",
     "TextImage",
     "BlockImage",
+    "ITerm2Image",
     "KittyImage",
     "TermImage",
     "ImageIterator",
@@ -30,6 +31,7 @@ from .common import (  # noqa:F401
     ImageSource,
     TextImage,
 )
+from .iterm2 import ITerm2Image  # noqa:F401
 from .kitty import KittyImage  # noqa:F401
 
 
@@ -86,4 +88,4 @@ def _best_style():
 
 
 # In order of preference
-_styles = (KittyImage, BlockImage)
+_styles = (KittyImage, ITerm2Image, BlockImage)
