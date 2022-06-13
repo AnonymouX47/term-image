@@ -463,7 +463,7 @@ class ITerm2Image(GraphicsImage):
                 compressed_image = io.BytesIO()
             else:
                 compressed_image = io.BytesIO()
-                img.save(compressed_image, format)
+                img.save(compressed_image, format, quality=95)  # *quality* for JPEG
 
         # clean up
         if img is not self._source:
@@ -487,7 +487,8 @@ class ITerm2Image(GraphicsImage):
                     with PIL.Image.frombytes(
                         img.mode, (width, cell_height), raw_image.read(bytes_per_line)
                     ) as img:
-                        img.save(compressed_image, format)
+                        # *quality* for JPEG
+                        img.save(compressed_image, format, quality=95)
 
                     is_on_wezterm and buffer.write(erase)
                     buffer.write(f"\033]1337;File=size={compressed_image.tell()}")
