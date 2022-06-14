@@ -111,7 +111,7 @@ def test_instantiation_Graphics():
         ImageClass._supported = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
         ImageClass._supported = False
-        with pytest.raises(exceptions.TermImageError):
+        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original

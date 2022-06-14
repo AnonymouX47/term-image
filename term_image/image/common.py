@@ -571,7 +571,7 @@ class BaseImage(ABC):
             ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
-            term_image.exceptions.<Style>ImageError: Unrecognized style-specific
+            term_image.exceptions.{Style}ImageError: Unrecognized style-specific
               parameters.
 
         * If :py:meth:`set_size` was directly used to set the image size, the values
@@ -817,9 +817,9 @@ class BaseImage(ABC):
 
         Raises:
             TypeError: *method* is not a string or ``None``.
-            term_image.exceptions.<Style>ImageError: the given method is not implmented
+            term_image.exceptions.{Style}ImageError: the given method is not implmented
               by the calling class (or class of the calling instance), **where**
-              *<Style>* **is the name of the render style** e.g
+              ``{Style}`` **is the name of the render style** e.g
               :py:class:`KittyImageError <term_image.exceptions.KittyImageError>`.
 
         See the **Render Methods** section in the description of the subclasses that
@@ -1162,7 +1162,7 @@ class BaseImage(ABC):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.<Style>ImageError: An unknown style-specific
+            term_image.exceptions.{Style}ImageError: An unknown style-specific
               parameter is given.
         """
         for name, value in style_args.items():
@@ -1209,7 +1209,7 @@ class BaseImage(ABC):
             A mapping of keyword arguments.
 
         Raises:
-            term_image.exceptions.<Style>ImageError: Invalid style-specific format
+            term_image.exceptions.{Style}ImageError: Invalid style-specific format
               specification.
 
         **Every style-specific format spec should be treated as follows:**
@@ -1722,7 +1722,7 @@ class GraphicsImage(BaseImage):
     """Base of all render styles using terminal graphics protocols.
 
     Raises:
-        term_image.exceptions.TermImageError: The :term:`active terminal` doesn't
+        term_image.exceptions.{Style}ImageError: The :term:`active terminal` doesn't
           support the render style.
 
     See :py:class:`BaseImage` for the description of the constructor.
@@ -1737,7 +1737,7 @@ class GraphicsImage(BaseImage):
 
     def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
         if not self.is_supported():
-            raise TermImageError(
+            raise _style_error(type(self))(
                 "This image render style is not supported in the active terminal"
             )
         super().__init__(image, **kwargs)
@@ -1828,7 +1828,7 @@ class ImageIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
-        term_image.exceptions.<Style>ImageError: Invalid style-specific format
+        term_image.exceptions.{Style}ImageError: Invalid style-specific format
           specification.
 
     * If *repeat* equals ``1``, caching is disabled.
