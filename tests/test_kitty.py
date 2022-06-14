@@ -103,7 +103,7 @@ class TestStyleArgs:
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"mix": value})
         for value in (True, False):
-            KittyImage._check_style_args({"z_index": value}) == {"z_index": value}
+            KittyImage._check_style_args({"mix": value}) == {"mix": value}
 
 
 def expand_control_data(control_data):

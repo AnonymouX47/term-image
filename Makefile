@@ -43,7 +43,7 @@ requires-docs:
 
 test: test-base test-iterator test-others test-text test-graphics
 test-text: test-block
-test-graphics: test-kitty
+test-graphics: test-kitty test-iterm2
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
@@ -55,6 +55,9 @@ test-iterator:
 
 test-others:
 	python -m pytest -v tests/test_others.py
+
+test-iterm2:
+	python -m pytest -v tests/test_iterm2.py
 
 test-kitty:
 	python -m pytest -v tests/test_kitty.py
