@@ -567,6 +567,7 @@ class BaseImage(ABC):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
+            ValueError: Unable to convert image.
             ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
@@ -1407,25 +1408,30 @@ class BaseImage(ABC):
           * ``a`` is a list of integers in the range [0, 255] representing the alpha
             channel of the image's pixels in a flattened row-major order.
         """
+
+        def convert_resize_img(mode: str):
+            nonlocal img
+            try:
+                img = img.convert(mode)
+            except Exception as e:
+                raise ValueError("Unable to convert image") from e
+            try:
+                img = img.resize((width, height))
+            except ValueError:
+                raise ValueError("Image size or scale too small") from None
+
         if self._is_animated:
             img.seek(self._seek_position)
 
         width, height = size or self._get_render_size()
 
-        if alpha is None or img.mode == "RGB":
-            try:
-                img = img.convert("RGB").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
+        if alpha is None or img.mode in {"1", "L", "RGB", "HSV", "CMYK"}:
+            convert_resize_img("RGB")
             if pixel_data:
                 rgb = list(img.getdata())
                 a = [255] * (width * height)
         else:
-            try:
-                img = img.convert("RGBA").resize((width, height))
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
-
+            convert_resize_img("RGBA")
             if isinstance(alpha, str):
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
