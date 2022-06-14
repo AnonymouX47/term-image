@@ -31,7 +31,7 @@ class KittyImage(GraphicsImage):
 
     :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
 
-    lines (default)
+    LINES (default)
        Renders an image line-by-line i.e the image is evenly split across the number
        of lines it should occupy.
 
@@ -40,7 +40,7 @@ class KittyImage(GraphicsImage):
          * Good for use cases where it might be required to trim some lines of the
            image.
 
-    whole
+    WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
        line of the :term:`rendered` output, such that the entire image is drawn once
        by the terminal and still occupies the correct amount of lines and columns.
@@ -48,7 +48,7 @@ class KittyImage(GraphicsImage):
        Pros:
 
          * Render results are more compact (i.e less in character count) than with
-           the **lines** method since the entire image is encoded at once.
+           the **LINES** method since the entire image is encoded at once.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names

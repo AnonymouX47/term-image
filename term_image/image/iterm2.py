@@ -33,7 +33,7 @@ class ITerm2Image(GraphicsImage):
 
     :py:class:`ITerm2Image` provides two methods of :term:`rendering` images, namely:
 
-    lines (default)
+    LINES (default)
        Renders an image line-by-line i.e the image is evenly split across the number
        of lines it should occupy.
 
@@ -47,7 +47,7 @@ class ITerm2Image(GraphicsImage):
          * Image drawing is very slow on iTerm2 due to the terminal emulator's
            performance.
 
-    whole
+    WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
        line of the :term:`rendered` output, such that the entire image is drawn once
        by the terminal and still occupies the correct amount of lines and columns.
@@ -65,8 +65,8 @@ class ITerm2Image(GraphicsImage):
             height is greater than the terminal height.
 
     NOTE:
-        The **lines** method is the default only because it works properly in all cases,
-        it's more advisable to use the **whole** method except when the image height is
+        The **LINES** method is the default only because it works properly in all cases,
+        it's more advisable to use the **WHOLE** method except when the image height is
         greater than the terminal height or when trimming the image is required.
 
     The render method can be set with
@@ -86,8 +86,8 @@ class ITerm2Image(GraphicsImage):
 
       Can be one of:
 
-        * ``L``: **lines** render method (current frame only, for animated images).
-        * ``W``: **whole** render method (current frame only, for animated images).
+        * ``L``: **LINES** render method (current frame only, for animated images).
+        * ``W``: **WHOLE** render method (current frame only, for animated images).
         * ``N``: Native animation. Ignored when used with non-animated images, WEBP
           images or ``ImageIterator``.
 

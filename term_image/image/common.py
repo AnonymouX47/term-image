@@ -811,7 +811,8 @@ class BaseImage(ABC):
         multiple render methods.
 
         Args:
-            method: The render method to be set or ``None`` for a reset.
+            method: The render method to be set or ``None`` for a reset
+              (case-insensitive).
 
         Raises:
             TypeError: *method* is not a string or ``None``.
@@ -846,7 +847,7 @@ class BaseImage(ABC):
                 f"'method' must be a string or `None` (got: {type(method).__name__!r})"
             )
 
-        if None is not method not in self_or_cls._render_methods:
+        if method is not None and method.lower() not in self_or_cls._render_methods:
             cls = (
                 type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
             )
