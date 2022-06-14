@@ -16,8 +16,8 @@ from ..exceptions import _style_error
 from ..utils import lock_tty, query_terminal
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(r"([^zm]*)(z(-?\d+)?)?(m[01])?(.*)", re.ASCII)
-# Constants for ``KittyImage`` render method
+FORMAT_SPEC = re.compile(r"([^LWzm]*)([LW])?(z(-?\d+)?)?(m[01])?(.*)", re.ASCII)
+# Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
 
@@ -61,7 +61,16 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [ z [index] ] [ m {0 | 1} ]
+        [method] [ z [index] ] [ m {0 | 1} ]
+
+    * ``method``: Render method override.
+
+      Can be one of:
+
+        * ``L``: **LINES** render method (current frame only, for animated images).
+        * ``W``: **WHOLE** render method (current frame only, for animated images).
+
+      Default: Current effective render method of the image.
 
     * ``z``: Image/Text stacking order.
 
@@ -102,6 +111,16 @@ class KittyImage(GraphicsImage):
     _default_render_method: str = LINES
     _render_method: str = LINES
     _style_args = {
+        "method": (
+            (
+                lambda x: isinstance(x, str),
+                "Render method must be a string",
+            ),
+            (
+                lambda x: x in KittyImage._render_methods,
+                "Unknown render method",
+            ),
+        ),
         "z_index": (
             (
                 lambda x: x is None or isinstance(x, int),
@@ -227,7 +246,7 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, z, index, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        parent, method, z, index, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
         if invalid:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
@@ -240,6 +259,8 @@ class KittyImage(GraphicsImage):
             args["z_index"] = index and int(index)
         if mix:
             args["mix"] = bool(int(mix[-1]))
+        if method:
+            args["method"] = LINES if method == "L" else WHOLE
 
         return cls._check_style_args(args)
 
@@ -291,6 +312,7 @@ class KittyImage(GraphicsImage):
         alpha: Union[None, float, str],
         *,
         frame: bool = False,
+        method: Optional[str] = None,
         z_index: Optional[int] = 0,
         mix: bool = False,
     ) -> str:
@@ -302,6 +324,7 @@ class KittyImage(GraphicsImage):
         # Since we use `c` and `r` control data keys, there's no need upscaling the
         # image on this end; ensures minimal payload.
 
+        render_method = method or self._render_method
         r_width, r_height = self.rendered_size
         width, height = self._get_minimal_render_size()
 
@@ -322,7 +345,7 @@ class KittyImage(GraphicsImage):
             delete = f"{_START}a=d,d=c;{_END}"
             clear = f"{delete}\0337\033[{r_width}C{delete}\0338"
 
-        if self._render_method == LINES:
+        if render_method == LINES:
             cell_height = height // r_height
             bytes_per_line = width * cell_height * (format // 8)
             vars(control_data).update(dict(v=cell_height, r=1))
