@@ -1355,7 +1355,13 @@ FOOTNOTES:
                 if args.frame_duration:
                     image.frame_duration = args.frame_duration
 
-                if args.style == "iterm2":
+                if args.style == "kitty":
+                    image.set_render_method(
+                        "lines"
+                        if ImageClass._KITTY_VERSION and image._is_animated
+                        else "whole"
+                    )
+                elif args.style == "iterm2":
                     image.set_render_method(
                         "whole"
                         if (
