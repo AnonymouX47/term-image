@@ -359,11 +359,12 @@ def query_terminal(
           * ``True``, more response is waited for.
           * ``False``, the recieved response is returned immediately.
 
-        timeout: Time limit for awaiting a response from the terminal, in seconds.
+        timeout: Time limit for awaiting a response from the terminal, in seconds
+          (infinite if negative).
 
     Returns:
-        The terminal's response or ``None`` if no response is recieved after *timeout*
-        is up.
+        The terminal's response (empty, if no response is recieved after *timeout*
+        is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
@@ -404,14 +405,14 @@ def read_tty(
           Any input before or after calling this function is not affected.
 
     Returns:
-        The input read or ``None`` if *min* == ``0`` (default) and no input is recieved
-        before *timeout* is up.
+        The input read (empty, if *min* == ``0`` (default) and no input is recieved
+        before *timeout* is up).
 
     If *timeout* is ``None`` (default), all available input is read without blocking.
 
     If *timeout* is not ``None`` and:
 
-      * *timeout* < ``0``, it's taken to be infinite.
+      * *timeout* < ``0``, it's infinite.
       * *min* > ``0``, input is waited for until at least *min* bytes have been read.
 
         After *min* bytes have been read, the following points apply with *timeout*
@@ -482,7 +483,7 @@ def read_tty(
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
-    return bytes(input) if input else None
+    return bytes(input)
 
 
 @unix_tty_only
