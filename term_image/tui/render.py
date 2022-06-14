@@ -440,9 +440,10 @@ anim_render_queue = Queue()
 grid_render_queue = Queue()
 image_render_queue = Queue()
 
-anim_style_specs = {"kitty": "+z", "iterm2": "+Wm1"}
-grid_style_specs = {"kitty": "+z"}
-image_style_specs = {"kitty": "+z", "iterm2": "+W"}
+# Updated from `.tui.init()`
+anim_style_specs = {"kitty": "+W", "iterm2": "+Wm1"}
+grid_style_specs = {"kitty": "+L"}
+image_style_specs = {"kitty": "+W", "iterm2": "+W"}
 
 # Set from `.tui.init()`
 # # Corresponsing to command-line args
