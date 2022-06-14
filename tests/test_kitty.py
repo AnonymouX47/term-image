@@ -69,6 +69,8 @@ def test_style_format_spec():
 
     for spec, args in (
         ("", {}),
+        ("L", {"method": LINES}),
+        ("W", {"method": WHOLE}),
         ("z", {"z_index": None}),
         ("z0", {"z_index": 0}),
         ("z1", {"z_index": 1}),
@@ -77,7 +79,7 @@ def test_style_format_spec():
         (f"z{-2**31}", {"z_index": -(2**31)}),
         ("m0", {"mix": False}),
         ("m1", {"mix": True}),
-        ("z0m1", {"z_index": 0, "mix": True}),
+        ("Wz0m1", {"method": WHOLE, "z_index": 0, "mix": True}),
     ):
         assert KittyImage._check_style_format_spec(spec, spec) == args
 
@@ -88,6 +90,16 @@ class TestStyleArgs:
             with pytest.raises(KittyImageError, match="Unknown style-specific"):
                 KittyImage._check_style_args(args)
 
+    def test_method(self):
+        for value in (1.0, (), [], 2):
+            with pytest.raises(TypeError):
+                KittyImage._check_style_args({"method": value})
+        for value in ("", " ", "cool"):
+            with pytest.raises(ValueError):
+                KittyImage._check_style_args({"method": value})
+        for value in (LINES, WHOLE):
+            assert KittyImage._check_style_args({"method": value}) == {"method": value}
+
     def test_z_index(self):
         for value in (1.0, (), [], "2"):
             with pytest.raises(TypeError):
@@ -96,14 +108,17 @@ class TestStyleArgs:
             with pytest.raises(ValueError):
                 KittyImage._check_style_args({"z_index": value})
         for value in (None, 0, 1, -1, -(2**31), 2**31 - 1):
-            KittyImage._check_style_args({"z_index": value}) == {"z_index": value}
+            assert (
+                KittyImage._check_style_args({"z_index": value})
+                == {"z_index": value}  # fmt: skip
+            )
 
     def test_mix(self):
         for value in (0, 1.0, (), [], "2"):
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"mix": value})
         for value in (True, False):
-            KittyImage._check_style_args({"mix": value}) == {"mix": value}
+            assert KittyImage._check_style_args({"mix": value}) == {"mix": value}
 
 
 def expand_control_data(control_data):
