@@ -23,6 +23,12 @@ def test_set_render_method():
         image = ITerm2Image(python_img)
         assert image._render_method == ITerm2Image._default_render_method
 
+        # Case-insensitivity
+        assert ITerm2Image.set_render_method(WHOLE.upper()) is None
+        assert ITerm2Image.set_render_method(WHOLE.lower()) is None
+        assert ITerm2Image.set_render_method(LINES.upper()) is None
+        assert ITerm2Image.set_render_method(LINES.lower()) is None
+
         assert ITerm2Image.set_render_method(WHOLE) is None
         assert ITerm2Image._render_method == WHOLE
         assert image._render_method == WHOLE

@@ -31,6 +31,12 @@ def test_set_render_method():
         image = KittyImage(python_img)
         assert image._render_method == KittyImage._default_render_method
 
+        # Case-insensitivity
+        assert KittyImage.set_render_method(WHOLE.upper()) is None
+        assert KittyImage.set_render_method(WHOLE.lower()) is None
+        assert KittyImage.set_render_method(LINES.upper()) is None
+        assert KittyImage.set_render_method(LINES.lower()) is None
+
         assert KittyImage.set_render_method(WHOLE) is None
         assert KittyImage._render_method == WHOLE
         assert image._render_method == WHOLE
