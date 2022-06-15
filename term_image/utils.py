@@ -70,6 +70,16 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
+# Constants for escape sequences
+
+ESC = "\033"
+CSI = f"{ESC}["
+OSC = f"{ESC}]"
+ST = f"{ESC}\\"
+BG_FMT = f"{CSI}48;2;%d;%d;%dm"
+FG_FMT = f"{CSI}38;2;%d;%d;%dm"
+COLOR_RESET = f"{CSI}m"
+
 # Decorator Classes
 
 
@@ -254,11 +264,11 @@ def color(
 
     The color code is ommited for any of *fg* or *bg* that is empty.
     """
-    return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (
+    return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (
         *fg,
         *bg,
         text,
-    ) + _RESET * end
+    ) + COLOR_RESET * end
 
 
 @unix_tty_only
@@ -534,10 +544,6 @@ def _process_run_wrapper(self, *args, **kwargs):
         _tty_lock = self._tty_lock
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
-
-_BG_FMT = "\033[48;2;%d;%d;%dm"
-_FG_FMT = "\033[38;2;%d;%d;%dm"
-_RESET = "\033[0m"
 
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)

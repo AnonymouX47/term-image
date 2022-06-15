@@ -11,13 +11,13 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..utils import _BG_FMT, _FG_FMT, _RESET
+from ..utils import BG_FMT, COLOR_RESET, FG_FMT
 from .common import TextImage
 
 warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
 
-_LOWER_PIXEL = "\u2584"  # lower-half block element
-_UPPER_PIXEL = "\u2580"  # upper-half block element
+LOWER_PIXEL = "\u2584"  # lower-half block element
+UPPER_PIXEL = "\u2580"  # upper-half block element
 
 
 class BlockImage(TextImage):
@@ -67,26 +67,26 @@ class BlockImage(TextImage):
             if alpha:
                 no_alpha = False
                 if a_cluster1 == 0 == a_cluster2:
-                    buf_write(_RESET)
+                    buf_write(COLOR_RESET)
                     buf_write(" " * n)
                 elif a_cluster1 == 0:  # up is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster2)
-                    buf_write(_LOWER_PIXEL * n)
+                    buf_write(COLOR_RESET)
+                    buf_write(FG_FMT % cluster2)
+                    buf_write(LOWER_PIXEL * n)
                 elif a_cluster2 == 0:  # down is transparent
-                    buf_write(_RESET)
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
+                    buf_write(COLOR_RESET)
+                    buf_write(FG_FMT % cluster1)
+                    buf_write(UPPER_PIXEL * n)
                 else:
                     no_alpha = True
 
             if not alpha or no_alpha:
-                buf_write(_BG_FMT % cluster2)
+                buf_write(BG_FMT % cluster2)
                 if cluster1 == cluster2:
                     buf_write(" " * n)
                 else:
-                    buf_write(_FG_FMT % cluster1)
-                    buf_write(_UPPER_PIXEL * n)
+                    buf_write(FG_FMT % cluster1)
+                    buf_write(UPPER_PIXEL * n)
 
         buffer = io.StringIO()
         # Eliminate attribute resolution cost
@@ -149,9 +149,9 @@ class BlockImage(TextImage):
             # Rest of the line
             update_buffer()
             if row_no < height:  # last line not yet rendered
-                buf_write("\033[0m\n")
+                buf_write(f"{COLOR_RESET}\n")
 
-        buf_write(_RESET)  # Reset color after last line
+        buf_write(COLOR_RESET)  # Reset color after last line
         buffer.seek(0)  # Reset buffer pointer
 
         with buffer:

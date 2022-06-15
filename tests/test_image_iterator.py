@@ -5,6 +5,7 @@ from PIL import Image
 
 from term_image.exceptions import TermImageError
 from term_image.image import BlockImage, ImageIterator
+from term_image.utils import COLOR_RESET
 
 _size = (30, 15)
 
@@ -212,13 +213,13 @@ def test_formatting():
     image_it = ImageIterator(gif_image, 1, "1.1")
     assert next(image_it).count("\n") + 1 == _size[1]
     # First line without escape codes
-    assert next(image_it).partition("\n")[0][4:-4] == " " * _size[0]
+    assert next(image_it).partition("\n")[0].strip(COLOR_RESET) == " " * _size[0]
 
     # Transparency disabled, not padded
     image_it = ImageIterator(gif_image, 1, "1.1#")
     assert next(image_it).count("\n") + 1 == _size[1]
     # First line without escape codes
-    assert next(image_it).partition("\n")[0][4:-4] != " " * _size[0]
+    assert next(image_it).partition("\n")[0].strip(COLOR_RESET) != " " * _size[0]
 
     # Transparency disabled, padded
     image_it = ImageIterator(gif_image, 1, f"{_size[0] + 2}.{_size[1] + 2}#")
