@@ -389,7 +389,8 @@ class KittyImage(GraphicsImage):
                     control_data, raw_image.read(bytes_per_line), compress
                 )
                 z_index is None and buffer.write(clear)
-                buffer.write(trans.get_chunked())
+                for chunk in trans.get_chunks():
+                    buffer.write(chunk)
                 # Writing spaces clears any text under transparent areas of an image
                 for _ in range(r_height - 1):
                     buffer.write(erase)
@@ -399,7 +400,8 @@ class KittyImage(GraphicsImage):
                         control_data, raw_image.read(bytes_per_line), compress
                     )
                     z_index is None and buffer.write(clear)
-                    buffer.write(trans.get_chunked())
+                    for chunk in trans.get_chunks():
+                        buffer.write(chunk)
                 buffer.write(erase)
                 buffer.write(jump_right)
 
