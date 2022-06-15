@@ -12,7 +12,7 @@ import urwid
 
 from .. import logging
 from ..config import max_notifications
-from ..utils import lock_tty
+from ..utils import CSI, lock_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
@@ -104,7 +104,7 @@ def init(
     anim_render_manager.start()
 
     try:
-        print("\033[?1049h", end="", flush=True)  # Switch to the alternate buffer
+        print(f"{CSI}?1049h", end="", flush=True)  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
         grid_render_manager.join()
@@ -115,7 +115,7 @@ def init(
         logging.log("Exited TUI normally", logger, direct=False)
     finally:
         # urwid fails to restore the normal buffer on some terminals
-        print("\033[?1049l", end="", flush=True)  # Switch back to the normal buffer
+        print(f"{CSI}?1049l", end="", flush=True)  # Switch back to the normal buffer
         main.displayer.close()
         is_launched = False
         os.close(main.update_pipe)

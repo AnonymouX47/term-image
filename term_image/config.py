@@ -12,6 +12,7 @@ from typing import Any, Dict
 import urwid
 
 from .exit_codes import CONFIG_ERROR
+from .utils import COLOR_RESET, CSI
 
 
 def action_with_key(key: str, keyset: Dict[str, list]) -> str:
@@ -24,18 +25,18 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> str:
 
 def info(msg: str) -> None:
     print(
-        f"\033[34mconfig: \033[0m{msg}",
+        f"{CSI}34mconfig: {COLOR_RESET}{msg}",
         # In case output is being redirected or piped
         file=sys.stdout if sys.stdout.isatty() else sys.stderr,
     )
 
 
 def error(msg: str) -> None:
-    print(f"\033[34mconfig: \033[33m{msg}\033[0m", file=sys.stderr)
+    print(f"{CSI}34mconfig: {CSI}33m{msg}{COLOR_RESET}", file=sys.stderr)
 
 
 def fatal(msg: str) -> None:
-    print(f"\033[34mconfig: \033[31m{msg}\033[0m", file=sys.stderr)
+    print(f"{CSI}34mconfig: {CSI}31m{msg}{COLOR_RESET}", file=sys.stderr)
 
 
 def init_config() -> None:

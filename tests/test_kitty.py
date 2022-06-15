@@ -10,7 +10,8 @@ import pytest
 
 from term_image.exceptions import KittyImageError
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.image.kitty import _END, _START, LINES, WHOLE, KittyImage
+from term_image.image.kitty import LINES, START, WHOLE, KittyImage
+from term_image.utils import CSI, ESC, ST
 
 from .common import *  # noqa:F401
 from .common import _size, python_img, setup_common
@@ -121,12 +122,12 @@ def expand_control_data(control_data):
 
 
 def decode_image(data):
-    empty, start, data = data.partition(_START)
+    empty, start, data = data.partition(START)
     assert empty == ""
-    assert start == _START
+    assert start == START
 
-    transmission, end, fill = data.rpartition(_END)
-    assert end == _END
+    transmission, end, fill = data.rpartition(ST)
+    assert end == ST
 
     control_data, chunked_payload = transmission.split(";", 1)
     control_codes = expand_control_data(control_data)
@@ -135,14 +136,14 @@ def decode_image(data):
     )
 
     with io.StringIO() as full_payload:
-        # Implies every split after the first would've started with _START
-        chunks = chunked_payload.split(_START)
+        # Implies every split after the first would've started with START
+        chunks = chunked_payload.split(START)
         first_chunk = chunks.pop(0)
 
         if chunks:
             last_chunk = chunks.pop()
-            payload, end, empty = first_chunk.partition(_END)
-            assert end == _END
+            payload, end, empty = first_chunk.partition(ST)
+            assert end == ST
             assert empty == ""
             assert ("m", "1") in control_codes
         else:
@@ -155,8 +156,8 @@ def decode_image(data):
         full_payload.write(payload)
 
         for chunk in chunks:
-            transmission, end, empty = chunk.partition(_END)
-            assert end == _END
+            transmission, end, empty = chunk.partition(ST)
+            assert end == ST
             assert empty == ""
             control_data, payload = transmission.split(";")
             assert ("m", "1") in expand_control_data(control_data)
@@ -165,7 +166,7 @@ def decode_image(data):
             full_payload.write(payload)
 
         if last_chunk:
-            # _END was removed at the beginning
+            # ST was removed at the beginning
             control_data, payload = last_chunk.split(";")
             assert ("m", "0") in expand_control_data(control_data)
             assert len(payload) <= 4096
@@ -327,12 +328,12 @@ class TestRenderLines:
                 assert ("z", f"{value}") in decode_image(line)[0]
 
         # z_index = None
-        clear = f"{delete}\0337\033[{self.trans.rendered_width}C{delete}\0338"
+        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
         for line in render.splitlines():
             assert line.startswith(clear)
-            control_codes = decode_image(line.partition("\0338")[2])[0]
+            control_codes = decode_image(line.partition(f"{ESC}8")[2])[0]
             assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
@@ -494,11 +495,11 @@ class TestRenderWhole:
             assert ("z", f"{value}") in control_codes
 
         # z_index = None
-        clear = f"{delete}\0337\033[{self.trans.rendered_width}C{delete}\0338"
+        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
         assert render.startswith(clear)
-        control_codes = decode_image(render.partition("\0338")[2])[0]
+        control_codes = decode_image(render.partition(f"{ESC}8")[2])[0]
         assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
@@ -536,6 +537,6 @@ class TestRenderWhole:
             self._test_image_size(self.trans)
 
 
-delete = f"{_START}a=d,d=c;{_END}"
-jump_right = "\033[{cols}C"
-fill_fmt = f"\033[{{cols}}X{jump_right}"
+delete = f"{START}a=d,d=c;{ST}"
+jump_right = f"{CSI}{{cols}}C"
+fill_fmt = f"{CSI}{{cols}}X{jump_right}"

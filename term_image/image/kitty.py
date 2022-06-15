@@ -13,7 +13,7 @@ from zlib import compress, decompress
 import PIL
 
 from ..exceptions import _style_error
-from ..utils import lock_tty, query_terminal
+from ..utils import CSI, ESC, ST, lock_tty, query_terminal
 from .common import GraphicsImage
 
 FORMAT_SPEC = re.compile(r"([^zm]*)(z(-?\d+)?)?(m[01])?(.*)", re.ASCII)
@@ -186,20 +186,18 @@ class KittyImage(GraphicsImage):
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
                 (
-                    f"{_START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{_END}\033[c"
+                    f"{START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{ST}{CSI}c"
                 ).encode(),
                 lambda s: not s.endswith(b"c"),
-            )
+            ).decode()
 
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            if response and (
-                response.rpartition(b"\033")[0] == f"{_START}i=31;OK{_END}".encode()
-            ):
+            if response and (response.rpartition(ESC)[0] == f"{START}i=31;OK{ST}"):
                 # Currently, only kitty >= 0.20.0 and Konsole >= 22.04.0 implement the
                 # protocol features utilized
                 response = query_terminal(
-                    b"\033[>q", lambda s: not s.endswith(b"\033\\")
+                    f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
                 ).decode()
                 match = re.match(
                     r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response, re.ASCII
@@ -245,7 +243,7 @@ class KittyImage(GraphicsImage):
 
     @staticmethod
     def _clear_images():
-        _stdout_write(b"\033_Ga=d;\033\\")
+        _stdout_write(DELETE_ALL_IMAGES)
         return True
 
     @classmethod
@@ -283,7 +281,7 @@ class KittyImage(GraphicsImage):
         # End last command (does no harm if there wasn't an unterminated commanand)
         # and send "last chunk" in case the last transmission was chunked.
         # Konsole sometimes requires ST to be written twice.
-        print(f"{_END * 2}{_START}q=1,m=0;{_END}", end="", flush=True)
+        print(f"{ST * 2}{START}q=1,m=0;{ST}", end="", flush=True)
 
     def _render_image(
         self,
@@ -316,11 +314,11 @@ class KittyImage(GraphicsImage):
             img.close()
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
-        erase = "" if mix else f"\033[{r_width}X"
-        jump_right = f"\033[{r_width}C"
+        erase = "" if mix else f"{CSI}{r_width}X"
+        jump_right = f"{CSI}{r_width}C"
         if z_index is None:
-            delete = f"{_START}a=d,d=c;{_END}"
-            clear = f"{delete}\0337\033[{r_width}C{delete}\0338"
+            delete = f"{START}a=d,d=c;{ST}"
+            clear = f"{delete}{ESC}7{CSI}{r_width}C{delete}{ESC}8"
 
         if self._render_method == LINES:
             cell_height = height // r_height
@@ -394,15 +392,15 @@ class Transmission:
         payload = self.get_payload()
 
         chunk, next_chunk = payload.read(size), payload.read(size)
-        yield f"\033_G{self.get_control_data()},m={bool(next_chunk):d};{chunk}\033\\"
+        yield f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
 
         chunk, next_chunk = next_chunk, payload.read(size)
         while next_chunk:
-            yield f"\033_Gm=1;{chunk}\033\\"
+            yield f"{START}m=1;{chunk}{ST}"
             chunk, next_chunk = next_chunk, payload.read(size)
 
         if chunk:  # false if there was never a next chunk
-            yield f"\033_Gm=0;{chunk}\033\\"
+            yield f"{START}m=0;{chunk}{ST}"
 
     def get_control_data(self) -> str:
         return ",".join(
@@ -501,7 +499,7 @@ class _ControlData:  # Currently Unused
     h: Optional[int] = None
 
 
-_START = "\033_G"
-_END = "\033\\"
-_FMT = f"{_START}%(control)s;%(payload)s{_END}"
+START = f"{ESC}_G"
+FMT = f"{START}%(control)s;%(payload)s{ST}"
+DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
 _stdout_write = sys.stdout.buffer.write

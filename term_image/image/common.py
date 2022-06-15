@@ -32,7 +32,14 @@ from ..exceptions import (
     URLNotFoundError,
     _style_error,
 )
-from ..utils import ClassInstanceMethod, get_cell_size, get_terminal_size, no_redecorate
+from ..utils import (
+    COLOR_RESET,
+    CSI,
+    ClassInstanceMethod,
+    get_cell_size,
+    get_terminal_size,
+    no_redecorate,
+)
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
@@ -635,7 +642,7 @@ class BaseImage(ABC):
 
         def render(image: PIL.Image.Image) -> None:
             # Hide the cursor immediately if the output is a terminal device
-            sys.stdout.isatty() and print("\033[?25l", end="", flush=True)
+            sys.stdout.isatty() and print(f"{CSI}?25l", end="", flush=True)
             try:
                 style_args = self._check_style_args(style)
                 if self._is_animated and animate:
@@ -657,7 +664,7 @@ class BaseImage(ABC):
                         raise
             finally:
                 # Reset color and show the cursor
-                print("\033[0m", "\033[?25h" * sys.stdout.isatty(), sep="")
+                print(COLOR_RESET, f"{CSI}?25h" * sys.stdout.isatty(), sep="")
 
         self._renderer(
             render,
@@ -1301,7 +1308,7 @@ class BaseImage(ABC):
                 # move cursor up to the begining of the first line of the image
                 # and print the new current frame.
                 self._clear_frame()
-                print(f"\r\033[{lines - 1}A", frame, sep="", end="", flush=True)
+                print(f"\r{CSI}{lines - 1}A", frame, sep="", end="", flush=True)
 
                 # Render next frame during current frame's duration
                 start = time.time()
@@ -1315,7 +1322,7 @@ class BaseImage(ABC):
             self._seek_position = prev_seek_pos
             # Move the cursor to the last line of the image to prevent "overlayed"
             # output in the terminal
-            print(f"\033[{lines}B", end="")
+            print(f"{CSI}{lines}B", end="")
 
     def _format_render(
         self,
