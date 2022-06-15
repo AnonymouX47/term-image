@@ -16,7 +16,9 @@ from ..exceptions import _style_error
 from ..utils import lock_tty, query_terminal
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(r"([^LWzm]*)([LW])?(z(-?\d+)?)?(m[01])?(.*)", re.ASCII)
+FORMAT_SPEC = re.compile(
+    r"([^LWzmc]*)([LW])?(z(-?\d+)?)?(m[01])?(c[0-9])?(.*)", re.ASCII
+)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -61,7 +63,7 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [method] [ z [index] ] [ m {0 | 1} ]
+        [method] [ z [index] ] [ m {0 | 1} ] [ c {0-9} ]
 
     * ``method``: Render method override.
 
@@ -99,6 +101,12 @@ class KittyImage(GraphicsImage):
       * If *absent*, defaults to ``m0``.
       * e.g ``m0``, ``m1``.
 
+    * ``c``: ZLIB compression level.
+
+      * 1 gives best speed, 9 gives best compression, 0 gives no compression at all.
+      * This results in a trade-off between render time and transmission size/time.
+      * If *absent*, defaults to ``c4``.
+      * e.g ``c0``, ``c9``.
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -138,6 +146,16 @@ class KittyImage(GraphicsImage):
             ),
             (lambda _: True, ""),
         ),
+        "compress": (
+            (
+                lambda x: isinstance(x, int),
+                "Compression level must be an integer",
+            ),
+            (
+                lambda x: 0 <= x <= 9,
+                "Compression level must be between 0 and 9 (both inclusive)",
+            ),
+        ),
     }
 
     _KITTY_VERSION: Tuple[int, int, int] = ()
@@ -145,7 +163,12 @@ class KittyImage(GraphicsImage):
 
     # Only defined for the purpose of proper self-documentation
     def draw(
-        self, *args, z_index: Optional[int] = 0, mix: bool = False, **kwargs
+        self,
+        *args,
+        z_index: Optional[int] = 0,
+        mix: bool = False,
+        compress: int = 4,
+        **kwargs,
     ) -> None:
         """Draws an image to standard output.
 
@@ -177,6 +200,12 @@ class KittyImage(GraphicsImage):
               * ``False``, text within the region covered by the image will be
                 erased, though text can be inter-mixed with the image after it's
                 been drawn.
+
+            compress: ZLIB compression level.
+
+              An integer between 0 and 9: 1 gives best speed, 9 gives best compression,
+              0 gives no compression at all. This results in a trade-off between render
+              time and transmission size/time.
 
             kwargs: Keyword arguments passed up the inheritance chain.
 
@@ -246,7 +275,9 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, method, z, index, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
+        parent, method, z, index, mix, compress, invalid = FORMAT_SPEC.fullmatch(
+            spec
+        ).groups()
         if invalid:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
@@ -255,12 +286,14 @@ class KittyImage(GraphicsImage):
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
+        if method:
+            args["method"] = LINES if method == "L" else WHOLE
         if z:
             args["z_index"] = index and int(index)
         if mix:
             args["mix"] = bool(int(mix[-1]))
-        if method:
-            args["method"] = LINES if method == "L" else WHOLE
+        if compress:
+            args["compress"] = int(compress[-1])
 
         return cls._check_style_args(args)
 
@@ -315,6 +348,7 @@ class KittyImage(GraphicsImage):
         method: Optional[str] = None,
         z_index: Optional[int] = 0,
         mix: bool = False,
+        compress: int = 4,
     ) -> str:
         # NOTE: It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
@@ -351,7 +385,9 @@ class KittyImage(GraphicsImage):
             vars(control_data).update(dict(v=cell_height, r=1))
 
             with io.StringIO() as buffer, io.BytesIO(raw_image) as raw_image:
-                trans = Transmission(control_data, raw_image.read(bytes_per_line))
+                trans = Transmission(
+                    control_data, raw_image.read(bytes_per_line), compress
+                )
                 z_index is None and buffer.write(clear)
                 buffer.write(trans.get_chunked())
                 # Writing spaces clears any text under transparent areas of an image
@@ -359,7 +395,9 @@ class KittyImage(GraphicsImage):
                     buffer.write(erase)
                     buffer.write(jump_right)
                     buffer.write("\n")
-                    trans = Transmission(control_data, raw_image.read(bytes_per_line))
+                    trans = Transmission(
+                        control_data, raw_image.read(bytes_per_line), compress
+                    )
                     z_index is None and buffer.write(clear)
                     buffer.write(trans.get_chunked())
                 buffer.write(erase)
@@ -371,7 +409,7 @@ class KittyImage(GraphicsImage):
             return "".join(
                 (
                     z_index is None and clear or "",
-                    Transmission(control_data, raw_image).get_chunked(),
+                    Transmission(control_data, raw_image, compress).get_chunked(),
                     f"{erase}{jump_right}\n" * (r_height - 1),
                     f"{erase}{jump_right}",
                 )
@@ -385,19 +423,27 @@ class Transmission:
     Args:
         control: The control data.
         payload: The payload.
+        level: Compression level.
     """
 
     control: ControlData
     payload: bytes
 
+    # From tests with a few images, from anything beyond 4, the decrease in size
+    # doesn't seem to be worth the increase in compression time in most cases.
+    # Might change if proven otherwise.
+    level: int = 4
+
     def __post_init__(self):
         self._compressed = False
-        if self.control.o == o.ZLIB:
+        if self.level:
             self.compress()
+        else:
+            self.control.o = None
 
     def compress(self):
-        if self.control.t == t.DIRECT and not self._compressed:
-            self.payload = compress(self.payload)
+        if self.control.t == t.DIRECT and not self._compressed and self.level:
+            self.payload = compress(self.payload, self.level)
             self.control.o = o.ZLIB
             self._compressed = True
 
@@ -489,7 +535,7 @@ class ControlData:
     s: Optional[int] = None  # image width
     v: Optional[int] = None  # image height
     z: Optional[int] = z.IN_FRONT  # z-index
-    o: Optional[str] = o.ZLIB  # compression
+    o: Optional[str] = None  # compression
     C: Optional[int] = C.STAY  # cursor movement policy
 
     # # Image display size in columns and rows/lines
