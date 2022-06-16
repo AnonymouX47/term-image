@@ -1053,7 +1053,7 @@ FOOTNOTES:
         ),
     )
 
-    kitty_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    kitty_parser = argparse.ArgumentParser(add_help=False)
     kitty_options = kitty_parser.add_argument_group(
         "Kitty Style Options (CLI-only)",
         "These options apply only when the 'kitty' render style is used",
@@ -1068,7 +1068,7 @@ FOOTNOTES:
         help="Image stacking order (default: 0)",
     )
 
-    iterm2_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    iterm2_parser = argparse.ArgumentParser(add_help=False)
     iterm2_options = iterm2_parser.add_argument_group(
         "iTerm2 Style Options (CLI-only)",
         "These options apply only when the 'iterm2' render style is used",
