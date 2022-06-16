@@ -38,6 +38,7 @@ __all__ = (
     "terminal_size_cached",
     "color",
     "get_cell_size",
+    "get_fg_bg_colors",
     "get_terminal_size",
     "get_window_size",
     "query_terminal",
@@ -46,6 +47,7 @@ __all__ = (
 )
 
 import os
+import re
 import sys
 import warnings
 from array import array
@@ -69,16 +71,6 @@ except ImportError:
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True
-
-# Constants for escape sequences
-
-ESC = "\033"
-CSI = f"{ESC}["
-OSC = f"{ESC}]"
-ST = f"{ESC}\\"
-BG_FMT = f"{CSI}48;2;%d;%d;%dm"
-FG_FMT = f"{CSI}38;2;%d;%d;%dm"
-COLOR_RESET = f"{CSI}m"
 
 # Decorator Classes
 
@@ -272,7 +264,6 @@ def color(
 
 
 @unix_tty_only
-@cached
 @terminal_size_cached
 def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
@@ -284,6 +275,35 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
     return None if size is None or len(size) != 2 or 0 in size else size
+
+
+@cached
+def get_fg_bg_colors() -> Tuple[
+    Optional[Tuple[int, int, int]], Optional[Tuple[int, int, int]]
+]:
+    """Returns the default FG and BG colors of the :term:`active terminal`.
+
+    Returns:
+        The RGB values (or ``None`` if undetermined) for each color.
+    """
+    with _tty_lock:  # All of the terminal's reply isn't read in `query_terminal()`
+        response = query_terminal(
+            # Not all terminals (e.g VTE-based) support multiple queries in one escape
+            # sequence, hence the repetition of OSC ... ST
+            f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
+            lambda s: not s.endswith(f"{CSI}".encode()),
+        )
+        read_tty()  # Rest of the reply to CSI c
+
+    fg = bg = None
+    if response:
+        for c, spec in RGB_SPEC.findall(response.decode().rpartition(ESC)[0]):
+            if c == "10":
+                fg = x_parse_color(spec)
+            elif c == "11":
+                bg = x_parse_color(spec)
+
+    return fg, bg
 
 
 def get_terminal_size() -> Optional[Tuple[int, int]]:
@@ -311,7 +331,6 @@ def get_terminal_size() -> Optional[Tuple[int, int]]:
 
 
 @unix_tty_only
-@cached
 @terminal_size_cached
 def get_window_size() -> Optional[Tuple[int, int]]:
     """Returns the current window size of the :term:`active terminal`.
@@ -509,6 +528,12 @@ def write_tty(data: bytes) -> None:
         pass
 
 
+def x_parse_color(spec: str) -> Tuple[int, int, int]:
+    """Converts an RGB Device specification according to XParseColor"""
+    # One hex char -> 4 bits
+    return tuple(int(x, 16) * 255 // ((1 << (len(x) * 4)) - 1) for x in spec.split("/"))
+
+
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock
 
@@ -544,6 +569,18 @@ def _process_run_wrapper(self, *args, **kwargs):
         _tty_lock = self._tty_lock
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
+
+RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
+
+# Constants for escape sequences
+
+ESC = "\033"
+CSI = f"{ESC}["
+OSC = f"{ESC}]"
+ST = f"{ESC}\\"
+BG_FMT = f"{CSI}48;2;%d;%d;%dm"
+FG_FMT = f"{CSI}38;2;%d;%d;%dm"
+COLOR_RESET = f"{CSI}m"
 
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
