@@ -83,8 +83,8 @@ class KittyImage(GraphicsImage):
 
         * ``>= 0``, the image will be drawn above text.
         * ``< 0``, the image will be drawn below text.
-        * ``< -(2 ** 31) / 2``, the image will be drawn below non-default text
-          background colors.
+        * ``< -(2**31)/2``, the image will be drawn below cells with non-default
+          background color.
 
       * ``z`` without ``index`` is currently only used internally.
       * If *absent*, defaults to z-index ``0``.
@@ -183,8 +183,8 @@ class KittyImage(GraphicsImage):
 
               * ``>= 0``, the image will be drawn above text.
               * ``< 0``, the image will be drawn below text.
-              * ``< -(2 ** 31) / 2``, the image will be drawn below non-default text
-                background colors.
+              * ``< -(2**31)/2``, the image will be drawn below cells with
+                non-default background color.
               * ``None``, deletes any directly overlapping image.
 
               .. note::

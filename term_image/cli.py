@@ -1065,7 +1065,11 @@ FOOTNOTES:
         dest="z_index",
         default=0,
         type=int,
-        help="Image stacking order (default: 0)",
+        help=(
+            "Image stacking order (CLI-only) (default: 0). "
+            "`>= 0` -> above text, `< 0` -> below text, `< -(2**31)/2` -> "
+            "below cells with non-default background."
+        ),
     )
     kitty_options.add_argument(
         "--kc",
