@@ -14,6 +14,7 @@ import urwid
 from . import cli, logging, tui
 from .config import max_notifications
 from .tui import main, widgets
+from .utils import COLOR_RESET, CSI
 
 DEBUG = INFO = 0
 WARNING = 1
@@ -115,9 +116,9 @@ def notify(
     if not tui.is_launched:
         print(
             (
-                f"\033[33m{msg}\033[0m"
+                f"{CSI}33m{msg}{COLOR_RESET}"
                 if level == WARNING
-                else f"\033[31m{msg}\033[0m"
+                else f"{CSI}31m{msg}{COLOR_RESET}"
                 if level >= ERROR
                 else msg
             ),

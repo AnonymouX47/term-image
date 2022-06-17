@@ -1,30 +1,6 @@
 """
 Utilities
 =========
-
-.. _active-terminal:
-
-Every mention of *active terminal* in this module refers to the first terminal
-device discovered.
-
-The following streams/files are checked in the following order of priority
-(along with the rationale behind the ordering):
-
-* ``STDOUT``: Since it's where images will most likely be drawn.
-* ``STDIN``: If output is redirected to a file or pipe and the input is a terminal,
-  then using it as the :term:`active terminal` should give the expected result i.e the
-  same as when output is not redirected.
-* ``STDERR``: If both output and input are redirected, it's usually unlikely for
-  errors to be.
-* ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
-  terminal, if any.
-
-The first one that is ascertained to be a terminal device is used for
-all terminal queries and terminal size computations.
-
-NOTE:
-   If none of the streams/files is a terminal device, then a warning is issued
-   and affected functionality disabled.
 """
 
 from __future__ import annotations
@@ -38,6 +14,7 @@ __all__ = (
     "terminal_size_cached",
     "color",
     "get_cell_size",
+    "get_fg_bg_colors",
     "get_terminal_size",
     "get_window_size",
     "query_terminal",
@@ -46,6 +23,7 @@ __all__ = (
 )
 
 import os
+import re
 import sys
 import warnings
 from array import array
@@ -145,7 +123,7 @@ def cached(func: Callable) -> FunctionType:
 
 @no_redecorate
 def lock_tty(func: Callable) -> FunctionType:
-    """Synchronizes access to the active terminal.
+    """Synchronizes access to the :term:`active terminal`.
 
     Args:
         func: The function to be wrapped.
@@ -157,15 +135,13 @@ def lock_tty(func: Callable) -> FunctionType:
     process or thread.
 
     NOTE:
-        It automatocally works across parent-/sub-processes (started with
-        ``multiprocessing.Process``) and their threads.
-        To achieve this, ``multiprocessing.Process`` is "hooked" and it works even with
-        subclasses.
+        | It automatically works across parent-/sub-processes, started directly or
+          indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
+          threads.
 
     IMPORTANT:
-        It only works across processes started with ``multiprocessing.Process`` and
-        if ``multiprocessing.synchronize`` is supported on the host platform.
-        If not supported, a warning is issued when starting a subprocess.
+        It only works if ``multiprocessing.synchronize`` is supported on the host
+        platform.  If not supported, a warning is issued when starting a subprocess.
     """
 
     @wraps(func)
@@ -254,15 +230,14 @@ def color(
 
     The color code is ommited for any of *fg* or *bg* that is empty.
     """
-    return (_FG_FMT * bool(fg) + _BG_FMT * bool(bg) + "%s") % (
+    return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (
         *fg,
         *bg,
         text,
-    ) + _RESET * end
+    ) + COLOR_RESET * end
 
 
 @unix_tty_only
-@cached
 @terminal_size_cached
 def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
@@ -274,6 +249,35 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
     return None if size is None or len(size) != 2 or 0 in size else size
+
+
+@cached
+def get_fg_bg_colors() -> Tuple[
+    Optional[Tuple[int, int, int]], Optional[Tuple[int, int, int]]
+]:
+    """Returns the default FG and BG colors of the :term:`active terminal`.
+
+    Returns:
+        The RGB values (or ``None`` if undetermined) for each color.
+    """
+    with _tty_lock:  # All of the terminal's reply isn't read in `query_terminal()`
+        response = query_terminal(
+            # Not all terminals (e.g VTE-based) support multiple queries in one escape
+            # sequence, hence the repetition of OSC ... ST
+            f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
+            lambda s: not s.endswith(f"{CSI}".encode()),
+        )
+        read_tty()  # Rest of the reply to CSI c
+
+    fg = bg = None
+    if response:
+        for c, spec in RGB_SPEC.findall(response.decode().rpartition(ESC)[0]):
+            if c == "10":
+                fg = x_parse_color(spec)
+            elif c == "11":
+                bg = x_parse_color(spec)
+
+    return fg, bg
 
 
 def get_terminal_size() -> Optional[Tuple[int, int]]:
@@ -301,7 +305,6 @@ def get_terminal_size() -> Optional[Tuple[int, int]]:
 
 
 @unix_tty_only
-@cached
 @terminal_size_cached
 def get_window_size() -> Optional[Tuple[int, int]]:
     """Returns the current window size of the :term:`active terminal`.
@@ -359,11 +362,12 @@ def query_terminal(
           * ``True``, more response is waited for.
           * ``False``, the recieved response is returned immediately.
 
-        timeout: Time limit for awaiting a response from the terminal, in seconds.
+        timeout: Time limit for awaiting a response from the terminal, in seconds
+          (infinite if negative).
 
     Returns:
-        The terminal's response or ``None`` if no response is recieved after *timeout*
-        is up.
+        The terminal's response (empty, if no response is recieved after *timeout*
+        is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
@@ -404,14 +408,14 @@ def read_tty(
           Any input before or after calling this function is not affected.
 
     Returns:
-        The input read or ``None`` if *min* == ``0`` (default) and no input is recieved
-        before *timeout* is up.
+        The input read (empty, if *min* == ``0`` (default) and no input is recieved
+        before *timeout* is up).
 
     If *timeout* is ``None`` (default), all available input is read without blocking.
 
     If *timeout* is not ``None`` and:
 
-      * *timeout* < ``0``, it's taken to be infinite.
+      * *timeout* < ``0``, it's infinite.
       * *min* > ``0``, input is waited for until at least *min* bytes have been read.
 
         After *min* bytes have been read, the following points apply with *timeout*
@@ -482,7 +486,7 @@ def read_tty(
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
-    return bytes(input) if input else None
+    return bytes(input)
 
 
 @unix_tty_only
@@ -496,6 +500,12 @@ def write_tty(data: bytes) -> None:
         termios.tcdrain(_tty)
     except termios.error:  # "Permission denied" on some platforms e.g Termux
         pass
+
+
+def x_parse_color(spec: str) -> Tuple[int, int, int]:
+    """Converts an RGB Device specification according to XParseColor"""
+    # One hex char -> 4 bits
+    return tuple(int(x, 16) * 255 // ((1 << (len(x) * 4)) - 1) for x in spec.split("/"))
 
 
 def _process_start_wrapper(self, *args, **kwargs):
@@ -534,9 +544,17 @@ def _process_run_wrapper(self, *args, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-_BG_FMT = "\033[48;2;%d;%d;%dm"
-_FG_FMT = "\033[38;2;%d;%d;%dm"
-_RESET = "\033[0m"
+RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
+
+# Constants for escape sequences
+
+ESC = "\033"
+CSI = f"{ESC}["
+OSC = f"{ESC}]"
+ST = f"{ESC}\\"
+BG_FMT = f"{CSI}48;2;%d;%d;%dm"
+FG_FMT = f"{CSI}38;2;%d;%d;%dm"
+COLOR_RESET = f"{CSI}m"
 
 # Appended to ensure it is overriden by any filter prepended before loading this module
 warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)

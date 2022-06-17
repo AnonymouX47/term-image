@@ -37,7 +37,7 @@ from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import OS_IS_UNIX, get_terminal_size, write_tty
+from .utils import CSI, OS_IS_UNIX, get_terminal_size, write_tty
 
 
 def check_dir(
@@ -1207,7 +1207,7 @@ FOOTNOTES:
 
     # Some APCs used for render style support detection get emitted on some
     # non-supporting terminal emulators
-    write_tty(b"\033[1K\r")
+    write_tty(f"{CSI}1K\r".encode())
 
     log("Processing sources", logger, loading=True)
 

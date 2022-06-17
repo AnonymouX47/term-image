@@ -6,6 +6,7 @@ import pytest
 
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
+from term_image.utils import COLOR_RESET, CSI
 
 from .common import *  # noqa:F401
 from .common import _size, setup_common
@@ -41,12 +42,12 @@ class TestRender:
 
         # Transparency enabled
         assert all(
-            line == "\033[0m" + " " * self.trans.width + "\033[0m"
+            line == COLOR_RESET + " " * self.trans.width + COLOR_RESET
             for line in self.render_image(_ALPHA_THRESHOLD).splitlines()
         )
         # Transparency disabled
         assert all(
-            line == "\033[48;2;0;0;0m" + " " * self.trans.width + "\033[0m"
+            line == f"{CSI}48;2;0;0;0m" + " " * self.trans.width + COLOR_RESET
             for line in self.render_image(None).splitlines()
         )
 
@@ -55,22 +56,22 @@ class TestRender:
 
         # red
         assert all(
-            line == "\033[48;2;255;0;0m" + " " * self.trans.width + "\033[0m"
+            line == f"{CSI}48;2;255;0;0m" + " " * self.trans.width + COLOR_RESET
             for line in self.render_image("#ff0000").splitlines()
         )
         # green
         assert all(
-            line == "\033[48;2;0;255;0m" + " " * self.trans.width + "\033[0m"
+            line == f"{CSI}48;2;0;255;0m" + " " * self.trans.width + COLOR_RESET
             for line in self.render_image("#00ff00").splitlines()
         )
         # blue
         assert all(
-            line == "\033[48;2;0;0;255m" + " " * self.trans.width + "\033[0m"
+            line == f"{CSI}48;2;0;0;255m" + " " * self.trans.width + COLOR_RESET
             for line in self.render_image("#0000ff").splitlines()
         )
         # white
         assert all(
-            line == "\033[48;2;255;255;255m" + " " * self.trans.width + "\033[0m"
+            line == f"{CSI}48;2;255;255;255m" + " " * self.trans.width + COLOR_RESET
             for line in self.render_image("#ffffff").splitlines()
         )
 
@@ -80,7 +81,7 @@ class TestRender:
             render = self.render_image(_ALPHA_THRESHOLD)
             assert render.count("\n") + 1 == self.trans.rendered_height
             assert all(
-                line == "\033[0m" + " " * self.trans.rendered_width + "\033[0m"
+                line == COLOR_RESET + " " * self.trans.rendered_width + COLOR_RESET
                 for line in render.splitlines()
             )
 
@@ -95,6 +96,6 @@ class TestRender:
             render = self.render_image(_ALPHA_THRESHOLD)
             assert render.count("\n") + 1 == self.trans.rendered_height
             assert all(
-                line == "\033[0m" + " " * self.trans.rendered_width + "\033[0m"
+                line == COLOR_RESET + " " * self.trans.rendered_width + COLOR_RESET
                 for line in render.splitlines()
             )

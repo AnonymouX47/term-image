@@ -11,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from term_image import set_font_ratio
 from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BlockImage, ImageIterator, ImageSource
+from term_image.utils import ESC
 
 from .common import _size, columns, lines, python_img, setup_common
 
@@ -647,10 +648,10 @@ class TestFormatting:
         down = lines - self.image.rendered_height - up
 
         partition = render.rpartition("m")[0]
-        assert partition.rpartition("\n")[2].index("\033") == left
-        assert render.partition("\033")[0].count("\n") == up
+        assert partition.rpartition("\n")[2].index(ESC) == left
+        assert render.partition(ESC)[0].count("\n") == up
 
-        partition = render.partition("\033")[2]
+        partition = render.partition(ESC)[2]
         assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
         assert render.rpartition("m")[2].count("\n") == down
 
@@ -658,12 +659,10 @@ class TestFormatting:
         self.image.size = None
         render = self.format_render(self.render, ">", columns, "_", lines)
         assert (
-            render.rpartition("\n")[2].index("\033")
-            == columns - self.image.rendered_width
+            render.rpartition("\n")[2].index(ESC) == columns - self.image.rendered_width
         )
         assert (
-            render.partition("\033")[0].count("\n")
-            == lines - self.image.rendered_height
+            render.partition(ESC)[0].count("\n") == lines - self.image.rendered_height
         )
 
     # First line in every render should be padding (except the terminal is so small)

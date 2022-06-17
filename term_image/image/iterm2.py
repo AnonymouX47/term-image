@@ -15,7 +15,16 @@ import PIL
 
 from .. import TermImageWarning
 from ..exceptions import _style_error
-from ..utils import get_terminal_size, lock_tty, query_terminal, read_tty
+from ..utils import (
+    CSI,
+    ESC,
+    OSC,
+    ST,
+    get_terminal_size,
+    lock_tty,
+    query_terminal,
+    read_tty,
+)
 from .common import GraphicsImage, ImageSource
 
 FORMAT_SPEC = re.compile(r"([^LWNm]*)([LWN])?(m[01])?(.*)", re.ASCII)
@@ -234,7 +243,7 @@ class ITerm2Image(GraphicsImage):
             # The latter is to speed up the entirequery since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                b"\033[>q\033[c", lambda s: not s.endswith(b"\033[?6")
+                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(f"{CSI}?6".encode())
             )
             read_tty()  # The rest of the response to `CSI c`
 
@@ -243,7 +252,7 @@ class ITerm2Image(GraphicsImage):
             if response:
                 match = re.fullmatch(
                     r"\033P>\|(\w+)[( ]([^\033]+)\)?\033\\",
-                    response.decode().rpartition("\033")[0],
+                    response.decode().rpartition(ESC)[0],
                 )
                 if match and match.group(1).lower() in {"iterm2", "konsole", "wezterm"}:
                     name, version = map(str.lower, match.groups())
@@ -288,7 +297,7 @@ class ITerm2Image(GraphicsImage):
             # Only works and required on Konsole, as text doesn't overwrite image cells.
             # Seems Konsole utilizes the same image rendering implementation as it
             # uses for the kiity graphics protocol.
-            _stdout_write(b"\033_Ga=d;\033\\")
+            _stdout_write(DELETE_ALL_IMAGES)
             return True
         return False
 
@@ -331,11 +340,11 @@ class ITerm2Image(GraphicsImage):
                     self.rendered_height,
                 )
                 r_width = self.rendered_width
-                erase_and_jump = f"\033[{r_width}X\033[{r_width}C"
+                erase_and_jump = f"{CSI}{r_width}X{CSI}{r_width}C"
                 first_frame = self._format_render(
                     f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
                 )
-                print(first_frame, f"\r\033[{lines - 1}A", sep="", end="", flush=True)
+                print(first_frame, f"\r{CSI}{lines - 1}A", sep="", end="", flush=True)
 
             super()._display_animated(img, alpha, fmt, *args, mix=True, **kwargs)
 
@@ -374,8 +383,8 @@ class ITerm2Image(GraphicsImage):
         # Workarounds
         is_on_konsole = self._TERM == "konsole"
         is_on_wezterm = self._TERM == "wezterm"
-        jump_right = f"\033[{r_width}C"
-        erase = f"\033[{r_width}X" if not mix and is_on_wezterm else ""
+        jump_right = f"{CSI}{r_width}C"
+        erase = f"{CSI}{r_width}X" if not mix and is_on_wezterm else ""
 
         file_is_readable = True
         if self._source_type is ImageSource.PIL_IMAGE:
@@ -422,8 +431,8 @@ class ITerm2Image(GraphicsImage):
                     (
                         f"{erase}{jump_right}\n" * (r_height - 1),
                         erase,
-                        f"\033[{r_height - 1}A",
-                        "\033]1337;File=",
+                        f"{CSI}{r_height - 1}A",
+                        f"{OSC}1337;File=",
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
                         ST,
@@ -491,7 +500,7 @@ class ITerm2Image(GraphicsImage):
                         img.save(compressed_image, format, quality=95)
 
                     is_on_wezterm and buffer.write(erase)
-                    buffer.write(f"\033]1337;File=size={compressed_image.tell()}")
+                    buffer.write(f"{OSC}1337;File=size={compressed_image.tell()}")
                     buffer.write(control_data)
                     buffer.write(
                         standard_b64encode(compressed_image.getvalue()).decode()
@@ -517,8 +526,8 @@ class ITerm2Image(GraphicsImage):
                 (
                     "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
                     erase,
-                    "" if is_on_konsole else f"\033[{r_height - 1}A",
-                    "\033]1337;File=",
+                    "" if is_on_konsole else f"{CSI}{r_height - 1}A",
+                    f"{OSC}1337;File=",
                     control_data,
                     standard_b64encode(compressed_image.read()).decode(),
                     ST,
@@ -528,6 +537,6 @@ class ITerm2Image(GraphicsImage):
             )
 
 
-ST = "\033\\"
+DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
 native_anim = Event()
 _stdout_write = sys.stdout.buffer.write

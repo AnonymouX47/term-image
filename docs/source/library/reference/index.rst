@@ -70,34 +70,17 @@ Classes for render styles in this category are subclasses of :py:class:`Graphics
 Auto Font Ratio
 ---------------
 
-When using **auto font ratio** (in either mode), it's important to note that some (not all) terminal emulators (e.g VTE-based ones) might have to be queried, which involves:
+When using **auto font ratio** (in either mode), it's important to note that some
+(not all) terminal emulators (e.g VTE-based ones) might have to be queried.
+**See** :ref:`terminal-queries`.
 
-  1. Clearing all unread input from the active terminal
-  2. Writing to the active terminal
-  3. Reading from the active terminal
+If the program will never expect any useful input, **particularly while an image's
+size is being set or when an image with** :ref:`unset size <unset-size>` **is being
+rendered**, then using ``FULL_AUTO`` mode is OK.
 
-For this communication to be successful, it must not be interrupted.
-
-About #1
-   If this isn't a concern i.e the program will never expect any useful input, **particularly while an image's size is being set or when an image with** :ref:`unset size <unset-size>` **is being rendered**, then using ``FULL_AUTO`` mode is OK.
-
-   Otherwise i.e if the program will be expecting input:
-
-     * Use ``AUTO`` mode.
-     * Use :py:func:`utils.read_tty() <term_image.utils.read_tty>` (simply calling it without any argument is enough) to read all unread input (**without blocking**) before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
-
-About #2 and #3
-   If the program includes any other function that could write to the terminal OR especially, read from the terminal or modify it's attributes, while a query is in progress, decorate it with :py:func:`utils.lock_input <term_image.utils.lock_input>` to ensure it doesn't interfere.
-
-   For example, the TUI included in this package (i.e ``term_image``) uses `urwid <https://urwid.org>`_ which reads from the terminal using ``urwid.raw_display.Screen.get_available_raw_input()``. To prevent this method from interfering with terminal queries, it is wrapped thus::
-
-       urwid.raw_display.Screen.get_available_raw_input = lock_input(
-           urwid.raw_display.Screen.get_available_raw_input
-       )
-
-   Also, if the :term:`active terminal` is not the controlling terminal of the process using this library (e.g output is redirected to another terminal), ensure no process that can interfere with a query (e.g a shell) is currently running in the active terminal.
-
-   For instance, such a process can be temporarily put to sleep.
+Otherwise i.e if the program will be expecting input, use ``AUTO`` mode and use
+:py:func:`utils.read_tty() <term_image.utils.read_tty>` to read all currently unread
+input just before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
 
 
 .. _format-spec:
@@ -107,12 +90,13 @@ Image Format Specification
 
 .. code-block:: none
 
-   [h_align] [width] [ . [v_align] [height] ] [ # [threshold | bgcolor] ] [ + style ]
+   [h_align] [width] [ . [v_align] [height] ] [ # [threshold | bgcolor] ] [ + {style} ]
 
 .. note::
 
    * The spaces are only for clarity and not included in the syntax.
    * Fields within ``[ ]`` are optional.
+   * Fields within ``{ }`` are required, though subject to any enclosing ``[ ]``.
    * ``|`` implies mutual exclusivity.
    * If the ``.`` is present, then at least one of ``v_align`` and ``height`` must be present.
    * ``width`` and ``height`` are in units of columns and lines repectively.
