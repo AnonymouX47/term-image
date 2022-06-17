@@ -578,8 +578,7 @@ class BaseImage(ABC):
             ValueError: Image size or :term:`scale` too small.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
-            term_image.exceptions.{Style}ImageError: Unrecognized style-specific
-              parameters.
+            term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
         * If :py:meth:`set_size` was directly used to set the image size, the values
           of the *fit_to_width*, *h_allow* and *v_allow* arguments
@@ -1176,8 +1175,8 @@ class BaseImage(ABC):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.{Style}ImageError: An unknown style-specific
-              parameter is given.
+            term_image.exceptions.StyleError: An unknown style-specific parameter is
+              given.
         """
         for name, value in style_args.items():
             try:
@@ -1223,7 +1222,7 @@ class BaseImage(ABC):
             A mapping of keyword arguments.
 
         Raises:
-            term_image.exceptions.{Style}ImageError: Invalid style-specific format
+            term_image.exceptions.StyleError: Invalid style-specific format
               specification.
 
         **Every style-specific format spec should be treated as follows:**
@@ -1736,8 +1735,8 @@ class GraphicsImage(BaseImage):
     """Base of all render styles using terminal graphics protocols.
 
     Raises:
-        term_image.exceptions.{Style}ImageError: The :term:`active terminal` doesn't
-          support the render style.
+        term_image.exceptions.StyleError: The :term:`active terminal` doesn't support
+          the render style.
 
     See :py:class:`BaseImage` for the description of the constructor.
 
@@ -1842,7 +1841,7 @@ class ImageIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
-        term_image.exceptions.{Style}ImageError: Invalid style-specific format
+        term_image.exceptions.StyleError: Invalid style-specific format
           specification.
 
     * If *repeat* equals ``1``, caching is disabled.

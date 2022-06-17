@@ -30,7 +30,7 @@ from . import (
     tui,
 )
 from .config import config_options, store_config
-from .exceptions import TermImageError, URLNotFoundError, _style_error
+from .exceptions import StyleError, TermImageError, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, _best_style
 from .image.common import _ALPHA_THRESHOLD
@@ -1200,7 +1200,7 @@ FOOTNOTES:
     else:
         try:
             ImageClass(None)
-        except TermImageError:  # Instantiation isn't permitted
+        except StyleError:  # Instantiation isn't permitted
             log(
                 f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
@@ -1335,7 +1335,6 @@ FOOTNOTES:
     ):
         log("Running in CLI mode", logger, direct=False)
 
-        style_error = _style_error(ImageClass)
         if style_args.get("native") and len(images) > 1:
             style_args["stall_native"] = False
 
@@ -1423,7 +1422,7 @@ FOOTNOTES:
             # Handles `ValueError` and `.exceptions.InvalidSizeError`
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
-            except (ValueError, style_error, TermImageWarning) as e:
+            except (ValueError, StyleError, TermImageWarning) as e:
                 notify.notify(str(e), level=notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()
