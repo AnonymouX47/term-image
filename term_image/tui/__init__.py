@@ -58,20 +58,22 @@ def init(
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
-    Image._ti_alpha = (
-        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
-    )
-
-    # Kitty blends images with the same z-index, hence the `z_index=None`, which is
-    # pretty glitchy for animations with WHOLE method, hence the change to LINES
     if args.style == "kitty":
+        # Kitty blends images with the same z-index, hence the `z_index=None`, which is
+        # pretty glitchy for animations with WHOLE method, hence the change to LINES
         if ImageClass._KITTY_VERSION:
             render.anim_style_specs["kitty"] = "+L"
         for name in ("anim", "grid", "image"):
             specs = getattr(render, f"{name}_style_specs")
             if ImageClass._KITTY_VERSION:
                 specs["kitty"] += "z"
-            specs["kitty"] += f"c{style_args['compress']}"
+            # Would've been removed if it had the default value
+            if "compress" in style_args:
+                specs["kitty"] += f"c{style_args['compress']}"
+
+    Image._ti_alpha = (
+        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
+    )
     Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted

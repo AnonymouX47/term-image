@@ -137,6 +137,7 @@ class ITerm2Image(GraphicsImage):
     _render_method: str = LINES
     _style_args = {
         "method": (
+            None,
             (
                 lambda x: isinstance(x, str),
                 "Render method must be a string",
@@ -147,6 +148,7 @@ class ITerm2Image(GraphicsImage):
             ),
         ),
         "mix": (
+            False,
             (
                 lambda x: isinstance(x, bool),
                 "Cell content inter-mix policy must be a boolean",
@@ -154,6 +156,7 @@ class ITerm2Image(GraphicsImage):
             (lambda _: True, ""),
         ),
         "native": (
+            False,
             (
                 lambda x: isinstance(x, bool),
                 "Native animation policy must be a boolean",
@@ -161,6 +164,7 @@ class ITerm2Image(GraphicsImage):
             (lambda _: True, ""),
         ),
         "stall_native": (
+            True,
             (
                 lambda x: isinstance(x, bool),
                 "Native animation execution policy must be a boolean",

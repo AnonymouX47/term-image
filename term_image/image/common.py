@@ -1165,8 +1165,10 @@ class BaseImage(ABC):
 
     @classmethod
     def _check_style_args(cls, style_args: Dict[str, Any]) -> Dict[str, Any]:
-        """Validates style-specific arguments and translate them into the required
+        """Validates style-specific arguments and translates them into the required
         values.
+
+        Removes any argument having a value equal to the default.
 
         Returns:
             A mapping of keyword arguments.
@@ -1178,9 +1180,13 @@ class BaseImage(ABC):
             term_image.exceptions.StyleError: An unknown style-specific parameter is
               given.
         """
-        for name, value in style_args.items():
+        for name, value in tuple(style_args.items()):
             try:
-                (check_type, type_msg), (check_value, value_msg) = cls._style_args[name]
+                (
+                    default,
+                    (check_type, type_msg),
+                    (check_value, value_msg),
+                ) = cls._style_args[name]
             except KeyError:
                 for other_cls in cls.__mro__:
                     # less costly than memebership tests on every class' __bases__
@@ -1210,6 +1216,11 @@ class BaseImage(ABC):
                 raise TypeError(f"{type_msg} (got: {type(value).__name__})")
             if not check_value(value):
                 raise ValueError(f"{value_msg} (got: {value!r})")
+
+            # Must not occur before type and value checks to avoid falling prey of
+            # operator overloading
+            if value == default:
+                del style_args[name]
 
         return style_args
 

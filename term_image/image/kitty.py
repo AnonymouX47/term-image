@@ -120,6 +120,7 @@ class KittyImage(GraphicsImage):
     _render_method: str = LINES
     _style_args = {
         "method": (
+            None,
             (
                 lambda x: isinstance(x, str),
                 "Render method must be a string",
@@ -130,6 +131,7 @@ class KittyImage(GraphicsImage):
             ),
         ),
         "z_index": (
+            0,
             (
                 lambda x: x is None or isinstance(x, int),
                 "z-index must be `None` or an integer",
@@ -140,6 +142,7 @@ class KittyImage(GraphicsImage):
             ),
         ),
         "mix": (
+            False,
             (
                 lambda x: isinstance(x, bool),
                 "Inter-mixing policy must be a boolean",
@@ -147,6 +150,7 @@ class KittyImage(GraphicsImage):
             (lambda _: True, ""),
         ),
         "compress": (
+            4,
             (
                 lambda x: isinstance(x, int),
                 "Compression level must be an integer",
