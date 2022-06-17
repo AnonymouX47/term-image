@@ -1216,10 +1216,17 @@ FOOTNOTES:
                     logger,
                     level=_logging.WARNING,
                 )
-    log(f"Using {args.style!r} render style", logger, direct=False)
+    log(f"Using {args.style!r} render style", logger, verbose=True)
 
     style_parser = style_parsers.get(args.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
+    if args.style == "iterm2":
+        ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
+    try:
+        style_args = ImageClass._check_style_args(style_args)
+    except ValueError as e:
+        notify.notify(str(e), level=notify.CRITICAL)
+        return INVALID_ARG
 
     # Some APCs used for render style support detection get emitted on some
     # non-supporting terminal emulators
@@ -1329,8 +1336,6 @@ FOOTNOTES:
         log("Running in CLI mode", logger, direct=False)
 
         style_error = _style_error(ImageClass)
-        if args.style == "iterm2":
-            ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
         if style_args.get("native") and len(images) > 1:
             style_args["stall_native"] = False
 
