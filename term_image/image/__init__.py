@@ -87,5 +87,7 @@ def _best_style():
     return cls
 
 
-# In order of preference
-_styles = (KittyImage, ITerm2Image, BlockImage)
+# In order of preference, based on image quality and style performance/functionality.
+# NOTE: 'iterm2' should come before 'kitty', if not any other reason, at least because
+# the query for 'kitty' support detection messes up iTerm2's window title.
+_styles = (ITerm2Image, KittyImage, BlockImage)
