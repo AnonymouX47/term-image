@@ -78,18 +78,18 @@ def test_style_format_spec():
         ("", {}),
         ("L", {"method": LINES}),
         ("W", {"method": WHOLE}),
-        ("z", {"z_index": None}),
-        ("z0", {"z_index": 0}),
+        ("z0", {}),
         ("z1", {"z_index": 1}),
         ("z-1", {"z_index": -1}),
         (f"z{2**31 - 1}", {"z_index": 2**31 - 1}),
         (f"z{-2**31}", {"z_index": -(2**31)}),
-        ("m0", {"mix": False}),
+        ("z", {"z_index": None}),
+        ("m0", {}),
         ("m1", {"mix": True}),
+        ("c4", {}),
         ("c0", {"compress": 0}),
-        ("c4", {"compress": 4}),
         ("c9", {"compress": 9}),
-        ("Wz0m1c9", {"method": WHOLE, "z_index": 0, "mix": True, "compress": 9}),
+        ("Wz1m1c9", {"method": WHOLE, "z_index": 1, "mix": True, "compress": 9}),
     ):
         assert KittyImage._check_style_format_spec(spec, spec) == args
 
@@ -101,12 +101,13 @@ class TestStyleArgs:
                 KittyImage._check_style_args(args)
 
     def test_method(self):
-        for value in (1.0, (), [], 2):
+        for value in (None, 1.0, (), [], 2):
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"method": value})
         for value in ("", " ", "cool"):
             with pytest.raises(ValueError):
                 KittyImage._check_style_args({"method": value})
+
         for value in (LINES, WHOLE):
             assert KittyImage._check_style_args({"method": value}) == {"method": value}
 
@@ -117,7 +118,9 @@ class TestStyleArgs:
         for value in (-(2**31) - 1, 2**31):
             with pytest.raises(ValueError):
                 KittyImage._check_style_args({"z_index": value})
-        for value in (None, 0, 1, -1, -(2**31), 2**31 - 1):
+
+        assert KittyImage._check_style_args({"z_index": 0}) == {}
+        for value in (None, 1, -1, -(2**31), 2**31 - 1):
             assert (
                 KittyImage._check_style_args({"z_index": value})
                 == {"z_index": value}  # fmt: skip
@@ -127,8 +130,25 @@ class TestStyleArgs:
         for value in (0, 1.0, (), [], "2"):
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"mix": value})
-        for value in (True, False):
-            assert KittyImage._check_style_args({"mix": value}) == {"mix": value}
+
+        assert KittyImage._check_style_args({"mix": False}) == {}
+        assert KittyImage._check_style_args({"mix": True}) == {"mix": True}
+
+    def test_compress(self):
+        for value in (1.0, (), [], "2"):
+            with pytest.raises(TypeError):
+                KittyImage._check_style_args({"compress": value})
+        for value in (-1, 10):
+            with pytest.raises(ValueError):
+                KittyImage._check_style_args({"compress": value})
+
+        assert KittyImage._check_style_args({"compress": 4}) == {}
+        for value in range(1, 10):
+            if value != 4:
+                assert (
+                    KittyImage._check_style_args({"compress": value})
+                    == {"compress": value}  # fmt: skip
+                )
 
 
 def expand_control_data(control_data):
