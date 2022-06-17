@@ -140,7 +140,7 @@ def test_set_render_method_All():
 
     default = ImageClass._default_render_method if ImageClass._render_methods else None
 
-    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+    with pytest.raises(ValueError):
         ImageClass.set_render_method("")
 
     assert ImageClass._render_method == default
@@ -155,7 +155,7 @@ def test_set_render_method_All():
 
     image = ImageClass(python_img)
 
-    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+    with pytest.raises(ValueError):
         image.set_render_method("")
 
     assert image._render_method == default

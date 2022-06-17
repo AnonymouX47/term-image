@@ -833,10 +833,8 @@ class BaseImage(ABC):
 
         Raises:
             TypeError: *method* is not a string or ``None``.
-            term_image.exceptions.{Style}ImageError: the given method is not implmented
-              by the calling class (or class of the calling instance), **where**
-              ``{Style}`` **is the name of the render style** e.g
-              :py:class:`KittyImageError <term_image.exceptions.KittyImageError>`.
+            ValueError: the given method is not implmented by the invoking class
+              (or class of the invoking instance).
 
         See the **Render Methods** section in the description of the subclasses that
         implement such for their specific usage.
@@ -868,7 +866,7 @@ class BaseImage(ABC):
             cls = (
                 type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
             )
-            raise _style_error(cls)(f"Unknown render method {method!r}")
+            raise ValueError(f"Unknown render method {method!r} for {cls.__name__}")
 
         if not method:
             if isinstance(self_or_cls, __class__):
