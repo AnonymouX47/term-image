@@ -6,7 +6,7 @@ import argparse
 import logging as _logging
 import os
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 
 import urwid
 
@@ -20,6 +20,7 @@ from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
 
 def init(
     args: argparse.Namespace,
+    style_args: Dict[str, Any],
     images: Iterable[Tuple[str, Union[Image, Iterator]]],
     contents: dict,
     ImageClass: type,
@@ -66,9 +67,11 @@ def init(
     if args.style == "kitty":
         if ImageClass._KITTY_VERSION:
             render.anim_style_specs["kitty"] = "+L"
-            for name in ("anim", "grid", "image"):
-                specs = getattr(render, f"{name}_style_specs")
+        for name in ("anim", "grid", "image"):
+            specs = getattr(render, f"{name}_style_specs")
+            if ImageClass._KITTY_VERSION:
                 specs["kitty"] += "z"
+            specs["kitty"] += f"c{style_args['compress']}"
     Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted

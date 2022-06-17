@@ -1055,7 +1055,7 @@ FOOTNOTES:
 
     kitty_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
     kitty_options = kitty_parser.add_argument_group(
-        "Kitty Style Options (CLI-only)",
+        "Kitty Style Options",
         "These options apply only when the 'kitty' render style is used",
     )
     kitty_options.add_argument(
@@ -1066,6 +1066,18 @@ FOOTNOTES:
         default=0,
         type=int,
         help="Image stacking order (default: 0)",
+    )
+    kitty_options.add_argument(
+        "--kc",
+        "--kitty-compress",
+        metavar="N",
+        dest="compress",
+        default=4,
+        type=int,
+        help=(
+            "ZLIB compression level (CLI/TUI) (default: 4). "
+            "0 -> no compression, 1 -> best speed, 9 -> best compression."
+        ),
     )
 
     iterm2_parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
@@ -1406,7 +1418,7 @@ FOOTNOTES:
                 notify.notify(str(e), level=notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()
-        tui.init(args, images, contents, ImageClass)
+        tui.init(args, style_args, images, contents, ImageClass)
     else:
         log(
             "The TUI is not supported on Windows! Try with `--cli`.",
