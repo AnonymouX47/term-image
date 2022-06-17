@@ -6,7 +6,7 @@ import argparse
 import logging as _logging
 import os
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 
 import urwid
 
@@ -20,6 +20,7 @@ from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
 
 def init(
     args: argparse.Namespace,
+    style_args: Dict[str, Any],
     images: Iterable[Tuple[str, Union[Image, Iterator]]],
     contents: dict,
     ImageClass: type,
@@ -60,11 +61,17 @@ def init(
     Image._ti_alpha = (
         "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
     )
-    # KONSOLE does NOT blend images with the same z-index, hence is better off without
-    # `z_index=None`
-    if args.style == "kitty" and ImageClass._KONSOLE_VERSION:
+
+    # Kitty blends images with the same z-index, hence the `z_index=None`, which is
+    # pretty glitchy for animations with WHOLE method, hence the change to LINES
+    if args.style == "kitty":
+        if ImageClass._KITTY_VERSION:
+            render.anim_style_specs["kitty"] = "+L"
         for name in ("anim", "grid", "image"):
-            del getattr(render, f"{name}_style_specs")["kitty"]
+            specs = getattr(render, f"{name}_style_specs")
+            if ImageClass._KITTY_VERSION:
+                specs["kitty"] += "z"
+            specs["kitty"] += f"c{style_args['compress']}"
     Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted

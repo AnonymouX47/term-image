@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `--kz/--kitty-z-index` 'kitty' style-specific option ([#49]).
 - [cli] `iterm2` render style choice for the `--style` command-line option ([#50]).
 - [cli] `--itn/--iterm2-native` and `--itn-max/--iterm2-native-maxsize` style-specific CL options for 'iterm2' native animation ([#50]).
+- [cli] `--kc/--kitty-compress` 'kitty' style-specific option ([#51]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
@@ -73,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#47]: https://github.com/AnonymouX47/term-image/pull/47
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
 [#50]: https://github.com/AnonymouX47/term-image/pull/50
+[#51]: https://github.com/AnonymouX47/term-image/pull/51
 
 
 ## [0.3.1] - 2022-05-04

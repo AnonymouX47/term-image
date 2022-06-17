@@ -1055,7 +1055,7 @@ FOOTNOTES:
 
     kitty_parser = argparse.ArgumentParser(add_help=False)
     kitty_options = kitty_parser.add_argument_group(
-        "Kitty Style Options (CLI-only)",
+        "Kitty Style Options",
         "These options apply only when the 'kitty' render style is used",
     )
     kitty_options.add_argument(
@@ -1065,7 +1065,23 @@ FOOTNOTES:
         dest="z_index",
         default=0,
         type=int,
-        help="Image stacking order (default: 0)",
+        help=(
+            "Image stacking order (CLI-only) (default: 0). "
+            "`>= 0` -> above text, `< 0` -> below text, `< -(2**31)/2` -> "
+            "below cells with non-default background."
+        ),
+    )
+    kitty_options.add_argument(
+        "--kc",
+        "--kitty-compress",
+        metavar="N",
+        dest="compress",
+        default=4,
+        type=int,
+        help=(
+            "ZLIB compression level (CLI/TUI) (default: 4). "
+            "0 -> no compression, 1 -> best speed, 9 -> best compression."
+        ),
     )
 
     iterm2_parser = argparse.ArgumentParser(add_help=False)
@@ -1355,7 +1371,13 @@ FOOTNOTES:
                 if args.frame_duration:
                     image.frame_duration = args.frame_duration
 
-                if args.style == "iterm2":
+                if args.style == "kitty":
+                    image.set_render_method(
+                        "lines"
+                        if ImageClass._KITTY_VERSION and image._is_animated
+                        else "whole"
+                    )
+                elif args.style == "iterm2":
                     image.set_render_method(
                         "whole"
                         if (
@@ -1400,7 +1422,7 @@ FOOTNOTES:
                 notify.notify(str(e), level=notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()
-        tui.init(args, images, contents, ImageClass)
+        tui.init(args, style_args, images, contents, ImageClass)
     else:
         log(
             "The TUI is not supported on Windows! Try with `--cli`.",
