@@ -788,6 +788,15 @@ class BaseImage(ABC):
         """Returns ``True`` if the render style or graphics protocol implemented by
         the invoking class is supported by the :term:`active terminal`.
         Otherwise, ``False``.
+
+        ATTENTION:
+            Support checks for most (if not all) render styles require :ref:`querying
+            <terminal-queries>` the :term:`active terminal`, though **only the first
+            time** they're executed.
+
+            Hence, it's advisable to perform all neccesary support checks (call
+            ``is_supported()`` on required subclasses) at an early stage of a program,
+            before user input is required.
         """
         raise NotImplementedError
 

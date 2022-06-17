@@ -1,30 +1,6 @@
 """
 Utilities
 =========
-
-.. _active-terminal:
-
-Every mention of *active terminal* in this module refers to the first terminal
-device discovered.
-
-The following streams/files are checked in the following order of priority
-(along with the rationale behind the ordering):
-
-* ``STDOUT``: Since it's where images will most likely be drawn.
-* ``STDIN``: If output is redirected to a file or pipe and the input is a terminal,
-  then using it as the :term:`active terminal` should give the expected result i.e the
-  same as when output is not redirected.
-* ``STDERR``: If both output and input are redirected, it's usually unlikely for
-  errors to be.
-* ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
-  terminal, if any.
-
-The first one that is ascertained to be a terminal device is used for
-all terminal queries and terminal size computations.
-
-NOTE:
-   If none of the streams/files is a terminal device, then a warning is issued
-   and affected functionality disabled.
 """
 
 from __future__ import annotations
@@ -147,7 +123,7 @@ def cached(func: Callable) -> FunctionType:
 
 @no_redecorate
 def lock_tty(func: Callable) -> FunctionType:
-    """Synchronizes access to the active terminal.
+    """Synchronizes access to the :term:`active terminal`.
 
     Args:
         func: The function to be wrapped.
@@ -159,15 +135,13 @@ def lock_tty(func: Callable) -> FunctionType:
     process or thread.
 
     NOTE:
-        It automatocally works across parent-/sub-processes (started with
-        ``multiprocessing.Process``) and their threads.
-        To achieve this, ``multiprocessing.Process`` is "hooked" and it works even with
-        subclasses.
+        | It automatically works across parent-/sub-processes, started directly or
+          indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
+          threads.
 
     IMPORTANT:
-        It only works across processes started with ``multiprocessing.Process`` and
-        if ``multiprocessing.synchronize`` is supported on the host platform.
-        If not supported, a warning is issued when starting a subprocess.
+        It only works if ``multiprocessing.synchronize`` is supported on the host
+        platform.  If not supported, a warning is issued when starting a subprocess.
     """
 
     @wraps(func)

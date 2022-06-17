@@ -83,7 +83,7 @@ The :term:`font ratio` is taken into consideration when setting image sizes for 
 | In case *auto* font ratio is not supported and the fallback value does not give expected results, a different value can be specified using the config or command-line option.
 
 .. attention::
-   If using *auto* font ratio and the :term:`active terminal` is not the controlling terminal of the `term-image` process (e.g output is redirected to another terminal), ensure no process that might read input (e.g a shell) is currently running in the active terminal, as such a process might interfere with determining the font ratio on some terminal emulators (e.g VTE-based ones).
+   If using *auto* font ratio and the :term:`active terminal` is not the controlling terminal of the ``term-image`` process (e.g output is redirected to another terminal), ensure no process that might read input (e.g a shell) is currently running in the active terminal, as such a process might interfere with determining the font ratio on some terminal emulators (e.g VTE-based ones).
 
    For instance, the ``sleep`` command can be executed if a shell is currently running in the active terminal.
 
@@ -107,8 +107,9 @@ Logging
 Logs are more detailed event reports meant for troubleshooting and debugging purporses.
 
 Logs are written to a file on a local filesystem. The default log file is ``~/.term_image/term_image.log`` but a different file can be specified:
-   * for all sessions, using the :ref:`log file <log-file>` config option
-   * per session, using the ``--log`` command-line option
+
+* for all sessions, using the :ref:`log file <log-file>` config option
+* per session, using the ``--log`` command-line option
 
 A log entry has the following format:
 
