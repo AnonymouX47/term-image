@@ -142,8 +142,8 @@ class ITerm2Image(GraphicsImage):
                 "Render method must be a string",
             ),
             (
-                lambda x: x in ITerm2Image._render_methods,
-                "Unknown render method",
+                lambda x: x.lower() in __class__._render_methods,
+                "Unknown render method for 'iterm2' render style",
             ),
         ),
         "mix": (
@@ -175,6 +175,7 @@ class ITerm2Image(GraphicsImage):
     def draw(
         self,
         *args,
+        method: Optional[str] = None,
         mix: bool = False,
         native: bool = False,
         stall_native: bool = True,
@@ -186,6 +187,8 @@ class ITerm2Image(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
+            method: Render method override. If ``None`` or not given, the current
+              effective render method of the instance is used.
             mix: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
               otherwise). If:
 
@@ -439,7 +442,7 @@ class ITerm2Image(GraphicsImage):
                     )
                 )
 
-        render_method = method or self._render_method
+        render_method = (method or self._render_method).lower()
         width, height = self._get_minimal_render_size()
 
         if (  # Read directly from file when possible and reasonable

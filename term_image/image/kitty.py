@@ -125,8 +125,8 @@ class KittyImage(GraphicsImage):
                 "Render method must be a string",
             ),
             (
-                lambda x: x in KittyImage._render_methods,
-                "Unknown render method",
+                lambda x: x.lower() in __class__._render_methods,
+                "Unknown render method for 'kitty' render style",
             ),
         ),
         "z_index": (
@@ -153,7 +153,7 @@ class KittyImage(GraphicsImage):
             ),
             (
                 lambda x: 0 <= x <= 9,
-                "Compression level must be between 0 and 9 (both inclusive)",
+                "Compression level must be between 0 and 9, both inclusive",
             ),
         ),
     }
@@ -165,6 +165,7 @@ class KittyImage(GraphicsImage):
     def draw(
         self,
         *args,
+        method: Optional[str] = None,
         z_index: Optional[int] = 0,
         mix: bool = False,
         compress: int = 4,
@@ -176,6 +177,8 @@ class KittyImage(GraphicsImage):
 
         Args:
             args: Positional arguments passed up the inheritance chain.
+            method: Render method override. If ``None`` or not given, the current
+              effective render method of the instance is used.
             z_index: The stacking order of images and text **for non-animations**.
 
               Images drawn in the same location with different z-index values will be
@@ -356,7 +359,7 @@ class KittyImage(GraphicsImage):
         # Since we use `c` and `r` control data keys, there's no need upscaling the
         # image on this end; ensures minimal payload.
 
-        render_method = method or self._render_method
+        render_method = (method or self._render_method).lower()
         r_width, r_height = self.rendered_size
         width, height = self._get_minimal_render_size()
 
