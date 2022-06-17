@@ -244,7 +244,7 @@ class ITerm2Image(GraphicsImage):
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
                 f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(f"{CSI}?6".encode())
-            ).decode()
+            )
             read_tty()  # The rest of the response to `CSI c`
 
             # Not supported if the terminal doesn't respond to either query
@@ -252,7 +252,7 @@ class ITerm2Image(GraphicsImage):
             if response:
                 match = re.fullmatch(
                     r"\033P>\|(\w+)[( ]([^\033]+)\)?\033\\",
-                    response.rpartition(ESC)[0],
+                    response.decode().rpartition(ESC)[0],
                 )
                 if match and match.group(1).lower() in {"iterm2", "konsole", "wezterm"}:
                     name, version = map(str.lower, match.groups())
