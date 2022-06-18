@@ -122,6 +122,22 @@ class ITerm2Image(GraphicsImage):
           * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
+    #: * ``x < 0``, JPEG encoding is disabled.
+    #: * ``0 <= x <= 95``, JPEG encoding is used, with the specified quality, for
+    #:   **most** non-transparent renders (at the cost of image quality).
+    #:
+    #: Only applies when not reading directly from file.
+    #:
+    #: By default, images are encoded in the PNG format (when not reading directly
+    #: from file) but in some cases, higher compression might be desired.
+    #: Also, JPEG encoding is significantly faster and can be useful to improve
+    #: non-native animation performance.
+    #:
+    #: .. hint:: The transparency status of some images can not be correctly determined
+    #:   in an efficient way at render time. To ensure the JPEG format is always used
+    #:   for a re-encoded render, disable transparency or set a background color.
+    JPEG_QUALITY: int = -1
+
     #: Maximum size (in bytes) of image data for native animation.
     #:
     #: | :py:class:`TermImageWarning<term_image.TermImageWarning>` is issued
@@ -129,7 +145,19 @@ class ITerm2Image(GraphicsImage):
     #:   if the image data size for a native animation is above this value.
     #: | This value can be altered but should be done with caution to avoid excessive
     #:   memory usage.
-    NATIVE_ANIM_MAXSIZE = 2 * 2**20
+    NATIVE_ANIM_MAXSIZE: int = 2 * 2**20
+
+    #: * ``True``, image data is read directly from file when possible and no image
+    #:   manipulation is required.
+    #: * ``False``, images are always loaded and re-encoded, in the PNG format by
+    #:   default.
+    #:
+    #: This is used to reduce render times when applicable.
+    #:
+    #: .. note:: This setting does not affect animations, native animations are always
+    #:   read from file when possible and frames of non-native animations have to be
+    #:   loaded and re-encoded.
+    READ_FROM_FILE: bool = True
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(map(re.compile, "[LWN] m[01]".split(" ")))
     _render_methods: Set[str] = {LINES, WHOLE}
@@ -445,7 +473,8 @@ class ITerm2Image(GraphicsImage):
         width, height = self._get_minimal_render_size()
 
         if (  # Read directly from file when possible and reasonable
-            not self._is_animated
+            self.READ_FROM_FILE
+            and not self._is_animated
             and file_is_readable
             and render_method == WHOLE
             and mul(*self._original_size) <= mul(*self._get_render_size())
@@ -468,13 +497,19 @@ class ITerm2Image(GraphicsImage):
             img = self._get_render_data(
                 img, alpha, size=(width, height), pixel_data=False  # fmt: skip
             )[0]
-            format = "jpeg" if img.mode == "RGB" else "png"
+            if self.JPEG_QUALITY >= 0 and img.mode == "RGB":
+                format = "jpeg"
+                jpeg_quality = min(self.JPEG_QUALITY, 95)
+            else:
+                format = "png"
+                jpeg_quality = None
+
             if render_method == LINES:
                 raw_image = io.BytesIO(img.tobytes())
                 compressed_image = io.BytesIO()
             else:
                 compressed_image = io.BytesIO()
-                img.save(compressed_image, format, quality=95)  # *quality* for JPEG
+                img.save(compressed_image, format, quality=jpeg_quality)
 
         # clean up
         if img is not self._source:
@@ -499,7 +534,7 @@ class ITerm2Image(GraphicsImage):
                         img.mode, (width, cell_height), raw_image.read(bytes_per_line)
                     ) as img:
                         # *quality* for JPEG
-                        img.save(compressed_image, format, quality=95)
+                        img.save(compressed_image, format, quality=jpeg_quality)
 
                     is_on_wezterm and buffer.write(erase)
                     buffer.write(f"{OSC}1337;File=size={compressed_image.tell()}")
