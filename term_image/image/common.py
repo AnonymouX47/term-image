@@ -1443,7 +1443,7 @@ class BaseImage(ABC):
             except Exception as e:
                 raise ValueError("Unable to convert image") from e
             try:
-                img = img.resize((width, height))
+                img = img.resize((width, height), Image.Resampling.BOX)
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
 

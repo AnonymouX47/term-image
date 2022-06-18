@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Exception naming scheme ([#46]).
   - `TermImageException` to `TermImageError`.
   - `InvalidSize` to `InvalidSizError`.
+- [lib] Image resampling method from `BICUBIC` to `BOX`.
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
 
