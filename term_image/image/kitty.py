@@ -12,13 +12,9 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..exceptions import _style_error
 from ..utils import CSI, ESC, ST, lock_tty, query_terminal
 from .common import GraphicsImage
 
-FORMAT_SPEC = re.compile(
-    r"([^LWzmc]*)([LW])?(z(-?\d+)?)?(m[01])?(c[0-9])?(.*)", re.ASCII
-)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -115,6 +111,9 @@ class KittyImage(GraphicsImage):
           * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
     """
 
+    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
+        map(re.compile, r"[LW] z(-?\d+)? m[01] c[0-9]".split(" "))
+    )
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
@@ -280,14 +279,9 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, method, z, index, mix, compress, invalid = FORMAT_SPEC.fullmatch(
-            spec
-        ).groups()
-        if invalid:
-            raise _style_error(cls)(
-                f"Invalid style-specific format specification {original!r}"
-            )
-
+        parent, (method, (z, index), mix, compress) = cls._get_style_format_spec(
+            spec, original
+        )
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))

@@ -1236,22 +1236,21 @@ class BaseImage(ABC):
             term_image.exceptions.StyleError: Invalid style-specific format
               specification.
 
-        **Every style-specific format spec should be treated as follows:**
+        **Every style-specific format spec should be handled as follows:**
 
-        Every overriding method must call the overriden method.
+        Every overriding method should call the overriden method (more on this below).
         At every step in the call chain, the specification should be of the form::
 
             [parent] [current] [invalid]
 
         where:
 
-        - *current* is the portion to be interpreted at the current level in the chain
         - *parent* is the portion to be interpreted at an higher level in the chain
+        - *current* is the portion to be interpreted at the current level in the chain
         - the *invalid* portion determines the validity of the format spec
-        - **at least one portion must exist**
 
-        Take care of the portions in the order *invalid*, *parent*, *current*, so that
-        validity can be determined before processing any part of the format spec.
+        Handle the portions in the order *invalid*, *parent*, *current*, so that
+        validity can be determined before any further processing.
 
         At any point in the chain where the *invalid* portion exists (i.e is non-empty),
         the format spec can be correctly taken to be invalid.
@@ -1260,10 +1259,14 @@ class BaseImage(ABC):
         and the original format spec, **if** *parent* **is not empty**, such that every
         successful check ends up at `BaseImage._check_style_args()` or when *parent* is
         empty.
+
+        :py:meth:`_get_style_format_spec` can (optionally) be used to parse the format
+        spec at each level of the call chain.
         """
         if spec:
             raise _style_error(cls)(
                 f"Invalid style-specific format specification {original!r}"
+                + (f", detected at {spec!r}" if spec != original else "")
             )
         return {}
 
@@ -1486,6 +1489,74 @@ class BaseImage(ABC):
     @staticmethod
     def _handle_interrupted_draw():
         """Performs any neccessary actions when image drawing is interrupted."""
+
+    @classmethod
+    def _get_style_format_spec(
+        cls, spec: str, original: str
+    ) -> Tuple[str, List[Union[None, str, Tuple[Optional[str]]]]]:
+        """Parses a style-specific format specification.
+
+        See :py:meth:`_check_format_spec`.
+
+        Returns:
+            The *parent* portion and a list of matches for the respective fields of the
+            *current* portion of the spec.
+
+            * Any absent field of *current* is ``None``.
+            * For a field containing groups, the match, if present, is a tuple
+              containing the full match followed by the matches for each group.
+            * All matches are in the same order as the fields (including their groups).
+
+        Raises:
+            term_image.exceptions.StyleError: The *invalid* portion exists.
+
+        NOTE:
+            Please avoid common fields in the format specs of parent and child classes
+            (i.e fields that can match the same portion of a given string) as they
+            result in ambiguities.
+        """
+        patterns = iter(cls._FORMAT_SPEC)
+        fields = []
+        for pattern in patterns:
+            match = pattern.search(spec)
+            if match:
+                fields.append(
+                    (match.group(), *match.groups())
+                    if pattern.groups
+                    else match.group()
+                )
+                start = match.start()
+                end = match.end()
+                break
+            else:
+                fields.append(
+                    (None,) * (pattern.groups + 1) if pattern.groups else None
+                )
+        else:
+            start = end = len(spec)
+
+        for pattern in patterns:
+            match = pattern.match(spec, pos=end)
+            if match:
+                fields.append(
+                    (match.group(), *match.groups())
+                    if pattern.groups
+                    else match.group()
+                )
+                end = match.end()
+            else:
+                fields.append(
+                    (None,) * (pattern.groups + 1) if pattern.groups else None
+                )
+
+        parent, invalid = spec[:start], spec[end:]
+        if invalid:
+            raise _style_error(cls)(
+                f"Invalid style-specific format specification {original!r}"
+                f", detected at {invalid!r}"
+            )
+
+        return parent, fields
 
     @staticmethod
     @abstractmethod

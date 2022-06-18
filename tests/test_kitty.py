@@ -70,7 +70,21 @@ def test_set_render_method():
 
 
 def test_style_format_spec():
-    for spec in (" ", "x", "zz", "m0z1", "0z", "m2", "m01", "c-1", "c10", "c4m1"):
+    for spec in (
+        " ",
+        "x",
+        "zz",
+        "m0z1",
+        "0z",
+        "m2",
+        "m01",
+        "c-1",
+        "c10",
+        "c4m1",
+        " z1",
+        "m0 ",
+        "  z1c1  ",
+    ):
         with pytest.raises(KittyImageError, match="format spec"):
             KittyImage._check_style_format_spec(spec, spec)
 

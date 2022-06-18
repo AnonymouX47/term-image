@@ -9,7 +9,7 @@ import warnings
 from base64 import standard_b64encode
 from operator import mul
 from threading import Event
-from typing import Any, Dict, Optional, Set, Union
+from typing import Any, Dict, Optional, Set, Tuple, Union
 
 import PIL
 
@@ -27,7 +27,6 @@ from ..utils import (
 )
 from .common import GraphicsImage, ImageSource
 
-FORMAT_SPEC = re.compile(r"([^LWNm]*)([LWN])?(m[01])?(.*)", re.ASCII)
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
@@ -132,6 +131,7 @@ class ITerm2Image(GraphicsImage):
     #:   memory usage.
     NATIVE_ANIM_MAXSIZE = 2 * 2**20
 
+    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(map(re.compile, "[LWN] m[01]".split(" ")))
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
@@ -280,21 +280,16 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, method, mix, invalid = FORMAT_SPEC.fullmatch(spec).groups()
-        if invalid:
-            raise _style_error(cls)(
-                f"Invalid style-specific format specification {original!r}"
-            )
-
+        parent, (method, mix) = cls._get_style_format_spec(spec, original)
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
-        if mix:
-            args["mix"] = bool(int(mix[-1]))
         if method == "N":
             args["native"] = True
         elif method:
             args["method"] = LINES if method == "L" else WHOLE
+        if mix:
+            args["mix"] = bool(int(mix[-1]))
 
         return cls._check_style_args(args)
 
