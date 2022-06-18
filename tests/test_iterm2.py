@@ -4,12 +4,12 @@ import pytest
 
 from term_image.image.iterm2 import LINES, WHOLE, ITerm2Image
 
-from .common import *  # noqa:F401
+from . import common
 from .common import python_img, setup_common
 
-for name in tuple(globals()):
-    if name.endswith("_Text"):
-        del globals()[name]
+for name, obj in vars(common).items():
+    if name.endswith(("_All", "_Graphics")):
+        globals()[name] = obj
 
 
 @pytest.mark.order("first")

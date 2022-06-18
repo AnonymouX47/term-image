@@ -13,12 +13,12 @@ from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
 from term_image.utils import CSI, ESC, ST
 
-from .common import *  # noqa:F401
+from . import common
 from .common import _size, python_img, setup_common
 
-for name in tuple(globals()):
-    if name.endswith("_Text"):
-        del globals()[name]
+for name, obj in vars(common).items():
+    if name.endswith(("_All", "_Graphics")):
+        globals()[name] = obj
 
 
 @pytest.mark.order("first")

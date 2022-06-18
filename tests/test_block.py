@@ -8,12 +8,12 @@ from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import COLOR_RESET, CSI
 
-from .common import *  # noqa:F401
+from . import common
 from .common import _size, setup_common
 
-for name in tuple(globals()):
-    if name.endswith("_Graphics"):
-        del globals()[name]
+for name, obj in vars(common).items():
+    if name.endswith(("_All", "_Text")):
+        globals()[name] = obj
 
 
 @pytest.mark.order("first")
