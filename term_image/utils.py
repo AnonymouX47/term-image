@@ -34,7 +34,7 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 # import logging
 
@@ -258,13 +258,19 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
 
 
 @cached
-def get_fg_bg_colors() -> Tuple[
-    Optional[Tuple[int, int, int]], Optional[Tuple[int, int, int]]
+def get_fg_bg_colors(
+    *, hex: bool = False
+) -> Tuple[
+    Union[None, str, Tuple[int, int, int]], Union[None, str, Tuple[int, int, int]]
 ]:
     """Returns the default FG and BG colors of the :term:`active terminal`.
 
     Returns:
-        The RGB values (or ``None`` if undetermined) for each color.
+        For each color:
+
+        * an RGB 3-tuple, if *hex* is ``False``
+        * an RGB hex string if *hex* is ``True``
+        * ``None`` if undetermined
     """
     with _tty_lock:  # All of the terminal's reply isn't read in `query_terminal()`
         response = query_terminal(
@@ -283,7 +289,9 @@ def get_fg_bg_colors() -> Tuple[
             elif c == "11":
                 bg = x_parse_color(spec)
 
-    return fg, bg
+    return tuple(
+        rgb and ("#" + ("{:02x}" * 3).format(*rgb) if hex else rgb) for rgb in (fg, bg)
+    )
 
 
 def get_terminal_size() -> Optional[Tuple[int, int]]:
