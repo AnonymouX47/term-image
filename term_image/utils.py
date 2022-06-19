@@ -92,31 +92,33 @@ def cached(func: Callable) -> FunctionType:
     Args:
         func: The function to be wrapped.
 
-    The wrapper adds a *_cached* keyword-only parameter. When *_cached* is:
-
-      * `False` (default), the wrapped function is called and its return value is stored
-        and returned.
-      * `True`, the last stored value is returned.
-
-    An *_invalidate_cache* function is also set as an attribute of the returned wrapper
+    An *_invalidate_cache* function is set as an attribute of the returned wrapper
     which when called clears the cache, so that the next call actually calls the
     wrapped function, no matter the value of *_cached*.
 
     NOTE:
         It's thread-safe, i.e there is no race condition between calls to the same
         decorated object across threads of the same process.
+
+        Only works when function arguments, if any, are hashable.
     """
 
     @wraps(func)
-    def cached_wrapper(*args, _cached: bool = False, **kwargs):
+    def cached_wrapper(*args, **kwargs):
+        arguments = (args, tuple(kwargs.items()))
         with lock:
-            if not _cached or not cache:
-                cache[:] = (func(*args, **kwargs),)
-        return cache[0]
+            try:
+                return cache[arguments]
+            except KeyError:
+                return cache.setdefault(arguments, func(*args, **kwargs))
 
-    cache = []
+    def invalidate():
+        with lock:
+            cache.clear()
+
+    cache = {}
     lock = RLock()
-    cached_wrapper._invalidate_cache = cache.clear
+    cached_wrapper._invalidate_cache = invalidate
 
     return cached_wrapper
 
@@ -181,9 +183,13 @@ def terminal_size_cached(func: Callable) -> FunctionType:
                 cache[:] = [func(*args, **kwargs), ts]
         return cache[0]
 
+    def invalidate():
+        with lock:
+            cache.clear()
+
     cache = []
-    terminal_size_cached_wrapper._invalidate_terminal_size_cache = cache.clear
     lock = RLock()
+    terminal_size_cached_wrapper._invalidate_terminal_size_cache = invalidate
 
     return terminal_size_cached_wrapper
 
