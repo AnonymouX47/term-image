@@ -243,16 +243,18 @@ class KittyImage(GraphicsImage):
                     f"{START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{ST}{CSI}c"
                 ).encode(),
                 lambda s: not s.endswith(b"c"),
-            ).decode()
+            )
 
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            if response and (response.rpartition(ESC)[0] == f"{START}i=31;OK{ST}"):
+            if response and (
+                response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
+            ):
                 # Currently, only kitty >= 0.20.0 and Konsole >= 22.04.0 implement the
                 # protocol features utilized
                 response = query_terminal(
                     f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
-                ).decode()
+                ).decode()  # Can not be `None` since the previous query was successful
                 match = re.match(
                     r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response, re.ASCII
                 )
@@ -263,9 +265,9 @@ class KittyImage(GraphicsImage):
                     except ValueError:  # Version string not "understood"
                         pass
                     else:
-                        if name.casefold() == "kitty":
+                        if name.lower() == "kitty":
                             cls._KITTY_VERSION = version
-                        elif name.casefold() == "konsole":
+                        elif name.lower() == "konsole":
                             cls._KONSOLE_VERSION = version
 
                         # fmt: off

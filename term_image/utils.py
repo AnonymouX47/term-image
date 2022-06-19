@@ -34,7 +34,7 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 # import logging
 
@@ -92,31 +92,33 @@ def cached(func: Callable) -> FunctionType:
     Args:
         func: The function to be wrapped.
 
-    The wrapper adds a *_cached* keyword-only parameter. When *_cached* is:
-
-      * `False` (default), the wrapped function is called and its return value is stored
-        and returned.
-      * `True`, the last stored value is returned.
-
-    An *_invalidate_cache* function is also set as an attribute of the returned wrapper
+    An *_invalidate_cache* function is set as an attribute of the returned wrapper
     which when called clears the cache, so that the next call actually calls the
     wrapped function, no matter the value of *_cached*.
 
     NOTE:
         It's thread-safe, i.e there is no race condition between calls to the same
         decorated object across threads of the same process.
+
+        Only works when function arguments, if any, are hashable.
     """
 
     @wraps(func)
-    def cached_wrapper(*args, _cached: bool = False, **kwargs):
+    def cached_wrapper(*args, **kwargs):
+        arguments = (args, tuple(kwargs.items()))
         with lock:
-            if not _cached or not cache:
-                cache[:] = (func(*args, **kwargs),)
-        return cache[0]
+            try:
+                return cache[arguments]
+            except KeyError:
+                return cache.setdefault(arguments, func(*args, **kwargs))
 
-    cache = []
+    def invalidate():
+        with lock:
+            cache.clear()
+
+    cache = {}
     lock = RLock()
-    cached_wrapper._invalidate_cache = cache.clear
+    cached_wrapper._invalidate_cache = invalidate
 
     return cached_wrapper
 
@@ -181,9 +183,13 @@ def terminal_size_cached(func: Callable) -> FunctionType:
                 cache[:] = [func(*args, **kwargs), ts]
         return cache[0]
 
+    def invalidate():
+        with lock:
+            cache.clear()
+
     cache = []
-    terminal_size_cached_wrapper._invalidate_terminal_size_cache = cache.clear
     lock = RLock()
+    terminal_size_cached_wrapper._invalidate_terminal_size_cache = invalidate
 
     return terminal_size_cached_wrapper
 
@@ -252,13 +258,19 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
 
 
 @cached
-def get_fg_bg_colors() -> Tuple[
-    Optional[Tuple[int, int, int]], Optional[Tuple[int, int, int]]
+def get_fg_bg_colors(
+    *, hex: bool = False
+) -> Tuple[
+    Union[None, str, Tuple[int, int, int]], Union[None, str, Tuple[int, int, int]]
 ]:
     """Returns the default FG and BG colors of the :term:`active terminal`.
 
     Returns:
-        The RGB values (or ``None`` if undetermined) for each color.
+        For each color:
+
+        * an RGB 3-tuple, if *hex* is ``False``
+        * an RGB hex string if *hex* is ``True``
+        * ``None`` if undetermined
     """
     with _tty_lock:  # All of the terminal's reply isn't read in `query_terminal()`
         response = query_terminal(
@@ -277,7 +289,9 @@ def get_fg_bg_colors() -> Tuple[
             elif c == "11":
                 bg = x_parse_color(spec)
 
-    return fg, bg
+    return tuple(
+        rgb and ("#" + ("{:02x}" * 3).format(*rgb) if hex else rgb) for rgb in (fg, bg)
+    )
 
 
 def get_terminal_size() -> Optional[Tuple[int, int]]:
