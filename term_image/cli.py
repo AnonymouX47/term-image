@@ -980,7 +980,7 @@ FOOTNOTES:
         default=config.getters,
         help=(
             "Number of threads for downloading images from URL sources "
-            "(default: {config.getters})"
+            f"(default: {config.getters})"
         ),
     )
     perf_options.add_argument(
@@ -990,7 +990,7 @@ FOOTNOTES:
         default=config.grid_renderers,
         help=(
             "Number of subprocesses for rendering grid cells "
-            "(default: {config.grid_renderers})"
+            f"(default: {config.grid_renderers})"
         ),
     )
     perf_options.add_argument(
@@ -1066,9 +1066,9 @@ FOOTNOTES:
         default=0,
         type=int,
         help=(
-            "Image stacking order (CLI-only) (default: 0). "
-            "`>= 0` -> above text, `< 0` -> below text, `< -(2**31)/2` -> "
-            "below cells with non-default background."
+            "Image stacking order [CLI-only]; `>= 0` -> above text, `< 0` -> below "
+            "text, `< -(2**31)/2` -> below cells with non-default background "
+            "(default: 0)"
         ),
     )
     kitty_options.add_argument(
@@ -1079,8 +1079,8 @@ FOOTNOTES:
         default=4,
         type=int,
         help=(
-            "ZLIB compression level (CLI/TUI) (default: 4). "
-            "0 -> no compression, 1 -> best speed, 9 -> best compression."
+            "ZLIB compression level; 0 -> no compression, 1 -> best speed, "
+            "9 -> best compression (default: 4)"
         ),
     )
 
@@ -1097,7 +1097,7 @@ FOOTNOTES:
         help="Use iTerm2's native animation (Animations will not be skipped)",
     )
     iterm2_options.add_argument(
-        "--itn-max",
+        "--itnm",
         "--iterm2-native-maxsize",
         metavar="N",
         dest="native_maxsize",
