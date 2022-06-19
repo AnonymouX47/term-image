@@ -37,6 +37,7 @@ from ..utils import (
     CSI,
     ClassInstanceMethod,
     get_cell_size,
+    get_fg_bg_colors,
     get_terminal_size,
     no_redecorate,
 )
@@ -1411,7 +1412,7 @@ class BaseImage(ABC):
         *,
         size: Optional[Tuple[int, int]] = None,
         pixel_data: bool = True,
-        round_alpha: bool = True,
+        round_alpha: bool = False,
     ) -> Tuple[
         PIL.Image.Image, Optional[List[Tuple[int, int, int]]], Optional[List[int]]
     ]:
@@ -1421,9 +1422,12 @@ class BaseImage(ABC):
             size: If given (in pixels), it is used instead of the pixel-equivalent of
               the image size (or auto size, if size is unset).
             pixel_data: If ``False``, ``None`` is returned for all pixel data.
-            round_alpha: If ``False``, alpha values are bi-level (``0`` or ``255``),
-              based on the given alpha threshold (Only applies when *pixel_data* is
-              ``True`` and *alpha* is a ``float``).
+            round_alpha: Only applies when *alpha* is a ``float``.
+
+              If ``True``, returned alpha values are bi-level (``0`` or ``255``), based
+              on the given alpha threshold.
+              Also, the image is blended with the active terminal's BG color (or black,
+              if undetermined) while leaving the alpha intact.
 
         The returned image is appropriately converted, resized and composited
         (if need be).
@@ -1467,14 +1471,24 @@ class BaseImage(ABC):
                 img = bg.convert("RGB")
                 if pixel_data:
                     a = [255] * (width * height)
-            elif pixel_data:
-                a = list(img.getdata(3))
+            else:
+                if pixel_data:
+                    a = list(img.getdata(3))
+                    if round_alpha:
+                        alpha = round(alpha * 255)
+                        a = [0 if val < alpha else val for val in a]
                 if round_alpha:
-                    alpha = round(alpha * 255)
-                    a = [0 if val < alpha else val for val in a]
+                    bg = Image.new(
+                        "RGBA", img.size, get_fg_bg_colors(hex=True)[1] or "#000000"
+                    )
+                    bg.alpha_composite(img)
+                    bg.putalpha(img.getchannel("A"))
+                    if img is not self._source:
+                        img.close()
+                    img = bg
 
             if pixel_data:
-                rgb = list(img.convert("RGB").getdata())
+                rgb = list((img if img.mode == "RGB" else img.convert("RGB")).getdata())
 
         return (img, *(pixel_data and (rgb, a) or (None, None)))
 

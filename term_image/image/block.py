@@ -89,11 +89,10 @@ class BlockImage(TextImage):
                     buf_write(UPPER_PIXEL * n)
 
         buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
+        buf_write = buffer.write  # Eliminate attribute resolution cost
 
         width, height = self._get_render_size()
-        img, rgb, a = self._get_render_data(img, alpha)
+        img, rgb, a = self._get_render_data(img, alpha, round_alpha=True)
         alpha = img.mode == "RGBA"
 
         # clean up
