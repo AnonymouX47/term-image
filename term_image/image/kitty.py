@@ -99,10 +99,11 @@ class KittyImage(GraphicsImage):
 
     * ``c``: ZLIB compression level.
 
-      * 1 gives best speed, 9 gives best compression, 0 gives no compression at all.
-      * This results in a trade-off between render time and transmission size/time.
+      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
+      * This results in a trade-off between render time and data size/draw speed.
       * If *absent*, defaults to ``c4``.
       * e.g ``c0``, ``c9``.
+
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -209,9 +210,9 @@ class KittyImage(GraphicsImage):
 
             compress: ZLIB compression level.
 
-              An integer between 0 and 9: 1 gives best speed, 9 gives best compression,
-              0 gives no compression at all. This results in a trade-off between render
-              time and transmission size/time.
+              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
+              no compression. This results in a trade-off between render time and data
+              size/draw speed.
 
             kwargs: Keyword arguments passed up the inheritance chain.
 
