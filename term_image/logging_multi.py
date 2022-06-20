@@ -79,7 +79,7 @@ class Process(Process):
 
             super().run()
         except KeyboardInterrupt:
-            # Log only if the main process was not interruped
+            # Log only if the main process was not interrupted
             if not self._main_process_interruped.wait(0.1):
                 logging.log(
                     "Interrupted" if logging.DEBUG else f"{self.name} was interrupted",

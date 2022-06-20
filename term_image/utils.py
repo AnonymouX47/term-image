@@ -28,8 +28,9 @@ import sys
 import warnings
 from array import array
 from functools import wraps
-from multiprocessing import Process, RLock as mp_RLock
+from multiprocessing import Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
+from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
@@ -217,6 +218,15 @@ def unix_tty_only(func: Callable) -> FunctionType:
 
 
 # Non-decorators
+
+
+def clear_queue(queue: Union[Queue, mp_Queue]):
+    """Purges the given queue"""
+    while True:
+        try:
+            queue.get(timeout=0.005)
+        except Empty:
+            break
 
 
 def color(
