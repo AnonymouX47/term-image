@@ -6,7 +6,7 @@ import pytest
 
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import COLOR_RESET, CSI
+from term_image.utils import COLOR_RESET, CSI, get_fg_bg_colors
 
 from . import common
 from .common import _size, setup_common
@@ -61,6 +61,12 @@ class TestRender:
     def test_background_colour(self):
         self.trans.scale = 1.0
 
+        # Terminal BG
+        r, g, b = get_fg_bg_colors()[1] or (0, 0, 0)
+        assert all(
+            line == f"{CSI}48;2;{r};{g};{b}m" + " " * self.trans.width + COLOR_RESET
+            for line in self.render_image("#").splitlines()
+        )
         # red
         assert all(
             line == f"{CSI}48;2;255;0;0m" + " " * self.trans.width + COLOR_RESET

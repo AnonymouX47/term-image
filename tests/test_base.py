@@ -720,6 +720,7 @@ class TestFormatting:
             "#.23fa45",
             "#fffffff",
             "#a45gh4",
+            "###",
             " ",
             # style-specific section
             "+",
@@ -740,15 +741,17 @@ class TestFormatting:
             "<1.-",
             ".-",
             "#",
+            "##",
             "#123456",
             "#23af5b",
             "#abcdef",
             "#.4",
             "#.343545453453",
             "1.1#",
+            "1.1##",
             "<.^#ffffff",
-            "<1.^1#ffffff",
-            f"<{columns}.^{lines}#ffffff",
+            "<1.^1#.2",
+            f"<{columns}.^{lines}##",
         ):
             fmt = self.image._check_format_spec(spec)
             assert isinstance(fmt, tuple)

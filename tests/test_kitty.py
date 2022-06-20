@@ -11,7 +11,7 @@ import pytest
 from term_image.exceptions import KittyImageError
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ESC, ST
+from term_image.utils import CSI, ESC, ST, get_fg_bg_colors
 
 from . import common
 from .common import _size, python_img, setup_common
@@ -340,6 +340,13 @@ class TestRenderLines:
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        for line in self.render_image("#").splitlines():
+            control_codes, raw_image, _ = decode_image(line)
+            assert ("f", "24") in control_codes
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(pixel_bytes) == pixels_per_line
         # red
         for line in self.render_image("#ff0000").splitlines():
             control_codes, raw_image, _ = decode_image(line)
@@ -531,6 +538,12 @@ class TestRenderWhole:
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        control_codes, raw_image, _ = decode_image(self.render_image("#"))
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(pixel_bytes) == w * h
         # red
         control_codes, raw_image, _ = decode_image(self.render_image("#ff0000"))
         assert ("f", "24") in control_codes
