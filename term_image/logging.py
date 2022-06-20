@@ -156,7 +156,7 @@ def _log_warning(msg, catg, fname, lineno, f=None, line=None):
 
     Intended to replace `warnings.showwarning()`.
     """
-    _logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line))
+    _logger.warning(warnings.formatwarning(msg, catg, fname, lineno, line), **_kwargs)
     notify.notify(
         "Please view the logs for some warning(s).",
         level=notify.WARNING,
