@@ -628,7 +628,7 @@ FOOTNOTES:
      JPEG format can only be used for non-transparent images but the transparency status
      of some images can not be correctly determined in an efficient way at render time.
      Thus, to ensure the JPEG format is always used for re-encoded images, disable
-     transparency (`--no-alpha`) or set a background color (`-b/--background`).
+     transparency (`--no-alpha`) or set a background color (`-b/--alpha-bg`).
   7. By default, image data is used directly from file when no image manipulation is
      required. Otherwise, it's re-encoded in PNG (or JPEG, if enabled) format.
      Significantly reduces render time when applicable. This option does not apply to
@@ -1121,6 +1121,18 @@ FOOTNOTES:
         help=(
             "Maximum size (in bytes) of image data for native animation [CLI-only] "
             f"(default: {ITerm2Image.NATIVE_ANIM_MAXSIZE})"
+        ),
+    )
+    iterm2_options.add_argument(
+        "--itc",
+        "--iterm2-compress",
+        metavar="N",
+        dest="compress",
+        default=4,
+        type=int,
+        help=(
+            "ZLIB compression level, for images re-encoded in PNG format "
+            "0 -> no compression, 1 -> best speed, 9 -> best compression (default: 4)"
         ),
     )
     iterm2_options.add_argument(
