@@ -88,7 +88,7 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [method] [ m {0 | 1} ]
+        [method] [ m {0 | 1} ] [ c {0-9} ]
 
     * ``method``: Render method override.
 
@@ -112,6 +112,13 @@ class ITerm2Image(GraphicsImage):
 
       * If *absent*, defaults to ``m0``.
       * e.g ``m0``, ``m1``.
+
+    * ``c``: ZLIB compression level, for images re-encoded in PNG format.
+
+      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
+      * This results in a trade-off between render time and data size/draw speed.
+      * If *absent*, defaults to ``c4``.
+      * e.g ``c0``, ``c9``.
 
 
     ATTENTION:
@@ -159,7 +166,9 @@ class ITerm2Image(GraphicsImage):
     #:   loaded and re-encoded.
     READ_FROM_FILE: bool = True
 
-    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(map(re.compile, "[LWN] m[01]".split(" ")))
+    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
+        map(re.compile, "[LWN] m[01] c[0-9]".split(" "))
+    )
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
@@ -182,6 +191,17 @@ class ITerm2Image(GraphicsImage):
                 "Cell content inter-mix policy must be a boolean",
             ),
             (lambda _: True, ""),
+        ),
+        "compress": (
+            4,
+            (
+                lambda x: isinstance(x, int),
+                "Compression level must be an integer",
+            ),
+            (
+                lambda x: 0 <= x <= 9,
+                "Compression level must be between 0 and 9, both inclusive",
+            ),
         ),
         "native": (
             False,
@@ -209,6 +229,7 @@ class ITerm2Image(GraphicsImage):
         *args,
         method: Optional[str] = None,
         mix: bool = False,
+        compress: int = 4,
         native: bool = False,
         stall_native: bool = True,
         **kwargs,
@@ -228,6 +249,12 @@ class ITerm2Image(GraphicsImage):
                 erased.
               * ``True``, the opposite, thereby allowing existing text or image pixels
                 to show under transparent areas of the image.
+
+            compress: ZLIB compression level, for images re-encoded in PNG format.
+
+              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
+              no compression. This results in a trade-off between render time and data
+              size/draw speed.
 
             native: If ``True``, use native animation (if supported).
 
@@ -308,7 +335,7 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, (method, mix) = cls._get_style_format_spec(spec, original)
+        parent, (method, mix, compress) = cls._get_style_format_spec(spec, original)
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
@@ -318,6 +345,8 @@ class ITerm2Image(GraphicsImage):
             args["method"] = LINES if method == "L" else WHOLE
         if mix:
             args["mix"] = bool(int(mix[-1]))
+        if compress:
+            args["compress"] = int(compress[-1])
 
         return cls._check_style_args(args)
 
@@ -400,6 +429,7 @@ class ITerm2Image(GraphicsImage):
         frame: bool = False,
         method: Optional[str] = None,
         mix: bool = False,
+        compress: int = 4,
         native: bool = False,
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
@@ -509,7 +539,12 @@ class ITerm2Image(GraphicsImage):
                 compressed_image = io.BytesIO()
             else:
                 compressed_image = io.BytesIO()
-                img.save(compressed_image, format, quality=jpeg_quality)
+                img.save(
+                    compressed_image,
+                    format,
+                    compress_level=compress,  # PNG
+                    quality=jpeg_quality,
+                )
 
         # clean up
         if img is not self._source:
@@ -533,8 +568,12 @@ class ITerm2Image(GraphicsImage):
                     with PIL.Image.frombytes(
                         img.mode, (width, cell_height), raw_image.read(bytes_per_line)
                     ) as img:
-                        # *quality* for JPEG
-                        img.save(compressed_image, format, quality=jpeg_quality)
+                        img.save(
+                            compressed_image,
+                            format,
+                            compress_level=compress,  # PNG
+                            quality=jpeg_quality,
+                        )
 
                     is_on_wezterm and buffer.write(erase)
                     buffer.write(f"{OSC}1337;File=size={compressed_image.tell()}")
