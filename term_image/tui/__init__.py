@@ -72,7 +72,13 @@ def init(
                 specs["kitty"] += f"c{style_args['compress']}"
 
     Image._ti_alpha = (
-        "#" if args.no_alpha else "#" + (args.alpha_bg or f"{args.alpha:f}"[1:])
+        "#"
+        if args.no_alpha
+        else (
+            f"#{args.alpha:f}"[1:]
+            if args.alpha_bg is None
+            else "#" + (args.alpha_bg or "#")
+        )
     )
     Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
 

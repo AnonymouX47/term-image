@@ -135,8 +135,13 @@ Image Format Specification
     * **Applies to only text-based render styles**, (i.e those not based on terminal
       graphics protocols) e.g. :py:class:`BlockImage <term_image.image.BlockImage>`.
 
-  * ``bgcolor``: Hex color with which transparent background should be replaced e.g ``ffffff``, ``7faa52``.
-  * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present, transparency is disabled (uses the image's default background color, or black if none).
+  * ``bgcolor``: Color to replace transparent background with. Can be:
+
+    * ``#`` -> The terminal's default background color (or black, if undetermined) is used.
+    * A hex color e.g ``ffffff``, ``7faa52``.
+
+  * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present,
+    transparency is disabled (alpha channel is removed).
 
 * ``style``: Style-specific format specification.
 

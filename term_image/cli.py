@@ -761,7 +761,7 @@ FOOTNOTES:
     alpha_options.add_argument(
         "--no-alpha",
         action="store_true",
-        help="Disable image transparency (i.e black background)",
+        help="Disable image transparency (alpha channel is removed)",
     )
     alpha_options.add_argument(
         "-A",
@@ -777,10 +777,12 @@ FOOTNOTES:
     alpha_options.add_argument(
         "-b",
         "--alpha-bg",
+        nargs="?",
+        const="",
         metavar="COLOR",
         help=(
-            "Hex color (without '#') with which transparent backgrounds should be "
-            "replaced"
+            "Hex color (without '#') to replace transparent backgrounds with "
+            "(omit `COLOR` to use the terminal's default BG color)"
         ),
     )
 
@@ -1406,7 +1408,9 @@ FOOTNOTES:
                     (
                         None
                         if args.no_alpha
-                        else args.alpha_bg and "#" + args.alpha_bg or args.alpha
+                        else (
+                            args.alpha if args.alpha_bg is None else "#" + args.alpha_bg
+                        )
                     ),
                     scroll=args.scroll,
                     animate=not args.no_anim,

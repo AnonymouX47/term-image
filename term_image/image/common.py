@@ -44,11 +44,11 @@ from ..utils import (
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?(\+(.+))?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6}|#)?)?(\+(.+))?",
     re.ASCII,
 )
 _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
-_HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
+_ALPHA_BG_FORMAT = re.compile("#([0-9a-f]{6})?", re.ASCII)
 
 
 @no_redecorate
@@ -540,13 +540,16 @@ class BaseImage(ABC):
 
             alpha: Transparency setting.
 
-              * If ``None``, transparency is disabled
-                (uses the image's default background color).
+              * If ``None``, transparency is disabled (alpha channel is removed).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
                 **above** which pixels are taken as *opaque*. **(Applies to only
                 text-based render styles)**.
-              * If a string, specifies a **hex color** with which transparent
-                background should be replaced.
+              * If a string, specifies a color to replace transparent background with.
+                Can be:
+
+                * **"#"** -> The terminal's default background color (or black, if
+                  undetermined) is used.
+                * A hex color e.g ``ffffff``, ``7faa52``.
 
             scroll: Only applies to non-animations. If ``True``:
 
@@ -607,7 +610,7 @@ class BaseImage(ABC):
                 if not 0.0 <= alpha < 1.0:
                     raise ValueError(f"Alpha threshold out of range (got: {alpha})")
             elif isinstance(alpha, str):
-                if not _HEX_COLOR_FORMAT.fullmatch(alpha):
+                if not _ALPHA_BG_FORMAT.fullmatch(alpha):
                     raise ValueError(f"Invalid hex color string (got: {alpha})")
             else:
                 raise TypeError(
@@ -1074,8 +1077,8 @@ class BaseImage(ABC):
             (
                 threshold_or_bg
                 and (
-                    "#" + threshold_or_bg
-                    if _HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
+                    "#" + threshold_or_bg.lstrip("#")
+                    if _ALPHA_BG_FORMAT.fullmatch("#" + threshold_or_bg.lstrip("#"))
                     else float(threshold_or_bg)
                 )
                 if alpha
@@ -1464,6 +1467,8 @@ class BaseImage(ABC):
         else:
             convert_resize_img("RGBA")
             if isinstance(alpha, str):
+                if alpha == "#":
+                    alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
                 if img is not self._source:

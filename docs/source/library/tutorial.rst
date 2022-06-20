@@ -123,7 +123,7 @@ Renders the image with:
 * **no** horizontal :term:`padding`, since ``1`` must be less than or equal to the image width
 * **middle** :term:`vertical alignment` (default)
 * **no** vertical :term:`padding`, since ``1`` is less than or equal to the image height
-* transparency **disabled** (uses the image's default background color)
+* transparency **disabled** (alpha channel is removed)
 
 The result should look like:
 
