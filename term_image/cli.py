@@ -1141,6 +1141,10 @@ FOOTNOTES:
         store_config(default=True)
         sys.exit(SUCCESS)
 
+    force_cli_mode = not sys.stdout.isatty() and not args.cli
+    if force_cli_mode:
+        args.cli = True
+
     init_log(
         (
             args.log_file
@@ -1245,6 +1249,13 @@ FOOTNOTES:
     # Some APCs used for render style support detection get emitted on some
     # non-supporting terminal emulators
     write_tty(f"{CSI}1K\r".encode())
+
+    if force_cli_mode:
+        log(
+            "Output is not a terminal, forcing CLI mode!",
+            logger,
+            level=_logging.WARNING,
+        )
 
     log("Processing sources", logger, loading=True)
 
