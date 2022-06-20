@@ -299,21 +299,19 @@ def quit():
 
 @register_key(("global", "Key Bar"))
 def expand_collapse_keys():
-    global key_bar_is_collapsed
-
-    if expand_key_is_shown:
-        if key_bar_is_collapsed and key_bar_rows() > 1:
+    if expand._ti_shown:
+        if key_bar._ti_collapsed and key_bar_rows() > 1:
             expand.original_widget.set_text(f"\u25BC [{expand_key[1]}]")
             main_widget.contents[-1] = (
                 bottom_bar,
                 ("given", key_bar_rows()),
             )
-            key_bar_is_collapsed = False
+            key_bar._ti_collapsed = False
             main.ImageClass._clear_images() and ImageCanvas.change()
-        elif not key_bar_is_collapsed:
+        elif not key_bar._ti_collapsed:
             expand.original_widget.set_text(f"\u25B2 [{expand_key[1]}]")
             main_widget.contents[-1] = (bottom_bar, ("given", 1))
-            key_bar_is_collapsed = True
+            key_bar._ti_collapsed = True
             main.ImageClass._clear_images() and ImageCanvas.change()
 
 
@@ -324,21 +322,19 @@ def help():
 
 
 def resize():
-    global expand_key_is_shown
-
     cols = get_terminal_size()[0]
     rows = key_bar.original_widget.rows((cols,))
-    if expand_key_is_shown:
+    if expand._ti_shown:
         if rows == 1:
             bottom_bar.contents.pop()
-            expand_key_is_shown = False
+            expand._ti_shown = False
     elif rows > 1:
         bottom_bar.contents.append(
             (expand, ("given", len(expand.original_widget.text), False))
         )
-        expand_key_is_shown = True
+        expand._ti_shown = True
 
-    if not key_bar_is_collapsed:
+    if not key_bar._ti_collapsed:
         new_rows = key_bar_rows()
         if main_widget.contents[-1][1][1] != new_rows:
             main.ImageClass._clear_images()
@@ -352,7 +348,7 @@ def key_bar_rows():
     # Consider columns occupied by the expand key and the divider
     cols = (
         get_terminal_size()[0]
-        - (len(expand.original_widget.text) + 2) * expand_key_is_shown
+        - (len(expand.original_widget.text) + 2) * expand._ti_shown
     )
     return key_bar.original_widget.rows((cols,))
 
@@ -684,9 +680,9 @@ def close():
 
 
 logger = _logging.getLogger(__name__)
-key_bar_is_collapsed = True
-expand_key_is_shown = True
 no_globals = {"global", "confirmation", "full-grid-image", "overlay"}
+key_bar._ti_collapsed = True
+expand._ti_shown = True
 
 # The annotations below are put in comments for compatibility with Python 3.7
 # as it doesn't allow names declared as `global` within functions to be annotated.
