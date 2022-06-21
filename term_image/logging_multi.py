@@ -59,6 +59,7 @@ class Process(Process):
         }
         self._main_process_interrupted = cli.interrupted
         self._font_ratio = cli.args.font_ratio
+        self._query_timeout = term_image.utils.QUERY_TIMEOUT
         self._ImageClass = tui.main.ImageClass
         exported_attrs = exported_style_attrs.get(cli.args.style)
         if self._ImageClass and exported_attrs:
@@ -74,6 +75,8 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
+            term_image.utils.QUERY_TIMEOUT = self._query_timeout
+
             if self._ImageClass:
                 # The unpickled class object is in the originally defined state
                 # Eliminates queries for style support checks
