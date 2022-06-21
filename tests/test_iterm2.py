@@ -94,3 +94,47 @@ def test_style_format_spec():
         ("Wm1c9", {"method": WHOLE, "mix": True, "compress": 9}),
     ):
         assert ITerm2Image._check_style_format_spec(spec, spec) == args
+
+
+class TestStyleArgs:
+    def test_unknown(self):
+        for args in ({"c": 1}, {"m": True}, {" ": None}, {"xxxx": True}):
+            with pytest.raises(ITerm2ImageError, match="Unknown style-specific"):
+                ITerm2Image._check_style_args(args)
+
+    def test_method(self):
+        for value in (None, 1.0, (), [], 2):
+            with pytest.raises(TypeError):
+                ITerm2Image._check_style_args({"method": value})
+        for value in ("", " ", "cool"):
+            with pytest.raises(ValueError):
+                ITerm2Image._check_style_args({"method": value})
+
+        for value in (LINES, WHOLE):
+            assert ITerm2Image._check_style_args({"method": value}) == {"method": value}
+        assert ITerm2Image._check_style_args({"native": False}) == {}
+        assert ITerm2Image._check_style_args({"native": True}) == {"native": True}
+
+    def test_mix(self):
+        for value in (0, 1.0, (), [], "2"):
+            with pytest.raises(TypeError):
+                ITerm2Image._check_style_args({"mix": value})
+
+        assert ITerm2Image._check_style_args({"mix": False}) == {}
+        assert ITerm2Image._check_style_args({"mix": True}) == {"mix": True}
+
+    def test_compress(self):
+        for value in (1.0, (), [], "2"):
+            with pytest.raises(TypeError):
+                ITerm2Image._check_style_args({"compress": value})
+        for value in (-1, 10):
+            with pytest.raises(ValueError):
+                ITerm2Image._check_style_args({"compress": value})
+
+        assert ITerm2Image._check_style_args({"compress": 4}) == {}
+        for value in range(1, 10):
+            if value != 4:
+                assert (
+                    ITerm2Image._check_style_args({"compress": value})
+                    == {"compress": value}  # fmt: skip
+                )
