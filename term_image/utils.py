@@ -254,7 +254,7 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     ws = get_window_size()
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
-    return None if size is None or len(size) != 2 or 0 in size else size
+    return size and (0 in size and None or size)
 
 
 @cached
@@ -343,23 +343,22 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         pass
 
     # Then CSI 14 t
-    response = query_terminal(b"\033[14t", more=lambda s: not s.endswith(b"t"))
-    try:
-        size = response and tuple(
-            map(int, response.partition(b"\033")[2][3:-1].split(b";"))
-        )
-        if size:
-            size = size[::-1]  # XTerm spicifies (height, width)
+    # The second sequence is to speed up the entire query since most (if not all)
+    # terminals should support it and most terminals treat queries as FIFO
+    response = query_terminal(
+        f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
+    )
+    size = (response or None) and WIN_SIZE.match(response.decode())
+    if size:
+        size = tuple(map(int, size.groups()))[::-1]  # XTerm spicifies (height, width)
 
-            # Termux seems to respond with (height / 2, width), though the values are
-            # incorrect as they change with different zoom levels but still always
-            # give a reasonable (almost always the same) cell size and ratio.
-            if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                size = (size[0], size[1] * 2)
-    except ValueError:
-        size = None
+        # Termux seems to respond with (height / 2, width), though the values are
+        # incorrect as they change with different zoom levels but still always
+        # give a reasonable (almost always the same) cell size and ratio.
+        if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+            size = (size[0], size[1] * 2)
 
-    return None if size is None or len(size) != 2 or 0 in size else size
+    return size and (0 in size and None or size)
 
 
 @unix_tty_only
@@ -520,7 +519,7 @@ def write_tty(data: bytes) -> None:
 
 
 def x_parse_color(spec: str) -> Tuple[int, int, int]:
-    """Converts an RGB Device specification according to XParseColor"""
+    """Converts an RGB device specification according to XParseColor"""
     # One hex char -> 4 bits
     return tuple(int(x, 16) * 255 // ((1 << (len(x) * 4)) - 1) for x in spec.split("/"))
 
@@ -563,6 +562,7 @@ def _process_run_wrapper(self, *args, **kwargs):
 
 QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
+WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
 
 # Constants for escape sequences
 
