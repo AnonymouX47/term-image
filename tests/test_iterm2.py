@@ -217,7 +217,7 @@ class TestRenderLines:
             lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
         )
 
-    def _test_image_size(self, image, term="", re_encoded=True):
+    def _test_image_size(self, image, term="", read_from_file=False):
         w, h = get_actual_render_size(image)
         cols, lines = image.rendered_size
         bytes_per_line = w * (h // lines) * 4
@@ -227,12 +227,12 @@ class TestRenderLines:
         assert render.count("\n") + 1 == lines
         for n, line in enumerate(render.splitlines(), 1):
             control_codes, format, mode, image_data, fill = decode_image(
-                line, term=term
+                line, term=term, read_from_file=read_from_file
             )
             assert (
                 code in control_codes for code in expand_control_data(size_control_data)
             )
-            if re_encoded:
+            if not read_from_file:
                 assert len(image_data) == bytes_per_line
             assert fill == (
                 jump_right.format(cols=cols)
@@ -253,7 +253,8 @@ class TestRenderLines:
         image.height = lines_for_original_height // 2
         w, h = image._get_render_size()
         assert get_actual_render_size(image) == (w, h)
-        self._test_image_size(image)
+        for ITerm2Image._TERM in supported_terminals:
+            self._test_image_size(image, term=ITerm2Image._TERM)
 
         # Using original size
         image.height = lines_for_original_height * 2
@@ -262,7 +263,8 @@ class TestRenderLines:
         if extra:
             h = h - extra + image.height
         assert get_actual_render_size(image) == (w, h)
-        self._test_image_size(image)
+        for ITerm2Image._TERM in supported_terminals:
+            self._test_image_size(image, term=ITerm2Image._TERM)
 
     def test_size(self):
         self.trans.scale = 1.0
@@ -276,14 +278,18 @@ class TestRenderLines:
         pixels_per_line = w * (h // _size)
 
         # Transparency enabled
-        for line in self.render_image().splitlines():
+        render = self.render_image()
+        assert render == str(self.trans) == f"{self.trans:1.1}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGBA"
             assert len(image_data) == pixels_per_line * 4
             assert image_data.count(b"\0" * 4) == pixels_per_line
         # Transparency disabled
-        for line in self.render_image(None).splitlines():
+        render = self.render_image(None)
+        assert render == f"{self.trans:1.1#}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
@@ -297,28 +303,36 @@ class TestRenderLines:
         pixels_per_line = w * (h // _size)
 
         # red
-        for line in self.render_image("#ff0000").splitlines():
+        render = self.render_image("#ff0000")
+        assert render == f"{self.trans:1.1#ff0000}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
             assert len(image_data) == pixels_per_line * 3
             assert image_data.count(b"\xff\0\0") == pixels_per_line
         # green
-        for line in self.render_image("#00ff00").splitlines():
+        render = self.render_image("#00ff00")
+        assert render == f"{self.trans:1.1#00ff00}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
             assert len(image_data) == pixels_per_line * 3
             assert image_data.count(b"\0\xff\0") == pixels_per_line
         # blue
-        for line in self.render_image("#0000ff").splitlines():
+        render = self.render_image("#0000ff")
+        assert render == f"{self.trans:1.1#0000ff}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
             assert len(image_data) == pixels_per_line * 3
             assert image_data.count(b"\0\0\xff") == pixels_per_line
         # white
-        for line in self.render_image("#ffffff").splitlines():
+        render = self.render_image("#ffffff")
+        assert render == f"{self.trans:1.1#ffffff}"
+        for line in render.splitlines():
             control_codes, format, mode, image_data, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
