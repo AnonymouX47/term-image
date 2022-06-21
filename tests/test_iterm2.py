@@ -1,9 +1,15 @@
 """ITerm2Image-specific tests"""
 
+import io
+from base64 import standard_b64decode
 import pytest
+from PIL import Image
+from PIL.GifImagePlugin import GifImageFile
+from PIL.PngImagePlugin import PngImageFile
 
 from term_image.exceptions import ITerm2ImageError
-from term_image.image.iterm2 import LINES, WHOLE, ITerm2Image
+from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
+from term_image.utils import CSI, ST
 
 from . import common
 from .common import python_img, setup_common
@@ -138,3 +144,58 @@ class TestStyleArgs:
                     ITerm2Image._check_style_args({"compress": value})
                     == {"compress": value}  # fmt: skip
                 )
+
+
+def expand_control_data(control_data):
+    control_data = control_data.split(";")
+    control_codes = {tuple(code.split("=")) for code in control_data}
+    assert len(control_codes) == len(control_data)
+
+    return control_codes
+
+
+def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
+    fill_1, start, data = data.partition(START)
+    assert start == START
+    if term == "konsole":
+        assert fill_1 == ""
+
+    transmission, end, fill_2 = data.rpartition(ST)
+    assert end == ST
+    if term != "konsole":
+        assert fill_2 == ""
+
+    control_data, image_data = transmission.split(":", 1)
+    control_codes = expand_control_data(control_data)
+    assert (
+        code in control_codes
+        for code in expand_control_data(
+            "preserveAspectRatio=0;inline=1"
+            + ";doNotMoveCursor=1" * (term == "konsole")
+        )
+    )
+
+    image_data = standard_b64decode(image_data.encode())
+    img = Image.open(io.BytesIO(image_data))
+    if native:
+        assert isinstance(img, (GifImageFile, PngImageFile))
+        assert img.is_animated
+
+    if read_from_file or native:
+        pass
+    else:
+        image_data = img.tobytes()
+        if jpeg and img.mode != "RGBA":
+            assert img.format == "JPEG"
+            assert img.mode == "RGB"
+        else:
+            assert img.format == "PNG"
+            assert img.mode in {"RGB", "RGBA"}
+
+    return (
+        control_codes,
+        img.format,
+        img.mode,
+        image_data,
+        fill_2 if term == "konsole" else fill_1,
+    )
