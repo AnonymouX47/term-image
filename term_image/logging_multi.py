@@ -61,6 +61,7 @@ class Process(Process):
         self._ImageClass = tui.main.ImageClass
         self._force_style = cli.args.force_style
         self._font_ratio = cli.args.font_ratio
+        self._query_timeout = term_image.utils.QUERY_TIMEOUT
         child_processes.append(self)
 
     def run(self):
@@ -68,6 +69,8 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
+            term_image.utils.QUERY_TIMEOUT = self._query_timeout
+
             if self._force_style and self._ImageClass:
                 # The unpickled class object is in the originally defined state
                 self._ImageClass._supported = True

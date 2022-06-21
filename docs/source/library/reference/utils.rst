@@ -46,16 +46,17 @@
    For this procedure to be successful, it must not be interrupted.
 
    About #1
-      If the program is expecting input, use :py:func:`utils.read_tty()
-      <term_image.utils.read_tty>` (simply calling it without any argument is enough) to
-      read all currently unread input (**without blocking**) just before any operation
-      involving a query.
+      If the program is expecting input, use :py:func:`read_tty` (simply calling it
+      without any argument is enough) to read all currently unread input
+      (**without blocking**) just before any operation involving a query.
 
    About #2 and #3
+      After sending a request to the terminal, its response is awaited. The default wait
+      time is **0.1 seconds** but can be changed using :py:func:`~term_image.set_query_timeout`.
+
       If the program includes any other function that could write to the terminal OR
       especially, read from the terminal or modify it's attributes, while a query is in
-      progress, decorate it with :py:func:`utils.lock_tty() <term_image.utils.lock_tty>`
-      to ensure it doesn't interfere.
+      progress, decorate it with :py:func:`lock_tty` to ensure it doesn't interfere.
 
       For example, the TUI included in this package (i.e ``term_image``) uses
       `urwid <https://urwid.org>`_ which reads from the terminal using

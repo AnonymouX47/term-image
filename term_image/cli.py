@@ -27,6 +27,7 @@ from . import (
     logging,
     notify,
     set_font_ratio,
+    set_query_timeout,
     tui,
 )
 from .config import config_options, store_config
@@ -37,7 +38,7 @@ from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import CSI, OS_IS_UNIX, get_terminal_size, write_tty
+from .utils import CSI, OS_IS_UNIX, QUERY_TIMEOUT, get_terminal_size, write_tty
 
 
 def check_dir(
@@ -646,6 +647,15 @@ FOOTNOTES:
         help="Restore default config and exit (Overwrites the config file)",
     )
     general.add_argument(
+        "--query-timeout",
+        type=float,
+        metavar="N",
+        default=QUERY_TIMEOUT,
+        help=(
+            f"Timeout (in seconds) for all terminal queries (default: {QUERY_TIMEOUT})"
+        ),
+    )
+    general.add_argument(
         "-S",
         "--style",
         choices=("auto", "kitty", "iterm2", "block"),
@@ -1142,6 +1152,7 @@ FOOTNOTES:
     )
 
     for details in (
+        ("query_timeout", lambda x: x > 0.0, "must be greater than zero"),
         ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
         ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
@@ -1172,6 +1183,8 @@ FOOTNOTES:
                 level=notify.WARNING,
             )
             setattr(args, var_name, getattr(config, var_name))
+
+    set_query_timeout(args.query_timeout)
 
     if args.auto_font_ratio:
         args.font_ratio = None

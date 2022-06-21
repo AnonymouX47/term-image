@@ -365,7 +365,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
 @unix_tty_only
 @lock_tty
 def query_terminal(
-    request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
+    request: bytes, more: Callable[[bytearray], bool], timeout: float = None
 ) -> Optional[bytes]:
     """Sends a query to the :term:`active terminal` and returns the response.
 
@@ -378,6 +378,9 @@ def query_terminal(
 
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
+
+          If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
+          :py:func:`term_image.set_query_timeout`) is used.
 
     Returns:
         The terminal's response (empty, if no response is recieved after *timeout*
@@ -393,7 +396,7 @@ def query_terminal(
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
         write_tty(request)
-        return read_tty(more, timeout)
+        return read_tty(more, timeout or QUERY_TIMEOUT)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
@@ -558,6 +561,7 @@ def _process_run_wrapper(self, *args, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
+QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
 
 # Constants for escape sequences
