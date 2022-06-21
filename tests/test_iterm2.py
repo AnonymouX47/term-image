@@ -2,6 +2,7 @@
 
 import pytest
 
+from term_image.exceptions import ITerm2ImageError
 from term_image.image.iterm2 import LINES, WHOLE, ITerm2Image
 
 from . import common
@@ -58,3 +59,38 @@ def test_set_render_method():
         assert image._render_method == ITerm2Image._default_render_method
     finally:
         ITerm2Image._render_method = ITerm2Image._default_render_method
+
+
+def test_style_format_spec():
+    for spec in (
+        " ",
+        "x",
+        "LW",
+        "WN",
+        "c1m0",
+        "0c",
+        "m2",
+        "m01",
+        "c-1",
+        "c10",
+        "c4m1",
+        " c1",
+        "m0 ",
+        "  m1c3  ",
+    ):
+        with pytest.raises(ITerm2ImageError, match="format spec"):
+            ITerm2Image._check_style_format_spec(spec, spec)
+
+    for spec, args in (
+        ("", {}),
+        ("L", {"method": LINES}),
+        ("W", {"method": WHOLE}),
+        ("N", {"native": True}),
+        ("m0", {}),
+        ("m1", {"mix": True}),
+        ("c4", {}),
+        ("c0", {"compress": 0}),
+        ("c9", {"compress": 9}),
+        ("Wm1c9", {"method": WHOLE, "mix": True, "compress": 9}),
+    ):
+        assert ITerm2Image._check_style_format_spec(spec, spec) == args
