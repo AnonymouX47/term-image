@@ -301,11 +301,12 @@ class ITerm2Image(GraphicsImage):
     @lock_tty  # the terminal's response to the query is not read all at once
     def is_supported(cls):
         if cls._supported is None:
+            cls._supported = False
             # Terminal name/version query + terminal attribute query
-            # The latter is to speed up the entirequery since most (if not all)
+            # The latter is to speed up the entire query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(f"{CSI}?6".encode())
+                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(CSI.encode())
             )
             read_tty()  # The rest of the response to `CSI c`
 
@@ -319,17 +320,13 @@ class ITerm2Image(GraphicsImage):
                 if match and match.group(1).lower() in {"iterm2", "konsole", "wezterm"}:
                     name, version = map(str.lower, match.groups())
                     try:
-                        if name == "konsole" and (
-                            tuple(map(int, version.split("."))) < (22, 4, 0)
+                        if name != "konsole" or (
+                            tuple(map(int, version.split("."))) >= (22, 4, 0)
                         ):
-                            cls._supported = False
-                        else:
                             cls._supported = True
                             cls._TERM, cls._TERM_VERSION = name, version
                     except ValueError:  # version string not "understood"
-                        cls._supported = False
-            else:
-                cls._supported = False
+                        pass
 
         return cls._supported
 
