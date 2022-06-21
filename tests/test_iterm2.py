@@ -2,6 +2,8 @@
 
 import io
 from base64 import standard_b64decode
+from random import random
+
 import pytest
 from PIL import Image
 from PIL.GifImagePlugin import GifImageFile
@@ -12,7 +14,9 @@ from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
 from term_image.utils import CSI, ST
 
 from . import common
-from .common import python_img, setup_common
+from .common import _size, get_actual_render_size, python_img, setup_common
+
+ITerm2Image.READ_FROM_FILE = False
 
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Graphics")):
@@ -199,3 +203,194 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
         image_data,
         fill_2 if term == "konsole" else fill_1,
     )
+
+
+class TestRenderLines:
+    # Fully transparent image
+    # It's easy to predict it's pixel values
+    trans = ITerm2Image.from_file("tests/images/trans.png")
+    trans.height = _size
+    trans.set_render_method(LINES)
+
+    def render_image(self, alpha=0.0, *, N=False, m=False, c=4):
+        return self.trans._renderer(
+            lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
+        )
+
+    def _test_image_size(self, image, term="", re_encoded=True):
+        w, h = get_actual_render_size(image)
+        cols, lines = image.rendered_size
+        bytes_per_line = w * (h // lines) * 4
+        size_control_data = f"width={cols},height=1"
+        render = str(image)
+
+        assert render.count("\n") + 1 == lines
+        for n, line in enumerate(render.splitlines(), 1):
+            control_codes, format, mode, image_data, fill = decode_image(
+                line, term=term
+            )
+            assert (
+                code in control_codes for code in expand_control_data(size_control_data)
+            )
+            if re_encoded:
+                assert len(image_data) == bytes_per_line
+            assert fill == (
+                jump_right.format(cols=cols)
+                if term == "konsole"
+                else erase.format(cols=cols)
+                if term == "wezterm"
+                else ""
+            )
+
+    def test_minimal_render_size(self):
+        image = ITerm2Image.from_file("tests/images/trans.png")
+        image.set_render_method(LINES)
+        lines_for_original_height = ITerm2Image._pixels_lines(
+            pixels=image.original_size[1]
+        )
+
+        # Using render size
+        image.height = lines_for_original_height // 2
+        w, h = image._get_render_size()
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
+        # Using original size
+        image.height = lines_for_original_height * 2
+        w, h = image._original_size
+        extra = h % (image.height or 1)
+        if extra:
+            h = h - extra + image.height
+        assert get_actual_render_size(image) == (w, h)
+        self._test_image_size(image)
+
+    def test_size(self):
+        self.trans.scale = 1.0
+        for ITerm2Image._TERM in supported_terminals:
+            self._test_image_size(self.trans, term=ITerm2Image._TERM)
+
+    def test_image_data_and_transparency(self):
+        ITerm2Image._TERM = ""
+        self.trans.scale = 1.0
+        w, h = get_actual_render_size(self.trans)
+        pixels_per_line = w * (h // _size)
+
+        # Transparency enabled
+        for line in self.render_image().splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGBA"
+            assert len(image_data) == pixels_per_line * 4
+            assert image_data.count(b"\0" * 4) == pixels_per_line
+        # Transparency disabled
+        for line in self.render_image(None).splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(image_data) == pixels_per_line * 3
+            assert image_data.count(b"\0\0\0") == pixels_per_line
+
+    def test_image_data_and_background_colour(self):
+        ITerm2Image._TERM = ""
+        self.trans.scale = 1.0
+        w, h = get_actual_render_size(self.trans)
+        pixels_per_line = w * (h // _size)
+
+        # red
+        for line in self.render_image("#ff0000").splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(image_data) == pixels_per_line * 3
+            assert image_data.count(b"\xff\0\0") == pixels_per_line
+        # green
+        for line in self.render_image("#00ff00").splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(image_data) == pixels_per_line * 3
+            assert image_data.count(b"\0\xff\0") == pixels_per_line
+        # blue
+        for line in self.render_image("#0000ff").splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(image_data) == pixels_per_line * 3
+            assert image_data.count(b"\0\0\xff") == pixels_per_line
+        # white
+        for line in self.render_image("#ffffff").splitlines():
+            control_codes, format, mode, image_data, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(image_data) == pixels_per_line * 3
+            assert image_data.count(b"\xff" * 3) == pixels_per_line
+
+    def test_mix(self):
+        ITerm2Image._TERM = ""
+        self.trans.scale = 1.0
+        cols = self.trans.rendered_width
+
+        for ITerm2Image._TERM in supported_terminals:
+            # mix = False (default)
+            render = self.render_image()
+            assert render == str(self.trans) == f"{self.trans:1.1+m0}"
+            for line in render.splitlines():
+                assert decode_image(line, term=ITerm2Image._TERM)[-1] == (
+                    jump_right.format(cols=cols)
+                    if ITerm2Image._TERM == "konsole"
+                    else erase.format(cols=cols)
+                    if ITerm2Image._TERM == "wezterm"
+                    else ""
+                )
+
+            # mix = True
+            render = self.render_image(None, m=True)
+            assert render == f"{self.trans:1.1#+m1}"
+            for line in render.splitlines():
+                assert decode_image(line, term=ITerm2Image._TERM)[-1] == (
+                    jump_right.format(cols=cols)
+                    if ITerm2Image._TERM == "konsole"
+                    else ""
+                )
+
+    def test_compress(self):
+        ITerm2Image._TERM = ""
+        self.trans.scale = 1.0
+
+        # compress = 4  (default)
+        assert self.render_image() == str(self.trans) == f"{self.trans:1.1+c4}"
+        # compress = 0
+        assert self.render_image(None, c=0) == f"{self.trans:1.1#+c0}"
+        # compress = {1-9}
+        for value in range(1, 10):
+            assert self.render_image(None, c=value) == f"{self.trans:1.1#+c{value}}"
+
+        # Data size relativity
+        assert (
+            len(self.render_image(c=0))
+            > len(self.render_image(c=1))
+            > len(self.render_image(c=9))
+        )
+
+    def test_scaled(self):
+        # At varying scales
+        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
+            for ITerm2Image._TERM in supported_terminals:
+                self._test_image_size(self.trans, term=ITerm2Image._TERM)
+
+        # Random scales
+        for _ in range(20):
+            scale = random()
+            if scale == 0.0:
+                continue
+            self.trans.scale = scale
+            if 0 in self.trans.rendered_size:
+                continue
+            for ITerm2Image._TERM in supported_terminals:
+                self._test_image_size(self.trans, term=ITerm2Image._TERM)
+
+
+supported_terminals = {"iterm2", "wezterm", "konsole"}
+erase = f"{CSI}{{cols}}X"
+jump_right = f"{CSI}{{cols}}C"
+fill_fmt = f"{CSI}{{cols}}X{jump_right}"
