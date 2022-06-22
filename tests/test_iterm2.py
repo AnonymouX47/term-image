@@ -169,7 +169,7 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
     if term != "konsole":
         assert fill_2 == ""
 
-    control_data, image_data = transmission.split(":", 1)
+    control_data, payload = transmission.split(":", 1)
     control_codes = expand_control_data(control_data)
     assert (
         code in control_codes
@@ -179,16 +179,16 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
         )
     )
 
-    image_data = standard_b64decode(image_data.encode())
-    img = Image.open(io.BytesIO(image_data))
+    compressed_image = standard_b64decode(payload.encode())
+    img = Image.open(io.BytesIO(compressed_image))
     if native:
         assert isinstance(img, (GifImageFile, PngImageFile))
         assert img.is_animated
 
     if read_from_file or native:
-        pass
+        raw_image = None
     else:
-        image_data = img.tobytes()
+        raw_image = img.tobytes()
         if jpeg and img.mode != "RGBA":
             assert img.format == "JPEG"
             assert img.mode == "RGB"
@@ -200,7 +200,8 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
         control_codes,
         img.format,
         img.mode,
-        image_data,
+        compressed_image,
+        raw_image,
         fill_2 if term == "konsole" else fill_1,
     )
 
@@ -217,7 +218,8 @@ class TestRenderLines:
             lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
         )
 
-    def _test_image_size(self, image, term="", read_from_file=False):
+    @staticmethod
+    def _test_image_size(image, term=""):
         w, h = get_actual_render_size(image)
         cols, lines = image.rendered_size
         bytes_per_line = w * (h // lines) * 4
@@ -226,14 +228,13 @@ class TestRenderLines:
 
         assert render.count("\n") + 1 == lines
         for n, line in enumerate(render.splitlines(), 1):
-            control_codes, format, mode, image_data, fill = decode_image(
-                line, term=term, read_from_file=read_from_file
+            control_codes, format, mode, _, raw_image, fill = decode_image(
+                line, term=term
             )
             assert (
                 code in control_codes for code in expand_control_data(size_control_data)
             )
-            if not read_from_file:
-                assert len(image_data) == bytes_per_line
+            assert len(raw_image) == bytes_per_line
             assert fill == (
                 jump_right.format(cols=cols)
                 if term == "konsole"
@@ -271,7 +272,7 @@ class TestRenderLines:
         for ITerm2Image._TERM in supported_terminals:
             self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
-    def test_image_data_and_transparency(self):
+    def test_raw_image_and_transparency(self):
         ITerm2Image._TERM = ""
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
@@ -281,22 +282,22 @@ class TestRenderLines:
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGBA"
-            assert len(image_data) == pixels_per_line * 4
-            assert image_data.count(b"\0" * 4) == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 4
+            assert raw_image.count(b"\0" * 4) == pixels_per_line
         # Transparency disabled
         render = self.render_image(None)
         assert render == f"{self.trans:1.1#}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
-            assert len(image_data) == pixels_per_line * 3
-            assert image_data.count(b"\0\0\0") == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(b"\0\0\0") == pixels_per_line
 
-    def test_image_data_and_background_colour(self):
+    def test_raw_image_and_background_colour(self):
         ITerm2Image._TERM = ""
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
@@ -306,38 +307,38 @@ class TestRenderLines:
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
-            assert len(image_data) == pixels_per_line * 3
-            assert image_data.count(b"\xff\0\0") == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(b"\xff\0\0") == pixels_per_line
         # green
         render = self.render_image("#00ff00")
         assert render == f"{self.trans:1.1#00ff00}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
-            assert len(image_data) == pixels_per_line * 3
-            assert image_data.count(b"\0\xff\0") == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(b"\0\xff\0") == pixels_per_line
         # blue
         render = self.render_image("#0000ff")
         assert render == f"{self.trans:1.1#0000ff}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
-            assert len(image_data) == pixels_per_line * 3
-            assert image_data.count(b"\0\0\xff") == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(b"\0\0\xff") == pixels_per_line
         # white
         render = self.render_image("#ffffff")
         assert render == f"{self.trans:1.1#ffffff}"
         for line in render.splitlines():
-            control_codes, format, mode, image_data, _ = decode_image(line)
+            control_codes, format, mode, _, raw_image, _ = decode_image(line)
             assert format == "PNG"
             assert mode == "RGB"
-            assert len(image_data) == pixels_per_line * 3
-            assert image_data.count(b"\xff" * 3) == pixels_per_line
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(b"\xff" * 3) == pixels_per_line
 
     def test_mix(self):
         ITerm2Image._TERM = ""
@@ -416,21 +417,22 @@ class TestRenderWhole:
             lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
         )
 
-    def _test_image_size(self, image, term="", read_from_file=False):
+    @staticmethod
+    def _test_image_size(image, term="", read_from_file=False):
         w, h = get_actual_render_size(image)
         cols, lines = image.rendered_size
         size_control_data = f"width={cols},height={lines}"
         render = str(image)
 
         assert render.count("\n") + 1 == lines
-        control_codes, format, mode, image_data, fill = decode_image(
+        control_codes, format, mode, _, raw_image, fill = decode_image(
             render, term=term, read_from_file=read_from_file
         )
         assert (
             code in control_codes for code in expand_control_data(size_control_data)
         )
         if not read_from_file:
-            assert len(image_data) == w * h * 4
+            assert len(raw_image) == w * h * len(mode)
         assert fill.count("\n") + 1 == lines
         *fills, last_fill = fill.splitlines()
         assert all(
@@ -476,7 +478,7 @@ class TestRenderWhole:
         for ITerm2Image._TERM in supported_terminals:
             self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
-    def test_image_data_and_transparency(self):
+    def test_raw_image_and_transparency(self):
         ITerm2Image._TERM = ""
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
@@ -484,22 +486,22 @@ class TestRenderWhole:
         # Transparency enabled
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGBA"
-        assert len(image_data) == w * h * 4
-        assert image_data.count(b"\0" * 4) == w * h
+        assert len(raw_image) == w * h * 4
+        assert raw_image.count(b"\0" * 4) == w * h
 
         # Transparency disabled
         render = self.render_image(None)
         assert render == f"{self.trans:1.1#}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGB"
-        assert len(image_data) == w * h * 3
-        assert image_data.count(b"\0\0\0") == w * h
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\0\0") == w * h
 
-    def test_image_data_and_background_colour(self):
+    def test_raw_image_and_background_colour(self):
         ITerm2Image._TERM = ""
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
@@ -507,38 +509,38 @@ class TestRenderWhole:
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGB"
-        assert len(image_data) == w * h * 3
-        assert image_data.count(b"\xff\0\0") == w * h
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\xff\0\0") == w * h
 
         # green
         render = self.render_image("#00ff00")
         assert render == f"{self.trans:1.1#00ff00}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGB"
-        assert len(image_data) == w * h * 3
-        assert image_data.count(b"\0\xff\0") == w * h
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\xff\0") == w * h
 
         # blue
         render = self.render_image("#0000ff")
         assert render == f"{self.trans:1.1#0000ff}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGB"
-        assert len(image_data) == w * h * 3
-        assert image_data.count(b"\0\0\xff") == w * h
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\0\0\xff") == w * h
 
         # white
         render = self.render_image("#ffffff")
         assert render == f"{self.trans:1.1#ffffff}"
-        control_codes, format, mode, image_data, _ = decode_image(render)
+        control_codes, format, mode, _, raw_image, _ = decode_image(render)
         assert format == "PNG"
         assert mode == "RGB"
-        assert len(image_data) == w * h * 3
-        assert image_data.count(b"\xff" * 3) == w * h
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(b"\xff" * 3) == w * h
 
     def test_mix(self):
         ITerm2Image._TERM = ""
@@ -617,6 +619,62 @@ class TestRenderWhole:
                 continue
             for ITerm2Image._TERM in supported_terminals:
                 self._test_image_size(self.trans, term=ITerm2Image._TERM)
+
+
+def test_read_from_file():
+    test_image_size = TestRenderWhole._test_image_size
+    png_file = open("tests/images/trans.png", "rb").read()
+    png_image = ITerm2Image.from_file("tests/images/trans.png")
+    jpeg_file = open("tests/images/vert.jpg", "rb").read()
+    jpeg_image = ITerm2Image.from_file("tests/images/vert.jpg")
+    png_image.set_render_method(WHOLE)
+    jpeg_image.set_render_method(WHOLE)
+    try:
+        ITerm2Image.READ_FROM_FILE = True
+        ITerm2Image._TERM = ""
+
+        # No need to downscale, manipulation required since the mode is RGBA
+        lines_for_original_height = ITerm2Image._pixels_lines(
+            pixels=png_image.original_size[1]
+        )
+        png_image.height = lines_for_original_height * 2
+        assert png_file != decode_image(f"{png_image:1.1#}", term=ITerm2Image._TERM)[3]
+
+        # No need to downscale, manipulation not required since the mode is RGB
+        lines_for_original_height = ITerm2Image._pixels_lines(
+            pixels=jpeg_image.original_size[1]
+        )
+        jpeg_image.height = lines_for_original_height * 2
+        assert (
+            jpeg_file
+            == decode_image(
+                f"{jpeg_image:1.1#}", term=ITerm2Image._TERM, read_from_file=True
+            )[3]
+        )
+
+        for image, file in ((png_image, png_file), (jpeg_image, jpeg_file)):
+            lines_for_original_height = ITerm2Image._pixels_lines(
+                pixels=image.original_size[1]
+            )
+
+            # Will not be downscale
+            image.height = lines_for_original_height * 2
+            for ITerm2Image._TERM in supported_terminals:
+                assert (
+                    file
+                    == decode_image(
+                        str(image), term=ITerm2Image._TERM, read_from_file=True
+                    )[3]
+                )
+                test_image_size(image, term=ITerm2Image._TERM, read_from_file=True)
+
+            # Will be downscaled
+            image.height = lines_for_original_height // 2
+            for ITerm2Image._TERM in supported_terminals:
+                assert file != decode_image(str(image), term=ITerm2Image._TERM)[3]
+                test_image_size(image, term=ITerm2Image._TERM)
+    finally:
+        ITerm2Image.READ_FROM_FILE = False
 
 
 supported_terminals = {"iterm2", "wezterm", "konsole"}
