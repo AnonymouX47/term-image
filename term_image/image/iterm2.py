@@ -159,7 +159,9 @@ class ITerm2Image(GraphicsImage):
     #: * ``False``, images are always loaded and re-encoded, in the PNG format by
     #:   default.
     #:
-    #: This is used to reduce render times when applicable.
+    #: This is an optimization to reduce render times and is only applicable to the
+    #: **WHOLE** render method, since the the **LINES** method inherently requires
+    #: image manipulation.
     #:
     #: .. note:: This setting does not affect animations, native animations are always
     #:   read from file when possible and frames of non-native animations have to be
