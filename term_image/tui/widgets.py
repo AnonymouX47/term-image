@@ -75,12 +75,12 @@ class GridListBox(urwid.ListBox):
             topmost = top_trim = None
 
         if self._ti_grid_path == grid_path and not (
-            self._topmost is topmost and self._top_trim == top_trim
+            self._ti_topmost is topmost and self._ti_top_trim == top_trim
         ):
             tui_main.ImageClass._clear_images() and ImageCanvas.change()
 
-        self._topmost = topmost
-        self._top_trim = top_trim
+        self._ti_topmost = topmost
+        self._ti_top_trim = top_trim
 
         if (
             self._ti_grid_path != grid_path  # Different grids
