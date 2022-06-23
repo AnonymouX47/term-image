@@ -83,7 +83,7 @@ class KittyImage(GraphicsImage):
           background color.
 
       * ``z`` without ``index`` is currently only used internally.
-      * If *absent*, defaults to z-index ``0``.
+      * If *absent*, defaults to ``z0`` i.e z-index zero.
       * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
 
     * ``m``: Image/Text inter-mixing policy.
@@ -99,10 +99,11 @@ class KittyImage(GraphicsImage):
 
     * ``c``: ZLIB compression level.
 
-      * 1 gives best speed, 9 gives best compression, 0 gives no compression at all.
-      * This results in a trade-off between render time and transmission size/time.
+      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
+      * This results in a trade-off between render time and data size/draw speed.
       * If *absent*, defaults to ``c4``.
       * e.g ``c0``, ``c9``.
+
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -191,13 +192,9 @@ class KittyImage(GraphicsImage):
               * ``< 0``, the image will be drawn below text.
               * ``< -(2**31)/2``, the image will be drawn below cells with
                 non-default background color.
-              * ``None``, deletes any directly overlapping image.
+              * ``None``, internal use only, mentioned for the sake of completeness.
 
-              .. note::
-                Currently, ``None`` is **only used internally** as it's buggy on
-                Kitty <= 0.25.0. It's only mentioned here for the sake of completeness.
-
-                To inter-mixing text with the image, see the *mix* parameter.
+              To inter-mixing text with an image, see the *mix* parameter.
 
             mix: Image/Text inter-mixing policy **for non-animations**. If:
 
@@ -209,9 +206,9 @@ class KittyImage(GraphicsImage):
 
             compress: ZLIB compression level.
 
-              An integer between 0 and 9: 1 gives best speed, 9 gives best compression,
-              0 gives no compression at all. This results in a trade-off between render
-              time and transmission size/time.
+              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
+              no compression. This results in a trade-off between render time and data
+              size/draw speed.
 
             kwargs: Keyword arguments passed up the inheritance chain.
 
@@ -243,16 +240,18 @@ class KittyImage(GraphicsImage):
                     f"{START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{ST}{CSI}c"
                 ).encode(),
                 lambda s: not s.endswith(b"c"),
-            ).decode()
+            )
 
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            if response and (response.rpartition(ESC)[0] == f"{START}i=31;OK{ST}"):
+            if response and (
+                response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
+            ):
                 # Currently, only kitty >= 0.20.0 and Konsole >= 22.04.0 implement the
                 # protocol features utilized
                 response = query_terminal(
                     f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
-                ).decode()
+                ).decode()  # Can not be `None` since the previous query was successful
                 match = re.match(
                     r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response, re.ASCII
                 )
@@ -263,9 +262,9 @@ class KittyImage(GraphicsImage):
                     except ValueError:  # Version string not "understood"
                         pass
                     else:
-                        if name.casefold() == "kitty":
+                        if name.lower() == "kitty":
                             cls._KITTY_VERSION = version
-                        elif name.casefold() == "konsole":
+                        elif name.lower() == "konsole":
                             cls._KONSOLE_VERSION = version
 
                         # fmt: off
@@ -375,8 +374,7 @@ class KittyImage(GraphicsImage):
         erase = "" if mix else f"{CSI}{r_width}X"
         jump_right = f"{CSI}{r_width}C"
         if z_index is None:
-            delete = f"{START}a=d,d=c;{ST}"
-            clear = f"{delete}{ESC}7{CSI}{r_width}C{delete}{ESC}8"
+            delete = f"{START}a=d,d=C;{ST}"
 
         if render_method == LINES:
             cell_height = height // r_height
@@ -387,7 +385,7 @@ class KittyImage(GraphicsImage):
                 trans = Transmission(
                     control_data, raw_image.read(bytes_per_line), compress
                 )
-                z_index is None and buffer.write(clear)
+                z_index is None and buffer.write(delete)
                 for chunk in trans.get_chunks():
                     buffer.write(chunk)
                 # Writing spaces clears any text under transparent areas of an image
@@ -398,7 +396,7 @@ class KittyImage(GraphicsImage):
                     trans = Transmission(
                         control_data, raw_image.read(bytes_per_line), compress
                     )
-                    z_index is None and buffer.write(clear)
+                    z_index is None and buffer.write(delete)
                     for chunk in trans.get_chunks():
                         buffer.write(chunk)
                 buffer.write(erase)
@@ -409,7 +407,7 @@ class KittyImage(GraphicsImage):
             vars(control_data).update(dict(v=height, r=r_height))
             return "".join(
                 (
-                    z_index is None and clear or "",
+                    z_index is None and delete or "",
                     Transmission(control_data, raw_image, compress).get_chunked(),
                     f"{erase}{jump_right}\n" * (r_height - 1),
                     f"{erase}{jump_right}",

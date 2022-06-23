@@ -33,13 +33,20 @@ The viewer can be used in two modes:
 
 1. **CLI mode**
 
-   | In this mode, images are directly printed to standard output.
-   | This mode is used whenever there is only a single image source or when the ``--cli`` option is specified.
+   In this mode, images are directly printed to standard output. It is used when:
+   
+   * output is not a terminal
+   * there is only a single image source
+   * the ``--cli`` option is specified
 
 2. **TUI mode**
 
-   | In this mode, a Terminal/Text-based User Interface is launched, within which images and directories can be browsed and viewed in different ways.
-   | This mode is used whenever there are multiple image sources or at least one directory source, or when the ``--tui`` option is specified.
+   In this mode, a Terminal/Text-based User Interface is launched, within which images
+   and directories can be browsed and viewed in different ways. It is used when:
+
+   * there is at least one non-empty directory source
+   * there are multiple image sources
+   * the ``--tui`` option is specified
 
 
 Usage

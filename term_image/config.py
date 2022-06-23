@@ -32,11 +32,11 @@ def info(msg: str) -> None:
 
 
 def error(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}33m{msg}{COLOR_RESET}", file=sys.stderr)
+    print(f"{CSI}34mconfig: {CSI}31m{msg}{COLOR_RESET}", file=sys.stderr)
 
 
 def fatal(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}31m{msg}{COLOR_RESET}", file=sys.stderr)
+    print(f"{CSI}34mconfig: {CSI}39m{CSI}41m{msg}{COLOR_RESET}", file=sys.stderr)
 
 
 def init_config() -> None:
@@ -50,13 +50,14 @@ def init_config() -> None:
 
     if os.path.exists(user_dir):
         if not os.path.isdir(user_dir):
-            fatal("Please rename or remove the file {user_dir!r}.")
+            fatal(f"Please rename or remove the file {user_dir!r}.")
             sys.exit(CONFIG_ERROR)
     else:
         os.mkdir(user_dir)
 
     if os.path.isfile(config_file):
         if load_config():
+            # Stored at this point in order to put missing values in place.
             store_config()
             info("... Successfully updated user config.")
     else:
@@ -88,8 +89,10 @@ def load_config() -> bool:
     try:
         with open(config_file) as f:
             config = json.load(f)
-    except json.JSONDecodeError:
-        error("Error loading user config... Using defaults.")
+    except Exception as e:
+        error(
+            f"Failed to load user config ({type(e).__name__}: {e})... Using defaults."
+        )
         update_context_nav_keys(context_keys, nav, nav)
         return updated
 
@@ -97,8 +100,9 @@ def load_config() -> bool:
         c_version = config["version"]
         if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
             info("Updating user config...")
-            update_config(config, c_version)
-            updated = True
+            updated = update_config(config, c_version)
+            if not updated:
+                error("... Failed to update user config.")
     except KeyError:
         error("Config version not found... Please correct this manually.")
 
@@ -160,23 +164,30 @@ def store_config(*, default: bool = False) -> None:
         if keys:
             stored_keys[context] = keys
 
-    with open(config_file, "w") as f:
-        json.dump(
-            {
-                "version": version,
-                **{
-                    name: globals()["_" * default + f"{name.replace(' ', '_')}"]
-                    for name in config_options
+    try:
+        with open(config_file, "w") as f:
+            json.dump(
+                {
+                    "version": version,
+                    **{
+                        name: globals()["_" * default + f"{name.replace(' ', '_')}"]
+                        for name in config_options
+                    },
+                    "keys": stored_keys,
                 },
-                "keys": stored_keys,
-            },
-            f,
-            indent=4,
-        )
+                f,
+                indent=4,
+            )
+    except Exception as e:
+        error(f"Failed to write user config ({type(e).__name__}: {e}).")
 
 
-def update_config(config: Dict[str, Any], old_version: str):
-    """Updates the user config to latest version"""
+def update_config(config: Dict[str, Any], old_version: str) -> bool:
+    """Updates the user config to latest version
+
+    Returns:
+        ``True``, if successful. Otherwise, ``False``.
+    """
     # Must use the values directly, never reference the corresponding global variables,
     # as those might change later and will break updating since it's incremental
     #
@@ -220,11 +231,16 @@ def update_config(config: Dict[str, Any], old_version: str):
                         "the new default will be put in place."
                     )
 
-    os.replace(config_file, f"{config_file}.old")
-    info(f"Previous config file moved to '{config_file}.old'.")
     config["version"] = version
-    with open(config_file, "w") as f:
-        json.dump(config, f, indent=4)
+    try:
+        os.replace(config_file, f"{config_file}.old")
+    except OSError as e:
+        error(f"Failed to backup previous config file ({type(e).__name__}: {e})")
+        return False
+    else:
+        info(f"Previous config file has been moved to '{config_file}.old'.")
+
+    return True
 
 
 def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:

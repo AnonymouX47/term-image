@@ -8,9 +8,8 @@ from zlib import decompress
 import pytest
 
 from term_image.exceptions import KittyImageError
-from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ESC, ST
+from term_image.utils import CSI, ST
 
 from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
@@ -238,7 +237,7 @@ class TestRenderLines:
     trans.height = _size
     trans.set_render_method(LINES)
 
-    def render_image(self, alpha, *, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, *, z=0, m=False, c=4):
         return self.trans._renderer(
             lambda im: self.trans._render_image(im, alpha, z_index=z, mix=m, compress=c)
         )
@@ -263,7 +262,7 @@ class TestRenderLines:
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
         # Size is tested in `test_size()`
         self.trans.scale = 1.0
-        for line in self.render_image(_ALPHA_THRESHOLD).splitlines():
+        for line in self.render_image().splitlines():
             decode_image(line)
 
         # Chunked (image data is very sparse, so it's still large after compression)
@@ -307,7 +306,7 @@ class TestRenderLines:
         pixels_per_line = w * (h // _size)
 
         # Transparency enabled
-        for line in self.render_image(_ALPHA_THRESHOLD).splitlines():
+        for line in self.render_image().splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "32") in control_codes
             assert len(raw_image) == pixels_per_line * 4
@@ -353,7 +352,7 @@ class TestRenderLines:
         self.trans.scale = 1.0
 
         # z_index = 0  (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+z0}"
         for line in render.splitlines():
             assert ("z", "0") in decode_image(line)[0]
@@ -366,19 +365,18 @@ class TestRenderLines:
                 assert ("z", f"{value}") in decode_image(line)[0]
 
         # z_index = None
-        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
         for line in render.splitlines():
-            assert line.startswith(clear)
-            control_codes = decode_image(line.partition(f"{ESC}8")[2])[0]
+            assert line.startswith(delete)
+            control_codes = decode_image(line.partition(delete)[2])[0]
             assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
 
         # mix = False (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
         for line in render.splitlines():
             fill = decode_image(line)[2]
@@ -395,7 +393,7 @@ class TestRenderLines:
         self.trans.scale = 1.0
 
         # compress = 4  (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+c4}"
         for line in render.splitlines():
             assert ("o", "z") in decode_image(line)[0]
@@ -412,6 +410,13 @@ class TestRenderLines:
             assert render == f"{self.trans:1.1#+c{value}}"
             for line in render.splitlines():
                 assert ("o", "z") in decode_image(line)[0]
+
+        # Image data size relativity
+        assert (
+            len(self.render_image(c=0))
+            > len(self.render_image(c=1))
+            > len(self.render_image(c=9))
+        )
 
     def test_scaled(self):
         # At varying scales
@@ -436,7 +441,7 @@ class TestRenderWhole:
     trans.height = _size
     trans.set_render_method(WHOLE)
 
-    def render_image(self, alpha, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, z=0, m=False, c=4):
         return self.trans._renderer(
             lambda im: self.trans._render_image(im, alpha, z_index=z, mix=m, compress=c)
         )
@@ -460,7 +465,7 @@ class TestRenderWhole:
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
         # Image data size is tested in `test_size()`
         self.trans.scale = 1.0
-        decode_image(self.render_image(_ALPHA_THRESHOLD))
+        decode_image(self.render_image())
 
         # Chunked (image data is very sparse, so it's still large after compression)
         hori = KittyImage.from_file("tests/images/hori.jpg")
@@ -500,7 +505,7 @@ class TestRenderWhole:
         w, h = get_actual_render_size(self.trans)
 
         # Transparency enabled
-        control_codes, raw_image, _ = decode_image(self.render_image(_ALPHA_THRESHOLD))
+        control_codes, raw_image, _ = decode_image(self.render_image())
         assert ("f", "32") in control_codes
         assert len(raw_image) == w * h * 4
         assert raw_image.count(b"\0" * 4) == w * h
@@ -543,7 +548,7 @@ class TestRenderWhole:
         self.trans.scale = 1.0
 
         # z_index = 0  (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+z0}"
         assert ("z", "0") in decode_image(render)[0]
 
@@ -555,18 +560,17 @@ class TestRenderWhole:
             assert ("z", f"{value}") in control_codes
 
         # z_index = None
-        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
-        assert render.startswith(clear)
-        control_codes = decode_image(render.partition(f"{ESC}8")[2])[0]
+        assert render.startswith(delete)
+        control_codes = decode_image(render.partition(delete)[2])[0]
         assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
 
         # mix = False (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
         assert all(
             line == fill_fmt.format(cols=self.trans.rendered_width)
@@ -585,7 +589,7 @@ class TestRenderWhole:
         self.trans.scale = 1.0
 
         # compress = 4  (default)
-        render = self.render_image(_ALPHA_THRESHOLD)
+        render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+c4}"
         assert ("o", "z") in decode_image(render)[0]
 
@@ -616,6 +620,6 @@ class TestRenderWhole:
             self._test_image_size(self.trans)
 
 
-delete = f"{START}a=d,d=c;{ST}"
+delete = f"{START}a=d,d=C;{ST}"
 jump_right = f"{CSI}{{cols}}C"
 fill_fmt = f"{CSI}{{cols}}X{jump_right}"

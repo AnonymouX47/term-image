@@ -15,7 +15,7 @@ from ..config import max_notifications
 from ..utils import CSI, lock_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
+from .widgets import Image, ImageCanvas, info_bar, main as main_widget, notif_bar, pile
 
 
 def init(
@@ -142,7 +142,7 @@ class Loop(urwid.MainLoop):
         if "window resize" in keys:
             # Adjust bottom bar upon window resize
             keys.append("resized")
-            main.ImageClass._clear_images()
+            main.ImageClass._clear_images() and ImageCanvas.change()
         return super().process_input(keys)
 
 
