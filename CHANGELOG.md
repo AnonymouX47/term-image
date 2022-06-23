@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
+- [lib] BG colors not being drawn when equal to the terminal's default BG color, with 'block' render style on the Kitty terminal emulator ([#54]).
 - [cli] Handling of `SIGINT` while processing sources ([#56]).
 - [tui] Intensive performance drop while populating large image grids ([#41]).
 - [tui] Navigation across animated images ([#42]).
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
 - [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
 - [lib] `term_image.set_query_timeout()` to set global query timeout ([3b658f3]).
+- [lib] Auto background color i.e using the terminal's default BG color for transparent images ([#54])
 - [cli] `--style` command-line option for render style selection ([#37]).
 - [cli] `kitty` render style choice for the `--style` command-line option ([#39]).
 - [cli] `--force-style` to bypass render style support checks ([#44]).
@@ -57,7 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Exception naming scheme ([#46]).
   - `TermImageException` to `TermImageError`.
   - `InvalidSize` to `InvalidSizError`.
-- [lib] Image resampling method from `BICUBIC` to `BOX`.
+- [lib] Image resampling method from `BICUBIC` to `BOX` ([#54]).
+- [lib] Transparent renders in text-based styles are now partially blended with the terminal's BG color ([#54]).
+- [lib] Optimized image render data computation and image formatting ([#54]).
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
 - [cli] CLI mode is now forced when output is not a TTY ([#56]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
@@ -83,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
 [#50]: https://github.com/AnonymouX47/term-image/pull/50
 [#51]: https://github.com/AnonymouX47/term-image/pull/51
+[#54]: https://github.com/AnonymouX47/term-image/pull/54
 [#55]: https://github.com/AnonymouX47/term-image/pull/55
 [#56]: https://github.com/AnonymouX47/term-image/pull/56
 [3b658f3]: https://github.com/AnonymouX47/term-image/commit/3b658f388db8e36bc8f4d42c77375cd7c3593d4b
