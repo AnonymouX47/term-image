@@ -1,6 +1,7 @@
 """ITerm2Image-specific tests"""
 
 import io
+import sys
 from base64 import standard_b64decode
 from random import random
 
@@ -9,12 +10,14 @@ from PIL import Image
 from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
 
+from term_image import TermImageWarning
 from term_image.exceptions import ITerm2ImageError
 from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
 from term_image.utils import CSI, ST
 
 from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
+from .test_base import clear_stdout, stdout
 
 ITerm2Image.READ_FROM_FILE = False
 
@@ -213,9 +216,9 @@ class TestRenderLines:
     trans.height = _size
     trans.set_render_method(LINES)
 
-    def render_image(self, alpha=0.0, *, N=False, m=False, c=4):
+    def render_image(self, alpha=0.0, *, m=False, c=4):
         return self.trans._renderer(
-            lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
+            lambda im: self.trans._render_image(im, alpha, mix=m, compress=c)
         )
 
     @staticmethod
@@ -472,26 +475,28 @@ class TestRenderWhole:
     trans.height = _size
     trans.set_render_method(WHOLE)
 
-    def render_image(self, alpha=0.0, N=False, m=False, c=4):
+    def render_image(self, alpha=0.0, *, m=False, c=4):
         return self.trans._renderer(
-            lambda im: self.trans._render_image(im, alpha, native=N, mix=m, compress=c)
+            lambda im: self.trans._render_image(im, alpha, mix=m, compress=c)
         )
 
     @staticmethod
-    def _test_image_size(image, term="", jpeg=False, read_from_file=False):
+    def _test_image_size(
+        image, term="", jpeg=False, native=False, read_from_file=False
+    ):
         w, h = get_actual_render_size(image)
         cols, lines = image.rendered_size
         size_control_data = f"width={cols},height={lines}"
-        render = str(image)
+        render = f"{image:1.1+N}" if native else str(image)
 
         assert render.count("\n") + 1 == lines
         control_codes, format, mode, _, raw_image, fill = decode_image(
-            render, term=term, jpeg=jpeg, read_from_file=read_from_file
+            render, term=term, jpeg=jpeg, native=native, read_from_file=read_from_file
         )
         assert (
             code in control_codes for code in expand_control_data(size_control_data)
         )
-        if not read_from_file:
+        if not (read_from_file or native):
             assert len(raw_image) == w * h * len(mode)
         assert fill.count("\n") + 1 == lines
         *fills, last_fill = fill.splitlines()
@@ -794,6 +799,90 @@ def test_read_from_file():
                 test_image_size(image, term=ITerm2Image._TERM)
     finally:
         ITerm2Image.READ_FROM_FILE = False
+
+
+def test_native_anim():
+    def render_native(image):
+        return image._renderer(image._render_image, 0.0, native=True)
+
+    test_image_size = TestRenderWhole._test_image_size
+    apng_file = open("tests/images/elephant.png", "rb").read()
+    apng_image = ITerm2Image.from_file("tests/images/elephant.png", height=_size)
+    gif_file = open("tests/images/lion.gif", "rb").read()
+    gif_image = ITerm2Image.from_file("tests/images/lion.gif", height=_size)
+    webp_file = open("tests/images/anim.webp", "rb").read()
+    webp_image = ITerm2Image.from_file("tests/images/anim.webp", height=_size)
+    img = Image.open("tests/images/lion.gif")
+    img_image = ITerm2Image(img, height=_size)
+    no_file_img = Image.open(open("tests/images/lion.gif", "rb"))
+    no_file_image = ITerm2Image(no_file_img, height=_size)
+
+    # Reads from file when possible
+    for image, file in (
+        (apng_image, apng_file),
+        (gif_image, gif_file),
+        (img_image, gif_file),
+    ):
+        for ITerm2Image._TERM in ("iterm2", "wezterm"):
+            assert (
+                file
+                == decode_image(
+                    render_native(image), term=ITerm2Image._TERM, native=True
+                )[3]
+            )
+            test_image_size(image, term=ITerm2Image._TERM, native=True)
+
+        # Drawing APNG and GIF is supported
+        try:
+            sys.stdout = stdout
+            image.draw(native=True, stall_native=False)
+        finally:
+            clear_stdout()
+            sys.stdout = sys.__stdout__
+
+    # Re-encodes when image file is not accessible
+    ITerm2Image._TERM = ""
+    for ITerm2Image._TERM in ("iterm2", "wezterm"):
+        assert gif_file != decode_image(render_native(no_file_image), native=True)[3]
+        test_image_size(no_file_image, term=ITerm2Image._TERM, native=True)
+
+    # No image file an unknown format
+    no_file_img.format = None
+    with pytest.raises(ITerm2ImageError, match="Native animation .* unknown format"):
+        render_native(no_file_image)
+
+    # Konsole does not implement native animation
+    ITerm2Image._TERM = "konsole"
+    for image in (apng_image, gif_image, webp_image):
+        with pytest.raises(
+            ITerm2ImageError, match="Native animation .* active terminal"
+        ):
+            try:
+                sys.stdout = stdout
+                image.draw(native=True, stall_native=False)
+            finally:
+                clear_stdout()
+                sys.stdout = sys.__stdout__
+
+    # WEBP format is not supported by the terminal emulators
+    for ITerm2Image._TERM in ("iterm2", "wezterm"):
+        assert (
+            webp_file
+            != decode_image(render_native(webp_image), term=ITerm2Image._TERM)[3]
+        )
+        with pytest.raises(ITerm2ImageError, match="Native WEBP animation"):
+            try:
+                sys.stdout = stdout
+                webp_image.draw(native=True, stall_native=False)
+            finally:
+                clear_stdout()
+                sys.stdout = sys.__stdout__
+
+    # Image data size limit
+    ITerm2Image.NATIVE_ANIM_MAXSIZE = 300000
+    with pytest.warns(TermImageWarning, match="maximum for native animation"):
+        render_native(apng_image)
+    render_native(gif_image)
 
 
 supported_terminals = {"iterm2", "wezterm", "konsole"}

@@ -152,7 +152,7 @@ class ITerm2Image(GraphicsImage):
     #:   if the image data size for a native animation is above this value.
     #: | This value can be altered but should be done with caution to avoid excessive
     #:   memory usage.
-    NATIVE_ANIM_MAXSIZE: int = 2 * 2**20
+    NATIVE_ANIM_MAXSIZE: int = 2 * 2**20  # 2 MiB
 
     #: * ``True``, image data is read directly from file when possible and no image
     #:   manipulation is required.
@@ -448,7 +448,7 @@ class ITerm2Image(GraphicsImage):
         file_is_readable = True
         if self._source_type is ImageSource.PIL_IMAGE:
             try:
-                img.filename
+                open(img.filename)
             except (AttributeError, OSError):
                 file_is_readable = False
 
