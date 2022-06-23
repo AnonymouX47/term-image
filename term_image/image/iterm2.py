@@ -88,7 +88,7 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [method] [ m {0 | 1} ]
+        [method] [ m {0 | 1} ] [ c {0-9} ]
 
     * ``method``: Render method override.
 
@@ -113,6 +113,13 @@ class ITerm2Image(GraphicsImage):
       * If *absent*, defaults to ``m0``.
       * e.g ``m0``, ``m1``.
 
+    * ``c``: ZLIB compression level, for images re-encoded in PNG format.
+
+      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
+      * This results in a trade-off between render time and data size/draw speed.
+      * If *absent*, defaults to ``c4``.
+      * e.g ``c0``, ``c9``.
+
 
     ATTENTION:
         Currently supported terminal emulators include:
@@ -122,6 +129,22 @@ class ITerm2Image(GraphicsImage):
           * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
+    #: * ``x < 0``, JPEG encoding is disabled.
+    #: * ``0 <= x <= 95``, JPEG encoding is used, with the specified quality, for
+    #:   **most** non-transparent renders (at the cost of image quality).
+    #:
+    #: Only applies when not reading directly from file.
+    #:
+    #: By default, images are encoded in the PNG format (when not reading directly
+    #: from file) but in some cases, higher compression might be desired.
+    #: Also, JPEG encoding is significantly faster and can be useful to improve
+    #: non-native animation performance.
+    #:
+    #: .. hint:: The transparency status of some images can not be correctly determined
+    #:   in an efficient way at render time. To ensure the JPEG format is always used
+    #:   for a re-encoded render, disable transparency or set a background color.
+    JPEG_QUALITY: int = -1
+
     #: Maximum size (in bytes) of image data for native animation.
     #:
     #: | :py:class:`TermImageWarning<term_image.TermImageWarning>` is issued
@@ -129,9 +152,25 @@ class ITerm2Image(GraphicsImage):
     #:   if the image data size for a native animation is above this value.
     #: | This value can be altered but should be done with caution to avoid excessive
     #:   memory usage.
-    NATIVE_ANIM_MAXSIZE = 2 * 2**20
+    NATIVE_ANIM_MAXSIZE: int = 2 * 2**20  # 2 MiB
 
-    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(map(re.compile, "[LWN] m[01]".split(" ")))
+    #: * ``True``, image data is read directly from file when possible and no image
+    #:   manipulation is required.
+    #: * ``False``, images are always loaded and re-encoded, in the PNG format by
+    #:   default.
+    #:
+    #: This is an optimization to reduce render times and is only applicable to the
+    #: **WHOLE** render method, since the the **LINES** method inherently requires
+    #: image manipulation.
+    #:
+    #: .. note:: This setting does not affect animations, native animations are always
+    #:   read from file when possible and frames of non-native animations have to be
+    #:   loaded and re-encoded.
+    READ_FROM_FILE: bool = True
+
+    _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
+        map(re.compile, "[LWN] m[01] c[0-9]".split(" "))
+    )
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
     _render_method: str = LINES
@@ -154,6 +193,17 @@ class ITerm2Image(GraphicsImage):
                 "Cell content inter-mix policy must be a boolean",
             ),
             (lambda _: True, ""),
+        ),
+        "compress": (
+            4,
+            (
+                lambda x: isinstance(x, int),
+                "Compression level must be an integer",
+            ),
+            (
+                lambda x: 0 <= x <= 9,
+                "Compression level must be between 0 and 9, both inclusive",
+            ),
         ),
         "native": (
             False,
@@ -181,6 +231,7 @@ class ITerm2Image(GraphicsImage):
         *args,
         method: Optional[str] = None,
         mix: bool = False,
+        compress: int = 4,
         native: bool = False,
         stall_native: bool = True,
         **kwargs,
@@ -200,6 +251,12 @@ class ITerm2Image(GraphicsImage):
                 erased.
               * ``True``, the opposite, thereby allowing existing text or image pixels
                 to show under transparent areas of the image.
+
+            compress: ZLIB compression level, for images re-encoded in PNG format.
+
+              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
+              no compression. This results in a trade-off between render time and data
+              size/draw speed.
 
             native: If ``True``, use native animation (if supported).
 
@@ -246,11 +303,12 @@ class ITerm2Image(GraphicsImage):
     @lock_tty  # the terminal's response to the query is not read all at once
     def is_supported(cls):
         if cls._supported is None:
+            cls._supported = False
             # Terminal name/version query + terminal attribute query
-            # The latter is to speed up the entirequery since most (if not all)
+            # The latter is to speed up the entire query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(f"{CSI}?6".encode())
+                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(CSI.encode())
             )
             read_tty()  # The rest of the response to `CSI c`
 
@@ -264,23 +322,19 @@ class ITerm2Image(GraphicsImage):
                 if match and match.group(1).lower() in {"iterm2", "konsole", "wezterm"}:
                     name, version = map(str.lower, match.groups())
                     try:
-                        if name == "konsole" and (
-                            tuple(map(int, version.split("."))) < (22, 4, 0)
+                        if name != "konsole" or (
+                            tuple(map(int, version.split("."))) >= (22, 4, 0)
                         ):
-                            cls._supported = False
-                        else:
                             cls._supported = True
                             cls._TERM, cls._TERM_VERSION = name, version
                     except ValueError:  # version string not "understood"
-                        cls._supported = False
-            else:
-                cls._supported = False
+                        pass
 
         return cls._supported
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, (method, mix) = cls._get_style_format_spec(spec, original)
+        parent, (method, mix, compress) = cls._get_style_format_spec(spec, original)
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
@@ -290,6 +344,8 @@ class ITerm2Image(GraphicsImage):
             args["method"] = LINES if method == "L" else WHOLE
         if mix:
             args["mix"] = bool(int(mix[-1]))
+        if compress:
+            args["compress"] = int(compress[-1])
 
         return cls._check_style_args(args)
 
@@ -372,6 +428,7 @@ class ITerm2Image(GraphicsImage):
         frame: bool = False,
         method: Optional[str] = None,
         mix: bool = False,
+        compress: int = 4,
         native: bool = False,
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
@@ -391,7 +448,7 @@ class ITerm2Image(GraphicsImage):
         file_is_readable = True
         if self._source_type is ImageSource.PIL_IMAGE:
             try:
-                img.filename
+                open(img.filename)
             except (AttributeError, OSError):
                 file_is_readable = False
 
@@ -434,7 +491,7 @@ class ITerm2Image(GraphicsImage):
                         f"{erase}{jump_right}\n" * (r_height - 1),
                         erase,
                         f"{CSI}{r_height - 1}A",
-                        f"{OSC}1337;File=",
+                        START,
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
                         ST,
@@ -445,7 +502,8 @@ class ITerm2Image(GraphicsImage):
         width, height = self._get_minimal_render_size()
 
         if (  # Read directly from file when possible and reasonable
-            not self._is_animated
+            self.READ_FROM_FILE
+            and not self._is_animated
             and file_is_readable
             and render_method == WHOLE
             and mul(*self._original_size) <= mul(*self._get_render_size())
@@ -468,13 +526,24 @@ class ITerm2Image(GraphicsImage):
             img = self._get_render_data(
                 img, alpha, size=(width, height), pixel_data=False  # fmt: skip
             )[0]
-            format = "jpeg" if img.mode == "RGB" else "png"
+            if self.JPEG_QUALITY >= 0 and img.mode == "RGB":
+                format = "jpeg"
+                jpeg_quality = min(self.JPEG_QUALITY, 95)
+            else:
+                format = "png"
+                jpeg_quality = None
+
             if render_method == LINES:
                 raw_image = io.BytesIO(img.tobytes())
                 compressed_image = io.BytesIO()
             else:
                 compressed_image = io.BytesIO()
-                img.save(compressed_image, format, quality=95)  # *quality* for JPEG
+                img.save(
+                    compressed_image,
+                    format,
+                    compress_level=compress,  # PNG
+                    quality=jpeg_quality,
+                )
 
         # clean up
         if img is not self._source:
@@ -498,11 +567,15 @@ class ITerm2Image(GraphicsImage):
                     with PIL.Image.frombytes(
                         img.mode, (width, cell_height), raw_image.read(bytes_per_line)
                     ) as img:
-                        # *quality* for JPEG
-                        img.save(compressed_image, format, quality=95)
+                        img.save(
+                            compressed_image,
+                            format,
+                            compress_level=compress,  # PNG
+                            quality=jpeg_quality,
+                        )
 
-                    is_on_wezterm and buffer.write(erase)
-                    buffer.write(f"{OSC}1337;File=size={compressed_image.tell()}")
+                    buffer.write(erase)
+                    buffer.write(f"{START}size={compressed_image.tell()}")
                     buffer.write(control_data)
                     buffer.write(
                         standard_b64encode(compressed_image.getvalue()).decode()
@@ -529,7 +602,7 @@ class ITerm2Image(GraphicsImage):
                     "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
                     erase,
                     "" if is_on_konsole else f"{CSI}{r_height - 1}A",
-                    f"{OSC}1337;File=",
+                    START,
                     control_data,
                     standard_b64encode(compressed_image.read()).decode(),
                     ST,
@@ -539,6 +612,7 @@ class ITerm2Image(GraphicsImage):
             )
 
 
+START = f"{OSC}1337;File="
 DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
 native_anim = Event()
 _stdout_write = sys.stdout.buffer.write

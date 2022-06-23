@@ -27,6 +27,7 @@ from . import (
     logging,
     notify,
     set_font_ratio,
+    set_query_timeout,
     tui,
 )
 from .config import config_options, store_config
@@ -37,7 +38,14 @@ from .image.common import _ALPHA_THRESHOLD
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import CSI, OS_IS_UNIX, get_terminal_size, write_tty
+from .utils import (
+    CSI,
+    OS_IS_UNIX,
+    QUERY_TIMEOUT,
+    clear_queue,
+    get_terminal_size,
+    write_tty,
+)
 
 
 def check_dir(
@@ -93,6 +101,8 @@ def check_dir(
     empty = True
     content = {}
     for entry in entries:
+        if interrupted and interrupted.is_set():
+            break
         if not SHOW_HIDDEN and entry.name.startswith("."):
             continue
         try:
@@ -348,7 +358,7 @@ def manage_checkers(
             setitem(checks_in_progress, *progress_queue.get())
 
             while not (
-                interrupted.is_set()  # MainThread has been interruped
+                interrupted.is_set()  # MainThread has been interrupted
                 or not any(checks_in_progress)  # All checkers are dead
                 # All checks are done
                 or (
@@ -390,6 +400,9 @@ def manage_checkers(
                 sleep(0.01)  # Allow queue sizes to be updated
         finally:
             if interrupted.is_set():
+                clear_queue(dir_queue)
+                clear_queue(content_queue)
+                clear_queue(progress_queue)
                 return
 
             if not any(checks_in_progress):
@@ -417,7 +430,7 @@ def manage_checkers(
         current_thread.name = "Checker"
 
         _, links, source, _depth = dir_queue.get()
-        while source:
+        while not interrupted.is_set() and source:
             log(f"Checking {source!r}", logger, verbose=True)
             if islink(source):
                 links.append((source, realpath(source)))
@@ -431,9 +444,12 @@ def manage_checkers(
                     source = abspath(source)
                     contents[source] = result
                     images.append((source, ...))
-                elif result is None:
+                elif not interrupted.is_set() and result is None:
                     log(f"{source!r} is empty", logger)
             _, links, source, _depth = dir_queue.get()
+
+        if interrupted.is_set():
+            clear_queue(dir_queue)
 
 
 def update_contents(
@@ -496,6 +512,9 @@ def get_urls(
             log(f"Done getting {source!r}", logger, verbose=True)
         source = url_queue.get()
 
+    if interrupted.is_set():
+        clear_queue(url_queue)
+
 
 def open_files(
     file_queue: Queue,
@@ -514,6 +533,9 @@ def open_files(
         except Exception:
             log_exception(f"Opening {source!r} failed", logger, direct=True)
         source = file_queue.get()
+
+    if interrupted.is_set():
+        clear_queue(file_queue)
 
 
 def main() -> None:
@@ -618,8 +640,23 @@ FOOTNOTES:
      images to be rendered immediately after it.
   5. Frames will not be cached for any animation with more frames than this value.
      Memory usage depends on the frame count per image, not this maximum count.
-  6. Any event with a level lower than the specified one is not reported.
-  7. Supports all image formats supported by `PIL.Image.open()`.
+  6. 0 -> worst quality; smallest data size, 95 -> best quality; largest data size.
+     Reduces render time & image data size and increases drawing speed on the terminal's
+     end but at the cost of image quality and color reproduction. Useful for animations
+     with high pixel density / color sparseness.
+     This option only applies when an image is re-encoded and not read directly from
+     file (see `--iterm2-no-read-from-file`). By default (i.e when disabled), PNG format
+     is used for re-encoding images, which has less compression with better quality.
+     JPEG format can only be used for non-transparent images but the transparency status
+     of some images can not be correctly determined in an efficient way at render time.
+     Thus, to ensure the JPEG format is always used for re-encoded images, disable
+     transparency (`--no-alpha`) or set a background color (`-b/--alpha-bg`).
+  7. By default, image data is used directly from file when no image manipulation is
+     required. Otherwise, it's re-encoded in PNG (or JPEG, if enabled) format.
+     Significantly reduces render time when applicable. This option does not apply to
+     animations, native or not.
+  8. Any event with a level lower than the specified one is not reported.
+  9. Supports all image formats supported by `PIL.Image.open()`.
      See https://pillow.readthedocs.io/en/latest/handbook/image-file-formats.html for
      details.
 """,
@@ -644,6 +681,15 @@ FOOTNOTES:
         "--reset-config",
         action="store_true",
         help="Restore default config and exit (Overwrites the config file)",
+    )
+    general.add_argument(
+        "--query-timeout",
+        type=float,
+        metavar="N",
+        default=QUERY_TIMEOUT,
+        help=(
+            f"Timeout (in seconds) for all terminal queries (default: {QUERY_TIMEOUT})"
+        ),
     )
     general.add_argument(
         "-S",
@@ -982,7 +1028,7 @@ FOOTNOTES:
         default=config.getters,
         help=(
             "Number of threads for downloading images from URL sources "
-            "(default: {config.getters})"
+            f"(default: {config.getters})"
         ),
     )
     perf_options.add_argument(
@@ -992,7 +1038,7 @@ FOOTNOTES:
         default=config.grid_renderers,
         help=(
             "Number of subprocesses for rendering grid cells "
-            "(default: {config.grid_renderers})"
+            f"(default: {config.grid_renderers})"
         ),
     )
     perf_options.add_argument(
@@ -1068,9 +1114,9 @@ FOOTNOTES:
         default=0,
         type=int,
         help=(
-            "Image stacking order (CLI-only) (default: 0). "
-            "`>= 0` -> above text, `< 0` -> below text, `< -(2**31)/2` -> "
-            "below cells with non-default background."
+            "Image stacking order [CLI-only]; `>= 0` -> above text, `< 0` -> below "
+            "text, `< -(2**31)/2` -> below cells with non-default background "
+            "(default: 0)"
         ),
     )
     kitty_options.add_argument(
@@ -1081,14 +1127,14 @@ FOOTNOTES:
         default=4,
         type=int,
         help=(
-            "ZLIB compression level (CLI/TUI) (default: 4). "
-            "0 -> no compression, 1 -> best speed, 9 -> best compression."
+            "ZLIB compression level; 0 -> no compression, 1 -> best speed, "
+            "9 -> best compression (default: 4)"
         ),
     )
 
     iterm2_parser = argparse.ArgumentParser(add_help=False)
     iterm2_options = iterm2_parser.add_argument_group(
-        "iTerm2 Style Options (CLI-only)",
+        "iTerm2 Style Options",
         "These options apply only when the 'iterm2' render style is used",
     )
     iterm2_options.add_argument(
@@ -1096,19 +1142,50 @@ FOOTNOTES:
         "--iterm2-native",
         action="store_true",
         dest="native",
-        help="Use iTerm2's native animation (Animations will not be skipped)",
+        help="Use iTerm2's native animation; Animations will not be skipped [CLI-only]",
     )
     iterm2_options.add_argument(
-        "--itn-max",
+        "--itnm",
         "--iterm2-native-maxsize",
         metavar="N",
         dest="native_maxsize",
         default=ITerm2Image.NATIVE_ANIM_MAXSIZE,
         type=int,
         help=(
-            "Maximum size (in bytes) of image data for native animation "
+            "Maximum size (in bytes) of image data for native animation [CLI-only] "
             f"(default: {ITerm2Image.NATIVE_ANIM_MAXSIZE})"
         ),
+    )
+    iterm2_options.add_argument(
+        "--itc",
+        "--iterm2-compress",
+        metavar="N",
+        dest="compress",
+        default=4,
+        type=int,
+        help=(
+            "ZLIB compression level, for images re-encoded in PNG format "
+            "0 -> no compression, 1 -> best speed, 9 -> best compression (default: 4)"
+        ),
+    )
+    iterm2_options.add_argument(
+        "--itjq",
+        "--iterm2-jpeg-quality",
+        metavar="N",
+        dest="jpeg_quality",
+        default=ITerm2Image.JPEG_QUALITY,
+        type=int,
+        help=(
+            "JPEG compression status and quality; `< 0` -> disabled, `0 to 95` -> "
+            f"quality (default: {ITerm2Image.JPEG_QUALITY}) [6]"
+        ),
+    )
+    iterm2_options.add_argument(
+        "--itnrff",
+        "--iterm2-no-read-from-file",
+        action="store_false",
+        dest="read_from_file",
+        help="Never use image data directly from file; always re-encode images [7]",
     )
 
     style_parsers = {"kitty": kitty_parser, "iterm2": iterm2_parser}
@@ -1129,6 +1206,10 @@ FOOTNOTES:
         store_config(default=True)
         sys.exit(SUCCESS)
 
+    force_cli_mode = not sys.stdout.isatty() and not args.cli
+    if force_cli_mode:
+        args.cli = True
+
     init_log(
         (
             args.log_file
@@ -1144,6 +1225,7 @@ FOOTNOTES:
     )
 
     for details in (
+        ("query_timeout", lambda x: x > 0.0, "must be greater than zero"),
         ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
         ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
@@ -1174,6 +1256,8 @@ FOOTNOTES:
                 level=notify.WARNING,
             )
             setattr(args, var_name, getattr(config, var_name))
+
+    set_query_timeout(args.query_timeout)
 
     if args.auto_font_ratio:
         args.font_ratio = None
@@ -1222,8 +1306,12 @@ FOOTNOTES:
 
     style_parser = style_parsers.get(args.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
+
     if args.style == "iterm2":
+        ITerm2Image.JPEG_QUALITY = style_args.pop("jpeg_quality")
         ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
+        ITerm2Image.READ_FROM_FILE = style_args.pop("read_from_file")
+
     try:
         style_args = ImageClass._check_style_args(style_args)
     except ValueError as e:
@@ -1233,6 +1321,13 @@ FOOTNOTES:
     # Some APCs used for render style support detection get emitted on some
     # non-supporting terminal emulators
     write_tty(f"{CSI}1K\r".encode())
+
+    if force_cli_mode:
+        log(
+            "Output is not a terminal, forcing CLI mode!",
+            logger,
+            level=_logging.WARNING,
+        )
 
     log("Processing sources", logger, loading=True)
 
@@ -1249,21 +1344,18 @@ FOOTNOTES:
             target=get_urls,
             args=(url_queue, url_images, ImageClass),
             name=f"Getter-{n}",
-            daemon=True,
         )
         for n in range(1, args.getters + 1)
     ]
-    for getter in getters:
-        getter.start()
+    getters_started = False
 
     file_queue = Queue()
     opener = Thread(
         target=open_files,
         args=(file_queue, file_images, ImageClass),
         name="Opener",
-        daemon=True,
     )
-    opener.start()
+    opener_started = False
 
     if OS_IS_UNIX and not args.cli:
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
@@ -1272,9 +1364,8 @@ FOOTNOTES:
             target=manage_checkers,
             args=(dir_queue, contents, dir_images),
             name="CheckManager",
-            daemon=True,
         )
-        check_manager.start()
+    checkers_started = False
 
     for source in sources:
         if source in unique_sources:
@@ -1283,8 +1374,15 @@ FOOTNOTES:
         unique_sources.add(source)
 
         if all(urlparse(source)[:3]):  # Is valid URL
+            if not getters_started:
+                for getter in getters:
+                    getter.start()
+                getters_started = True
             url_queue.put(source)
         elif isfile(source):
+            if not opener_started:
+                opener.start()
+                opener_started = True
             file_queue.put(source)
         elif isdir(source):
             if args.cli:
@@ -1293,25 +1391,42 @@ FOOTNOTES:
             if not OS_IS_UNIX:
                 dir_images = True
                 continue
+            if not checkers_started:
+                check_manager.start()
+                checkers_started = True
             dir_queue.put(("", [], source, 0))
         else:
             log(f"{source!r} is invalid or does not exist", logger, _logging.ERROR)
 
     # Signal end of sources
-    for _ in range(args.getters):
-        url_queue.put(None)
-    file_queue.put(None)
-    if OS_IS_UNIX and not args.cli:
+    if getters_started:
+        for _ in range(args.getters):
+            url_queue.put(None)
+    if opener_started:
+        file_queue.put(None)
+    if checkers_started:
         if logging.MULTI and args.checkers > 1:
             dir_queue.sources_finished = True
         else:
             dir_queue.put((None,) * 4)
 
-    for getter in getters:
-        getter.join()
-    opener.join()
-    if OS_IS_UNIX and not args.cli:
-        check_manager.join()
+    interrupt = None
+    while True:
+        try:
+            if getters_started:
+                for getter in getters:
+                    getter.join()
+            if opener_started:
+                opener.join()
+            if checkers_started:
+                check_manager.join()
+            break
+        except KeyboardInterrupt as e:  # Ensure logs are in correct order
+            if not interrupt:  # keep the first
+                interrupted.set()
+                interrupt = e
+    if interrupt:
+        raise interrupt from None
 
     notify.stop_loading()
     while notify.is_loading():

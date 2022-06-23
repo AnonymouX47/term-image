@@ -1,6 +1,6 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
-from operator import gt, lt
+from operator import gt, lt, mul
 from types import SimpleNamespace
 
 import pytest
@@ -92,6 +92,21 @@ def width_height(image, *, w=None, h=None):
             )
         )
     )
+
+
+def get_actual_render_size(image):
+    render_size = image._get_render_size()
+    _, r_height = image.rendered_size
+    width, height = (
+        render_size
+        if mul(*render_size) < mul(*image._original_size)
+        else image._original_size
+    )
+    extra = height % (r_height or 1)
+    if extra:
+        height = height - extra + r_height
+
+    return width, height
 
 
 def test_instantiation_Text():

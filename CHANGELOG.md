@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
+- [cli] Handling of `SIGINT` while processing sources ([#56]).
 - [tui] Intensive performance drop while populating large image grids ([#41]).
 - [tui] Navigation across animated images ([#42]).
   - No more waiting for the first frame to be rendered before moving on.
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Style-specific exception classes ([#47]).
 - [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
 - [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
+- [lib] `term_image.set_query_timeout()` to set global query timeout ([3b658f3]).
 - [cli] `--style` command-line option for render style selection ([#37]).
 - [cli] `kitty` render style choice for the `--style` command-line option ([#39]).
 - [cli] `--force-style` to bypass render style support checks ([#44]).
@@ -38,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `iterm2` render style choice for the `--style` command-line option ([#50]).
 - [cli] `--itn/--iterm2-native` and `--itn-max/--iterm2-native-maxsize` style-specific CL options for 'iterm2' native animation ([#50]).
 - [cli] `--kc/--kitty-compress` 'kitty' style-specific option ([#51]).
+- [cli] `--query-timeout` command-line option ([3b658f3]).
+- [cli] `--itc/--iterm2-compress`, `--itjq/--iterm2-jpeg-quality` and `--itnrff/iterm2-no-read-from-file` style-specific command-line options ([#55]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
@@ -55,7 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `InvalidSize` to `InvalidSizError`.
 - [lib] Image resampling method from `BICUBIC` to `BOX`.
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
+- [cli] CLI mode is now forced when output is not a TTY ([#56]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
+- [cli,tui] Improved startup speed and source processing ([#56]).
+- [cli,tui] Improved config error handling ([#56]).
 
 ### Deprecated
 - [lib] `term_image.image.TermImage` ([#46]).
@@ -76,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
 [#50]: https://github.com/AnonymouX47/term-image/pull/50
 [#51]: https://github.com/AnonymouX47/term-image/pull/51
+[#55]: https://github.com/AnonymouX47/term-image/pull/55
+[#56]: https://github.com/AnonymouX47/term-image/pull/56
+[3b658f3]: https://github.com/AnonymouX47/term-image/commit/3b658f388db8e36bc8f4d42c77375cd7c3593d4b
 
 
 ## [0.3.1] - 2022-05-04

@@ -11,14 +11,7 @@ from typing import Optional, Union
 
 from .. import cli, logging, notify
 from ..logging_multi import Process
-
-
-def clear_queue(queue: Union[Queue, mp_Queue]):
-    while True:
-        try:
-            queue.get(timeout=0.005)
-        except Empty:
-            break
+from ..utils import clear_queue
 
 
 def manage_anim_renders() -> bool:
@@ -442,7 +435,7 @@ image_render_queue = Queue()
 
 # Updated from `.tui.init()`
 anim_style_specs = {"kitty": "+W", "iterm2": "+Wm1"}
-grid_style_specs = {"kitty": "+L"}
+grid_style_specs = {"kitty": "+L", "iterm2": "+L"}
 image_style_specs = {"kitty": "+W", "iterm2": "+W"}
 
 # Set from `.tui.init()`

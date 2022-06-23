@@ -27,39 +27,69 @@ Core Library Definitions
    Image Classes
    -------------
 
-   .. note:: It's allowed to set properties for :term:`animated` images on non-animated ones, the values are simply ignored.
+   **Class Hierachy:**
+
+   * :py:class:`ImageSource`
+   * :py:class:`BaseImage`
+
+     * :py:class:`GraphicsImage`
+
+       * :py:class:`ITerm2Image`
+       * :py:class:`KittyImage`
+
+     * :py:class:`TextImage`
+
+       * :py:class:`BlockImage`
 
    .. autoclass:: ImageSource
       :members:
       :show-inheritance:
 
+   |
+
+   .. note:: It's allowed to set properties for :term:`animated` images on non-animated ones, the values are simply ignored.
+
    .. autoclass:: BaseImage
       :members:
       :show-inheritance:
+
+   |
 
    .. autoclass:: GraphicsImage
       :members:
       :show-inheritance:
 
+   |
+
    .. autoclass:: TextImage
       :members:
       :show-inheritance:
+
+   |
 
    .. autoclass:: BlockImage
       :members:
       :show-inheritance:
 
+   |
+
    .. autoclass:: ITerm2Image
       :members:
       :show-inheritance:
+
+   |
 
    .. autoclass:: KittyImage
       :members:
       :show-inheritance:
 
+   |
+
    .. autoclass:: TermImage
       :members:
       :show-inheritance:
+
+   |
 
    .. autoclass:: ImageIterator
       :members:

@@ -28,8 +28,9 @@ import sys
 import warnings
 from array import array
 from functools import wraps
-from multiprocessing import Process, RLock as mp_RLock
+from multiprocessing import Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
+from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
@@ -219,6 +220,15 @@ def unix_tty_only(func: Callable) -> FunctionType:
 # Non-decorators
 
 
+def clear_queue(queue: Union[Queue, mp_Queue]):
+    """Purges the given queue"""
+    while True:
+        try:
+            queue.get(timeout=0.005)
+        except Empty:
+            break
+
+
 def color(
     text: str, fg: Tuple[int] = (), bg: Tuple[int] = (), *, end: bool = False
 ) -> str:
@@ -254,7 +264,7 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     ws = get_window_size()
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
-    return None if size is None or len(size) != 2 or 0 in size else size
+    return size and (0 in size and None or size)
 
 
 @cached
@@ -343,29 +353,28 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         pass
 
     # Then CSI 14 t
-    response = query_terminal(b"\033[14t", more=lambda s: not s.endswith(b"t"))
-    try:
-        size = response and tuple(
-            map(int, response.partition(b"\033")[2][3:-1].split(b";"))
-        )
-        if size:
-            size = size[::-1]  # XTerm spicifies (height, width)
+    # The second sequence is to speed up the entire query since most (if not all)
+    # terminals should support it and most terminals treat queries as FIFO
+    response = query_terminal(
+        f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
+    )
+    size = (response or None) and WIN_SIZE.match(response.decode())
+    if size:
+        size = tuple(map(int, size.groups()))[::-1]  # XTerm spicifies (height, width)
 
-            # Termux seems to respond with (height / 2, width), though the values are
-            # incorrect as they change with different zoom levels but still always
-            # give a reasonable (almost always the same) cell size and ratio.
-            if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                size = (size[0], size[1] * 2)
-    except ValueError:
-        size = None
+        # Termux seems to respond with (height / 2, width), though the values are
+        # incorrect as they change with different zoom levels but still always
+        # give a reasonable (almost always the same) cell size and ratio.
+        if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+            size = (size[0], size[1] * 2)
 
-    return None if size is None or len(size) != 2 or 0 in size else size
+    return size and (0 in size and None or size)
 
 
 @unix_tty_only
 @lock_tty
 def query_terminal(
-    request: bytes, more: Callable[[bytearray], bool], timeout: float = 0.1
+    request: bytes, more: Callable[[bytearray], bool], timeout: float = None
 ) -> Optional[bytes]:
     """Sends a query to the :term:`active terminal` and returns the response.
 
@@ -378,6 +387,9 @@ def query_terminal(
 
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
+
+          If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
+          :py:func:`term_image.set_query_timeout`) is used.
 
     Returns:
         The terminal's response (empty, if no response is recieved after *timeout*
@@ -393,7 +405,7 @@ def query_terminal(
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
         write_tty(request)
-        return read_tty(more, timeout)
+        return read_tty(more, timeout or QUERY_TIMEOUT)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
@@ -517,7 +529,7 @@ def write_tty(data: bytes) -> None:
 
 
 def x_parse_color(spec: str) -> Tuple[int, int, int]:
-    """Converts an RGB Device specification according to XParseColor"""
+    """Converts an RGB device specification according to XParseColor"""
     # One hex char -> 4 bits
     return tuple(int(x, 16) * 255 // ((1 << (len(x) * 4)) - 1) for x in spec.split("/"))
 
@@ -558,7 +570,9 @@ def _process_run_wrapper(self, *args, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
+QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
+WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
 
 # Constants for escape sequences
 

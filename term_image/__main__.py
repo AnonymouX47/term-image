@@ -92,7 +92,7 @@ def main() -> int:
     finally:
         # Explicit cleanup is neccessary since the top-level `Image` widgets
         # will still hold references to the `BaseImage` instances
-        if cli.url_images is not None:
+        if cli.url_images:
             for _, value in cli.url_images:
                 value._ti_image.close()
 

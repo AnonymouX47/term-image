@@ -15,7 +15,7 @@ from ..config import max_notifications
 from ..utils import CSI, lock_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .widgets import Image, info_bar, main as main_widget, notif_bar, pile
+from .widgets import Image, ImageCanvas, info_bar, main as main_widget, notif_bar, pile
 
 
 def init(
@@ -58,18 +58,20 @@ def init(
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
-    if args.style == "kitty":
-        # Kitty blends images with the same z-index, hence the `z_index=None`, which is
-        # pretty glitchy for animations with WHOLE method, hence the change to LINES
-        if ImageClass._KITTY_VERSION:
-            render.anim_style_specs["kitty"] = "+L"
-        for name in ("anim", "grid", "image"):
-            specs = getattr(render, f"{name}_style_specs")
+    # `z_index=None` is pretty glitchy for animations with WHOLE method
+    if args.style == "kitty" and ImageClass._KITTY_VERSION:
+        render.anim_style_specs["kitty"] = "+L"
+    for name in ("anim", "grid", "image"):
+        specs = getattr(render, f"{name}_style_specs")
+        if args.style == "kitty":
+            # Kitty blends images at the same z-index
             if ImageClass._KITTY_VERSION:
                 specs["kitty"] += "z"
             # Would've been removed if it had the default value
             if "compress" in style_args:
                 specs["kitty"] += f"c{style_args['compress']}"
+        elif args.style == "iterm2" and "compress" in style_args:
+            specs["iterm2"] += f"c{style_args['compress']}"
 
     Image._ti_alpha = (
         "#"
@@ -146,7 +148,7 @@ class Loop(urwid.MainLoop):
         if "window resize" in keys:
             # Adjust bottom bar upon window resize
             keys.append("resized")
-            main.ImageClass._clear_images()
+            main.ImageClass._clear_images() and ImageCanvas.change()
         return super().process_input(keys)
 
 
