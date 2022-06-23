@@ -48,14 +48,18 @@ class TestRender:
         self.trans.scale = 1.0
 
         # Transparency enabled
+        render = self.render_image(_ALPHA_THRESHOLD)
+        assert render == str(self.trans) == f"{self.trans:1.1}"
         assert all(
             line == COLOR_RESET + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image(_ALPHA_THRESHOLD).splitlines()
+            for line in render.splitlines()
         )
         # Transparency disabled
+        render = self.render_image(None)
+        assert render == f"{self.trans:1.1#}"
         assert all(
             line == f"{CSI}48;2;0;0;0m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image(None).splitlines()
+            for line in render.splitlines()
         )
 
     def test_background_colour(self):
@@ -63,29 +67,39 @@ class TestRender:
 
         # Terminal BG
         r, g, b = get_fg_bg_colors()[1] or (0, 0, 0)
+        render = self.render_image("#")
+        assert render == f"{self.trans:1.1##}"
         assert all(
             line == f"{CSI}48;2;{r};{g};{b}m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image("#").splitlines()
+            for line in render.splitlines()
         )
         # red
+        render = self.render_image("#ff0000")
+        assert render == f"{self.trans:1.1#ff0000}"
         assert all(
             line == f"{CSI}48;2;255;0;0m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image("#ff0000").splitlines()
+            for line in render.splitlines()
         )
         # green
+        render = self.render_image("#00ff00")
+        assert render == f"{self.trans:1.1#00ff00}"
         assert all(
             line == f"{CSI}48;2;0;255;0m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image("#00ff00").splitlines()
+            for line in render.splitlines()
         )
         # blue
+        render = self.render_image("#0000ff")
+        assert render == f"{self.trans:1.1#0000ff}"
         assert all(
             line == f"{CSI}48;2;0;0;255m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image("#0000ff").splitlines()
+            for line in render.splitlines()
         )
         # white
+        render = self.render_image("#ffffff")
+        assert render == f"{self.trans:1.1#ffffff}"
         assert all(
             line == f"{CSI}48;2;255;255;255m" + " " * self.trans.width + COLOR_RESET
-            for line in self.render_image("#ffffff").splitlines()
+            for line in render.splitlines()
         )
 
     def test_scaled(self):
