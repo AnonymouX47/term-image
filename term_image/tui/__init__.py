@@ -75,7 +75,7 @@ def init(
         "#"
         if args.no_alpha
         else (
-            f"#{args.alpha:f}"[1:]
+            "#" + f"{args.alpha:f}"[1:]
             if args.alpha_bg is None
             else "#" + (args.alpha_bg or "#")
         )
