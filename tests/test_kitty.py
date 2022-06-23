@@ -10,7 +10,7 @@ import pytest
 
 from term_image.exceptions import KittyImageError
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ESC, ST
+from term_image.utils import CSI, ST
 
 from . import common
 from .common import _size, python_img, setup_common
@@ -381,12 +381,11 @@ class TestRenderLines:
                 assert ("z", f"{value}") in decode_image(line)[0]
 
         # z_index = None
-        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
         for line in render.splitlines():
-            assert line.startswith(clear)
-            control_codes = decode_image(line.partition(f"{ESC}8")[2])[0]
+            assert line.startswith(delete)
+            control_codes = decode_image(line.partition(delete)[2])[0]
             assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
@@ -577,11 +576,10 @@ class TestRenderWhole:
             assert ("z", f"{value}") in control_codes
 
         # z_index = None
-        clear = f"{delete}{ESC}7{CSI}{self.trans.rendered_width}C{delete}{ESC}8"
         render = self.render_image(None, z=None)
         assert render == f"{self.trans:1.1#+z}"
-        assert render.startswith(clear)
-        control_codes = decode_image(render.partition(f"{ESC}8")[2])[0]
+        assert render.startswith(delete)
+        control_codes = decode_image(render.partition(delete)[2])[0]
         assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
@@ -638,6 +636,6 @@ class TestRenderWhole:
             self._test_image_size(self.trans)
 
 
-delete = f"{START}a=d,d=c;{ST}"
+delete = f"{START}a=d,d=C;{ST}"
 jump_right = f"{CSI}{{cols}}C"
 fill_fmt = f"{CSI}{{cols}}X{jump_right}"
