@@ -9,7 +9,7 @@ import pytest
 
 from term_image.exceptions import KittyImageError
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ST
+from term_image.utils import CSI, ST, get_fg_bg_colors
 
 from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
@@ -306,13 +306,17 @@ class TestRenderLines:
         pixels_per_line = w * (h // _size)
 
         # Transparency enabled
-        for line in self.render_image().splitlines():
+        render = self.render_image()
+        assert render == str(self.trans) == f"{self.trans:1.1}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "32") in control_codes
             assert len(raw_image) == pixels_per_line * 4
             assert raw_image.count(b"\0" * 4) == pixels_per_line
         # Transparency disabled
-        for line in self.render_image(None).splitlines():
+        render = self.render_image(None)
+        assert render == f"{self.trans:1.1#}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
@@ -323,26 +327,43 @@ class TestRenderLines:
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        render = self.render_image("#")
+        assert render == f"{self.trans:1.1##}"
+        for line in render.splitlines():
+            control_codes, raw_image, _ = decode_image(line)
+            assert ("f", "24") in control_codes
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(pixel_bytes) == pixels_per_line
         # red
-        for line in self.render_image("#ff0000").splitlines():
+        render = self.render_image("#ff0000")
+        assert render == f"{self.trans:1.1#ff0000}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\xff\0\0") == pixels_per_line
         # green
-        for line in self.render_image("#00ff00").splitlines():
+        render = self.render_image("#00ff00")
+        assert render == f"{self.trans:1.1#00ff00}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\0\xff\0") == pixels_per_line
         # blue
-        for line in self.render_image("#0000ff").splitlines():
+        render = self.render_image("#0000ff")
+        assert render == f"{self.trans:1.1#0000ff}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
             assert raw_image.count(b"\0\0\xff") == pixels_per_line
         # white
-        for line in self.render_image("#ffffff").splitlines():
+        render = self.render_image("#ffffff")
+        assert render == f"{self.trans:1.1#ffffff}"
+        for line in render.splitlines():
             control_codes, raw_image, _ = decode_image(line)
             assert ("f", "24") in control_codes
             assert len(raw_image) == pixels_per_line * 3
@@ -505,13 +526,17 @@ class TestRenderWhole:
         w, h = get_actual_render_size(self.trans)
 
         # Transparency enabled
-        control_codes, raw_image, _ = decode_image(self.render_image())
+        render = self.render_image()
+        assert render == str(self.trans) == f"{self.trans:1.1}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "32") in control_codes
         assert len(raw_image) == w * h * 4
         assert raw_image.count(b"\0" * 4) == w * h
 
         # Transparency disabled
-        control_codes, raw_image, _ = decode_image(self.render_image(None))
+        render = self.render_image(None)
+        assert render == f"{self.trans:1.1#}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "24") in control_codes
         assert len(raw_image) == w * h * 3
         assert raw_image.count(b"\0\0\0") == w * h
@@ -520,26 +545,43 @@ class TestRenderWhole:
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        render = self.render_image("#")
+        assert render == f"{self.trans:1.1##}"
+        control_codes, raw_image, _ = decode_image(render)
+        assert ("f", "24") in control_codes
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(pixel_bytes) == w * h
+
         # red
-        control_codes, raw_image, _ = decode_image(self.render_image("#ff0000"))
+        render = self.render_image("#ff0000")
+        assert render == f"{self.trans:1.1#ff0000}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "24") in control_codes
         assert len(raw_image) == w * h * 3
         assert raw_image.count(b"\xff\0\0") == w * h
 
         # green
-        control_codes, raw_image, _ = decode_image(self.render_image("#00ff00"))
+        render = self.render_image("#00ff00")
+        assert render == f"{self.trans:1.1#00ff00}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "24") in control_codes
         assert len(raw_image) == w * h * 3
         assert raw_image.count(b"\0\xff\0") == w * h
 
         # blue
-        control_codes, raw_image, _ = decode_image(self.render_image("#0000ff"))
+        render = self.render_image("#0000ff")
+        assert render == f"{self.trans:1.1#0000ff}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "24") in control_codes
         assert len(raw_image) == w * h * 3
         assert raw_image.count(b"\0\0\xff") == w * h
 
         # white
-        control_codes, raw_image, _ = decode_image(self.render_image("#ffffff"))
+        render = self.render_image("#ffffff")
+        assert render == f"{self.trans:1.1#ffffff}"
+        control_codes, raw_image, _ = decode_image(render)
         assert ("f", "24") in control_codes
         assert len(raw_image) == w * h * 3
         assert raw_image.count(b"\xff" * 3) == w * h

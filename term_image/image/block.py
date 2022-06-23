@@ -4,6 +4,7 @@ __all__ = ("BlockImage", "TermImage")
 
 import io
 import os
+import re
 import warnings
 from math import ceil
 from operator import mul
@@ -11,7 +12,16 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..utils import BG_FMT, COLOR_RESET, FG_FMT
+from ..utils import (
+    BG_FMT,
+    COLOR_RESET,
+    CSI,
+    FG_FMT,
+    ST,
+    cached,
+    get_fg_bg_colors,
+    query_terminal,
+)
 from .common import TextImage
 
 warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
@@ -45,6 +55,17 @@ class BlockImage(TextImage):
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
         return pixels if pixels is not None else cols
+
+    @staticmethod
+    @cached
+    def _is_on_kitty() -> bool:
+        response = query_terminal(
+            f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
+        )
+        match = response and re.match(
+            r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response.decode(), re.ASCII
+        )
+        return bool(match) and match.group(1).lower() == "kitty"
 
     @staticmethod
     def _pixels_lines(
@@ -81,7 +102,18 @@ class BlockImage(TextImage):
                     no_alpha = True
 
             if not alpha or no_alpha:
-                buf_write(BG_FMT % cluster2)
+                r, g, b = cluster2
+                # Kitty does not render BG colors equal to the default BG color
+                if self._is_on_kitty() and cluster2 == bg_color:
+                    if r < 255:
+                        r += 1
+                    elif g < 255:
+                        g += 1
+                    elif b < 255:
+                        b += 1
+                    else:
+                        r -= 1
+                buf_write(BG_FMT % (r, g, b))
                 if cluster1 == cluster2:
                     buf_write(" " * n)
                 else:
@@ -89,11 +121,11 @@ class BlockImage(TextImage):
                     buf_write(UPPER_PIXEL * n)
 
         buffer = io.StringIO()
-        # Eliminate attribute resolution cost
-        buf_write = buffer.write
+        buf_write = buffer.write  # Eliminate attribute resolution cost
 
+        bg_color = get_fg_bg_colors()[1]
         width, height = self._get_render_size()
-        img, rgb, a = self._get_render_data(img, alpha)
+        img, rgb, a = self._get_render_data(img, alpha, round_alpha=True)
         alpha = img.mode == "RGBA"
 
         # clean up

@@ -37,17 +37,18 @@ from ..utils import (
     CSI,
     ClassInstanceMethod,
     get_cell_size,
+    get_fg_bg_colors,
     get_terminal_size,
     no_redecorate,
 )
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6})?)?(\+(.+))?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6}|#)?)?(\+(.+))?",
     re.ASCII,
 )
 _NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
-_HEX_COLOR_FORMAT = re.compile("#[0-9a-f]{6}", re.ASCII)
+_ALPHA_BG_FORMAT = re.compile("#([0-9a-f]{6})?", re.ASCII)
 
 
 @no_redecorate
@@ -539,13 +540,16 @@ class BaseImage(ABC):
 
             alpha: Transparency setting.
 
-              * If ``None``, transparency is disabled
-                (uses the image's default background color).
+              * If ``None``, transparency is disabled (alpha channel is removed).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
                 **above** which pixels are taken as *opaque*. **(Applies to only
                 text-based render styles)**.
-              * If a string, specifies a **hex color** with which transparent
-                background should be replaced.
+              * If a string, specifies a color to replace transparent background with.
+                Can be:
+
+                * **"#"** -> The terminal's default background color (or black, if
+                  undetermined) is used.
+                * A hex color e.g ``ffffff``, ``7faa52``.
 
             scroll: Only applies to non-animations. If ``True``:
 
@@ -606,7 +610,7 @@ class BaseImage(ABC):
                 if not 0.0 <= alpha < 1.0:
                     raise ValueError(f"Alpha threshold out of range (got: {alpha})")
             elif isinstance(alpha, str):
-                if not _HEX_COLOR_FORMAT.fullmatch(alpha):
+                if not _ALPHA_BG_FORMAT.fullmatch(alpha):
                     raise ValueError(f"Invalid hex color string (got: {alpha})")
             else:
                 raise TypeError(
@@ -1073,8 +1077,8 @@ class BaseImage(ABC):
             (
                 threshold_or_bg
                 and (
-                    "#" + threshold_or_bg
-                    if _HEX_COLOR_FORMAT.fullmatch("#" + threshold_or_bg)
+                    "#" + threshold_or_bg.lstrip("#")
+                    if _ALPHA_BG_FORMAT.fullmatch("#" + threshold_or_bg.lstrip("#"))
                     else float(threshold_or_bg)
                 )
                 if alpha
@@ -1356,46 +1360,46 @@ class BaseImage(ABC):
 
         All arguments should be passed through ``_check_formatting()`` first.
         """
-        lines = render.splitlines()
         cols, rows = self.rendered_size
 
         width = width or get_terminal_size()[0] - self._h_allow
-        width = max(cols, width)
-        if h_align == "<":  # left
-            pad_left = ""
-            pad_right = " " * (width - cols)
-        elif h_align == ">":  # right
-            pad_left = " " * (width - cols)
-            pad_right = ""
-        else:  # center
-            pad_left = " " * ((width - cols) // 2)
-            pad_right = " " * (width - cols - len(pad_left))
-
-        if pad_left and pad_right:
-            lines = [pad_left + line + pad_right for line in lines]
-        elif pad_left:
-            lines = [pad_left + line for line in lines]
-        elif pad_right:
-            lines = [line + pad_right for line in lines]
+        if width > cols:
+            if h_align == "<":  # left
+                left = ""
+                right = " " * (width - cols)
+            elif h_align == ">":  # right
+                left = " " * (width - cols)
+                right = ""
+            else:  # center
+                left = " " * ((width - cols) // 2)
+                right = " " * (width - cols - len(left))
+            render = render.replace("\n", f"{right}\n{left}")
+        else:
+            left = right = ""
 
         height = height or get_terminal_size()[1] - self._v_allow
-        height = max(rows, height)
-        if v_align == "^":  # top
-            pad_up = 0
-            pad_down = height - rows
-        elif v_align == "_":  # bottom
-            pad_up = height - rows
-            pad_down = 0
-        else:  # middle
-            pad_up = (height - rows) // 2
-            pad_down = height - rows - pad_up
+        if height > rows:
+            if v_align == "^":  # top
+                top = 0
+                bottom = height - rows
+            elif v_align == "_":  # bottom
+                top = height - rows
+                bottom = 0
+            else:  # middle
+                top = (height - rows) // 2
+                bottom = height - rows - top
 
-        if pad_down:
-            lines[rows:] = (" " * width,) * pad_down
-        if pad_up:
-            lines[:0] = (" " * width,) * pad_up
+            line = f"{' ' * width}\n"
+            top = line * top
+            bottom = line * bottom
+        else:
+            top = bottom = ""
 
-        return "\n".join(lines)
+        return (
+            "".join((top, left, render, right, bottom))
+            if width > cols or height > rows
+            else render
+        )
 
     @_close_validated
     def _get_image(self) -> PIL.Image.Image:
@@ -1411,7 +1415,7 @@ class BaseImage(ABC):
         *,
         size: Optional[Tuple[int, int]] = None,
         pixel_data: bool = True,
-        round_alpha: bool = True,
+        round_alpha: bool = False,
     ) -> Tuple[
         PIL.Image.Image, Optional[List[Tuple[int, int, int]]], Optional[List[int]]
     ]:
@@ -1421,9 +1425,12 @@ class BaseImage(ABC):
             size: If given (in pixels), it is used instead of the pixel-equivalent of
               the image size (or auto size, if size is unset).
             pixel_data: If ``False``, ``None`` is returned for all pixel data.
-            round_alpha: If ``False``, alpha values are bi-level (``0`` or ``255``),
-              based on the given alpha threshold (Only applies when *pixel_data* is
-              ``True`` and *alpha* is a ``float``).
+            round_alpha: Only applies when *alpha* is a ``float``.
+
+              If ``True``, returned alpha values are bi-level (``0`` or ``255``), based
+              on the given alpha threshold.
+              Also, the image is blended with the active terminal's BG color (or black,
+              if undetermined) while leaving the alpha intact.
 
         The returned image is appropriately converted, resized and composited
         (if need be).
@@ -1439,42 +1446,56 @@ class BaseImage(ABC):
         def convert_resize_img(mode: str):
             nonlocal img
             try:
-                img = img.convert(mode)
+                if img.mode != mode:
+                    img = img.convert(mode)
             except Exception as e:
                 raise ValueError("Unable to convert image") from e
             try:
-                img = img.resize((width, height))
+                if img.size != size:
+                    img = img.resize(size, Image.Resampling.BOX)
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
 
         if self._is_animated:
             img.seek(self._seek_position)
-
-        width, height = size or self._get_render_size()
+        if not size:
+            size = self._get_render_size()
 
         if alpha is None or img.mode in {"1", "L", "RGB", "HSV", "CMYK"}:
             convert_resize_img("RGB")
             if pixel_data:
                 rgb = list(img.getdata())
-                a = [255] * (width * height)
+                a = [255] * mul(*size)
         else:
             convert_resize_img("RGBA")
             if isinstance(alpha, str):
+                if alpha == "#":
+                    alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
                 if img is not self._source:
                     img.close()
                 img = bg.convert("RGB")
                 if pixel_data:
-                    a = [255] * (width * height)
-            elif pixel_data:
-                a = list(img.getdata(3))
+                    a = [255] * mul(*size)
+            else:
+                if pixel_data:
+                    a = list(img.getdata(3))
+                    if round_alpha:
+                        alpha = round(alpha * 255)
+                        a = [0 if val < alpha else 255 for val in a]
                 if round_alpha:
-                    alpha = round(alpha * 255)
-                    a = [0 if val < alpha else val for val in a]
+                    bg = Image.new(
+                        "RGBA", img.size, get_fg_bg_colors(hex=True)[1] or "#000000"
+                    )
+                    bg.alpha_composite(img)
+                    bg.putalpha(img.getchannel("A"))
+                    if img is not self._source:
+                        img.close()
+                    img = bg
 
             if pixel_data:
-                rgb = list(img.convert("RGB").getdata())
+                rgb = list((img if img.mode == "RGB" else img.convert("RGB")).getdata())
 
         return (img, *(pixel_data and (rgb, a) or (None, None)))
 
