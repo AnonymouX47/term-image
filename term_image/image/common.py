@@ -1360,46 +1360,46 @@ class BaseImage(ABC):
 
         All arguments should be passed through ``_check_formatting()`` first.
         """
-        lines = render.splitlines()
         cols, rows = self.rendered_size
 
         width = width or get_terminal_size()[0] - self._h_allow
-        width = max(cols, width)
-        if h_align == "<":  # left
-            pad_left = ""
-            pad_right = " " * (width - cols)
-        elif h_align == ">":  # right
-            pad_left = " " * (width - cols)
-            pad_right = ""
-        else:  # center
-            pad_left = " " * ((width - cols) // 2)
-            pad_right = " " * (width - cols - len(pad_left))
-
-        if pad_left and pad_right:
-            lines = [pad_left + line + pad_right for line in lines]
-        elif pad_left:
-            lines = [pad_left + line for line in lines]
-        elif pad_right:
-            lines = [line + pad_right for line in lines]
+        if width > cols:
+            if h_align == "<":  # left
+                left = ""
+                right = " " * (width - cols)
+            elif h_align == ">":  # right
+                left = " " * (width - cols)
+                right = ""
+            else:  # center
+                left = " " * ((width - cols) // 2)
+                right = " " * (width - cols - len(left))
+            render = render.replace("\n", f"{right}\n{left}")
+        else:
+            left = right = ""
 
         height = height or get_terminal_size()[1] - self._v_allow
-        height = max(rows, height)
-        if v_align == "^":  # top
-            pad_up = 0
-            pad_down = height - rows
-        elif v_align == "_":  # bottom
-            pad_up = height - rows
-            pad_down = 0
-        else:  # middle
-            pad_up = (height - rows) // 2
-            pad_down = height - rows - pad_up
+        if height > rows:
+            if v_align == "^":  # top
+                top = 0
+                bottom = height - rows
+            elif v_align == "_":  # bottom
+                top = height - rows
+                bottom = 0
+            else:  # middle
+                top = (height - rows) // 2
+                bottom = height - rows - top
 
-        if pad_down:
-            lines[rows:] = (" " * width,) * pad_down
-        if pad_up:
-            lines[:0] = (" " * width,) * pad_up
+            line = f"{' ' * width}\n"
+            top = line * top
+            bottom = line * bottom
+        else:
+            top = bottom = ""
 
-        return "\n".join(lines)
+        return (
+            "".join((top, left, render, right, bottom))
+            if width > cols or height > rows
+            else render
+        )
 
     @_close_validated
     def _get_image(self) -> PIL.Image.Image:
