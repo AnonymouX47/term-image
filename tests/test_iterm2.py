@@ -13,7 +13,7 @@ from PIL.PngImagePlugin import PngImageFile
 from term_image import TermImageWarning
 from term_image.exceptions import ITerm2ImageError
 from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
-from term_image.utils import CSI, ST
+from term_image.utils import CSI, ST, get_fg_bg_colors
 
 from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
@@ -306,6 +306,16 @@ class TestRenderLines:
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        render = self.render_image("#")
+        assert render == f"{self.trans:1.1##}"
+        for line in render.splitlines():
+            _, format, mode, _, raw_image, _ = decode_image(line)
+            assert format == "PNG"
+            assert mode == "RGB"
+            assert len(raw_image) == pixels_per_line * 3
+            assert raw_image.count(pixel_bytes) == pixels_per_line
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
@@ -570,6 +580,16 @@ class TestRenderWhole:
         ITerm2Image._TERM = ""
         self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
+
+        # Terminal BG
+        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
+        render = self.render_image("#")
+        assert render == f"{self.trans:1.1##}"
+        _, format, mode, _, raw_image, _ = decode_image(render)
+        assert format == "PNG"
+        assert mode == "RGB"
+        assert len(raw_image) == w * h * 3
+        assert raw_image.count(pixel_bytes) == w * h
 
         # red
         render = self.render_image("#ff0000")
