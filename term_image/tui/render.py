@@ -11,14 +11,7 @@ from typing import Optional, Union
 
 from .. import cli, logging, notify
 from ..logging_multi import Process
-
-
-def clear_queue(queue: Union[Queue, mp_Queue]):
-    while True:
-        try:
-            queue.get(timeout=0.005)
-        except Empty:
-            break
+from ..utils import clear_queue
 
 
 def manage_anim_renders() -> bool:

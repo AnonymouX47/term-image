@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
+- [cli] Handling of `SIGINT` while processing sources ([#56]).
 - [tui] Intensive performance drop while populating large image grids ([#41]).
 - [tui] Navigation across animated images ([#42]).
   - No more waiting for the first frame to be rendered before moving on.
@@ -56,7 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `TermImageException` to `TermImageError`.
   - `InvalidSize` to `InvalidSizError`.
 - [cli] `-S` from `--scroll` to `--style` ([#44]).
+- [cli] CLI mode is now forced when output is not a TTY ([#56]).
 - [cli,tui] Changed default value of `font ratio` config option to `null` ([#45]).
+- [cli,tui] Improved startup speed and source processing ([#56]).
+- [cli,tui] Improved config error handling ([#56]).
 
 ### Deprecated
 - [lib] `term_image.image.TermImage` ([#46]).
@@ -77,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
 [#50]: https://github.com/AnonymouX47/term-image/pull/50
 [#51]: https://github.com/AnonymouX47/term-image/pull/51
+[#56]: https://github.com/AnonymouX47/term-image/pull/56
 [3b658f3]: https://github.com/AnonymouX47/term-image/commit/3b658f388db8e36bc8f4d42c77375cd7c3593d4b
 
 
