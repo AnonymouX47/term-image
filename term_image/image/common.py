@@ -1446,24 +1446,26 @@ class BaseImage(ABC):
         def convert_resize_img(mode: str):
             nonlocal img
             try:
-                img = img.convert(mode)
+                if img.mode != mode:
+                    img = img.convert(mode)
             except Exception as e:
                 raise ValueError("Unable to convert image") from e
             try:
-                img = img.resize((width, height), Image.Resampling.BOX)
+                if img.size != size:
+                    img = img.resize(size, Image.Resampling.BOX)
             except ValueError:
                 raise ValueError("Image size or scale too small") from None
 
         if self._is_animated:
             img.seek(self._seek_position)
-
-        width, height = size or self._get_render_size()
+        if not size:
+            size = self._get_render_size()
 
         if alpha is None or img.mode in {"1", "L", "RGB", "HSV", "CMYK"}:
             convert_resize_img("RGB")
             if pixel_data:
                 rgb = list(img.getdata())
-                a = [255] * (width * height)
+                a = [255] * mul(*size)
         else:
             convert_resize_img("RGBA")
             if isinstance(alpha, str):
@@ -1475,13 +1477,13 @@ class BaseImage(ABC):
                     img.close()
                 img = bg.convert("RGB")
                 if pixel_data:
-                    a = [255] * (width * height)
+                    a = [255] * mul(*size)
             else:
                 if pixel_data:
                     a = list(img.getdata(3))
                     if round_alpha:
                         alpha = round(alpha * 255)
-                        a = [0 if val < alpha else val for val in a]
+                        a = [0 if val < alpha else 255 for val in a]
                 if round_alpha:
                     bg = Image.new(
                         "RGBA", img.size, get_fg_bg_colors(hex=True)[1] or "#000000"
