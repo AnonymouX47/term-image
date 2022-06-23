@@ -435,7 +435,7 @@ image_render_queue = Queue()
 
 # Updated from `.tui.init()`
 anim_style_specs = {"kitty": "+W", "iterm2": "+Wm1"}
-grid_style_specs = {"kitty": "+L"}
+grid_style_specs = {"kitty": "+L", "iterm2": "+L"}
 image_style_specs = {"kitty": "+W", "iterm2": "+W"}
 
 # Set from `.tui.init()`

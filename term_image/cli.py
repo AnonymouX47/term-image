@@ -640,8 +640,23 @@ FOOTNOTES:
      images to be rendered immediately after it.
   5. Frames will not be cached for any animation with more frames than this value.
      Memory usage depends on the frame count per image, not this maximum count.
-  6. Any event with a level lower than the specified one is not reported.
-  7. Supports all image formats supported by `PIL.Image.open()`.
+  6. 0 -> worst quality; smallest data size, 95 -> best quality; largest data size.
+     Reduces render time & image data size and increases drawing speed on the terminal's
+     end but at the cost of image quality and color reproduction. Useful for animations
+     with high pixel density / color sparseness.
+     This option only applies when an image is re-encoded and not read directly from
+     file (see `--iterm2-no-read-from-file`). By default (i.e when disabled), PNG format
+     is used for re-encoding images, which has less compression with better quality.
+     JPEG format can only be used for non-transparent images but the transparency status
+     of some images can not be correctly determined in an efficient way at render time.
+     Thus, to ensure the JPEG format is always used for re-encoded images, disable
+     transparency (`--no-alpha`) or set a background color (`-b/--alpha-bg`).
+  7. By default, image data is used directly from file when no image manipulation is
+     required. Otherwise, it's re-encoded in PNG (or JPEG, if enabled) format.
+     Significantly reduces render time when applicable. This option does not apply to
+     animations, native or not.
+  8. Any event with a level lower than the specified one is not reported.
+  9. Supports all image formats supported by `PIL.Image.open()`.
      See https://pillow.readthedocs.io/en/latest/handbook/image-file-formats.html for
      details.
 """,
@@ -1117,7 +1132,7 @@ FOOTNOTES:
 
     iterm2_parser = argparse.ArgumentParser(add_help=False)
     iterm2_options = iterm2_parser.add_argument_group(
-        "iTerm2 Style Options (CLI-only)",
+        "iTerm2 Style Options",
         "These options apply only when the 'iterm2' render style is used",
     )
     iterm2_options.add_argument(
@@ -1125,7 +1140,7 @@ FOOTNOTES:
         "--iterm2-native",
         action="store_true",
         dest="native",
-        help="Use iTerm2's native animation (Animations will not be skipped)",
+        help="Use iTerm2's native animation; Animations will not be skipped [CLI-only]",
     )
     iterm2_options.add_argument(
         "--itnm",
@@ -1135,9 +1150,40 @@ FOOTNOTES:
         default=ITerm2Image.NATIVE_ANIM_MAXSIZE,
         type=int,
         help=(
-            "Maximum size (in bytes) of image data for native animation "
+            "Maximum size (in bytes) of image data for native animation [CLI-only] "
             f"(default: {ITerm2Image.NATIVE_ANIM_MAXSIZE})"
         ),
+    )
+    iterm2_options.add_argument(
+        "--itc",
+        "--iterm2-compress",
+        metavar="N",
+        dest="compress",
+        default=4,
+        type=int,
+        help=(
+            "ZLIB compression level, for images re-encoded in PNG format "
+            "0 -> no compression, 1 -> best speed, 9 -> best compression (default: 4)"
+        ),
+    )
+    iterm2_options.add_argument(
+        "--itjq",
+        "--iterm2-jpeg-quality",
+        metavar="N",
+        dest="jpeg_quality",
+        default=ITerm2Image.JPEG_QUALITY,
+        type=int,
+        help=(
+            "JPEG compression status and quality; `< 0` -> disabled, `0 to 95` -> "
+            f"quality (default: {ITerm2Image.JPEG_QUALITY}) [6]"
+        ),
+    )
+    iterm2_options.add_argument(
+        "--itnrff",
+        "--iterm2-no-read-from-file",
+        action="store_false",
+        dest="read_from_file",
+        help="Never use image data directly from file; always re-encode images [7]",
     )
 
     style_parsers = {"kitty": kitty_parser, "iterm2": iterm2_parser}
@@ -1258,8 +1304,12 @@ FOOTNOTES:
 
     style_parser = style_parsers.get(args.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
+
     if args.style == "iterm2":
+        ITerm2Image.JPEG_QUALITY = style_args.pop("jpeg_quality")
         ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
+        ITerm2Image.READ_FROM_FILE = style_args.pop("read_from_file")
+
     try:
         style_args = ImageClass._check_style_args(style_args)
     except ValueError as e:

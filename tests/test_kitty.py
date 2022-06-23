@@ -2,7 +2,6 @@
 
 import io
 from base64 import standard_b64decode
-from operator import mul
 from random import random
 from zlib import decompress
 
@@ -13,7 +12,7 @@ from term_image.image.kitty import LINES, START, WHOLE, KittyImage
 from term_image.utils import CSI, ST
 
 from . import common
-from .common import _size, python_img, setup_common
+from .common import _size, get_actual_render_size, python_img, setup_common
 
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Graphics")):
@@ -229,21 +228,6 @@ def decode_image(data):
             raw_image = decompress(raw_image)
 
     return control_codes, raw_image, fill
-
-
-def get_actual_render_size(image):
-    render_size = image._get_render_size()
-    _, r_height = image.rendered_size
-    width, height = (
-        render_size
-        if mul(*render_size) < mul(*image._original_size)
-        else image._original_size
-    )
-    extra = height % (r_height or 1)
-    if extra:
-        height = height - extra + r_height
-
-    return width, height
 
 
 class TestRenderLines:

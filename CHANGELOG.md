@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `--itn/--iterm2-native` and `--itn-max/--iterm2-native-maxsize` style-specific CL options for 'iterm2' native animation ([#50]).
 - [cli] `--kc/--kitty-compress` 'kitty' style-specific option ([#51]).
 - [cli] `--query-timeout` command-line option ([3b658f3]).
+- [cli] `--itc/--iterm2-compress`, `--itjq/--iterm2-jpeg-quality` and `--itnrff/iterm2-no-read-from-file` style-specific command-line options ([#55]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
@@ -81,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#49]: https://github.com/AnonymouX47/term-image/pull/49
 [#50]: https://github.com/AnonymouX47/term-image/pull/50
 [#51]: https://github.com/AnonymouX47/term-image/pull/51
+[#55]: https://github.com/AnonymouX47/term-image/pull/55
 [#56]: https://github.com/AnonymouX47/term-image/pull/56
 [3b658f3]: https://github.com/AnonymouX47/term-image/commit/3b658f388db8e36bc8f4d42c77375cd7c3593d4b
 
