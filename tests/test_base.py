@@ -3,6 +3,7 @@
 import io
 import os
 import sys
+from operator import mul
 from random import random
 
 import pytest
@@ -11,6 +12,7 @@ from PIL import Image, UnidentifiedImageError
 from term_image import set_font_ratio
 from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BlockImage, ImageIterator, ImageSource
+from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import ESC
 
 from .common import _size, columns, lines, python_img, setup_common
@@ -479,25 +481,112 @@ def test_renderer():
         assert kwargs == keywords
 
 
-class TestRender:
+class TestRenderData:
     # Fully transparent image
     # It's easy to predict it's pixel values
     trans = BlockImage.from_file("tests/images/trans.png")
+    trans.height = _size
+    trans.scale = 1.0
 
-    def render_image(self, alpha):
-        return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
+    def get_render_data(self, img=None, alpha=None, **kwargs):
+        return self.trans._get_render_data(
+            img or self.trans._get_image(), alpha, **kwargs
+        )
 
     def test_small_size_scale(self):
-        self.trans.set_size(height=_size)
-        self.trans.scale = 1.0
+        try:
+            for self.trans._size in ((1, 0), (0, 1), (0, 0)):
+                with pytest.raises(ValueError, match="too small"):
+                    self.get_render_data(None)
+        finally:
+            self.trans.height = _size
 
-        for self.trans._size in ((1, 0), (0, 1), (0, 0)):
+        try:
+            self.trans.scale = 0.0001
             with pytest.raises(ValueError, match="too small"):
-                self.render_image(None)
+                self.get_render_data(None)
+        finally:
+            self.trans.scale = 1.0
 
-        self.trans.scale = 0.0001
-        with pytest.raises(ValueError, match="too small"):
-            self.render_image(None)
+    def test_alpha(self):
+        rgb_img = self.trans._get_image().convert("RGB")
+
+        # float
+        for alpha in (0.0, _ALPHA_THRESHOLD, 0.999):
+            img, _, a = self.get_render_data(alpha=alpha)
+            assert isinstance(img, Image.Image)
+            assert img.mode == "RGBA"
+            assert all(px == 0 for px in a)
+
+            img, _, a = self.get_render_data(rgb_img, alpha)
+            assert isinstance(img, Image.Image)
+            assert img.mode == "RGB"
+            assert all(px == 255 for px in a)
+
+        # str
+        for alpha in ("#ffffff", "#"):
+            img, _, a = self.get_render_data(alpha=alpha)
+            assert isinstance(img, Image.Image)
+            assert img.mode == "RGB"
+            assert all(px == 255 for px in a)
+
+            img, _, a = self.get_render_data(rgb_img, alpha)
+            assert isinstance(img, Image.Image)
+            assert img.mode == "RGB"
+            assert all(px == 255 for px in a)
+
+        # None
+        img, _, a = self.get_render_data(alpha=None)
+        assert isinstance(img, Image.Image)
+        assert img.mode == "RGB"
+        assert all(px == 255 for px in a)
+
+        img, _, a = self.get_render_data(rgb_img, None)
+        assert isinstance(img, Image.Image)
+        assert img.mode == "RGB"
+        assert all(px == 255 for px in a)
+
+    def test_size(self):
+        for alpha in (_ALPHA_THRESHOLD, "#", None):
+            render_size = self.trans._get_render_size()
+            img, rgb, a = self.get_render_data(alpha=alpha)
+            assert isinstance(img, Image.Image)
+            assert img.size == render_size
+            assert len(rgb) == len(a) == mul(*render_size)
+
+            size = (47, 31)
+            img, rgb, a = self.get_render_data(alpha=alpha, size=size)
+            assert isinstance(img, Image.Image)
+            assert img.size == size
+            assert len(rgb) == len(a) == mul(*size)
+
+    def test_pixel_data(self):
+        for alpha in (_ALPHA_THRESHOLD, "#", None):
+            img, rgb, a = self.get_render_data(alpha=alpha)
+            assert isinstance(img, Image.Image)
+            assert isinstance(rgb, list)
+            assert isinstance(a, list)
+
+            img, rgb, a = self.get_render_data(alpha=alpha, pixel_data=False)
+            assert isinstance(img, Image.Image)
+            assert rgb is None
+            assert rgb is None
+
+    def test_round_alpha(self):
+        image = BlockImage(python_img, height=_size)
+        img, rgb, a = image._get_render_data(python_img, alpha=_ALPHA_THRESHOLD)
+        assert isinstance(img, Image.Image)
+        assert img.mode == "RGBA"
+        assert any(px not in {0, 255} for px in a)
+
+        img, rounded_rgb, a = image._get_render_data(
+            python_img, alpha=_ALPHA_THRESHOLD, round_alpha=True
+        )
+        assert isinstance(img, Image.Image)
+        assert img.mode == "RGBA"
+        assert all(px in {0, 255} for px in a)
+
+        assert rgb != rounded_rgb  # Blends rounded rgb with terminal BG
 
 
 # As long as each subclass passes it's render tests (particulary those related to the
