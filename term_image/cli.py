@@ -610,7 +610,6 @@ def main() -> None:
     )
 
     for details in (
-        ("query_timeout", lambda x: x > 0.0, "must be greater than zero"),
         ("frame_duration", lambda x: x is None or x > 0.0, "must be greater than zero"),
         ("max_depth", lambda x: x > 0, "must be greater than zero"),
         (
@@ -666,12 +665,14 @@ def main() -> None:
         ImageClass = _best_style()
     args.style = ImageClass.__name__[:-5].lower()
 
-    if args.force_style:
+    if args.force_style or args.style == config.style != "auto":
+        ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
         try:
             ImageClass(None)
         except StyleError:  # Instantiation isn't permitted
+            write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
             log(
                 f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
@@ -680,16 +681,18 @@ def main() -> None:
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
-            if not ImageClass.is_supported():
+            if not ImageClass.is_supported():  # Also sets any required attributes
+                write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
                 log(
                     f"The {args.style!r} render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
                     level=_logging.WARNING,
                 )
+
     # Some APCs (e.g kitty's) used for render style support detection get emitted on
     # some non-supporting terminal emulators
-    write_tty(f"{CSI}1K\r".encode())
+    write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
 
     log(f"Using {args.style!r} render style", logger, verbose=True)
     style_parser = style_parsers.get(args.style)

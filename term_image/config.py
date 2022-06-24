@@ -12,7 +12,7 @@ from typing import Any, Dict
 import urwid
 
 from .exit_codes import CONFIG_ERROR
-from .utils import COLOR_RESET, CSI
+from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT
 
 
 def action_with_key(key: str, keyset: Dict[str, list]) -> str:
@@ -208,6 +208,9 @@ def update_config(config: Dict[str, Any], old_version: str) -> bool:
         ],
         "0.3": [
             ("['font ratio']", 0.5, None),
+            ("['no multi']", NotImplemented, False),
+            ("['query timeout']", NotImplemented, 0.1),
+            ("['style']", NotImplemented, "auto"),
         ],
     }
 
@@ -385,15 +388,18 @@ for key in ("page up", "page down"):
 valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
 # Defaults
-_anim_cache = 100
-_cell_width = 30
-_checkers = None
-_font_ratio = None
-_getters = 4
-_grid_renderers = 1
-_log_file = os.path.join(user_dir, "term_image.log")
-_max_notifications = 2
-_max_pixels = 2**22  # 2048x2048
+anim_cache = _anim_cache = 100
+cell_width = _cell_width = 30
+checkers = _checkers = None
+font_ratio = _font_ratio = None
+getters = _getters = 4
+grid_renderers = _grid_renderers = 1
+log_file = _log_file = os.path.join(user_dir, "term_image.log")
+max_notifications = _max_notifications = 2
+max_pixels = _max_pixels = 2**22  # 2048x2048
+no_multi = _no_multi = False
+query_timeout = _query_timeout = QUERY_TIMEOUT
+style = _style = "auto"
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -488,15 +494,6 @@ _context_keys = {
 }
 # End of Defaults
 
-anim_cache = _anim_cache
-cell_width = _cell_width
-checkers = _checkers
-font_ratio = _font_ratio
-getters = _getters
-grid_renderers = _grid_renderers
-log_file = _log_file
-max_notifications = _max_notifications
-max_pixels = _max_pixels
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
@@ -545,5 +542,17 @@ config_options = {
     "max pixels": (
         lambda x: isinstance(x, int) and x > 0,
         "must be an integer greater than zero",
+    ),
+    "no multi": (
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
+    ),
+    "query timeout": (
+        lambda x: isinstance(x, float) and x > 0.0,
+        "must be a float greater than zero",
+    ),
+    "style": (
+        lambda x: x in {"auto", "block", "iterm2", "kitty"},
+        "must be one of 'auto', 'block', 'iterm2', 'kitty'",
     ),
 }

@@ -6,7 +6,6 @@ import sys
 from . import __version__, config
 from .image import ITerm2Image
 from .image.common import _ALPHA_THRESHOLD
-from .utils import QUERY_TIMEOUT
 
 parser = argparse.ArgumentParser(
     prog="term-image",
@@ -103,15 +102,18 @@ general.add_argument(
     "--query-timeout",
     type=float,
     metavar="N",
-    default=QUERY_TIMEOUT,
-    help=f"Timeout (in seconds) for all terminal queries (default: {QUERY_TIMEOUT})",
+    default=config.query_timeout,
+    help=(
+        "Timeout (in seconds) for all terminal queries "
+        f"(default: {config.query_timeout})"
+    ),
 )
 general.add_argument(
     "-S",
     "--style",
-    choices=("auto", "kitty", "iterm2", "block"),
-    default="auto",
-    help='Image render style (default: auto). See "Render Styles" below',
+    choices=("auto", "block", "iterm2", "kitty"),
+    default=config.style,
+    help=f'Image render style (default: {config.style}). See "Render Styles" below',
 )
 general.add_argument(
     "--force-style",
@@ -455,10 +457,23 @@ perf_options.add_argument(
         f"(default: {config.grid_renderers})"
     ),
 )
-perf_options.add_argument(
+
+multi_options = perf_options.add_mutually_exclusive_group()
+multi_options.add_argument(
+    "--multi",
+    action="store_false",
+    default=config.no_multi,
+    dest="no_multi",
+    help=f"Enable multiprocessing (default: {'dis' if config.no_multi else 'en'}abled)",
+)
+multi_options.add_argument(
     "--no-multi",
     action="store_true",
-    help="Disable multiprocessing",
+    default=config.no_multi,
+    help=(
+        "Disable multiprocessing "
+        f"(default: {'dis' if config.no_multi else 'en'}abled)"
+    ),
 )
 
 # Logging

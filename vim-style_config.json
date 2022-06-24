@@ -9,6 +9,9 @@
     "log file": "/home/anonymoux47/.term_image/term_image.log",
     "max notifications": 2,
     "max pixels": 4194304,
+    "no multi": false,
+    "query timeout": 0.1,
+    "style": "auto",
     "keys": {
         "navigation": {
             "Left": [

@@ -35,7 +35,8 @@ checkers
    * Type: null or integer
    * Valid values: ``null`` or x >= ``0``
 
-   | If ``null``, the number of subprocesses is automatically determined based on the amount of logical processors available. CPU affinity is also taken into account on supported platforms.
+   | If ``null``, the number of subprocesses is automatically determined based on the amount of
+     logical processors available. CPU affinity is also taken into account on supported platforms.
    | If ``0`` (zero), directory sources are checked within the main process.
 
 .. _font-ratio-config:
@@ -46,7 +47,9 @@ font ratio
    * Type: null or float
    * Valid values: ``null`` or x > ``0.0``
 
-   If ``null``, the ratio is determined from the :term:`active terminal` such that the aspect ratio of any image is always preserved. If this is not supported in the :term:`active terminal` or on the platform, ``0.5`` is used instead.
+   If ``null``, the ratio is determined from the :term:`active terminal` such that the aspect
+   ratio of any image is always preserved. If this is not supported in the
+   :term:`active terminal` or on the platform, ``0.5`` is used instead.
 
 getters
    Number of threads for downloading images from URL sources.
@@ -91,9 +94,39 @@ max pixels
    Any image having more pixels than the specified value will be:
 
      * skipped, in CLI mode, if ``--max-pixels-cli`` is specified.
-     * replaced, in TUI mode, with a placeholder when displayed but can still be forced to display or viewed externally.
+     * replaced, in TUI mode, with a placeholder when displayed but can still be forced
+       to display or viewed externally.
 
-   Note that increasing this should not have any effect on general performance (i.e navigation, etc) but the larger an image is, the more the time and memory it'll take to render it. Thus, a large image might delay the rendering of other images to be rendered immediately after it.
+   Note that increasing this should not have any effect on general performance (i.e
+   navigation, etc) but the larger an image is, the more the time and memory it'll take
+   to render it. Thus, a large image might delay the rendering of other images to be
+   rendered immediately after it.
+
+no multi
+   Enables or disables multiprocessing.
+
+   * Type: boolean
+   * Valid values: ``true``, ``false``
+
+   If ``true`` and not overriden by a command-line option, ``checkers`` and ``grid renderers``
+   options have no effect.
+
+query timeout
+   Timeout (in seconds) for all :ref:`terminal-queries`.
+
+   * Type: float
+   * Valid values: x > ``0.0``
+
+.. _style-config:
+
+style
+   Image render style. See :ref:`render-styles-viewer`.
+
+   * Type: string
+   * Valid values: ``"auto"``, ``"block"``, ``"iterm2"``, ``"kitty"``
+
+   If set to any value other than ``"auto"`` and is not overriden by the ``-S | --style``
+   command-line option, the style is used regardless of whether it's supported or not.
 
 
 .. attention:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
