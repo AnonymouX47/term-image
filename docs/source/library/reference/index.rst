@@ -145,7 +145,7 @@ Image Format Specification
   * If neither ``threshold`` nor ``bgcolor`` is present, but ``#`` is present,
     transparency is disabled (alpha channel is removed).
 
-* ``style``: Style-specific format specification.
+* ``style``: Style-specific format specifier.
 
   See each render style in :ref:`image-classes` for its own specification, if it defines.
 

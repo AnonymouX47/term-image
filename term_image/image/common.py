@@ -1047,7 +1047,7 @@ class BaseImage(ABC):
         Union[None, float, str],
         Dict[str, Any],
     ]:
-        """Validates a format specification and translates it into the required values.
+        """Validates a format specifier and translates it into the required values.
 
         Returns:
             A tuple ``(h_align, width, v_align, height, alpha, style_args)`` containing
@@ -1055,7 +1055,7 @@ class BaseImage(ABC):
         """
         match_ = _FORMAT_SPEC.fullmatch(spec)
         if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
-            raise ValueError(f"Invalid format specification (got: {spec!r})")
+            raise ValueError(f"Invalid format specifier (got: {spec!r})")
 
         (
             _,
@@ -1230,20 +1230,19 @@ class BaseImage(ABC):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        """Validates a style-specific format specification and translates it into
+        """Validates a style-specific format specifier and translates it into
         the required values.
 
         Returns:
             A mapping of keyword arguments.
 
         Raises:
-            term_image.exceptions.StyleError: Invalid style-specific format
-              specification.
+            term_image.exceptions.StyleError: Invalid style-specific format specifier.
 
         **Every style-specific format spec should be handled as follows:**
 
         Every overriding method should call the overriden method (more on this below).
-        At every step in the call chain, the specification should be of the form::
+        At every step in the call chain, the specifier should be of the form::
 
             [parent] [current] [invalid]
 
@@ -1269,7 +1268,7 @@ class BaseImage(ABC):
         """
         if spec:
             raise _style_error(cls)(
-                f"Invalid style-specific format specification {original!r}"
+                f"Invalid style-specific format specifier {original!r}"
                 + (f", detected at {spec!r}" if spec != original else "")
             )
         return {}
@@ -1530,7 +1529,7 @@ class BaseImage(ABC):
     def _get_style_format_spec(
         cls, spec: str, original: str
     ) -> Tuple[str, List[Union[None, str, Tuple[Optional[str]]]]]:
-        """Parses a style-specific format specification.
+        """Parses a style-specific format specifier.
 
         See :py:meth:`_check_format_spec`.
 
@@ -1588,7 +1587,7 @@ class BaseImage(ABC):
         parent, invalid = spec[:start], spec[end:]
         if invalid:
             raise _style_error(cls)(
-                f"Invalid style-specific format specification {original!r}"
+                f"Invalid style-specific format specifier {original!r}"
                 f", detected at {invalid!r}"
             )
 
@@ -1947,7 +1946,7 @@ class ImageIterator:
         image: Animated image.
         repeat: The number of times to go over the entire image. A negative value
           implies infinite repetition.
-        format: The :ref:`format specification <format-spec>` to be used to format the
+        format: The :ref:`format specifier <format-spec>` to be used to format the
           rendered frames (default: auto).
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not.
@@ -1960,8 +1959,7 @@ class ImageIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
-        term_image.exceptions.StyleError: Invalid style-specific format
-          specification.
+        term_image.exceptions.StyleError: Invalid style-specific format specifier.
 
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size

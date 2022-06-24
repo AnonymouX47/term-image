@@ -819,7 +819,7 @@ class TestFormatting:
             ".^+",
             "#+",
         ):
-            with pytest.raises(ValueError, match=r"Invalid format specification"):
+            with pytest.raises(ValueError, match=r"Invalid format specifier"):
                 self.image._check_format_spec(spec)
 
         for spec in (

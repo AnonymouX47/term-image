@@ -35,7 +35,7 @@ def test_args():
     for value in (None, 2.0, 2):
         with pytest.raises(TypeError, match="'format'"):
             ImageIterator(gif_image, format=value)
-    with pytest.raises(ValueError, match="format specification"):
+    with pytest.raises(ValueError, match="format specifier"):
         ImageIterator(gif_image, format=".")
 
     for value in (None, 2.0, "2"):
