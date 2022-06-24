@@ -1464,8 +1464,8 @@ class BaseImage(ABC):
                 prev_img = img
                 try:
                     img = img.resize(size, Image.Resampling.BOX)
-                except ValueError:
-                    raise ValueError("Image size or scale too small") from None
+                except ValueError as e:
+                    raise ValueError("Image size or scale too small") from e
                 finally:
                     if frame_img is not prev_img is not self._source:
                         prev_img.close()
