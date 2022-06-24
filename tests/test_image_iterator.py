@@ -228,6 +228,28 @@ def test_formatting():
     assert next(image_it).partition("\n")[0] == " " * (_size[0] + 2)
 
 
+def test_loop_no():
+    for cached in (False, True):
+        image_it = ImageIterator(gif_image, 2, cached=cached)
+        assert image_it.loop_no is None
+
+        next(image_it)
+        assert image_it.loop_no == 2
+        for _ in range(gif_image.n_frames - 1):
+            next(image_it)
+        assert image_it.loop_no == 2
+
+        next(image_it)
+        assert image_it.loop_no == 1
+        for _ in range(gif_image.n_frames - 1):
+            next(image_it)
+        assert image_it.loop_no == 1
+
+        with pytest.raises(StopIteration):
+            next(image_it)
+        assert image_it.loop_no == 0
+
+
 def test_close():
     image_it = ImageIterator(gif_image, 1)
     next(image_it)

@@ -321,7 +321,7 @@ def render_frames(
                 output.put(
                     (
                         next(animator),
-                        animator._animator.gi_frame.f_locals["repeat"],
+                        animator._loop_no,
                         image.tell(),
                         size,
                         image.rendered_size,

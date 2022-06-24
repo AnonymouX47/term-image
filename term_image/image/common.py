@@ -2004,6 +2004,7 @@ class ImageIterator:
         self._cached = (
             cached if isinstance(cached, bool) else image.n_frames <= cached
         ) and repeat != 1
+        self._loop_no = None
         self._animator = image._renderer(
             self._animate, alpha, fmt, style_args, check_size=False
         )
@@ -2033,10 +2034,19 @@ class ImageIterator:
             raise
 
     def __repr__(self) -> None:
-        return "{}(image={!r}, repeat={}, format={!r}, cached={})".format(
+        return "{}(image={!r}, repeat={}, format={!r}, cached={}, loop_no={})".format(
             type(self).__name__,
             *self.__dict__.values(),
         )
+
+    loop_no = property(
+        lambda self: self._loop_no,
+        doc="""Iteration repeat countdown
+
+        Changes on the first iteration of each loop, except for infinite iteration
+        where it's always ``-1``.
+        """,
+    )
 
     def close(self) -> None:
         """Closes the iterator and releases resources used.
@@ -2097,7 +2107,7 @@ class ImageIterator:
         self._img = img  # For cleanup
         image = self._image
         cached = self._cached
-        repeat = self._repeat
+        self._loop_no = repeat = self._repeat
         if cached:
             cache = [(None,) * 2] * image.n_frames
 
@@ -2119,7 +2129,7 @@ class ImageIterator:
                 except EOFError:
                     image._seek_position = n = 0
                     if repeat > 0:  # Avoid infinitely large negative numbers
-                        repeat -= 1
+                        self._loop_no = repeat = repeat - 1
                     if cached:
                         break
                     continue
@@ -2161,7 +2171,7 @@ class ImageIterator:
 
             image._seek_position = n = 0
             if repeat > 0:  # Avoid infinitely large negative numbers
-                repeat -= 1
+                self._loop_no = repeat = repeat - 1
 
         # For consistency in behaviour
         if img is image._source:
