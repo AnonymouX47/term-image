@@ -522,10 +522,12 @@ class ITerm2Image(GraphicsImage):
                 else self._source,
                 "rb",
             )
+            frame_img = None
         else:
+            frame_img = img if frame else None
             img = self._get_render_data(
-                img, alpha, size=(width, height), pixel_data=False  # fmt: skip
-            )[0]
+                img, alpha, size=(width, height), pixel_data=False, frame=frame
+            )[0]  # fmt: skip
             if self.JPEG_QUALITY >= 0 and img.mode == "RGB":
                 format = "jpeg"
                 jpeg_quality = min(self.JPEG_QUALITY, 95)
@@ -545,8 +547,8 @@ class ITerm2Image(GraphicsImage):
                     quality=jpeg_quality,
                 )
 
-        # clean up
-        if img is not self._source:
+        # clean up (ImageIterator uses one PIL image throughout)
+        if frame_img is not img is not self._source:
             img.close()
 
         if render_method == LINES:

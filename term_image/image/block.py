@@ -125,11 +125,12 @@ class BlockImage(TextImage):
 
         bg_color = get_fg_bg_colors()[1]
         width, height = self._get_render_size()
-        img, rgb, a = self._get_render_data(img, alpha, round_alpha=True)
+        frame_img = img if frame else None
+        img, rgb, a = self._get_render_data(img, alpha, round_alpha=True, frame=frame)
         alpha = img.mode == "RGBA"
 
-        # clean up
-        if img is not self._source:
+        # clean up (ImageIterator uses one PIL image throughout)
+        if frame_img is not img is not self._source:
             img.close()
 
         rgb_pairs = (

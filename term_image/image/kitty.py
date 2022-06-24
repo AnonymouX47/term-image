@@ -360,14 +360,15 @@ class KittyImage(GraphicsImage):
         r_width, r_height = self.rendered_size
         width, height = self._get_minimal_render_size()
 
+        frame_img = img if frame else None
         img = self._get_render_data(
-            img, alpha, size=(width, height), pixel_data=False  # fmt: skip
+            img, alpha, size=(width, height), pixel_data=False, frame=frame  # fmt: skip
         )[0]
         format = getattr(f, img.mode)
         raw_image = img.tobytes()
 
-        # clean up
-        if img is not self._source:
+        # clean up (ImageIterator uses one PIL image throughout)
+        if frame_img is not img is not self._source:
             img.close()
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)

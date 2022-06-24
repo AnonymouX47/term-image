@@ -1416,6 +1416,7 @@ class BaseImage(ABC):
         size: Optional[Tuple[int, int]] = None,
         pixel_data: bool = True,
         round_alpha: bool = False,
+        frame: bool = False,
     ) -> Tuple[
         PIL.Image.Image, Optional[List[Tuple[int, int, int]]], Optional[List[int]]
     ]:
@@ -1432,6 +1433,9 @@ class BaseImage(ABC):
               Also, the image is blended with the active terminal's BG color (or black,
               if undetermined) while leaving the alpha intact.
 
+            frame: If ``True``, implies *img* is being used by ``ImageIterator``,
+              hence, *img* is not closed.
+
         The returned image is appropriately converted, resized and composited
         (if need be).
 
@@ -1445,17 +1449,28 @@ class BaseImage(ABC):
 
         def convert_resize_img(mode: str):
             nonlocal img
-            try:
-                if img.mode != mode:
-                    img = img.convert(mode)
-            except Exception as e:
-                raise ValueError("Unable to convert image") from e
-            try:
-                if img.size != size:
-                    img = img.resize(size, Image.Resampling.BOX)
-            except ValueError:
-                raise ValueError("Image size or scale too small") from None
 
+            if img.mode != mode:
+                prev_img = img
+                try:
+                    img = img.convert(mode)
+                except Exception as e:
+                    raise ValueError("Unable to convert image") from e
+                finally:
+                    if frame_img is not prev_img is not self._source:
+                        prev_img.close()
+
+            if img.size != size:
+                prev_img = img
+                try:
+                    img = img.resize(size, Image.Resampling.BOX)
+                except ValueError:
+                    raise ValueError("Image size or scale too small") from None
+                finally:
+                    if frame_img is not prev_img is not self._source:
+                        prev_img.close()
+
+        frame_img = img if frame else None
         if self._is_animated:
             img.seek(self._seek_position)
         if not size:

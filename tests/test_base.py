@@ -509,7 +509,6 @@ class TestRenderData:
             self.trans.scale = 1.0
 
     def test_alpha(self):
-        rgb_img = self.trans._get_image().convert("RGB")
 
         # float
         for alpha in (0.0, _ALPHA_THRESHOLD, 0.999):
@@ -518,6 +517,7 @@ class TestRenderData:
             assert img.mode == "RGBA"
             assert all(px == 0 for px in a)
 
+            rgb_img = self.trans._get_image().convert("RGB")
             img, _, a = self.get_render_data(rgb_img, alpha)
             assert isinstance(img, Image.Image)
             assert img.mode == "RGB"
@@ -530,6 +530,7 @@ class TestRenderData:
             assert img.mode == "RGB"
             assert all(px == 255 for px in a)
 
+            rgb_img = self.trans._get_image().convert("RGB")
             img, _, a = self.get_render_data(rgb_img, alpha)
             assert isinstance(img, Image.Image)
             assert img.mode == "RGB"
@@ -541,6 +542,7 @@ class TestRenderData:
         assert img.mode == "RGB"
         assert all(px == 255 for px in a)
 
+        rgb_img = self.trans._get_image().convert("RGB")
         img, _, a = self.get_render_data(rgb_img, None)
         assert isinstance(img, Image.Image)
         assert img.mode == "RGB"
