@@ -11,36 +11,46 @@ The image has a resolution of **288x288 pixels**.
 
 .. note:: All the samples in this tutorial occured in a terminal window of **255 columns by 70 lines**.
 
+
 Creating an instance
 --------------------
 
+Image instances can be created using the convinience functions :py:func:`~term_image.image.AutoImage`,
+:py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_file`.
+These automatically detect the best style supported by the :term:`active terminal`.
+
+Instances can also be created using the :ref:`image-classes` directly via their respective
+constructors or :py:meth:`~term_image.image.BaseImage.from_file` and
+:py:meth:`~term_image.image.BaseImage.from_url` methods.
+
 If the file is stored on your local filesystem::
 
-   from term_image.image import BlockImage
+   from term_image.image import from_file
 
-   image = BlockImage.from_file("python.png")
+   image = from_file("path/to/python.png")
 
 You can also use a URL if you don't have the file stored locally::
 
-   from term_image.image import BlockImage
+   from term_image.image import from_url
 
-   image = BlockImage.from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/docs/source/resources/python.png")
+   image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/docs/source/resources/python.png")
 
-The library can also be used with PIL images::
+The library can also be used with PIL image instances::
 
    from PIL import Image
-   from term_image.image import BlockImage
+   from term_image.image import AutoImage
 
    img = Image.open("python.png")
-   image = BlockImage(img)
+   image = AutoImage(img)
 
 
 Rendering an image
 ------------------
 
-Rendering an image is simply the process of converting it (per-frame for :term:`animated` images) into text (a string).
+Rendering an image is simply the process of converting it (per-frame for :term:`animated`
+images) into text (a string).
 
-.. hint:: To display the rendered output in the following steps, just print the output string with ``print()``.
+.. hint:: To display the rendered image in the following steps, just pass the string as an argument to ``print()``.
 
 There are two ways to render an image:
 
@@ -65,7 +75,8 @@ The result should look like:
 
      image.scale = 0.75
 
-   This simply sets the x-axis and y-axis :term:`scales <scale>` of the image to ``0.75``. We'll see more about this :ref:`later <image-scale>`.
+   This simply sets the x-axis and y-axis :term:`scales <scale>` of the image to ``0.75``.
+   We'll see more about this :ref:`later <image-scale>`.
 
 Below are examples of formatted rendering:
 
@@ -137,12 +148,13 @@ Drawing/Displaying an image to/in the terminal
 
 There are two ways to draw an image to the terminal screen:
 
-1. The :py:meth:`draw() <term_image.image.BaseImage.draw>` method
+1. The :py:meth:`~term_image.image.BaseImage.draw` method
    ::
 
       image.draw()
 
-   **NOTE:** :py:meth:`draw() <term_image.image.BaseImage.draw>` has various parameters for :term:`alignment`/:term:`padding`, transparency and animation control.
+   **NOTE:** :py:meth:`~term_image.image.BaseImage.draw` has various parameters for
+   :term:`alignment`/:term:`padding`, transparency, animation control, etc.
 
 2. Using ``print()`` with an image render output (i.e printing the rendered string)
 
@@ -157,8 +169,11 @@ There are two ways to draw an image to the terminal screen:
       print(f"{image:>200.^70#ffffff}")  # Uses format()
 
 .. note::
-   - For :term:`animated` images, only the former animates the output, the latter only draws the **current** frame (see :py:meth:`seek() <term_image.image.BaseImage.seek()>` and :py:meth:`tell() <term_image.image.BaseImage.tell()>`).
-   - Also, the former performs size validation to see if the image will fit into the terminal, while the latter doesn't.
+   * For :term:`animated` images, only the former animates the output, the latter only
+     draws the **current** frame (see :py:meth:`seek() <term_image.image.BaseImage.seek()>`
+     and :py:meth:`tell() <term_image.image.BaseImage.tell()>`).
+   * Also, the former performs size validation to see if the image will fit into the
+     terminal, while the latter doesn't.
 
 
 .. important:: All the examples above use automatic sizing and default :term:`scale`.
@@ -167,24 +182,29 @@ There are two ways to draw an image to the terminal screen:
 Image size
 ----------
 | The size of an image is the **unscaled** dimension with which an image is rendered.
-| The image size can be retrieved via the :py:attr:`size <term_image.image.BaseImage.size>`, :py:attr:`width <term_image.image.BaseImage.width>` and :py:attr:`height <term_image.image.BaseImage.height>` properties.
+| The image size can be retrieved via the :py:attr:`~term_image.image.BaseImage.size`,
+  :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height` properties.
 
 The size of an image can be in either of two states:
 
 1. Set
 
    | The size is said the be *set* when the image has a fixed size.
-   | In this state, the ``size`` property is a ``tuple`` of integers, the ``width`` and ``height`` properties are integers.
+   | In this state, the ``size`` property is a ``tuple`` of integers, the ``width`` and
+     ``height`` properties are integers.
 
 .. _unset-size:
 
 2. Unset
 
-   | The size is said to be *unset* when the image doesn't have a fixed size.
-   | In this case, the size with which the image is rendered is automatically calculated (based on the current :term:`terminal size`) whenever the image is to be rendered.
-   | In this state, the ``size``, ``width`` and ``height`` properties are ``None``.
+   The size is said to be *unset* when the image doesn't have a fixed size. In this state,
 
-| The size of an image can be set when creating the instance by passing valid values to **either** the *width* **or** the *height* **keyword-only** parameter.
+   * the size with which the image is rendered is automatically calculated
+     (based on the current :term:`terminal size`) whenever the image is to be rendered.
+   * the ``size``, ``width`` and ``height`` properties are ``None``.
+
+| The size of an image can be set when creating the instance by passing a valid value to
+  **either** the *width* **or** the *height* **keyword-only** parameter.
 | For whichever axis is given, the other axis is calculated **proportionally**.
 
 .. note::
@@ -194,15 +214,15 @@ The size of an image can be in either of two states:
 
 For example:
 
->>> image = BlockImage.from_file("python.png")  # Unset
+>>> image = from_file("python.png")  # Unset
 >>> image.size is None
 True
->>> image = BlockImage.from_file("python.png", width=60)  # width is given
+>>> image = from_file("python.png", width=60)  # width is given
 >>> image.size
 (60, 60)
 >>> image.height
 60
->>> image = BlockImage.from_file("python.png", height=56)  # height is given
+>>> image = from_file("python.png", height=56)  # height is given
 >>> image.size
 (56, 56)
 >>> image.width
@@ -210,25 +230,26 @@ True
 
 No size validation is performed i.e the resulting size might not fit into the terminal window
 
->>> image = BlockImage.from_file("python.png", height=136)  # (terminal_height - 2) * 2; Will fit, OK
+>>> image = from_file("python.png", height=136)  # (terminal_height - 2) * 2; Will fit, OK
 >>> image.size
 (136, 136)
->>> image = BlockImage.from_file("python.png", height=1000)  # Will not fit, also OK
+>>> image = from_file("python.png", height=1000)  # Will not fit, also OK
 >>> image.size
 (1000, 1000)
 
 An exception is raised when both *width* and *height* are given.
 
->>> image = BlockImage.from_file("python.png", width=100, height=100)
+>>> image = from_file("python.png", width=100, height=100)
 Traceback (most recent call last):
   .
   .
   .
 ValueError: Cannot specify both width and height
 
-The :py:attr:`width <term_image.image.BaseImage.width>` and :py:attr:`height <term_image.image.BaseImage.height>` properties are used to set the size of an image after instantiation.
+The :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height`
+properties are used to set the size of an image after instantiation.
 
->>> image = BlockImage.from_file("python.png")  # Unset
+>>> image = from_file("python.png")  # Unset
 >>> image.size is None
 True
 >>> image.width = 56
@@ -243,9 +264,10 @@ True
 136
 >>> image.width = 200  # Even though the terminal can't contain the resulting height, the size is still set
 
-Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated based on the current :term:`terminal size`.
+Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated
+based on the current :term:`terminal size`.
 
->>> image = BlockImage.from_file("python.png")  # Unset
+>>> image = from_file("python.png")  # Unset
 >>> image.size is None
 True
 >>> image.width = None
@@ -260,9 +282,10 @@ True
 
 .. note:: An exception is raised if the terminal size is too small to calculate a size.
 
-The :py:attr:`size <term_image.image.BaseImage.size>` property can only be set to one value, ``None`` and doing this :ref:`unsets <unset-size>` the image size.
+The :py:attr:`~term_image.image.BaseImage.size` property can only be set to one value,
+``None`` and doing this :ref:`unsets <unset-size>` the image size.
 
->>> image = BlockImage.from_file("python.png", width=100)
+>>> image = from_file("python.png", width=100)
 >>> image.size
 (100, 100)
 >>> image.size = None
@@ -274,7 +297,8 @@ True
    1. The currently set :term:`font ratio` is also taken into consideration when setting sizes.
    3. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
-   Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the maximum height is ``(terminal_height - 2) * 2``.
+   Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the
+   maximum height is ``(terminal_height - 2) * 2``.
 
 .. hint::
 
@@ -287,13 +311,15 @@ Image scale
 -----------
 
 | The scale of an image is the **fraction** of the size that'll actually be used to render the image.
-| A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero and less than or equal to one.
+| A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero
+  and less than or equal to one.
 
-The image scale can be retrieved via the properties :py:attr:`scale <term_image.image.BaseImage.scale>`, :py:attr:`scale_x <term_image.image.BaseImage.scale_x>` and :py:attr:`scale_y <term_image.image.BaseImage.scale_y>`.
+The image scale can be retrieved via the properties :py:attr:`~term_image.image.BaseImage.scale`,
+:py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y`.
 
 The scale can be set at instantiation by passing a value to the *scale* **keyword-only** paramter.
 
->>> image = BlockImage.from_file("python.png", scale=(0.75, 0.6))
+>>> image = from_file("python.png", scale=(0.75, 0.6))
 >>> image.scale
 >>> (0.75, 0.6)
 
@@ -303,7 +329,7 @@ The rendered result (using ``image.draw()``) should look like:
 
 If the *scale* argument is ommited, the default scale ``(1.0, 1.0)`` is used.
 
->>> image = BlockImage.from_file("python.png")
+>>> image = from_file("python.png")
 >>> image.scale
 >>> (1.0, 1.0)
 
@@ -311,12 +337,12 @@ The rendered result (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_unset.png
 
-| The properties :py:attr:`scale <term_image.image.BaseImage.scale>`, :py:attr:`scale_x <term_image.image.BaseImage.scale_x>` and :py:attr:`scale_y <term_image.image.BaseImage.scale_y>` are used to set the scale of an image after instantiation.
+| The properties :py:attr:`~term_image.image.BaseImage.scale`, :py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y` are used to set the scale of an image after instantiation.
 
 | ``scale`` accepts a tuple of two scale values or a single scale value.
 | ``scale_x`` and ``scale_y`` each accept a single scale value.
 
->>> image = BlockImage.from_file("python.png")
+>>> image = from_file("python.png")
 >>> image.scale = (.3, .56756)
 >>> image.scale
 (0.3, 0.56756)

@@ -114,9 +114,6 @@ _\*The video was recorded at normal speed and not sped up._
 
 ## CLI/TUI Quick Start
 
-<details>
-<summary>Click to expand</summary>
-
 From a local image file
 ```shell
 term-image path/to/image.png
@@ -131,17 +128,12 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 
 **By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images (and/or directories).**
 
-**NOTE:** `python -m term_image` can be used as an alternative to the `term-image` command ***(take note of the differences)***.
-
-</details>
+**NOTE:** `python -m term_image` can be used as an alternative to the `term-image` command **(take note of the _underscore_ VS _hyphen_)**.
 
 
 ## Library Quick Start
 
 ### Creating an instance
-
-<details>
-<summary>Click to expand</summary>
 
 ```python
 from term_image.image import from_file
@@ -165,62 +157,7 @@ img = Image.open("path/to/image.png")
 image = AutoImage(img)
 ```
 
-</details>
-
-### Rendering an image
-
-<details>
-<summary>Click to expand</summary>
-
-Rendering an image, in this context, is simply the process of converting it into text (a string).
-There are two ways to render an image:
-
-#### 1. Unformatted
-```python
-str(image)
-```
-Renders the image without padding/alignment and with transparency enabled.
-
-#### 2. Formatted
-```python
-format(image, "|200.^100#ffffff")
-```
-Renders the image with:
-
-* **center** horizontal alignment
-* a **padding width** of **200** columns
-* **top** vertical alignment
-* a **padding height** of **70** lines
-* transparent background replaced with a **white** (``#ffffff``) background
-
-```python
-f"{image:>._#.5}"
-````
-Renders the image with:
-
-* **right** horizontal alignment
-* **automatic** padding width (the current terminal width minus horizontal allowance)
-* **bottom** vertical alignment
-* **automatic** padding height (the current terminal height minus vertical allowance)
-* transparent background with **0.5** alpha threshold
-
-```python
-"{:1.1#}".format(image)
-```
-Renders the image with:
-
-* **center** horizontal alignment (default)
-* **no** horizontal padding, since ``1`` must be less than or equal to the image width
-* **middle** vertical alignment (default)
-* **no** vertical padding, since ``1`` is less than or equal to the image height
-* transparency **disabled** (black background)
-
-</details>
-
 ### Drawing/Displaying an image to/in the terminal
-
-<details>
-<summary>Click to expand</summary>
 
 There are two ways to draw an image to the terminal.
 
@@ -228,22 +165,17 @@ There are two ways to draw an image to the terminal.
 ```python
 image.draw()
 ```
-**NOTE:** `draw()` method has various parameters for **alignment/padding**, **transparency** and **animation** control.
 
-#### 2. Using `print()` with an image render output (i.e printing the rendered string)
+#### 2. Using `print()` with a rendered image
 ```python
-print(image)  # Uses str()
+print(image)  # without formatting
 ```
 OR
 ```python
-print(f"{image:>200.^100#ffffff}")  # Uses format()
+print(f"{image:>200.^100#ffffff}")  # with formatting
 ```
 
 For animated images, only the first method can animate the output, the second only outputs the current frame.
-
-**NOTE:** All the above examples use **automatic sizing** and default scale.
-
-</details>
 
 
 ## Usage
