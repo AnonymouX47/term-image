@@ -207,14 +207,12 @@ class BaseImage(ABC):
             spec
         )
 
-        return self._renderer(
-            lambda image: self._format_render(
-                self._render_image(image, alpha, **style_args),
-                h_align,
-                width,
-                v_align,
-                height,
-            )
+        return self._format_render(
+            self._renderer(self._render_image, alpha, **style_args),
+            h_align,
+            width,
+            v_align,
+            height,
         )
 
     def __iter__(self) -> ImageIterator:
@@ -232,7 +230,7 @@ class BaseImage(ABC):
     def __str__(self) -> str:
         """Renders the image with transparency enabled and without alignment"""
         # Only the currently set frame is rendered for animated images
-        return self._renderer(lambda image: self._render_image(image, _ALPHA_THRESHOLD))
+        return self._renderer(self._render_image, _ALPHA_THRESHOLD)
 
     # Properties
 

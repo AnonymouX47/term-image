@@ -217,9 +217,7 @@ class TestRenderLines:
     trans.set_render_method(LINES)
 
     def render_image(self, alpha=0.0, *, m=False, c=4):
-        return self.trans._renderer(
-            lambda im: self.trans._render_image(im, alpha, mix=m, compress=c)
-        )
+        return self.trans._renderer(self.trans._render_image, alpha, mix=m, compress=c)
 
     @staticmethod
     def _test_image_size(image, term="", jpeg=False):
@@ -486,9 +484,7 @@ class TestRenderWhole:
     trans.set_render_method(WHOLE)
 
     def render_image(self, alpha=0.0, *, m=False, c=4):
-        return self.trans._renderer(
-            lambda im: self.trans._render_image(im, alpha, mix=m, compress=c)
-        )
+        return self.trans._renderer(self.trans._render_image, alpha, mix=m, compress=c)
 
     @staticmethod
     def _test_image_size(

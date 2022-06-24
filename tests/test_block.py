@@ -35,7 +35,7 @@ class TestRender:
     trans.height = _size
 
     def render_image(self, alpha):
-        return self.trans._renderer(lambda im: self.trans._render_image(im, alpha))
+        return self.trans._renderer(self.trans._render_image, alpha)
 
     def test_size(self):
         self.trans.scale = 1.0
