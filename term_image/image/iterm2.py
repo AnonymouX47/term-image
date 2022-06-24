@@ -499,7 +499,7 @@ class ITerm2Image(GraphicsImage):
                 )
 
         render_method = (method or self._render_method).lower()
-        width, height = self._get_minimal_render_size()
+        width, height = self._get_minimal_render_size(adjust=render_method == LINES)
 
         if (  # Read directly from file when possible and reasonable
             self.READ_FROM_FILE

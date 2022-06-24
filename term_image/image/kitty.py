@@ -358,7 +358,7 @@ class KittyImage(GraphicsImage):
 
         render_method = (method or self._render_method).lower()
         r_width, r_height = self.rendered_size
-        width, height = self._get_minimal_render_size()
+        width, height = self._get_minimal_render_size(adjust=render_method == LINES)
 
         frame_img = img if frame else None
         img = self._get_render_data(

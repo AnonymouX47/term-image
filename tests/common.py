@@ -102,9 +102,10 @@ def get_actual_render_size(image):
         if mul(*render_size) < mul(*image._original_size)
         else image._original_size
     )
-    extra = height % (r_height or 1)
-    if extra:
-        height = height - extra + r_height
+    if image._render_method != "whole":
+        extra = height % (r_height or 1)
+        if extra:
+            height = height - extra + r_height
 
     return width, height
 

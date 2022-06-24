@@ -1873,7 +1873,7 @@ class GraphicsImage(BaseImage):
             )
         super().__init__(image, **kwargs)
 
-    def _get_minimal_render_size(self) -> Tuple[int, int]:
+    def _get_minimal_render_size(self, *, adjust: bool) -> Tuple[int, int]:
         render_size = self._get_render_size()
         r_height = self.rendered_height
         width, height = (
@@ -1885,10 +1885,11 @@ class GraphicsImage(BaseImage):
         # When `_original_size` is used, ensure the height is a multiple of the rendered
         # height, so that pixels can be evenly distributed among all lines.
         # If r_height == 0, height == 0, extra == 0; Handled in `_get_render_data()`.
-        extra = height % (r_height or 1)
-        if extra:
-            # Incremented to the greater multiple to avoid losing any data
-            height = height - extra + r_height
+        if adjust:
+            extra = height % (r_height or 1)
+            if extra:
+                # Incremented to the greater multiple to avoid losing any data
+                height = height - extra + r_height
 
         return width, height
 

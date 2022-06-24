@@ -511,9 +511,6 @@ class TestRenderWhole:
         # Using original size
         image.height = lines_for_original_height * 2
         w, h = image._original_size
-        extra = h % (image.height or 1)
-        if extra:
-            h = h - extra + image.height
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
