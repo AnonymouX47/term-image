@@ -168,27 +168,34 @@ Exit Codes
 Known Issues
 ------------
 1. The TUI is not supported on Windows
-2. Drawing of images and animations doesn't work completely well with ``cmd`` and ``powershell`` (tested in Windows Terminal). See :ref:`library-issues` for details.
+2. Drawing of images and animations doesn't work completely well with Python for windows
+   (tested in Windows Terminal and MinTTY). See :ref:`here <library-issues>` for details.
 
-   * In the viewer's CLI mode, use the ``--h-allow`` option to specify a horizontal allowance.
+   In the viewer's CLI mode, use the ``--h-allow`` option to specify a horizontal allowance.
+
+3. Some animations with the **kitty** render style within the **Kitty terminal emulator**
+   might be glitchy at the moment. See :ref:`here <library-issues>` for details.
 
 
 Planned Features
 ----------------
+In no particular order:
+
 * Performance improvements
 * STDIN source
-* Open in external viewer
+* Open image in external viewer
 * Pattern-based file and directory exclusion
 * Minimum and maximum file size
-* Optionally skipping symlinks
+* Optionally following/skipping symlinks
 * Distinguished color for symlinked entries in the list view
-* Full grid view
-* Grid cells for directory entries
+* Full grid view [TUI]
+* Grid cells for directory entries [TUI]
+* CLI grid view
 * Interactive CLI mode
 * Slideshow
 * Zoom/Pan
 * Sorting options
-* Find in iist view
+* Search in iist view
 * Filter in list and grid views
 * Alpha backaground adjustment per image
 * Frame duration adjustment per animated image
@@ -201,5 +208,5 @@ Planned Features
 
 * Theme customization
 * Config menu
-* Overlay support for ``Image`` widgets
+* Also check the library's :ref:`library-planned` since the viewer is based on it.
 * etc...
