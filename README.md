@@ -31,6 +31,8 @@
 - [TODO](#todo)
 - [Known Issues](#known-issues)
 - [FAQs](#faqs)
+- [Credits](#credits)
+- [Donation](#donation)
 
 
 ## Installation
@@ -247,4 +249,26 @@ Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#plan
 Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#known-issues) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#known-issues) for the image viewer.
 
 ## FAQs
+
 See the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html) section of the docs.
+
+## Credits
+
+The following projects have been (and are still) crucial to the development of this project:
+
+- [Pillow](https://python-pillow.org)
+- [Urwid](https://urwid.org)
+
+## Donation
+
+Your donation would really go a long way in fostering the progress and development of this project.
+
+```
+USDT Address: TKP6d3hLcs7i5R18WRFxLe3zsPQcCBS1Ro
+Network: TRC20
+```
+I'm sincerly sorry for any inconviences that may result from the means of donation.
+
+Please bare with me, as usual means of accepting donations are not available in the region of the world where I reside.
+
+Thank you! :heart:
