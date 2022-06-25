@@ -10,7 +10,7 @@
 To install/upgrade all the required python packages for core development, run:
 
 ```shell
-make requires
+make install-req
 ```
 OR
 ```shell
@@ -20,7 +20,7 @@ pip install --upgrade -r requirements.txt
 To install the required packages for building the documentation, run:
 
 ```shell
-make requires-docs
+make install-req-docs
 ```
 OR
 ```shell
@@ -128,6 +128,13 @@ isort --check --diff --color .
 ```
 if you don't have the `make` utility.
 
+### Run all tests
+Run:
+
+```shell
+make test-all
+```
+
 ### Run main tests
 Run:
 
@@ -225,7 +232,6 @@ OR
 ```shell
 cd docs; make html; cd ..
 ```
-if you don't have the `make` utility.
 
 * * *
 

@@ -27,7 +27,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: make requires
+      run: make install-req
 
     - name: Lint with flake8
       run: |
@@ -50,4 +50,4 @@ jobs:
         pip install dist/*.tar.gz
 
     - name: Test with pytest
-      run: make test test-url
+      run: make test-all

@@ -6,13 +6,7 @@ _: check test
 build:
 	python -m build
 
-check: lint check-format check-imports
-
-check-format:
-	black --check --diff --color $(py_files) && echo
-
-check-imports:
-	isort --check --diff --color $(py_files) && echo
+# Docs
 
 clean-docs:
 	cd docs/ && make clean
@@ -21,29 +15,56 @@ clean-docs:
 docs:
 	cd docs/ && make html
 
+# Pre-commit checks
+
+check: lint check-format check-imports
+
+check-format:
+	black --check --diff --color $(py_files) && echo
+
+check-imports:
+	isort --check --diff --color $(py_files) && echo
+
 format:
 	black $(py_files)
 
 imports:
 	isort $(py_files)
 
-install:
-	python -m pip install -e .
-
 lint:
 	flake8 $(py_files) && echo
 
-requires:
+# Installation
+
+install:
+	python -m pip install --upgrade pip
+	python -m pip install -e .
+
+install-all:
+	python -m pip install --upgrade pip
+	python -m pip install --upgrade -e . -r requirements.txt -r docs/requirements.txt
+
+install-req:
 	python -m pip install --upgrade pip
 	python -m pip install --upgrade -r requirements.txt
 
-requires-docs:
+install-req-all:
+	python -m pip install --upgrade pip
+	python -m pip install --upgrade -r requirements.txt -r docs/requirements.txt
+
+install-req-docs:
 	python -m pip install --upgrade pip
 	python -m pip install --upgrade -r docs/requirements.txt
 
-test: test-base test-iterator test-others test-text test-graphics
-test-text: test-block
+uninstall:
+	pip uninstall -y term-image
+
+# Tests
+
+test-all: test test-url
+test: test-base test-iterator test-others test-graphics test-text
 test-graphics: test-kitty test-iterm2
+test-text: test-block
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
@@ -67,6 +88,3 @@ test-block:
 
 test-url:
 	python -m pytest -v tests/test_url.py
-
-uninstall:
-	pip uninstall -y term-image
