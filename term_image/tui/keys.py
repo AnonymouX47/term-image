@@ -100,15 +100,15 @@ def display_context_help(context: str) -> None:
                     separator,
                     (
                         "weight",
-                        1,
+                        2,
                         urwid.Filler(
-                            urwid.Text(("default bold", f"{symbol}"), "center")
+                            urwid.Text(("default bold", f"{symbol} ({key})"), "center")
                         ),
                     ),
                     separator,
                     (
                         "weight",
-                        6,
+                        5,
                         urwid.Filler(
                             urwid.Text(("default bold", f"{description}"), "center")
                         ),
@@ -117,7 +117,7 @@ def display_context_help(context: str) -> None:
                 min_width=5,
             ),
         )
-        for action, (_, symbol, description, visible, _) in actions
+        for action, (key, symbol, description, visible, _) in actions
         if visible
     ]
 
@@ -126,9 +126,9 @@ def display_context_help(context: str) -> None:
         [
             ("weight", 3, line),
             (1, urwid.Filler(urwid.Text("\u253c"))),
-            ("weight", 1, line),
+            ("weight", 2, line),
             (1, urwid.Filler(urwid.Text("\u253c"))),
-            ("weight", 6, line),
+            ("weight", 5, line),
         ],
         min_width=5,
     )
@@ -143,9 +143,9 @@ def display_context_help(context: str) -> None:
                 [
                     ("weight", 3, line),
                     (1, urwid.Filler(urwid.Text("\u252c"))),
-                    ("weight", 1, line),
+                    ("weight", 2, line),
                     (1, urwid.Filler(urwid.Text("\u252c"))),
-                    ("weight", 6, line),
+                    ("weight", 5, line),
                 ],
                 min_width=5,
             ),
@@ -160,9 +160,9 @@ def display_context_help(context: str) -> None:
                     [
                         ("weight", 3, line),
                         (1, urwid.Filler(urwid.Text("\u2534"))),
-                        ("weight", 1, line),
+                        ("weight", 2, line),
                         (1, urwid.Filler(urwid.Text("\u2534"))),
-                        ("weight", 6, line),
+                        ("weight", 5, line),
                     ],
                     min_width=5,
                 ),

@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `--itc/--iterm2-compress`, `--itjq/--iterm2-jpeg-quality` and `--itnrff/iterm2-no-read-from-file` style-specific command-line options ([#55]).
 - [cli] `-multi` command-line option.
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
+- [tui] Included key codes in the help menu.
 - [cli,tui] `no multi`, `query timeout` and `style` config options.
 - [cli,tui] Attempt to set window title at startup.
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
