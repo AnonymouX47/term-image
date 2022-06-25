@@ -8,6 +8,7 @@ import sys
 from threading import Event
 
 from .exit_codes import FAILURE, INTERRUPTED, codes
+from .utils import write_tty
 
 
 def main() -> int:
@@ -51,6 +52,8 @@ def main() -> int:
 
     cli.interrupted = Event()
     try:
+        write_tty(b"\033[22;2t")  # Save window title
+        write_tty(b"\033]2;Term-Image\033\\")  # Set window title
         exit_code = cli.main()
     except KeyboardInterrupt:
         cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
@@ -90,6 +93,7 @@ def main() -> int:
         logger.info(f"Session ended with return-code {exit_code} ({codes[exit_code]})")
         return exit_code
     finally:
+        write_tty(b"\033[22;2t")  # Restore window title
         # Explicit cleanup is neccessary since the top-level `Image` widgets
         # will still hold references to the `BaseImage` instances
         if cli.url_images:
