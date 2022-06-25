@@ -233,8 +233,8 @@ alpha_options.add_argument(
     metavar="N",
     default=_ALPHA_THRESHOLD,
     help=(
-        "Alpha ratio above which pixels are taken as opaque (0 <= x < 1) "
-        f"(default: {_ALPHA_THRESHOLD:f})"
+        "Alpha ratio above which pixels are taken as opaque (0 <= x < 1), "
+        f"for text-based render styles (default: {_ALPHA_THRESHOLD:f})"
     ),
 )
 alpha_options.add_argument(

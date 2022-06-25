@@ -540,7 +540,7 @@ class BaseImage(ABC):
 
               * If ``None``, transparency is disabled (alpha channel is removed).
               * If a ``float`` (**0.0 <= x < 1.0**), specifies the alpha ratio
-                **above** which pixels are taken as *opaque*. **(Applies to only
+                **above** which pixels are taken as **opaque**. **(Applies to only
                 text-based render styles)**.
               * If a string, specifies a color to replace transparent background with.
                 Can be:

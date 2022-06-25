@@ -130,12 +130,11 @@ Image Format Specification
 
 * ``#``: Transparency setting:
 
-  * *Default*: transparency is enabled with default :term:`alpha threshold`.
+  * *Default*: transparency is enabled with the default :term:`alpha threshold`.
   * ``threshold``: :term:`alpha threshold` e.g ``.0``, ``.325043``, ``.99999``.
 
     * The value must be in the range **0.0 <= threshold < 1.0**.
-    * **Applies to only text-based render styles**, (i.e those not based on terminal
-      graphics protocols) e.g. :py:class:`BlockImage <term_image.image.BlockImage>`.
+    * **Applies to only text-based render styles** e.g. :py:class:`~term_image.image.BlockImage`.
 
   * ``bgcolor``: Color to replace transparent background with. Can be:
 

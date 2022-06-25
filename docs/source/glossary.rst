@@ -32,7 +32,7 @@ Below are definitions of terms used across the library's public interface, excep
       The amount of **lines** to be left un-used in a given maximum amount of lines.
 
    alpha threshold
-      Alpha ratio/value above which a pixel is taken as **opaque**.
+      Alpha ratio/value above which a pixel is taken as **opaque** (applies only to text-based render styles).
 
    animated
       Having multiple frames.
