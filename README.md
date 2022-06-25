@@ -36,10 +36,15 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / MacOS X / Windows (partial support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
+- Operating System: Unix / Linux / MacOS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
 - [Python](https://www.python.org/) >= 3.7
-- A Terminal emulator with full Unicode support and ANSI 24-bit color support
-  - Plans are in place to support a wider variety of terminal emulators, whether not meeting or surpassing these requirements (see [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features)).
+- A terminal emulator with **any** of the following:
+  
+  - support for the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
+  - support for the [iTerm2 inline image protocol](https://iterm2.com/documentation-images.html).
+  - full Unicode support and ANSI 24-bit color support
+
+  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features)).
 
 ### Steps
 The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip`:
@@ -49,6 +54,8 @@ pip install term-image
 ```
 
 The **development** version can be installed thus:
+
+**NOTE:** it's recommended to install in an isolated virtual environment, can be created by any means.
 
 Clone this repository from within a terminal
 ```shell
@@ -71,7 +78,7 @@ See [here](https://term-image.readthedocs.io/en/latest/installation.html#support
 If you've tested `term-image` on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
 
-Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
+Also, if you're having an issue with terminal support, you may report or check information about it in the discussion linked above.
 
 
 ## Features
