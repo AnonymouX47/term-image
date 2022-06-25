@@ -127,6 +127,8 @@ Also, if you're having an issue with terminal support, you may report or check i
 
 ## Demo
 
+Check out the [gallery](https://term-image.readthedocs.io/en/latest/gallery.html).
+
 <details>
 <summary>Click to expand</summary>
 

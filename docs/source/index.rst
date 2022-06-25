@@ -10,6 +10,7 @@ Welcome to term-image's documentation!
    :caption: Contents:
 
    installation
+   gallery
    library/index
    viewer/index
    faqs
