@@ -49,8 +49,18 @@ pip install term-image
 ```
 
 The **development** version can be installed thus:
-Clone this repository, then navigate into the project directory in a terminal and run:
 
+Clone this repository from within a terminal
+```shell
+git clone https://github.com/AnonymouX47/term-image.git
+```
+
+then navigate into the local repository
+```shell
+cd term-image
+```
+
+and run
 ```shell
 pip install .
 ```
@@ -58,7 +68,9 @@ pip install .
 ### Supported Terminal Emulators
 See [here](https://term-image.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
-If you've tested `term-image` on any other terminal emulator that meets all requirements, please mention the name in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
+If you've tested `term-image` on any other terminal emulator that meets the requirements for any of the render styles,
+please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
+
 Also, if you're having an issue with terminal support, you may report or view information about it in the discussion linked above.
 
 
@@ -67,34 +79,38 @@ Also, if you're having an issue with terminal support, you may report or view in
 ### Library features
 - Multiple image format support
   - Basically all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
-- Multiple image sources (PIL image, local file, URL)
-- Multiple render styles
-- Support for multiple terminal graphics protocols
+- Multiple image source types: PIL image instance, local file, URL
+- Multiple image render styles
+- Support for multiple terminal graphics protocols:
+  - [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/)
+  - [iTerm2](https://iterm2.com/documentation-images.html)
+  - Exposes various features of the protocols
 - Transparency support (with multiple options)
 - Animated image support (including transparent ones)
-  - Fully controllable and efficient iteration over frames of animated images
+  - Multiple formats: GIF, WEBP, APNG (and possibly more)
+  - Fully controllable and efficient iteration over rendered frames of animated images
   - Image animation with controllable parameters
 - Terminal size awareness
-- Variable image size
+- Variable image sizing
 - Automatic image sizing; best fit within the terminal window or a given size
-- Variable image scale
+- Variable image scaling
 - Horizontal and vertical alignment/padding
 - Automatic and manual font-ratio adjustment
+- Highly extensible API
 - and more... :grin:
 
 ### CLI/TUI features
-- Basically everything the library supports
-- Individual image display
-- Browse multiple images
-- Browse directories (recursively) [TUI]
-- Image grids [TUI]
+- Almost everything the library supports
+- Individual/Multiple image display [CLI]
+- Browse multiple images and directories (recursively) [TUI]
+- Adjustable image grids [TUI]
 - Context-based controls [TUI]
 - Dynamic controls (context actions are disabled and enabled dynamically) [TUI]
 - Customizable controls and configuration options
 - Automatic adjustment upon terminal resize [TUI]
-- Image deletion [TUI]
-- Smooth and fairly performant experience
+- Smooth and performant experience
 - Takes advantage of both concurrency and parallelism
+- Image deletion [TUI]
 - Notification system
 - Detailed logging system
 - and more... :grin:
