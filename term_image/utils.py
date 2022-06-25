@@ -486,15 +486,14 @@ def read_tty(
     input = bytearray()
     try:
         termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
+        r, w, x = [_tty], [], []
 
         if timeout is None:
-            chunk = os.read(_tty, 100)
-            while chunk:
-                input.extend(chunk)
-                chunk = os.read(_tty, 100)
+            # VMIN=0 does not work as expected on some platforms when there's no input
+            while select(r, w, x, 0.0)[0]:
+                input.extend(os.read(_tty, 100))
         else:
             start = monotonic()
-
             if min > 0:
                 input.extend(os.read(_tty, min))
 
@@ -502,9 +501,10 @@ def read_tty(
                 new_attr[6][termios.VMIN] = 0
                 termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
 
-            r, w, x = [_tty], [], []
             while (timeout < 0 or monotonic() - start < timeout) and more(input):
-                if select(  # Using select reduces CPU usage
+                # Reduces CPU usage
+                # Also, VMIN=0 does not work on some platforms when there's no input
+                if select(
                     r, w, x, None if timeout < 0 else timeout - (monotonic() - start)
                 )[0]:
                     input.extend(os.read(_tty, 1))
