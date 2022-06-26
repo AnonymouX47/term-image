@@ -105,7 +105,8 @@ Also, if you're having an issue with terminal support, you may report or check i
 - Variable image scaling
 - Horizontal and vertical alignment/padding
 - Automatic and manual font-ratio adjustment
-- Highly extensible API
+- Highly extensible
+- Well-documented
 - and more... :grin:
 
 ### CLI/TUI features
@@ -123,6 +124,11 @@ Also, if you're having an issue with terminal support, you may report or check i
 - Notification system
 - Detailed logging system
 - and more... :grin:
+
+### How does this project compare with similar ones?
+As far as I know, the only aspect of this project that any other currently existing project can be compared with is the CLI.
+
+I prefer to leave comparisons to the users but I can assure you, you won't be disappointed. :smiley:
 
 
 ## Demo
