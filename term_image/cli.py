@@ -25,7 +25,6 @@ from . import (
     logging,
     notify,
     set_font_ratio,
-    set_query_timeout,
     tui,
     utils,
 )
@@ -36,7 +35,14 @@ from .image import BlockImage, ITerm2Image, KittyImage, _best_style
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
-from .utils import CSI, OS_IS_UNIX, clear_queue, get_terminal_size, write_tty
+from .utils import (
+    CSI,
+    OS_IS_UNIX,
+    clear_queue,
+    get_terminal_size,
+    set_query_timeout,
+    write_tty,
+)
 
 
 def check_dir(

@@ -19,6 +19,7 @@ __all__ = (
     "get_window_size",
     "query_terminal",
     "read_tty",
+    "set_query_timeout",
     "write_tty",
 )
 
@@ -509,18 +510,38 @@ def read_tty(
                 new_attr[6][termios.VMIN] = 0
                 termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
 
-            while (timeout < 0 or monotonic() - start < timeout) and more(input):
+            duration = monotonic() - start
+            while (timeout < 0 or duration < timeout) and more(input):
                 # Reduces CPU usage
                 # Also, VMIN=0 does not work on some platforms when there's no input
-                if select(
-                    r, w, x, None if timeout < 0 else timeout - (monotonic() - start)
-                )[0]:
+                if select(r, w, x, None if timeout < 0 else timeout - duration)[0]:
                     input.extend(os.read(_tty, 1))
-            # logging.debug(f"{monotonic() - start}")
+                duration = monotonic() - start
+            # logging.debug(duration)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
     return bytes(input)
+
+
+def set_query_timeout(timeout: float) -> None:
+    """Sets the global timeout for :ref:`terminal-queries`.
+
+    Args:
+        timeout: Time limit for awaiting a response from the terminal, in seconds.
+
+    Raises:
+        TypeError: *timeout* is not a float.
+        ValueError: *timeout* is less than or equal to zero.
+    """
+    global QUERY_TIMEOUT
+
+    if not isinstance(timeout, float):
+        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
+    if timeout <= 0.0:
+        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
+
+    QUERY_TIMEOUT = timeout
 
 
 @unix_tty_only

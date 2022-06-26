@@ -31,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Style-specific exception classes ([#47]).
 - [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
 - [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
-- [lib] `term_image.set_query_timeout()` to set global query timeout ([3b658f3]).
 - [lib] Auto background color i.e using the terminal's default BG color for transparent images ([#54])
 - [lib] `ImageIterator.loop_no` property.
 - [cli] `--style` command-line option for render style selection ([#37]).

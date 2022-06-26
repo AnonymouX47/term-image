@@ -27,7 +27,6 @@ from enum import Enum, auto
 from operator import truediv
 from typing import Union
 
-from . import utils
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
@@ -102,24 +101,6 @@ def set_font_ratio(ratio: Union[float, FontRatio]) -> None:
         raise TypeError(
             f"'ratio' must be a float or FontRatio enum (got: {type(ratio).__name__})"
         )
-
-
-def set_query_timeout(timeout: float) -> None:
-    """Sets the global timeout for :ref:`terminal-queries`.
-
-    Args:
-        timeout: Time limit for awaiting a response from the terminal, in seconds.
-
-    Raises:
-        TypeError: *timeout* is not a float.
-        ValueError: *timeout* is less than or equal to zero.
-    """
-    if not isinstance(timeout, float):
-        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
-    if timeout <= 0.0:
-        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
-
-    utils.QUERY_TIMEOUT = timeout
 
 
 class FontRatio(Enum):

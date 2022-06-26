@@ -12,8 +12,6 @@ Reference
 Top-Level Definitions
 ---------------------
 
-.. autofunction:: term_image.set_query_timeout
-
 .. autofunction:: term_image.set_font_ratio
 
 .. autofunction:: term_image.get_font_ratio
