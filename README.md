@@ -11,7 +11,7 @@
     <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
         <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal">
+    <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
         <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
     </a>
 </p>
@@ -32,7 +32,7 @@
 - [Known Issues](#known-issues)
 - [FAQs](#faqs)
 - [Credits](#credits)
-- [Donation](#donation)
+- [Donate](#donate)
 
 
 ## Installation
@@ -57,7 +57,7 @@ pip install term-image
 
 The **development** version can be installed thus:
 
-**NOTE:** it's recommended to install in an isolated virtual environment, can be created by any means.
+**NOTE:** it's recommended to install in an isolated virtual environment which can be created by any means.
 
 Clone this repository from within a terminal
 ```shell
@@ -80,7 +80,7 @@ See [here](https://term-image.readthedocs.io/en/latest/installation.html#support
 If you've tested `term-image` on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
 
-Also, if you're having an issue with terminal support, you may report or check information about it in the discussion linked above.
+Also, if you have any issue with terminal support, you may report or check information about it in the discussion linked above.
 
 
 ## Features
@@ -128,7 +128,7 @@ Also, if you're having an issue with terminal support, you may report or check i
 ### How does this project compare with similar ones?
 As far as I know, the only aspect of this project that any other currently existing project can be compared with is the CLI.
 
-I prefer to leave comparisons to the users but I can assure you, you won't be disappointed. :smiley:
+I prefer to leave comparisons to the users (you won't be disappointed :smiley:).
 
 
 ## Demo
@@ -267,9 +267,9 @@ The following projects have been (and are still) crucial to the development of t
 - [Pillow](https://python-pillow.org)
 - [Urwid](https://urwid.org)
 
-## Donation
+## Donate
 
-Your donation would really go a long way in fostering the progress and development of this project.
+Your donation will go a long way in aiding the progress and development of this project.
 
 ```
 USDT Address: TKP6d3hLcs7i5R18WRFxLe3zsPQcCBS1Ro

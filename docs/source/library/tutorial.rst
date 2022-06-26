@@ -16,7 +16,7 @@ Creating an instance
 --------------------
 
 Image instances can be created using the convinience functions :py:func:`~term_image.image.AutoImage`,
-:py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_file`.
+:py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_url`.
 These automatically detect the best style supported by the :term:`active terminal`.
 
 Instances can also be created using the :ref:`image-classes` directly via their respective
