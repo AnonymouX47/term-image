@@ -27,6 +27,7 @@ from . import (
     set_font_ratio,
     set_query_timeout,
     tui,
+    utils,
 )
 from .config import config_options, store_config
 from .exceptions import StyleError, TermImageError, URLNotFoundError
@@ -642,6 +643,7 @@ def main() -> None:
             setattr(args, var_name, getattr(config, var_name))
 
     set_query_timeout(args.query_timeout)
+    utils.SWAP_WIN_SIZE = args.swap_win_size
 
     if args.auto_font_ratio:
         args.font_ratio = None

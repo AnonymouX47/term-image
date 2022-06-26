@@ -49,6 +49,14 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
+#: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
+#: report window dimensions swapped.
+#:
+#: If ``True``, the dimensions reported by the terminal emulator are swapped.
+#:
+#: This setting affects AUTO font ratio calculation.
+SWAP_WIN_SIZE: bool = False
+
 # Decorator Classes
 
 
@@ -368,7 +376,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
             size = (size[0], size[1] * 2)
 
-    return size and (0 in size and None or size)
+    return size[:: -SWAP_WIN_SIZE or 1] if size and 0 not in size else None
 
 
 @unix_tty_only

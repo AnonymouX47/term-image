@@ -211,6 +211,7 @@ def update_config(config: Dict[str, Any], old_version: str) -> bool:
             ("['no multi']", NotImplemented, False),
             ("['query timeout']", NotImplemented, 0.1),
             ("['style']", NotImplemented, "auto"),
+            ("['swap win size']", NotImplemented, False),
         ],
     }
 
@@ -400,6 +401,7 @@ max_pixels = _max_pixels = 2**22  # 2048x2048
 no_multi = _no_multi = False
 query_timeout = _query_timeout = QUERY_TIMEOUT
 style = _style = "auto"
+swap_win_size = _swap_win_size = False
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -554,5 +556,9 @@ config_options = {
     "style": (
         lambda x: x in {"auto", "block", "iterm2", "kitty"},
         "must be one of 'auto', 'block', 'iterm2', 'kitty'",
+    ),
+    "swap win size": (
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
     ),
 }

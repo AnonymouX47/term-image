@@ -142,6 +142,24 @@ font_ratio_options.add_argument(
     help="Determine the font ratio from the terminal, if possible",
 )
 
+win_size_options = general.add_mutually_exclusive_group()
+win_size_options.add_argument(
+    "--swap-win-size",
+    action="store_true",
+    default=config.swap_win_size,
+    help=(
+        "A workaround for 'auto font ratio' on some terminal emulators (e.g older "
+        "VTE-based ones) that wrongly report window dimensions swapped"
+    ),
+)
+win_size_options.add_argument(
+    "--no-swap-win-size",
+    action="store_false",
+    default=config.swap_win_size,
+    dest="swap_win_size",
+    help="Unlike '--swap-win-size', use the reported window size as-is",
+)
+
 mode_options = general.add_mutually_exclusive_group()
 mode_options.add_argument(
     "--cli",

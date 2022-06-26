@@ -1,5 +1,5 @@
 .. automodule:: term_image.utils
-   :members: lock_tty, read_tty
+   :members: SWAP_WIN_SIZE, lock_tty, read_tty
    :show-inheritance:
 
 
@@ -75,7 +75,7 @@
 
    |
 
-   The ``term_image.utils`` modules provides the following public utilities.
+   The ``term_image.utils`` module provides the following public definitions.
 
    .. attention::
       Any other definition in this module should be considered part of the private
