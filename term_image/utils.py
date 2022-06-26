@@ -53,9 +53,8 @@ else:
 #: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
 #: report window dimensions swapped.
 #:
-#: If ``True``, the dimensions reported by the terminal emulator are swapped.
-#:
-#: This setting affects AUTO font ratio calculation.
+#: | If ``True``, the dimensions reported by the terminal emulator are swapped.
+#: | This setting affects :ref:`auto-font-ratio` computation.
 SWAP_WIN_SIZE: bool = False
 
 # Decorator Classes

@@ -128,6 +128,18 @@ style
    If set to any value other than ``"auto"`` and is not overriden by the ``-S | --style``
    command-line option, the style is used regardless of whether it's supported or not.
 
+.. _swap-win-size-config:
+
+swap win size
+   A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
+   report window dimensions swapped.
+
+   * Type: boolean
+   * Valid values: ``true``, ``false``
+
+   | If ``true``, the dimensions reported by the terminal emulator are swapped.
+   | This setting affects auto :ref:`font-ratio-viewer` computation.
+
 
 .. attention:: The ``version`` field is not a config option, it's used for config file updates and should not be tampered with.
 

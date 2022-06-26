@@ -78,6 +78,8 @@ or the ``-S | --style`` command-line option.
 The ``--force-style`` command-line option can be used to bypass style support checks and force the usage of any style whether it's supported or not.
 
 
+.. _font-ratio-viewer:
+
 Font Ratio
 ----------
 

@@ -4,7 +4,7 @@ FAQs
 Why?
    - Why not?
    - To improve and extend the capabilities of CLI and TUI applications.
-   - Terminals emulators have been an always will be!
+   - Terminals emulators have always been and always will be!
 
 What about Windows support?
    - Firstly, only the new `Windows Terminal <https://github.com/microsoft/terminal>`_ seems to have proper ANSI support and mordern terminal emulator features.
@@ -18,10 +18,21 @@ What about Windows support?
 Why are colours not properly reproduced?
    - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
 
-Why do images look out-of-scale in my terminal?
-   - For the library, adjust the :term:`font ratio` using :py:func:`get_font_ratio() <term_image.get_font_ratio>`.
-   - For the CLI or TUI, adjust your :ref:`font ratio <font-ratio-config>` setting.
+Why are images out of scale?
+   - If :ref:`auto-font-ratio` is supported and enabled,
+
+     - For the library, set :py:data:`~term_image.utils.SWAP_WIN_SIZE` to ``True``.
+     - For the CLI or TUI, use the `swap win size` :ref:`config option <swap-win-size-config>`
+       or the ``--swap-win-size`` command-line option.
+     - If any of the above doesn't work, then open a new issue `here
+       <https://github.com/AnonymouX47/term-image/issues>`_ with adequate details.
+
+   - Otherwise,
+
+     - For the library, adjust the :term:`font ratio` using :py:func:`~term_image.set_font_ratio`.
+     - For the CLI or TUI, adjust the :term:`font ratio` using the :ref:`config option <font-ratio-config>`
+       or the ``-F | --font-ratio`` command-line option.
 
 Why is the TUI unresponsive or slow in drawing images?
-   - Drawing (not rendering) speed is **enteirly** dependent on the terminal emulator itself.
+   - Drawing (not rendering) speed is **entirely** dependent on the terminal emulator itself.
    - Some terminal emulators block upon input, so rapidly repeated input could cause the terminal to be unresponsive.
