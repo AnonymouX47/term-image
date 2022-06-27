@@ -27,8 +27,7 @@
 - [Library Quick Start](#library-quick-start)
 - [Usage](#usage)
 - [Contribution](#contribution)
-- [WIP](#wip)
-- [TODO](#todo)
+- [Planned Features](#planned-features)
 - [Known Issues](#known-issues)
 - [FAQs](#faqs)
 - [Credits](#credits)
@@ -38,7 +37,7 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / MacOS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
+- Operating System: Unix / Linux / Mac OS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
 - [Python](https://www.python.org/) >= 3.7
 - A terminal emulator with **any** of the following:
   
@@ -86,26 +85,20 @@ Also, if you have any issue with terminal support, you may report or check infor
 ## Features
 
 ### Library features
-- Multiple image format support
-  - Basically all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
+- Multiple image formats (basically all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html))
 - Multiple image source types: PIL image instance, local file, URL
-- Multiple image render styles
-- Support for multiple terminal graphics protocols:
-  - [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/)
-  - [iTerm2](https://iterm2.com/documentation-images.html)
   - Exposes various features of the protocols
+- Multiple image render styles (with automatic support detection)
+- Support for multiple terminal graphics protocols: [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/), [iTerm2](https://iterm2.com/documentation-images.html)
 - Transparency support (with multiple options)
 - Animated image support (including transparent ones)
   - Multiple formats: GIF, WEBP, APNG (and possibly more)
-  - Fully controllable and efficient iteration over rendered frames of animated images
-  - Image animation with controllable parameters
+  - Fully controllable iteration over rendered frames of animated images
+  - Image animation with multiple parameters
 - Terminal size awareness
-- Variable image sizing
-- Automatic image sizing; best fit within the terminal window or a given size
-- Variable image scaling
-- Horizontal and vertical alignment/padding
-- Automatic and manual font-ratio adjustment
-- Highly extensible
+- Automatic and manual image sizing
+- Horizontal and vertical alignment
+- Automatic and manual font ratio adjustment (to preserve image aspect ratio)
 - Well-documented
 - and more... :grin:
 
@@ -115,20 +108,14 @@ Also, if you have any issue with terminal support, you may report or check infor
 - Browse multiple images and directories (recursively) [TUI]
 - Adjustable image grids [TUI]
 - Context-based controls [TUI]
-- Dynamic controls (context actions are disabled and enabled dynamically) [TUI]
 - Customizable controls and configuration options
-- Automatic adjustment upon terminal resize [TUI]
 - Smooth and performant experience
-- Takes advantage of both concurrency and parallelism
-- Image deletion [TUI]
-- Notification system
-- Detailed logging system
 - and more... :grin:
 
 ### How does this project compare with similar ones?
 As far as I know, the only aspect of this project that any other currently existing project can be compared with is the CLI.
 
-I prefer to leave comparisons to the users (you won't be disappointed :smiley:).
+I prefer to leave comparisons to the users.
 
 
 ## Demo
@@ -147,14 +134,22 @@ _\*The video was recorded at normal speed and not sped up._
 
 ## CLI/TUI Quick Start
 
-From a local image file
+<details>
+<summary>Click to expand</summary>
+
+With a local image file
 ```shell
 term-image path/to/image.png
 ```
 
-From a URL
+With an image URL
 ```shell
 term-image https://www.example.com/image.png
+```
+
+With a directory, recursively (not currently supported on Windows)
+```shell
+term-image -r path/to/dir/
 ```
 
 If the image is animated (GIF, WEBP), the animation is infinitely looped **by default** but can be stopped with `Ctrl-C`.
@@ -163,8 +158,13 @@ If the image is animated (GIF, WEBP), the animation is infinitely looped **by de
 
 **NOTE:** `python -m term_image` can be used as an alternative to the `term-image` command **(take note of the _underscore_ VS _hyphen_)**.
 
+</details>
+
 
 ## Library Quick Start
+
+<details>
+<summary>Click to expand</summary>
 
 ### Creating an instance
 
@@ -210,6 +210,8 @@ print(f"{image:>200.^100#ffffff}")  # with formatting
 
 For animated images, only the first method can animate the output, the second only outputs the current frame.
 
+</details>
+
 
 ## Usage
 
@@ -234,8 +236,8 @@ If you've found any bug or want to suggest a new feature, please open a new [iss
 
 For code contributions, please read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
 
-Also, check out the [WIP](#wip) and [TODO](#todo) sections below.
-If you wish to work on any of the listed tasks, please go through the [issues](https://github.com/AnonymouX47/term-image/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
+Also, check out the [Planned Features](#planned-features) section below.
+If you wish to work on any of the listed tasks, please click on the linked issue or go through the [issues](https://github.com/AnonymouX47/term-image/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
 
 Hint: You can filter issues by *label* or simply *search* using the task's name or description.
 
@@ -244,11 +246,7 @@ For anything other than the above (such as questions or anything that would fit 
 Thanks! :heart:
 
 
-## WIP
-- Support for terminal graphics protocols (See [#23](https://github.com/AnonymouX47/term-image/issues/23))
-- Performace Improvements
-
-## TODO
+## Planned Features
 
 Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
 
