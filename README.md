@@ -5,12 +5,23 @@
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tui.png">
 
 <p align="center">
+    <a href='https://pypi.org/project/term-image/'>
+        <img src='https://img.shields.io/pypi/v/term-image.svg'>
+    </a>
     <img src="https://static.pepy.tech/badge/term-image">
-    <img src="https://badges.frapsoft.com/os/v1/open-source.svg?v=103">
-    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
+    <a href='https://pypi.org/project/term-image/'>
+        <img src='https://img.shields.io/pypi/pyversions/term-image.svg'>
+    </a>
+    <a href='https://github.com/psf/black'>
+        <img src='https://img.shields.io/badge/code%20style-black-000000.svg'>
+    </a>
+    <a href='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml'>
+        <img src='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml/badge.svg'>
+    </a>
     <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
         <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
     </a>
+    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
     <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
         <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
     </a>
