@@ -31,6 +31,11 @@ Gallery
 
    **block** render style in Terminator
 
+.. figure:: https://user-images.githubusercontent.com/61663146/175977625-62ee40d2-81b9-41fb-8244-25164e2d2ae7.png
+   :align: center
+
+   **block** render style in Termux
+
 .. figure:: https://user-images.githubusercontent.com/61663146/175784933-64481c55-331f-468e-8102-7891a98b7f86.png
    :align: center
 
