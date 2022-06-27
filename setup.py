@@ -9,7 +9,6 @@ sys.path.append(os.getcwd())
 from term_image import __author__, __version__  # noqa: E402
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
@@ -19,7 +18,6 @@ classifiers = [
     "Operating System :: Android",
     "Operating System :: Microsoft :: Windows :: Windows 10",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -49,6 +47,13 @@ setup(
     entry_points={
         "console_scripts": ["term-image=term_image.__main__:main"],
     },
+    project_urls={
+        "Changelog": "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md",
+        "Documentation": "https://term-image.readthedocs.io/",
+        "Funding": "https://github.com/AnonymouX47/term-image#donate",
+        "Source": "https://github.com/AnonymouX47/term-image",
+        "Tracker": "https://github.com/AnonymouX47/term-image/issues",
+    },
     keywords=[
         "image",
         "terminal",
@@ -62,5 +67,9 @@ setup(
         "tui",
         "ANSI",
         "ASCII-Art",
+        "kitty",
+        "iterm2",
+        "sixel",
+        "graphics",
     ],
 )
