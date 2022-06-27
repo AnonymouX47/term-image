@@ -30,7 +30,7 @@ from typing import Union
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
-version_info = (0, 4, 0)
+version_info = (0, 4, 1, "dev0")
 __version__ = ".".join(map(str, version_info))
 
 
