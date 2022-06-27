@@ -12,6 +12,7 @@
     "no multi": false,
     "query timeout": 0.1,
     "style": "auto",
+    "swap win size": false,
     "keys": {
         "navigation": {
             "Left": [
