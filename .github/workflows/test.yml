@@ -30,8 +30,7 @@ jobs:
 
     - name: Test package build and installation
       run: |
-        pip install --upgrade build
-        python -m build
+        make build
         pip install dist/*.whl
         pip install dist/*.tar.gz
 
