@@ -33,7 +33,7 @@ You can also use a URL if you don't have the file stored locally::
 
    from term_image.image import from_url
 
-   image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/docs/source/resources/python.png")
+   image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tutorial/python.png")
 
 The library can also be used with PIL image instances::
 
@@ -93,12 +93,8 @@ Renders the image with:
 * transparent background replaced with a **white** (``#ffffff``) background
 
 .. note::
-   If you get an error while trying the step above, saying something like "padding width larger than...", either:
-   
-   * reduce the width (200) to something that'll fit into your terminal window, or
-   * increase the size of the terminlal window
-
-   You might use your own :term:`terminal height` instead of **70**.
+   You might have to reduce the padding width (200) and/or height (70) to something that'll
+   fit into your terminal window, or increase the size of the terminlal window
 
 The result should look like:
 
