@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [0.4.0] - 2022-06-27
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
 - [lib] BG colors not being drawn when equal to the terminal's default BG color, with 'block' render style on the Kitty terminal emulator ([#54]).
@@ -18,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] A common interface to be shared across all image classes ([#34]).
 - [lib] `BaseImage`, the baseclass of all image classes ([#34]).
 - [lib] `is_supported()` class method for render style support detection ([#34]).
+- [lib] `term_image.utils` submodule. ([#34], [#36])
 - [lib] Convenience functions for automatic render style selection ([#37]).
   - `AutoImage()`, `from_file()` and `from_url()` in `term_image.image`.
 - [lib] `BaseImage.source_type` property ([#38]).
@@ -31,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Style-specific exception classes ([#47]).
 - [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
 - [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
-- [lib] Auto background color i.e using the terminal's default BG color for transparent images ([#54])
-- [lib] `ImageIterator.loop_no` property.
+- [lib] Auto background color i.e using the terminal's default BG color for transparent images ([#54]).
+- [lib] `ImageIterator.loop_no` property ([7de6b4a]).
 - [cli] `--style` command-line option for render style selection ([#37]).
 - [cli] `kitty` render style choice for the `--style` command-line option ([#39]).
 - [cli] `--force-style` to bypass render style support checks ([#44]).
@@ -44,13 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] `--kc/--kitty-compress` 'kitty' style-specific option ([#51]).
 - [cli] `--query-timeout` command-line option ([3b658f3]).
 - [cli] `--itc/--iterm2-compress`, `--itjq/--iterm2-jpeg-quality` and `--itnrff/iterm2-no-read-from-file` style-specific command-line options ([#55]).
-- [cli] `-multi` command-line option.
-- [cli] `--swap_win_size` and `--no-swap_win_size` command-line options.
+- [cli] `-multi` command-line option ([2c2d240]).
+- [cli] `--swap_win_size` and `--no-swap_win_size` command-line options ([4f9178f]).
 - [tui] Concurrent/Parallel frame rendering for TUI animations ([#42]).
-- [tui] Included key codes in the help menu.
-- [cli,tui] `no multi`, `query timeout` and `style` config options.
-- [cli,tui] `swap win size` config option.
-- [cli,tui] Attempt to set window title at startup.
+- [tui] Key codes in the help menu ([bd87a3b]).
+- [cli,tui] `no multi`, `query timeout` and `style` config options ([2c2d240]).
+- [cli,tui] Attempt to set window title at startup ([5a2976a]).
+- [cli,tui] `swap win size` config option ([4f9178f]).
 - [lib,cli,tui] Support for the Kitty terminal graphics protocol ([#39]).
 - [lib,cli,tui] Automatic render style selection based on the detected terminal support ([#37]).
 
@@ -97,6 +101,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#55]: https://github.com/AnonymouX47/term-image/pull/55
 [#56]: https://github.com/AnonymouX47/term-image/pull/56
 [3b658f3]: https://github.com/AnonymouX47/term-image/commit/3b658f388db8e36bc8f4d42c77375cd7c3593d4b
+[7de6b4a]: https://github.com/AnonymouX47/term-image/commit/7de6b4a3173dd70c89d38d3851be9c7dceae4ab7
+[2c2d240]: https://github.com/AnonymouX47/term-image/commit/2c2d240f25154d7d9491a7cbc943b6f5811a408d
+[5a2976a]: https://github.com/AnonymouX47/term-image/commit/5a2976abe913f7039be8dc98eee90283a2d5883d
+[bd87a3b]: https://github.com/AnonymouX47/term-image/commit/bd87a3b7d44273112387b3a6b864c601c8b77a52
+[4f9178f]: https://github.com/AnonymouX47/term-image/commit/4f9178f8260c95c4b521b27b6924bd14fb4cc4ed
 
 
 ## [0.3.1] - 2022-05-04
@@ -208,7 +217,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First official release
 
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AnonymouX47/term-image/compare/v0.1.1...v0.2.0
