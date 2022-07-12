@@ -1,10 +1,10 @@
 import os
 import sys
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 # To locate the package since `setuptools.build_meta` modifies `sys.path`
-sys.path.append(os.getcwd())
+sys.path.append(os.path.join(os.getcwd(), "src"))
 
 from term_image import __author__, __version__  # noqa: E402
 
@@ -39,7 +39,6 @@ setup(
     description="Display images in the terminal",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(where=".", include=["term_image*", "term_img*"]),
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.7",

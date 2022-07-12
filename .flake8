@@ -7,5 +7,5 @@ color = auto
 show_source = True
 statistics = True
 per-file-ignores =
-    term_img/*:F401,F403
+    src/term_img/*:F401,F403
     tests/*:F403

@@ -1,4 +1,4 @@
-py_files = *.py docs/source/conf.py term_img/ term_image/ tests/
+py_files = *.py src/* docs/source/conf.py tests/
 
 _: check test
 
