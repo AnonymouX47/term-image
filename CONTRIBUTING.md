@@ -27,7 +27,7 @@ OR
 pip install --upgrade -r docs/requirements.txt
 ```
 
-To install the package in `develop` mode:
+To install the package in `develop` or `editable` mode:
 
 ```shell
 make install
@@ -36,9 +36,13 @@ OR
 ```shell
 python -m pip install -e .
 ```
-This way, the package and the CLI command are always available in the virtual environment.
+This way, the package and the command-line entry-point are always available within the virtual environment.
 
-Now that you have created a development environment, you can create a new branch and start making changes (after reading the guidelines below :smiley:) and when done, contribute your changes by opening a [pull request](https://github.com/AnonymouX47/term-image/pulls).
+**NOTE:** This is required to build the docs and to run tests.
+
+* * *
+
+Now that you have setup a development environment, you can create a new branch and start making changes (after reading the guidelines below :smiley:) and when done, contribute your changes by opening a [pull request](https://github.com/AnonymouX47/term-image/pulls).
 
 
 ## Guidelines
