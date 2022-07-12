@@ -352,9 +352,14 @@ def render_frames(
                 image.set_size(maxsize=size)
                 block = False
             else:
-                # A new image is always created to ensure the seek position of the image
-                # in MainProcess::MainThread is always correct, since frames should be
-                # rendered ahead.
+                # A new image is always created to ensure:
+                # 1. the seek position of the image
+                #    in MainProcess::MainThread is always correct, since frames should
+                #    be rendered ahead.
+                # 2. the image size is not changed from another thread in the course of
+                #    animation (could occur when an animated image is opened from a
+                #    grid wherein its cell is yet to be rendered, since GridRenderer
+                #    will continue rendering cells alongside the animation).
                 image = ImageClass.from_file(data)
                 animator = ImageIterator(
                     image, repeat, f"1.1{alpha}{style_spec}", cached
