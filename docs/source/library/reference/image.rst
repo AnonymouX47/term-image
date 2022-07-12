@@ -85,12 +85,6 @@ Core Library Definitions
 
    |
 
-   .. autoclass:: TermImage
-      :members:
-      :show-inheritance:
-
-   |
-
    .. autoclass:: ImageIterator
       :members:
       :show-inheritance:

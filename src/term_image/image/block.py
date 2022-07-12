@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ("BlockImage", "TermImage")
+__all__ = ("BlockImage",)
 
 import io
 import os
@@ -189,15 +189,3 @@ class BlockImage(TextImage):
 
         with buffer:
             return buffer.getvalue()
-
-
-class TermImage(BlockImage):
-    """*Deprecated since version 0.4.0:* Replaced by :py:class:`BlockImage`."""
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "`TermImage` has been deprecated and will be removed in version 1.0.0, "
-            "use `BlockImage` instead.",
-            DeprecationWarning,
-        )
-        super().__init__(*args, **kwargs)

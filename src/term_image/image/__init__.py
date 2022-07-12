@@ -15,7 +15,6 @@ __all__ = (
     "BlockImage",
     "ITerm2Image",
     "KittyImage",
-    "TermImage",
     "ImageIterator",
 )
 
@@ -23,7 +22,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from .block import BlockImage, TermImage  # noqa:F401
+from .block import BlockImage  # noqa:F401
 from .common import (  # noqa:F401
     BaseImage,
     GraphicsImage,

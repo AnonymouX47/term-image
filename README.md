@@ -5,26 +5,26 @@
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tui.png">
 
 <p align="center">
-    <a href='https://pypi.org/project/term-image/'>
-        <img src='https://img.shields.io/pypi/v/term-image.svg'>
-    </a>
-    <img src="https://static.pepy.tech/badge/term-image">
-    <a href='https://pypi.org/project/term-image/'>
-        <img src='https://img.shields.io/pypi/pyversions/term-image.svg'>
-    </a>
-    <a href='https://github.com/psf/black'>
-        <img src='https://img.shields.io/badge/code%20style-black-000000.svg'>
-    </a>
-    <a href='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml'>
-        <img src='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml/badge.svg'>
-    </a>
-    <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
-        <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
-    </a>
-    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
-    <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
-        <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
-    </a>
+   <a href='https://pypi.org/project/term-image/'>
+      <img src='https://img.shields.io/pypi/v/term-image.svg'>
+   </a>
+   <img src="https://static.pepy.tech/badge/term-image">
+   <a href='https://pypi.org/project/term-image/'>
+      <img src='https://img.shields.io/pypi/pyversions/term-image.svg'>
+   </a>
+   <a href='https://github.com/psf/black'>
+      <img src='https://img.shields.io/badge/code%20style-black-000000.svg'>
+   </a>
+   <a href='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml'>
+      <img src='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml/badge.svg'>
+   </a>
+   <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
+      <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
+   </a>
+   <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
+   <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
+      <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
+   </a>
 </p>
 
 </div>
@@ -225,6 +225,13 @@ For animated images, only the first method can animate the output, the second on
 
 
 ## Usage
+
+<p align="center"><b>
+   :construction: Under Construction - There might be incompatible changes between minor versions of
+   <a href='https://semver.org/spec/v2.0.0.html#spec-item-4'>version zero</a>!
+</b></p>
+
+**If you want to use `term-image` in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
 ### Library
 See the [tutorial](https://term-image.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
