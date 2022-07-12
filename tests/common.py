@@ -17,10 +17,10 @@ columns, lines = get_terminal_size()
 # For square images
 dummy = SimpleNamespace()
 dummy._original_size = (1, 1)
-_width = _height = _width_px = _height_px = None  # Set by `setup()`
+_width = _height = _width_px = _height_px = None  # Set by `setup_common()`
 
 _size = 20
-ImageClass = None  # Set by `setup()`
+ImageClass = None  # Set by `setup_common()`
 python_img = Image.open("tests/images/python.png")
 
 
