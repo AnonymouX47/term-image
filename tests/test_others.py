@@ -5,7 +5,7 @@ import pytest
 
 from term_image import FontRatio, get_font_ratio, set_font_ratio
 from term_image.exceptions import TermImageError
-from term_image.image import AutoImage, BaseImage, from_file
+from term_image.image import AutoImage, BaseImage, ImageSource, from_file
 
 from . import set_cell_size
 from .test_base import python_image, python_img
@@ -87,3 +87,8 @@ class TestFontRatio:
             cell_size = (randint(1, 20), randint(1, 20))
             set_cell_size(cell_size)
             assert get_font_ratio() == truediv(*cell_size) == get_font_ratio()
+
+
+def test_image_source():
+    assert len(ImageSource) == 3
+    assert all(member.name == name for name, member in ImageSource.__members__.items())
