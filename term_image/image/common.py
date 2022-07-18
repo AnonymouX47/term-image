@@ -75,6 +75,8 @@ class ImageSource(Enum):
         Any comparison should be by identity of the members themselves.
     """
 
+    _ignore_ = ["_SourceAttr"]
+
     class _SourceAttr(str):
         """A string that only compares equal to itself but returns the original hash of
         the string.
