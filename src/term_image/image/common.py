@@ -188,8 +188,8 @@ class BaseImage(ABC):
         self,
         image: PIL.Image.Image,
         *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
         """See the class description"""
@@ -204,7 +204,7 @@ class BaseImage(ABC):
         self._source_type = ImageSource.PIL_IMAGE
         self._original_size = image.size
         if width is None is height:
-            self._size = None
+            self._size = Size.FIT
         else:
             self.set_size(width, height)
         self._scale = []
@@ -295,7 +295,7 @@ class BaseImage(ABC):
             self._frame_duration = value
 
     height = property(
-        lambda self: self._size and self._size[1],
+        lambda self: self._size if isinstance(self._size, Size) else self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
         The **unscaled** height of the image.
@@ -338,7 +338,12 @@ class BaseImage(ABC):
 
     rendered_height = property(
         lambda self: round(
-            (self._size or self._valid_size(None, None))[1] * self._scale[1]
+            (
+                self._valid_size(None, self._size)
+                if isinstance(self._size, Size)
+                else self._size
+            )[1]
+            * self._scale[1]
         ),
         doc="""
         The **scaled** height of the image.
@@ -353,7 +358,15 @@ class BaseImage(ABC):
         lambda self: tuple(
             map(
                 round,
-                map(mul, self._size or self._valid_size(None, None), self._scale),
+                map(
+                    mul,
+                    (
+                        self._valid_size(self._size, None)
+                        if isinstance(self._size, Size)
+                        else self._size
+                    ),
+                    self._scale,
+                ),
             )
         ),
         doc="""
@@ -368,7 +381,12 @@ class BaseImage(ABC):
 
     rendered_width = property(
         lambda self: round(
-            (self._size or self._valid_size(None, None))[0] * self._scale[0]
+            (
+                self._valid_size(self._size, None)
+                if isinstance(self._size, Size)
+                else self._size
+            )[0]
+            * self._scale[0]
         ),
         doc="""
         The **scaled** width of the image.
@@ -404,7 +422,7 @@ class BaseImage(ABC):
         elif isinstance(scale, tuple):
             self._scale[:] = self._check_scale(scale)
         else:
-            raise TypeError("Given value must be a float or a tuple of floats")
+            raise TypeError("'scale' must be a float or a tuple of floats")
 
     scale_x = property(
         lambda self: self._scale[0],
@@ -455,9 +473,9 @@ class BaseImage(ABC):
     )
 
     @size.setter
-    def size(self, value: None) -> None:
-        if value is not None:
-            raise TypeError("The only acceptable value is `None`")
+    def size(self, value: Size) -> None:
+        if not isinstance(value, Size):
+            raise TypeError("'size' must be a `Size` enum member")
         self._size = value
         self._fit_to_width = False
         self._h_allow = 0
@@ -482,7 +500,7 @@ class BaseImage(ABC):
     )
 
     width = property(
-        lambda self: self._size and self._size[0],
+        lambda self: self._size if isinstance(self._size, Size) else self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
         The **unscaled** width of the image.
@@ -915,14 +933,11 @@ class BaseImage(ABC):
 
     def set_size(
         self,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         h_allow: int = 0,
         v_allow: int = 2,
-        *,
         maxsize: Optional[Tuple[int, int]] = None,
-        fit_to_width: bool = False,
-        fit_to_height: bool = False,
     ) -> None:
         """Sets the image size with extended control.
 
@@ -1005,12 +1020,12 @@ class BaseImage(ABC):
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
         for argname, x in zip(("width", "height"), (width, height)):
-            if not (x is None or isinstance(x, int)):
+            if not (x is None or isinstance(x, (Size, int))):
                 raise TypeError(
-                    f"{argname!r} must be `None` or an integer "
+                    f"{argname!r} must be `None`, a `Size` enum member or an integer "
                     f"(got: type {type(x).__name__!r})"
                 )
-            if None is not x <= 0:
+            if isinstance(x, int) and x <= 0:
                 raise ValueError(f"{argname!r} must be positive (got: {x})")
 
         for argname, x in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
@@ -1034,32 +1049,17 @@ class BaseImage(ABC):
                     f"'maxsize' must contain two positive integers (got: {maxsize})"
                 )
 
-        for arg in ("fit_to_width", "fit_to_height"):
-            if not isinstance(locals()[arg], bool):
-                raise TypeError(f"{arg!r} must be a boolean")
-        if fit_to_width and fit_to_height:
-            raise ValueError(
-                "'fit_to_width' and 'fit_to_height` are mutually exclusive, only one "
-                "can be `True`."
-            )
-        arg = "fit_to_width" if fit_to_width else "fit_to_height"
-        if locals()[arg]:  # Both may be `False`
-            for arg2 in ("width", "height", "maxsize"):
-                if locals()[arg2]:
-                    raise ValueError(f"{arg!r} cannot be `True` when {arg2!r} is given")
-
+        fit_to_width = width is Size.FIT_TO_WIDTH
         self._size = self._valid_size(
             width,
             height,
-            h_allow * (not fit_to_height),
+            h_allow,
             v_allow * (not fit_to_width),
-            maxsize=maxsize,
-            fit_to_width=fit_to_width,
-            fit_to_height=fit_to_height,
+            maxsize,
         )
         self._fit_to_width = fit_to_width
-        self._h_allow = h_allow * (not maxsize) * (not fit_to_height)
-        self._v_allow = v_allow * (not maxsize) * (not fit_to_width)
+        self._h_allow = h_allow
+        self._v_allow = v_allow * (not fit_to_width)
 
     def tell(self) -> int:
         """Returns the current image frame number."""
@@ -1699,15 +1699,14 @@ class BaseImage(ABC):
             (directly or not), the last value of its *fit_to_width* parameter
             is taken into consideration, for non-animations.
         """
+        _size = self._size
         try:
-            reset_size = False
-            if not self._size:  # Size is unset
-                self.set_size(fit_to_width=scroll and not animated)
-                reset_size = True
-
-            # If the set size is larger than the available terminal size but the scale
-            # makes it fit in, then it's all good.
+            if isinstance(_size, Size):
+                self.set_size(_size)
             elif check_size or animated:
+                # NOTE: If the set size is larger than the available terminal size but
+                # the scale makes it fit in, then it's all good.
+
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
@@ -1747,19 +1746,16 @@ class BaseImage(ABC):
             return renderer(self._get_image(), *args, **kwargs)
 
         finally:
-            if reset_size:
-                self._size = None
+            if isinstance(_size, Size):
+                self.size = _size
 
     def _valid_size(
         self,
-        width: Optional[int],
-        height: Optional[int],
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         h_allow: int = 0,
         v_allow: int = 2,
-        *,
         maxsize: Optional[Tuple[int, int]] = None,
-        fit_to_width: bool = False,
-        fit_to_height: bool = False,
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
@@ -1788,12 +1784,21 @@ class BaseImage(ABC):
         # and for the width, we always divide by the pixel ratio.
         # The non-constraining axis is always the one directly adjusted.
 
-        if width is None is height:
+        if all(not isinstance(x, int) for x in (width, height)):
             for name in ("columns", "lines"):
                 if locals()[name] <= 0:
                     raise ValueError(f"Amount of available {name} too small")
 
-            if fit_to_width:
+            if Size.AUTO in (width, height):
+                width = height = (
+                    Size.FIT
+                    if (
+                        ori_width > max_width
+                        or round(ori_height * self._pixel_ratio) > max_height
+                    )
+                    else Size.ORIGINAL
+                )
+            elif Size.FIT_TO_WIDTH in (width, height):
                 return (
                     self._pixels_cols(pixels=max_width),
                     self._pixels_lines(
@@ -1802,14 +1807,11 @@ class BaseImage(ABC):
                         )
                     ),
                 )
-            if fit_to_height:
+
+            if Size.ORIGINAL in (width, height):
                 return (
-                    self._pixels_cols(
-                        pixels=round(
-                            self._width_height_px(h=max_height) / self._pixel_ratio
-                        )
-                    ),
-                    self._pixels_lines(pixels=max_height),
+                    self._pixels_cols(pixels=ori_width),
+                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio)),
                 )
 
             # The smaller fraction will fit on both axis.
