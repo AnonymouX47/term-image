@@ -4,7 +4,14 @@
 
 from __future__ import annotations
 
-__all__ = ("ImageSource", "BaseImage", "GraphicsImage", "TextImage", "ImageIterator")
+__all__ = (
+    "ImageSource",
+    "Size",
+    "BaseImage",
+    "GraphicsImage",
+    "TextImage",
+    "ImageIterator",
+)
 
 import io
 import os
@@ -66,6 +73,15 @@ def _close_validated(func: FunctionType) -> FunctionType:
     return close_validated_wrapper
 
 
+class Hidden:
+    """An object that hides it's original value representation."""
+
+    def __repr__(_):
+        return "<hidden>"
+
+    __ascii__ = __str__ = __repr__
+
+
 class ImageSource(Enum):
     """Image source type.
 
@@ -77,7 +93,7 @@ class ImageSource(Enum):
 
     _ignore_ = ["_SourceAttr"]
 
-    class _SourceAttr(str):
+    class _SourceAttr(Hidden, str):
         """A string that only compares equal to itself but returns the original hash of
         the string.
 
@@ -86,17 +102,13 @@ class ImageSource(Enum):
         """
 
         def __init__(self, *_):
-            self._str = super().__str__()
+            self._str = super(Hidden).__str__()
 
-        def __eq__(*_):
+        def __eq__(self, _):
             return NotImplemented
 
-        def __repr__(self):
-            return "<hidden>"
-
-        __hash__ = str.__hash__
         __ne__ = __eq__
-        __ascii__ = __str__ = __repr__
+        __hash__ = str.__hash__
 
     #: The instance was derived from a path to a local image file.
     FILE_PATH = _SourceAttr("_source")
@@ -106,6 +118,25 @@ class ImageSource(Enum):
 
     #: The instance was derived from an image URL.
     URL = _SourceAttr("_url")
+
+
+class Size(Enum):
+    """Enumeration for automatic image sizing"""
+
+    #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
+    #: :term:`available size`, else :py:attr:`FIT`.
+    AUTO = Hidden()
+
+    #: The image size is set to fit optimally **within** the :term:`available size`.
+    FIT = Hidden()
+
+    #: The size is set such that the width is exactly the :term:`available width`,
+    #: regardless of the :term:`font ratio`.
+    FIT_TO_WIDTH = Hidden()
+
+    #: The image size is set such that the image is rendered with as many pixels as the
+    #: the original image consists of.
+    ORIGINAL = Hidden()
 
 
 class BaseImage(ABC):

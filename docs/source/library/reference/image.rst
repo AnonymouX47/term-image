@@ -30,6 +30,7 @@ Core Library Definitions
    **Class Hierachy:**
 
    * :py:class:`ImageSource`
+   * :py:class:`Size`
    * :py:class:`BaseImage`
 
      * :py:class:`GraphicsImage`
@@ -42,6 +43,10 @@ Core Library Definitions
        * :py:class:`BlockImage`
 
    .. autoclass:: ImageSource
+      :members:
+      :show-inheritance:
+
+   .. autoclass:: Size
       :members:
       :show-inheritance:
 
