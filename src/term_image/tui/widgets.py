@@ -12,7 +12,7 @@ import urwid
 
 from .. import cli, logging
 from ..config import _nav, cell_width, expand_key, nav
-from ..image import BaseImage
+from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
@@ -328,7 +328,7 @@ class Image(urwid.Widget):
                 None,
                 maxsize=(size[0], get_terminal_size()[1]),
             )
-        image.set_size(maxsize=size)
+        image.set_size(Size.AUTO, maxsize=size)
 
         # Rendering
 
