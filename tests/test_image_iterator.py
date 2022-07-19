@@ -334,56 +334,60 @@ class TestSeek:
             # 1st loop
 
             image_it.seek(0)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == 6
             assert frame_0 == next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == 0
 
             image_it.seek(6)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == 0
             assert frame_6 == next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == 6
 
             image_it.seek(gif_image.n_frames - 1)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == 6
             next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 2
+            assert image_it._loop_no == 2
             assert gif_image.tell() == gif_image.n_frames - 1
 
             # 2nd loop (cached when `cached=True`)
 
             assert frame_0 == next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 0
 
             image_it.seek(6)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 0
             assert frame_6 == next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 6
 
             image_it.seek(0)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 6
             assert frame_0 == next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 0
 
             image_it.seek(gif_image.n_frames - 1)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == 0
             next(image_it)
-            assert image_it._animator.gi_frame.f_locals["repeat"] == 1
+            assert image_it._loop_no == 1
             assert gif_image.tell() == gif_image.n_frames - 1
 
             # Iteration ends normally
             with pytest.raises(StopIteration):
                 next(image_it)
+
+            # After closing
+            with pytest.raises(TermImageError):
+                image_it.seek(0)
 
     def test_seek_skipped_frames_caching(self):
         image_it = ImageIterator(gif_image, 1)

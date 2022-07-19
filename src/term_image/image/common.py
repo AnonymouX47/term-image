@@ -2079,7 +2079,8 @@ class ImageIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.TermImageError: The iterator is unused.
+            term_image.exceptions.TermImageError: Iteration has not yet started or the
+              iterator is exhausted/closed.
 
         Frame numbers start from ``0`` (zero).
         """
@@ -2095,6 +2096,8 @@ class ImageIterator:
             self._animator.send(pos)
         except TypeError:
             raise TermImageError("Iteration has not yet started") from None
+        except AttributeError:
+            raise TermImageError("Iterator exhausted or closed") from None
 
     def _animate(
         self,
