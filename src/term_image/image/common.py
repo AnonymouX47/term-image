@@ -2137,7 +2137,7 @@ class ImageIterator:
                     continue
                 else:
                     if cached:
-                        cache[n] = (frame, hash(image._size))
+                        cache[n] = (frame, hash(image.rendered_size))
                 finally:
                     if unset_size:
                         image._size = None
@@ -2158,12 +2158,12 @@ class ImageIterator:
 
                     image._seek_position = n
                     frame, size_hash = cache[n]
-                    if hash(image._size) != size_hash:
+                    if hash(image.rendered_size) != size_hash:
                         frame = image._format_render(
                             image._render_image(img, alpha, frame=True, **style_args),
                             *fmt,
                         )
-                        cache[n] = (frame, hash(image._size))
+                        cache[n] = (frame, hash(image.rendered_size))
 
                     if unset_size:
                         image._size = None

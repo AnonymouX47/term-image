@@ -159,11 +159,12 @@ def test_repeat():
 
 
 def test_caching():
-    def render(*args):
+    def render(*args, **kwargs):
         nonlocal n_calls
         n_calls += 1
-
-    return ""
+        if gif_image2.tell() == gif_image2.n_frames:
+            raise EOFError
+        return ""
 
     gif_image2 = BlockImage.from_file(gif_image._source.filename)
     gif_image2._size = _size
@@ -171,13 +172,42 @@ def test_caching():
 
     n_calls = 0
     [*ImageIterator(gif_image2, 2, "1.1", cached=True)]
-    assert n_calls == gif_image2.n_frames
+    assert n_calls == gif_image2.n_frames + 1  # +1 for EOF call
 
     n_calls = 0
     [*ImageIterator(gif_image2, 2, "1.1", cached=False)]
-    assert n_calls == gif_image2.n_frames * 2
+    assert n_calls == gif_image2.n_frames * 2 + 2  # +2 for EOF calls
 
     del gif_image2._render_image
+    image_it = ImageIterator(gif_image2, 4, "1.1", cached=True)
+
+    gif_image2._size = (20, 40)
+    frame_0_1 = next(image_it)
+    assert frame_0_1.count("\n") + 1 == 40
+    image_it.seek(gif_image2.n_frames - 1)
+    assert next(image_it).count("\n") + 1 == 40
+
+    # Unchanged
+    assert next(image_it) is frame_0_1
+    image_it.seek(gif_image2.n_frames - 1)
+    assert next(image_it).count("\n") + 1 == 40
+
+    # Change in size
+    gif_image2._size = (40, 20)
+    frame_0_2 = next(image_it)
+    assert frame_0_2 is not frame_0_1
+    assert frame_0_2.count("\n") + 1 == 20
+    image_it.seek(gif_image2.n_frames - 1)
+    assert next(image_it).count("\n") + 1 == 20
+
+    # Change in scale
+    gif_image2.scale = 0.5
+    frame_0_3 = next(image_it)
+    assert frame_0_3 is not frame_0_1
+    assert frame_0_3 is not frame_0_2
+    assert frame_0_3.count("\n") + 1 == 10
+    image_it.seek(gif_image2.n_frames - 1)
+    assert next(image_it).count("\n") + 1 == 10
 
 
 def test_sizing():
@@ -369,6 +399,6 @@ class TestSeek:
         next(image_it) and next(image_it)
         cache = image_it._animator.gi_frame.f_locals["cache"]
 
-        assert frame_1 == next(image_it) == cache[1][0]
+        assert frame_1 == next(image_it) is cache[1][0]
         image_it.seek(6)
-        assert frame_6 == next(image_it) == cache[6][0]
+        assert frame_6 == next(image_it) is cache[6][0]
