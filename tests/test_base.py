@@ -3,7 +3,7 @@
 import io
 import os
 import sys
-from operator import mul
+from operator import floordiv, mul
 from random import random
 
 import pytest
@@ -589,6 +589,77 @@ class TestRenderData:
         assert all(px in {0, 255} for px in a)
 
         assert rgb != rounded_rgb  # Blends rounded rgb with terminal BG
+
+    def test_cleanup(self):
+        def test(img, *, frame, fail=False):
+            ori_size = image._original_size
+            if fail:
+                ori_img = img
+                img = ori_img.copy()
+
+            # resize (no convert)
+            image._get_render_data(
+                img, 0.5, size=tuple(map(floordiv, ori_size, (2, 2))), frame=frame
+            )
+            if fail:
+                with pytest.raises(ValueError, match="closed"):
+                    img.load()
+                img = ori_img.copy()
+            else:
+                img.load()
+
+            # convert (no resize)
+            image._get_render_data(img, None, size=ori_size, frame=frame)
+            if fail:
+                with pytest.raises(ValueError, match="closed"):
+                    img.load()
+                img = ori_img.copy()
+            else:
+                img.load()
+
+            # composite (no resize, no convert)
+            for alpha in ("#ffffff", "#"):
+                image._get_render_data(img, alpha, size=ori_size, frame=frame)
+                if fail:
+                    with pytest.raises(ValueError, match="closed"):
+                        img.load()
+                    img = ori_img.copy()
+                else:
+                    img.load()
+
+            # alpha blend (no resize, no convert)
+            image._get_render_data(
+                img, 0.5, size=ori_size, round_alpha=True, frame=frame
+            )
+            if fail:
+                with pytest.raises(ValueError, match="closed"):
+                    img.load()
+                img = ori_img.copy()
+            else:
+                img.load()
+
+            # no manipulation (no closes)
+            source = img if img is image._source else None
+            for img in (img, img.convert("RGB")):
+                try:
+                    if source:
+                        image._source = img
+                    image._get_render_data(img, 0.5, size=ori_size, frame=frame)
+                    img.load()
+                finally:
+                    if source:
+                        image._source = source
+
+        img = Image.open("tests/images/python.png")
+        image = BlockImage(img)
+        # Source
+        test(img, frame=False)
+        # Frame
+        test(img.copy(), frame=True)
+        # Source & Frame
+        test(img, frame=True)
+        # Not source & not frame
+        test(img.copy(), frame=False, fail=True)
 
 
 # As long as each subclass passes it's render tests (particulary those related to the
