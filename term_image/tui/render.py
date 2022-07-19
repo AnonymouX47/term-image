@@ -29,6 +29,7 @@ def manage_anim_renders() -> bool:
                 image_w._ti_frame = (canv, repeat, frame_no)
             else:
                 image_w._ti_anim_finished = True
+                image_w._ti_image.seek(0)
         else:
             frame_render_in.put((..., None, None))
             clear_queue(frame_render_out)  # In case output is full
@@ -62,6 +63,7 @@ def manage_anim_renders() -> bool:
             ANIM_CACHED,
         ),
         name="FrameRenderer",
+        redirect_notifs=True,
     )
     renderer.start()
 
@@ -329,6 +331,17 @@ def render_frames(
                 )
             except StopIteration:
                 output.put((None,) * 5)
+                block = True
+            except Exception as e:
+                output.put((None,) * 5)
+                logging.log_exception(
+                    (
+                        f"Failed to render frame {image.tell()} of {image._source!r}"
+                        + (f" during loop {animator.loop_no}" if repeat != -1 else "")
+                    ),
+                    logger,
+                )
+                notify.notify(str(e), level=notify.ERROR)
                 block = True
         else:
             if not data:

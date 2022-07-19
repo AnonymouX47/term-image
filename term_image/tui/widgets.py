@@ -232,7 +232,6 @@ class Image(urwid.Widget):
     _ti_forced_anim_size_hash = None
 
     _ti_frame = None
-    _ti_frame_no = 0
     _ti_anim_starting = _ti_anim_finished = False
 
     _ti_faulty = False
@@ -358,8 +357,6 @@ class Image(urwid.Widget):
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
                 tui_main.ImageClass._clear_images()
-            elif frame_no != self._ti_frame_no:
-                self._ti_frame_no = frame_no
         elif self._ti_canv and self._ti_canv.size == size:
             canv = self._ti_canv
         else:
