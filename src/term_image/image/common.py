@@ -2160,12 +2160,6 @@ class ImageIterator:
         n = 0
         while repeat:
             if sent is None:
-                # Size must be set before hashing, since `None` will always
-                # compare equal but doesn't mean the size is the same.
-                unset_size = not image._size
-                if unset_size:
-                    image.set_size()
-
                 image._seek_position = n
                 try:
                     frame = image._format_render(
@@ -2181,9 +2175,6 @@ class ImageIterator:
                 else:
                     if cached:
                         cache[n] = (frame, hash(image.rendered_size))
-                finally:
-                    if unset_size:
-                        image._size = None
 
             sent = yield frame
             n = n + 1 if sent is None else sent - 1
@@ -2193,12 +2184,6 @@ class ImageIterator:
         while repeat:
             while n < n_frames:
                 if sent is None:
-                    # Size must be set before hashing, since `None` will always
-                    # compare equal but doesn't mean the size is the same.
-                    unset_size = not image._size
-                    if unset_size:
-                        image.set_size()
-
                     image._seek_position = n
                     frame, size_hash = cache[n]
                     if hash(image.rendered_size) != size_hash:
@@ -2207,9 +2192,6 @@ class ImageIterator:
                             *fmt,
                         )
                         cache[n] = (frame, hash(image.rendered_size))
-
-                    if unset_size:
-                        image._size = None
 
                 sent = yield frame
                 n = n + 1 if sent is None else sent - 1
