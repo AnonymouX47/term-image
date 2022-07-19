@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from . import __version__, config
-from .image import ITerm2Image
+from .image import ITerm2Image, Size
 from .image.common import _ALPHA_THRESHOLD
 
 parser = argparse.ArgumentParser(
@@ -38,11 +38,11 @@ Render Styles:
 
 FOOTNOTES:
   1. Width and height are in units of columns and lines repectively.
-     AUTO size is calculated such that the image always fits into the available
-     terminal size (i.e terminal size minus allowances) except when `--scroll` is
-     specified, which allows the image height to go beyond the terminal height.
-  2. The size is multiplied by the scale on each axis respectively before the image
-     is rendered. A scale value must be such that 0.0 < value <= 1.0.
+     The "available terminal size" is the current terminal size minus allowances.
+     By default (i.e if none of the sizing options is specified), the equivalent of
+     `--original-size` is used if not larger than the available size, else `--fit`.
+  2. The size is multiplied by the scale on respective axes when an image is rendered.
+     A scale value must be such that 0.0 < value <= 1.0.
   3. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`),
      when there's only one image source or when using native animation of some render
@@ -270,23 +270,8 @@ alpha_options.add_argument(
 # CLI-only
 cli_options = parser.add_argument_group(
     "CLI-only Options",
-    "These options apply only when there is just one valid image source",
-)
-
-size_options = cli_options.add_mutually_exclusive_group()
-size_options.add_argument(
-    "-w",
-    "--width",
-    type=int,
-    metavar="N",
-    help="Width of the image to be rendered (default: auto) [1]",
-)
-size_options.add_argument(
-    "-h",
-    "--height",
-    type=int,
-    metavar="N",
-    help="Height of the image to be rendered (default: auto) [1]",
+    "These options apply only when there is only one valid image source or `--cli` "
+    "is specified",
 )
 cli_options.add_argument(
     "--h-allow",
@@ -311,16 +296,8 @@ cli_options.add_argument(
     "--scroll",
     action="store_true",
     help=(
-        "Allow the image height to go beyond the terminal height. "
+        "Allow an image's height to be greater than the terminal height. "
         "Not needed when `--fit-to-width` is specified."
-    ),
-)
-size_options.add_argument(
-    "--fit-to-width",
-    action="store_true",
-    help=(
-        "Fit the image to the available terminal width. "
-        "`--v-allow` has no effect i.e vertical allowance is overriden."
     ),
 )
 cli_options.add_argument(
@@ -328,8 +305,8 @@ cli_options.add_argument(
     "--oversize",
     action="store_true",
     help=(
-        "Allow the image size to go beyond the terminal size "
-        "(To be used with `-w` or `-h`)"
+        "Allow an image's size to be greater than the terminal size "
+        "(To be used with `-w`, `-h` or `--original-size`)"
     ),
 )
 cli_options.add_argument(
@@ -337,7 +314,7 @@ cli_options.add_argument(
     "--scale",
     type=float,
     metavar="N",
-    help="Scale of the image to be rendered (overrides `-x` and `-y`) [2]",
+    help="Image scale (overrides `-x` and `-y`) [2]",
 )
 cli_options.add_argument(
     "-x",
@@ -345,7 +322,7 @@ cli_options.add_argument(
     type=float,
     metavar="N",
     default=1.0,
-    help="x-axis scale of the image to be rendered (default: 1.0) [2]",
+    help="Image x-axis scale (default: 1.0) [2]",
 )
 cli_options.add_argument(
     "-y",
@@ -353,7 +330,7 @@ cli_options.add_argument(
     type=float,
     metavar="N",
     default=1.0,
-    help="y-axis scale of the image to be rendered (default: 1.0) [2]",
+    help="Image y-axis scale (default: 1.0) [2]",
 )
 cli_options.add_argument(
     "--max-pixels-cli",
@@ -361,8 +338,59 @@ cli_options.add_argument(
     help=("Apply '--max-pixels' in CLI mode"),
 )
 
+# Sizing
+_size_options = parser.add_argument_group(
+    "Sizing Options (CLI-only)",
+    "These apply to all images and are mutually exclusive [1]",
+)
+size_options = _size_options.add_mutually_exclusive_group()
+size_options.add_argument(
+    "-w",
+    "--width",
+    type=int,
+    metavar="N",
+    help="Image width",
+)
+size_options.add_argument(
+    "-h",
+    "--height",
+    type=int,
+    metavar="N",
+    help="Image height",
+)
+size_options.add_argument(
+    "--fit",
+    action="store_const",
+    const=Size.FIT,
+    dest="auto_size",
+    help="Fit each image optimally within the available terminal size",
+)
+size_options.add_argument(
+    "--fit-to-width",
+    action="store_const",
+    const=Size.FIT_TO_WIDTH,
+    dest="auto_size",
+    help=(
+        "Fit each image to the available terminal width, "
+        "`--v-allow` has no effect i.e vertical allowance is ignored"
+    ),
+)
+size_options.add_argument(
+    "--original-size",
+    action="store_const",
+    const=Size.ORIGINAL,
+    dest="auto_size",
+    help=(
+        "Render each image using its original size (See `--oversize`, "
+        "USE WITH CAUTION!)"
+    ),
+)
+
 # # Alignment
-align_options = parser.add_argument_group("Alignment Options (CLI-only)")
+align_options = parser.add_argument_group(
+    "Alignment Options (CLI-only)",
+    "These apply to all images",
+)
 align_options.add_argument(
     "--no-align",
     action="store_true",
@@ -382,7 +410,7 @@ align_options.add_argument(
     metavar="N",
     type=int,
     help=(
-        "No of columns within which to align the image "
+        "Number of columns within which to align each image "
         "(default: terminal width, minus horizontal allowance)"
     ),
 )
@@ -396,19 +424,14 @@ align_options.add_argument(
     "--pad-height",
     metavar="N",
     type=int,
-    help=(
-        "No of lines within which to align the image "
-        "(default: terminal height, minus vertical allowance)"
-    ),
+    help="Number of lines within which to align each image (default: none)",
 )
 
 # TUI-only
 tui_options = parser.add_argument_group(
     "TUI-only Options",
-    (
-        "These options apply only when there is at least one valid directory source "
-        "or multiple valid sources"
-    ),
+    "These options apply only when there is at least one valid directory source, "
+    "multiple valid sources or `--tui` is specified",
 )
 
 tui_options.add_argument(

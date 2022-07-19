@@ -85,6 +85,26 @@ Below are definitions of terms used across the library's public interface, excep
       
       See also: :ref:`image-scale`.
 
+   automatic size
+   automatic sizing
+      The form of sizing wherein the image size is computed based on the :term:`available size` or the image's original size.
+
+      See also: :py:class:`~term_image.image.Size`.
+
+   dynamic size
+   dynamic sizing
+      The form of sizing wherein the image size is automatically computed at render-time.
+
+      See also: :py:attr:`~term_image.image.BaseImage.size`.
+
+   fixed size
+   fixed sizing
+      The form of sizing wherein the image size is set to a specific value which won't change until it is re-set.
+
+      See also: :py:meth:`~term_image.image.BaseImage.set_size`,
+      :py:attr:`~term_image.image.BaseImage.width` and
+      :py:attr:`~term_image.image.BaseImage.height`.
+
    source
       The resource from which an image is derived.
 

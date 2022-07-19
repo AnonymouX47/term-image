@@ -31,7 +31,7 @@ from . import (
 from .config import config_options, store_config
 from .exceptions import StyleError, TermImageError, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import BlockImage, ITerm2Image, KittyImage, _best_style
+from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -874,12 +874,13 @@ def main() -> None:
             if show_name:
                 notify.notify("\n" + basename(entry[0]) + ":")
             try:
+                if args.width is None is args.height:
+                    args.width = args.auto_size or Size.AUTO
                 image.set_size(
                     args.width,
                     args.height,
                     args.h_allow,
                     args.v_allow,
-                    fit_to_width=args.fit_to_width,
                 )
                 image.scale = (
                     (args.scale_x, args.scale_y) if args.scale is None else args.scale
@@ -916,7 +917,7 @@ def main() -> None:
                             args.h_align,
                             args.pad_width,
                             args.v_align,
-                            args.pad_height,
+                            args.pad_height or 1,
                         )
                     ),
                     (

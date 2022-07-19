@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 
 from term_image.exceptions import TermImageError
-from term_image.image import BlockImage, ImageIterator
+from term_image.image import BlockImage, ImageIterator, Size
 from term_image.utils import COLOR_RESET
 
 _size = (30, 15)
@@ -212,18 +212,22 @@ def test_caching():
 
 def test_sizing():
     def test(image_it):
-        for _ in range(2):
-            gif_image2._size = None
-            next(image_it)
-            assert gif_image2._size is None
+        for value in Size:
+            gif_image2.size = value
+            assert next(image_it).count("\n") + 1 == gif_image2.rendered_height
+            assert gif_image2.size is value
 
-            gif_image2._size = (40, 20)
-            assert next(image_it).count("\n") + 1 == 20
-            assert gif_image2._size == (40, 20)
+        gif_image2._size = (40, 20)
+        assert next(image_it).count("\n") + 1 == 20
+        assert gif_image2._size == (40, 20)
 
-            gif_image2._size = (20, 10)
-            assert next(image_it).count("\n") + 1 == 10
-            assert gif_image2._size == (20, 10)
+        gif_image2._size = (20, 10)
+        assert next(image_it).count("\n") + 1 == 10
+        assert gif_image2._size == (20, 10)
+
+        gif_image2.size = Size.FIT
+        next(image_it)
+        assert gif_image2.size is Size.FIT
 
     gif_image2 = BlockImage.from_file(gif_image._source.filename)
 

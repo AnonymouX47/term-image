@@ -12,7 +12,7 @@ import urwid
 
 from .. import cli, logging
 from ..config import _nav, cell_width, expand_key, nav
-from ..image import BaseImage
+from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
@@ -327,7 +327,7 @@ class Image(urwid.Widget):
                 None,
                 maxsize=(size[0], get_terminal_size()[1]),
             )
-        image.set_size(maxsize=size)
+        image.set_size(Size.AUTO, maxsize=size)
 
         # Rendering
 
@@ -344,7 +344,7 @@ class Image(urwid.Widget):
                 canv = __class__._ti_faulty_image.render(size, focus)
         elif self._ti_frame:
             canv, repeat, frame_no = self._ti_frame
-            if size != canv.size:
+            if canv._ti_image_size != image.size:  # The canvas is always an ImageCanvas
                 self._ti_canv = canv = (
                     placeholder
                     if (
@@ -357,7 +357,14 @@ class Image(urwid.Widget):
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
                 tui_main.ImageClass._clear_images()
-        elif self._ti_canv and self._ti_canv.size == size:
+            else:
+                canv.size = size
+        elif self._ti_canv and (
+            # The canvas can either be an ImageCanvas or urwid.SolidCanvas
+            not isinstance(self._ti_canv, ImageCanvas)
+            or self._ti_canv._ti_image_size == image.size
+        ):
+            self._ti_canv.size = size
             canv = self._ti_canv
         else:
             if (
