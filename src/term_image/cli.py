@@ -890,7 +890,11 @@ def main() -> None:
                 if args.style == "kitty":
                     image.set_render_method(
                         "lines"
-                        if ImageClass._KITTY_VERSION and image._is_animated
+                        if (
+                            ImageClass._KITTY_VERSION
+                            and image._is_animated
+                            and not args.no_anim
+                        )
                         else "whole"
                     )
                 elif args.style == "iterm2":

@@ -53,7 +53,8 @@ def animate_image(image_w: Image, forced_render: bool = False) -> None:
         # Animations with finite repetition that got completed
         try:
             del image_w._ti_anim_finished
-            image_w._ti_canv = None  # Deleting will break `ImageRenderManager`
+            if image_w._ti_canv:  # Hasn't been removed
+                image_w._ti_canv = None  # Deleting will break `ImageRenderManager`
         except AttributeError:
             pass
 
