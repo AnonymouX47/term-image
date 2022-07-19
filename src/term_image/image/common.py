@@ -1487,7 +1487,7 @@ class BaseImage(ABC):
                     alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
-                if img is not self._source:
+                if frame_img is not img is not self._source:
                     img.close()
                 img = bg.convert("RGB")
                 if pixel_data:
@@ -1504,7 +1504,7 @@ class BaseImage(ABC):
                     )
                     bg.alpha_composite(img)
                     bg.putalpha(img.getchannel("A"))
-                    if img is not self._source:
+                    if frame_img is not img is not self._source:
                         img.close()
                     img = bg
 

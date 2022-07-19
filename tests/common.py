@@ -349,29 +349,31 @@ class TestFontRatio_Graphics:
 
 
 def test_render_clean_up_All():
+    # PIL_IMAGE
     img = Image.open("tests/images/python.png")
     img_copy = img.copy()
-    img_image = ImageClass(img)
+    image = ImageClass(img)
     # Source
-    img_image._render_image(img, None)
+    image._render_image(img, None)
     img.load()
     # Frame
-    img_image._render_image(img_copy, None, frame=True)
+    image._render_image(img_copy, None, frame=True)
     img_copy.load()
     # Not source and not frame
-    img_image._render_image(img_copy, None)
+    image._render_image(img_copy, None)
     with pytest.raises(ValueError, match="closed"):
         img_copy.load()
 
-    file_image = ImageClass.from_file("tests/images/python.png")
-    file_img = file_image._get_image()
+    # FILE, also applies for URL
+    image = ImageClass.from_file("tests/images/python.png")
+    img = image._get_image()
     # Frame
-    img_image._render_image(file_img, None, frame=True)
-    file_img.load()
+    image._render_image(img, None, frame=True)
+    img.load()
     # Not source and not frame
-    file_image._render_image(file_img, None)
+    image._render_image(img, None)
     with pytest.raises(ValueError, match="closed"):
-        file_img.load()
+        img.load()
 
 
 def test_style_args_All():
