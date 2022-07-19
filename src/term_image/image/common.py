@@ -1526,7 +1526,7 @@ class BaseImage(ABC):
                     alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
-                if img is not self._source:
+                if frame_img is not img is not self._source:
                     img.close()
                 img = bg.convert("RGB")
                 if pixel_data:
@@ -1543,7 +1543,7 @@ class BaseImage(ABC):
                     )
                     bg.alpha_composite(img)
                     bg.putalpha(img.getchannel("A"))
-                    if img is not self._source:
+                    if frame_img is not img is not self._source:
                         img.close()
                     img = bg
 
@@ -2119,7 +2119,8 @@ class ImageIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.TermImageError: The iterator is unused.
+            term_image.exceptions.TermImageError: Iteration has not yet started or the
+              iterator is exhausted/closed.
 
         Frame numbers start from ``0`` (zero).
         """
@@ -2135,6 +2136,8 @@ class ImageIterator:
             self._animator.send(pos)
         except TypeError:
             raise TermImageError("Iteration has not yet started") from None
+        except AttributeError:
+            raise TermImageError("Iterator exhausted or closed") from None
 
     def _animate(
         self,
@@ -2177,7 +2180,7 @@ class ImageIterator:
                     continue
                 else:
                     if cached:
-                        cache[n] = (frame, hash(image._size))
+                        cache[n] = (frame, hash(image.rendered_size))
                 finally:
                     if unset_size:
                         image._size = None
@@ -2198,12 +2201,12 @@ class ImageIterator:
 
                     image._seek_position = n
                     frame, size_hash = cache[n]
-                    if hash(image._size) != size_hash:
+                    if hash(image.rendered_size) != size_hash:
                         frame = image._format_render(
                             image._render_image(img, alpha, frame=True, **style_args),
                             *fmt,
                         )
-                        cache[n] = (frame, hash(image._size))
+                        cache[n] = (frame, hash(image.rendered_size))
 
                     if unset_size:
                         image._size = None
