@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 from term_image import exceptions, set_font_ratio
-from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, TextImage
+from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 from term_image.utils import get_terminal_size
 
 from . import set_cell_size
@@ -185,7 +185,7 @@ def test_set_render_method_All():
         assert "_render_method" not in vars(image)
 
 
-# Size-setting is taken as style-dependent because the major underlying API is
+# Size-setting is taken as style-dependent because the major underlying interface is
 # style-specific
 class TestSetSize_All:
     def test_setup(self):
@@ -195,7 +195,64 @@ class TestSetSize_All:
         # Vertically-oriented
         type(self).v_image = ImageClass.from_file("tests/images/vert.jpg")
 
-    def test_auto_sizing_and_proportionality(self):
+    def test_auto(self):
+        max_width = ImageClass._pixels_cols(cols=columns)
+        max_height = ImageClass._pixels_lines(lines=lines - 2)
+
+        _original_size = self.image.original_size
+        try:
+            self.image._original_size = (max_width, max_height)
+            self.image.set_size(Size.AUTO)
+            assert self.image._valid_size(Size.ORIGINAL) == self.image.size
+
+            self.image._original_size = (max_width + 20, max_height - 20)
+            self.image.set_size(Size.AUTO)
+            assert (
+                self.image._valid_size(Size.ORIGINAL)
+                != self.image.size
+                == self.image._valid_size(Size.FIT)
+            )
+
+            self.image._original_size = (max_width - 20, max_height + 20)
+            self.image.set_size(Size.AUTO)
+            assert (
+                self.image._valid_size(Size.ORIGINAL)
+                != self.image.size
+                == self.image._valid_size(Size.FIT)
+            )
+
+            self.image._original_size = (max_width + 20, max_height + 20)
+            self.image.set_size(Size.AUTO)
+            assert (
+                self.image._valid_size(Size.ORIGINAL)
+                != self.image.size
+                == self.image._valid_size(Size.FIT)
+            )
+
+            self.image._original_size = (max_width - 20, max_height - 20)
+            self.image.set_size(Size.AUTO)
+            assert (
+                self.image._valid_size(Size.ORIGINAL)
+                == self.image.size
+                != self.image._valid_size(Size.FIT)
+            )
+        finally:
+            self.image._original_size = _original_size
+
+    def test_fit_none_default(self):
+        self.image.set_size()
+        size = self.image.size
+        self.image.set_size(width=Size.FIT)
+        assert self.image.size == size
+        self.image.set_size(height=Size.FIT)
+        assert self.image.size == size
+        self.image.set_size(width=None)
+        assert self.image.size == size
+        self.image.set_size(height=None)
+        assert self.image.size == size
+
+    # a PASS is valid only if the previous test passed
+    def test_fit(self):
         self.image.set_size()
         assert self.image.size == (_width, _height) == self.image._size
         assert proportional(self.image)
@@ -214,7 +271,33 @@ class TestSetSize_All:
         )
         assert proportional(self.v_image)
 
-    def test_width_and_proportionality(self):
+    def test_fit_to_width_width(self):
+        self.image.set_size(width=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+        self.h_image.set_size(width=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+        self.v_image.set_size(width=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+    def test_fit_to_width_height(self):
+        self.image.set_size(height=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+        self.h_image.set_size(height=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+        self.v_image.set_size(height=Size.FIT_TO_WIDTH)
+        assert self.image.width == columns
+        assert proportional(self.image)
+
+    def test_int_width(self):
         self.image.set_size(width=_size)
         assert self.image.width == _size
         assert proportional(self.image)
@@ -227,7 +310,7 @@ class TestSetSize_All:
         assert self.image.width == _size
         assert proportional(self.image)
 
-    def test_height_and_proportionality(self):
+    def test_int_height(self):
         self.image.set_size(height=_size)
         assert self.image.height == _size
         assert proportional(self.image)
@@ -240,27 +323,46 @@ class TestSetSize_All:
         assert self.image.height == _size
         assert proportional(self.image)
 
-    def test_fitted_axes_and_proportionality(self):
-        self.h_image.set_size(fit_to_height=True)
-        assert self.h_image.height == lines - 2
+    def test_original_width(self):
+        ori_width, ori_height = self.image.original_size
+        self.image.set_size(width=Size.ORIGINAL)
+        assert self.image.width == ImageClass._pixels_cols(pixels=ori_width)
         assert proportional(self.image)
 
-        self.v_image.set_size(fit_to_width=True)
-        assert self.v_image.width == columns
+        self.h_image.set_size(width=Size.ORIGINAL)
+        assert self.image.width == ImageClass._pixels_cols(pixels=ori_width)
+        assert proportional(self.image)
+
+        self.v_image.set_size(width=Size.ORIGINAL)
+        assert self.image.width == ImageClass._pixels_cols(pixels=ori_width)
+        assert proportional(self.image)
+
+    def test_original_height(self):
+        ori_width, ori_height = self.image.original_size
+        self.image.set_size(height=Size.ORIGINAL)
+        assert self.image.height == ImageClass._pixels_lines(pixels=ori_height)
+        assert proportional(self.image)
+
+        self.h_image.set_size(height=Size.ORIGINAL)
+        assert self.image.height == ImageClass._pixels_lines(pixels=ori_height)
+        assert proportional(self.image)
+
+        self.v_image.set_size(height=Size.ORIGINAL)
+        assert self.image.height == ImageClass._pixels_lines(pixels=ori_height)
         assert proportional(self.image)
 
     def test_allowance(self):
-        self.image.set_size(fit_to_width=True)
-        assert self.image.width == columns
+        self.h_image.set_size()
+        assert self.h_image.width == columns
 
-        self.image.set_size(fit_to_height=True)
-        assert self.image.height == lines - 2
+        self.v_image.set_size()
+        assert self.v_image.height == lines - 2
 
-        self.image.set_size(h_allow=2, fit_to_width=True)
-        assert self.image.width == columns - 2
+        self.h_image.set_size(h_allow=2)
+        assert self.h_image.width == columns - 2
 
-        self.image.set_size(v_allow=3, fit_to_height=True)
-        assert self.image.height == lines - 3
+        self.v_image.set_size(v_allow=3)
+        assert self.v_image.height == lines - 3
 
     def test_can_exceed_terminal_size(self):
         self.image.set_size(width=columns + 1)
@@ -271,13 +373,7 @@ class TestSetSize_All:
         assert self.image.height == lines + 1
         assert proportional(self.image)
 
-
-# Specific to text-based render styles because the results are dependent on font ratio.
-# These tests only pass when the font ratio is about 0.5.
-class TestSetSize_Text:
-    def test_setup(self):
-        type(self).image = ImageClass(python_img)  # Square
-
+    # This test passes only when the cell ratio is about 0.5
     def test_maxsize(self):
         self.image.set_size(maxsize=(100, 50))
         assert self.image.size == (100, 50)
@@ -291,7 +387,8 @@ class TestSetSize_Text:
         self.image.set_size(height=50, maxsize=(200, 100))
         assert self.image.size == (100, 50)
 
-    def test_maxsize_allowance_nullification(self):
+    # This test passes only when the cell ratio is about 0.5
+    def test_maxsize_allowance_ignore(self):
         self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
         assert self.image.size == (100, 50)
         self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
