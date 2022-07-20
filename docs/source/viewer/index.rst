@@ -1,6 +1,17 @@
 Image viewer
 ============
 
+.. attention::
+   🚧 Under Construction - There might be incompatible changes (particularly in the CLI
+   options and configuration) between minor versions of
+   `version zero <https://semver.org/spec/v2.0.0.html#spec-item-4>`_!
+
+   If you want to use the viewer in a project while it's still on version zero,
+   ensure you pin the dependency to a specific minor version e.g ``>=0.4,<0.5``.
+
+   On this note, you probably also want to switch to the specific documentation for the
+   version you're using (somewhere at the lower left corner of this page).
+
 .. toctree::
    :maxdepth: 2
    :caption: Sub-sections:
