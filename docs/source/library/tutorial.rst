@@ -215,23 +215,23 @@ For example:
 True
 >>> image = from_file("python.png", width=60)  # width is given
 >>> image.size
-(60, 60)
+(60, 30)
 >>> image.height
-60
+30
 >>> image = from_file("python.png", height=56)  # height is given
 >>> image.size
-(56, 56)
+(112, 56)
 >>> image.width
-56
+112
 
 No size validation is performed i.e the resulting size might not fit into the terminal window
 
->>> image = from_file("python.png", height=136)  # (terminal_height - 2) * 2; Will fit, OK
+>>> image = from_file("python.png", height=68)  # Will fit, OK
 >>> image.size
-(136, 136)
->>> image = from_file("python.png", height=1000)  # Will not fit, also OK
+(136, 68)
+>>> image = from_file("python.png", height=500)  # Will not fit, also OK
 >>> image.size
-(1000, 1000)
+(1000, 500)
 
 An exception is raised when both *width* and *height* are given.
 
@@ -250,15 +250,17 @@ properties are used to set the size of an image after instantiation.
 True
 >>> image.width = 56
 >>> image.size
-(56, 56)
+(56, 28)
 >>> image.height
-56
->>> image.height = 136
+28
+>>> image.height = 68
 >>> image.size
-(136, 136)
+(136, 68)
 >>> image.width
 136
 >>> image.width = 200  # Even though the terminal can't contain the resulting height, the size is still set
+>>> image.size
+(200, 100)
 
 Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated
 based on the current :term:`terminal size`.
@@ -268,13 +270,13 @@ based on the current :term:`terminal size`.
 True
 >>> image.width = None
 >>> image.size
-(136, 136)
+(136, 68)
 >>> image.width = 56
 >>> image.size
-(56, 56)
+(56, 28)
 >>> image.height = None
 >>> image.size
-(136, 136)
+(136, 68)
 
 .. note:: An exception is raised if the terminal size is too small to calculate a size.
 
@@ -283,7 +285,7 @@ The :py:attr:`~term_image.image.BaseImage.size` property can only be set to one 
 
 >>> image = from_file("python.png", width=100)
 >>> image.size
-(100, 100)
+(100, 50)
 >>> image.size = None
 >>> image.size is image.width is image.height is None
 True
@@ -291,14 +293,11 @@ True
 .. important::
 
    1. The currently set :term:`font ratio` is also taken into consideration when setting sizes.
-   3. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
-
-   Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the
-   maximum height is ``(terminal_height - 2) * 2``.
+   2. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
 .. hint::
 
-   See :py:meth:`set_size() <term_image.image.BaseImage.set_size()>` for extended sizing control.
+   See :py:meth:`~term_image.image.BaseImage.set_size` for extended sizing control.
 
 
 .. _image-scale:
