@@ -59,9 +59,11 @@ There a two categories of render styles:
 Text-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Represent images using ASCII or Unicode symbols, and in some cases, in conjunction with ANSI colour escape codes.
+Represent images using ASCII or Unicode symbols, and in some cases, with ANSI colour
+escape codes.
 
-Classes for render styles in this category are subclasses of :py:class:`TextImage <term_image.image.TextImage>`. These include:
+Classes for render styles in this category are subclasses of
+:py:class:`TextImage <term_image.image.TextImage>`. These include:
 
 * :py:class:`BlockImage <term_image.image.BlockImage>`
 
@@ -70,7 +72,8 @@ Graphics-based Render Styles
 
 Represent images with actual pixels, using terminal graphics protocols.
 
-Classes for render styles in this category are subclasses of :py:class:`GraphicsImage <term_image.image.GraphicsImage>`. These include:
+Classes for render styles in this category are subclasses of
+:py:class:`GraphicsImage <term_image.image.GraphicsImage>`. These include:
 
 * :py:class:`KittyImage <term_image.image.KittyImage>`
 * :py:class:`ITerm2Image <term_image.image.ITerm2Image>`
@@ -86,12 +89,17 @@ When using **auto font ratio** (in either mode), it's important to note that som
 **See** :ref:`terminal-queries`.
 
 If the program will never expect any useful input, **particularly while an image's
-size is being set or when an image with** :ref:`unset size <unset-size>` **is being
-rendered**, then using ``FULL_AUTO`` mode is OK.
+size is being set/calculated** (for an image with :term:`dynamic size`, while it's
+being rendered or its :py:attr:`~term_image.image.BaseImage.rendered_size`,
+:py:attr:`~term_image.image.BaseImage.rendered_width` or
+:py:attr:`~term_image.image.BaseImage.rendered_height` property is invoked),
+then using ``FULL_AUTO`` mode is OK.
 
 Otherwise i.e if the program will be expecting input, use ``AUTO`` mode and use
 :py:func:`utils.read_tty() <term_image.utils.read_tty>` to read all currently unread
 input just before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
+
+.. note:: This concerns **text-based** render styles only (see the sub-section above).
 
 
 .. _format-spec:

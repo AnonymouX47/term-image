@@ -177,61 +177,73 @@ There are two ways to draw an image to the terminal screen:
 
 Image size
 ----------
+
 | The size of an image is the **unscaled** dimension with which an image is rendered.
 | The image size can be retrieved via the :py:attr:`~term_image.image.BaseImage.size`,
   :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height` properties.
 
 The size of an image can be in either of two states:
 
-1. Set
+1. Fixed
 
-   | The size is said the be *set* when the image has a fixed size.
-   | In this state, the ``size`` property is a ``tuple`` of integers, the ``width`` and
-     ``height`` properties are integers.
+   In this state, the ``size`` property is a 2-tuple of integers, the ``width`` and
+   ``height`` properties are integers.
 
-.. _unset-size:
+2. Dynamic
 
-2. Unset
-
-   The size is said to be *unset* when the image doesn't have a fixed size. In this state,
+   In this state,
 
    * the size with which the image is rendered is automatically calculated
-     (based on the current :term:`terminal size`) whenever the image is to be rendered.
-   * the ``size``, ``width`` and ``height`` properties are ``None``.
+     (based on the current :term:`terminal size` or the image's original size) whenever the
+     image is to be rendered.
+   * the ``size``, ``width`` and ``height`` properties evaluate to a
+     :py:class:`~term_image.image.Size` enum member.
 
-| The size of an image can be set when creating the instance by passing a valid value to
-  **either** the *width* **or** the *height* **keyword-only** parameter.
+| The size of an image can be set when creating an instance by passing an integer or a
+  :py:class:`~term_image.image.Size` enum member to **either** the *width* **or** the
+  *height* **keyword-only** parameter.
 | For whichever axis is given, the other axis is calculated **proportionally**.
 
 .. note::
    1. The arguments can only be given **by keyword**.
-   2. If neither is given, the size is *unset*.
+   2. If neither is given, the :py:attr:`~term_image.image.Size.FIT` :term:`dynamic size`
+      applies.
    3. All methods of instantiation accept these arguments.
 
 For example:
 
->>> image = from_file("python.png")  # Unset
->>> image.size is None
+>>> from term_image.image import Size, from_file
+>>> image = from_file("python.png")  # Dynamic FIT
+>>> image.size is Size.FIT
 True
->>> image = from_file("python.png", width=60)  # width is given
+>>> image = from_file("python.png", width=60)  # Fixed
 >>> image.size
-(60, 60)
+(60, 30)
 >>> image.height
-60
->>> image = from_file("python.png", height=56)  # height is given
+30
+>>> image = from_file("python.png", height=56)  # Fixed
 >>> image.size
-(56, 56)
+(112, 56)
 >>> image.width
-56
+112
+>>> image = from_file("python.png", height=Size.FIT)  # Fixed FIT
+>>> image.size
+(136, 68)
+>>> image = from_file("python.png", width=Size.FIT_TO_WIDTH)  # Fixed FIT_TO_WIDTH
+>>> image.size
+(255, 128)
+>>> image = from_file("python.png", height=Size.ORIGINAL)  # Fixed ORIGINAL
+>>> image.size
+(288, 144)
 
 No size validation is performed i.e the resulting size might not fit into the terminal window
 
->>> image = from_file("python.png", height=136)  # (terminal_height - 2) * 2; Will fit, OK
+>>> image = from_file("python.png", height=68)  # Will fit, OK
 >>> image.size
-(136, 136)
->>> image = from_file("python.png", height=1000)  # Will not fit, also OK
+(136, 68)
+>>> image = from_file("python.png", height=500)  # Will not fit, also OK
 >>> image.size
-(1000, 1000)
+(1000, 500)
 
 An exception is raised when both *width* and *height* are given.
 
@@ -245,60 +257,54 @@ ValueError: Cannot specify both width and height
 The :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height`
 properties are used to set the size of an image after instantiation.
 
->>> image = from_file("python.png")  # Unset
->>> image.size is None
-True
+>>> image = from_file("python.png")
 >>> image.width = 56
 >>> image.size
-(56, 56)
+(56, 28)
 >>> image.height
-56
->>> image.height = 136
+28
+>>> image.height = 68
 >>> image.size
-(136, 136)
+(136, 68)
 >>> image.width
 136
 >>> image.width = 200  # Even though the terminal can't contain the resulting height, the size is still set
-
-Setting ``width`` or ``height`` to ``None`` sets the size to that automatically calculated
-based on the current :term:`terminal size`.
-
->>> image = from_file("python.png")  # Unset
->>> image.size is None
-True
->>> image.width = None
 >>> image.size
-(136, 136)
->>> image.width = 56
+(200, 100)
+>>> image.width = Size.FIT
 >>> image.size
-(56, 56)
->>> image.height = None
+(136, 69)
+>>> image.height = Size.FIT_TO_WIDTH
 >>> image.size
-(136, 136)
+(255, 128)
+>>> image.height = Size.ORIGINAL
+>>> image.size
+(288, 144)
 
 .. note:: An exception is raised if the terminal size is too small to calculate a size.
 
-The :py:attr:`~term_image.image.BaseImage.size` property can only be set to one value,
-``None`` and doing this :ref:`unsets <unset-size>` the image size.
+The :py:attr:`~term_image.image.BaseImage.size` property can only be set to a
+:py:class:`~term_image.image.Size` enum member, which results in a **dynamic** size.
 
->>> image = from_file("python.png", width=100)
->>> image.size
-(100, 100)
->>> image.size = None
->>> image.size is image.width is image.height is None
+>>> image = from_file("python.png")
+>>> image.size = Size.FIT
+>>> image.size is image.width is image.height is Size.FIT
+True
+>>> image.size = Size.FIT_TO_WIDTH
+>>> image.size is image.width is image.height is Size.FIT_TO_WIDTH
+True
+>>> image.size = Size.ORIGINAL
+>>> image.size is image.width is image.height is Size.ORIGINAL
 True
 
 .. important::
 
-   1. The currently set :term:`font ratio` is also taken into consideration when setting sizes.
-   3. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
-
-   Therefore, **by default**, only ``terminal_height - 2`` lines are available i.e the
-   maximum height is ``(terminal_height - 2) * 2``.
+   1. The currently set :term:`font ratio` is also taken into consideration when calculating sizes.
+   2. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
 .. hint::
 
-   See :py:meth:`set_size() <term_image.image.BaseImage.set_size()>` for extended sizing control.
+   See :py:meth:`~term_image.image.BaseImage.set_size` for extended sizing control.
 
 
 .. _image-scale:
@@ -319,7 +325,7 @@ The scale can be set at instantiation by passing a value to the *scale* **keywor
 >>> image.scale
 >>> (0.75, 0.6)
 
-The rendered result (using ``image.draw()``) should look like:
+The drawn image (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_set.png
 
@@ -329,7 +335,7 @@ If the *scale* argument is ommited, the default scale ``(1.0, 1.0)`` is used.
 >>> image.scale
 >>> (1.0, 1.0)
 
-The rendered result (using ``image.draw()``) should look like:
+The drawn image (using ``image.draw()``) should look like:
 
 .. image:: /resources/tutorial/scale_unset.png
 
