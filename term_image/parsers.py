@@ -39,10 +39,9 @@ Render Styles:
 FOOTNOTES:
   1. Width and height are in units of columns and lines repectively.
      AUTO size is calculated such that the image always fits into the available
-     terminal size (i.e terminal size minus allowances) except when `--scroll` is
-     specified, which allows the image height to go beyond the terminal height.
-  2. The size is multiplied by the scale on each axis respectively before the image
-     is rendered. A scale value must be such that 0.0 < value <= 1.0.
+     terminal size (i.e terminal size minus allowances).
+  2. The size is multiplied by the scale on respective axes when an image is rendered.
+     A scale value must be such that 0.0 < value <= 1.0.
   3. In CLI mode, only image sources are used, directory sources are skipped.
      Animated images are displayed only when animation is disabled (with `--no-anim`),
      when there's only one image source or when using native animation of some render
@@ -270,7 +269,8 @@ alpha_options.add_argument(
 # CLI-only
 cli_options = parser.add_argument_group(
     "CLI-only Options",
-    "These options apply only when there is just one valid image source",
+    "These options apply only when there is only one valid image source or `--cli` "
+    "is specified",
 )
 
 size_options = cli_options.add_mutually_exclusive_group()
@@ -405,10 +405,8 @@ align_options.add_argument(
 # TUI-only
 tui_options = parser.add_argument_group(
     "TUI-only Options",
-    (
-        "These options apply only when there is at least one valid directory source "
-        "or multiple valid sources"
-    ),
+    "These options apply only when there is at least one valid directory source, "
+    "multiple valid sources or `--tui` is specified",
 )
 
 tui_options.add_argument(
