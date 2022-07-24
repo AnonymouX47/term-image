@@ -14,13 +14,15 @@ from ..logging_multi import Process
 from ..utils import clear_queue
 
 
-def manage_anim_renders() -> bool:
+def manage_anim_renders() -> None:
     from .main import ImageClass, update_screen
     from .widgets import ImageCanvas, image_box
 
-    def next_frame() -> None:
-        if image_box.original_widget is image_w and (
-            not forced or image_w._ti_force_render
+    def next_frame() -> bool:
+        if (
+            image_box.original_widget is image_w
+            and anim_render_queue.empty()
+            and (not forced or image_w._ti_force_render)
         ):
             frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
             if frame:
@@ -47,6 +49,9 @@ def manage_anim_renders() -> bool:
 
         update_screen()
         return bool(frame)
+
+    def not_skip():
+        return image_w is image_box.original_widget and anim_render_queue.empty()
 
     frame_render_in = (mp_Queue if logging.MULTI else Queue)()
     frame_render_out = (mp_Queue if logging.MULTI else Queue)(20)
@@ -81,15 +86,20 @@ def manage_anim_renders() -> bool:
 
             notify.start_loading()
 
-            ready.clear()
-            frame_render_in.put((..., None, None))
-            clear_queue(frame_render_out)  # In case output is full
-            ready.wait()
-            clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
+            if anim_render_queue.empty():
+                ready.clear()
+                frame_render_in.put((..., None, None))
+                clear_queue(frame_render_out)  # In case output is full
+                ready.wait()
+                # multiprocessing queues are not so reliable
+                clear_queue(frame_render_out)
 
             if isinstance(data, tuple):
-                frame_render_in.put((data, size, image_w._ti_alpha))
-                if not next_frame():
+                if not_skip():
+                    frame_render_in.put((data, size, image_w._ti_alpha))
+                    if not next_frame():
+                        frame_duration = None
+                else:
                     frame_duration = None
                 try:
                     del image_w._ti_canv  # Set in `.widgets.Image.render()`
@@ -97,13 +107,20 @@ def manage_anim_renders() -> bool:
                     pass
             else:
                 image_w = data
-                frame_render_in.put(
-                    (image_w._ti_image._source, size, image_w._ti_alpha)
-                )
-                frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
-                # Ensures successful deletion when the displayed image has changed
-                image_w._ti_frame = None
-                if not next_frame():
+                if not_skip():
+                    frame_render_in.put(
+                        (image_w._ti_image._source, size, image_w._ti_alpha)
+                    )
+                    # Ensures successful deletion if the displayed image has changed
+                    image_w._ti_frame = None
+
+                    if next_frame():
+                        frame_duration = (
+                            FRAME_DURATION or image_w._ti_image._frame_duration
+                        )
+                    else:
+                        frame_duration = None
+                else:
                     frame_duration = None
                 del image_w._ti_anim_starting
 
