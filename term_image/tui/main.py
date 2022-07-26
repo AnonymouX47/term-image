@@ -329,8 +329,6 @@ def process_input(key: str) -> bool:
             set_context("menu")
             menu_nav()
             found = True
-            if get_prev_context() == "image":  # Too glitchy for the grid
-                ImageClass._clear_images() and ImageCanvas.change()
         elif _context == "menu":
             if viewer.focus_position == 1:
                 if not context_keys["menu"]["Switch Pane"][4]:
@@ -340,7 +338,6 @@ def process_input(key: str) -> bool:
                     if view.original_widget is image_box:
                         set_context("image")
                         set_image_view_actions()
-                        ImageClass._clear_images() and ImageCanvas.change()
                     else:
                         set_context("image-grid")
                         set_image_grid_actions()
