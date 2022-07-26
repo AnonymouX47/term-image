@@ -469,7 +469,7 @@ def maximize_cell():
     image_box.set_title(basename(image_w._ti_image._source))
     main_widget.contents[0] = (image_box, ("weight", 1))
 
-    image_box.original_widget = image_w  # For image animation
+    image_box.original_widget = image_w
     if image_w._ti_image._is_animated:
         main.animate_image(image_w)
 
@@ -499,12 +499,8 @@ def force_render_maximized_cell():
 # full-image, full-grid-image
 @register_key(("full-image", "Restore"), ("full-grid-image", "Back"))
 def restore():
-    # For image animation
-    if (
-        main.get_context() == "full-grid-image"
-        and image_box.original_widget._ti_image._is_animated
-    ):
-        image_box.original_widget = placeholder
+    if main.get_context() == "full-grid-image":
+        image_box.original_widget = placeholder  # halt image and anim rendering
 
     main.set_prev_context()
     main_widget.contents[0] = (pile, ("weight", 1))

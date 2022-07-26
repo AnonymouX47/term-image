@@ -141,7 +141,7 @@ def display_images(
                 placeholder,
                 ("weight", 1, False),
             )
-            image_box.original_widget = placeholder  # For image animation
+            image_box.original_widget = placeholder  # halt image and anim rendering
             image_box.set_title("Image")
             view.original_widget = image_box
             ImageClass._clear_images()
@@ -243,7 +243,7 @@ def display_images(
                 image_box._w.contents[1][0].contents[1] = (value, ("weight", 1, False))
                 image_box.set_title(entry)
                 view.original_widget = image_box
-                image_box.original_widget = value  # For image animation
+                image_box.original_widget = value
                 if value._ti_image._is_animated:
                     animate_image(value)
             else:  # Directory
@@ -265,6 +265,7 @@ def display_images(
                     while grid_change.is_set():
                         pass
                     last_non_empty_grid_path = grid_path
+                image_box.original_widget = placeholder  # halt image and anim rendering
                 image_grid_box.set_title(grid_path + "/")
                 view.original_widget = image_grid_box
                 image_grid_box.base_widget._invalidate()
