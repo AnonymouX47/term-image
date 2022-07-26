@@ -120,6 +120,13 @@ def manage_image_renders():
     from .main import ImageClass, update_screen
     from .widgets import Image, ImageCanvas, image_box
 
+    def not_skip():
+        # If this image is the one currently displayed but the queue is non empty,
+        # it means some "forth and back" has occured.
+        # Skipping this render avoids the possibility of wasting time with this render
+        # in the case where the image size has changed.
+        return image_w is image_box.original_widget and image_render_queue.empty()
+
     multi = logging.MULTI
     image_render_in = (mp_Queue if multi else Queue)()
     image_render_out = (mp_Queue if multi else Queue)()
@@ -142,11 +149,17 @@ def manage_image_renders():
     last_image_w._ti_canv = None
 
     while True:
+        # A redraw is neccesary even when the render is skipped, in case the skipped
+        # render is of the currently displayed image.
+        # So that a new render can be sent in (after `._ti_rendering` is unset).
+        # Otherwise, the image will remain unrendered until a redraw.
+        update_screen()
+
         image_w, size, alpha = image_render_queue.get()
         if not image_w:
             break
 
-        if image_w is not image_box.original_widget:
+        if not not_skip():
             del image_w._ti_rendering
             continue
 
@@ -161,7 +174,7 @@ def manage_image_renders():
         notify.start_loading()
         render, rendered_size = image_render_out.get()
 
-        if image_w is image_box.original_widget:
+        if not_skip():
             del last_image_w._ti_canv
             if render:
                 image_w._ti_canv = ImageCanvas(
@@ -172,7 +185,6 @@ def manage_image_renders():
                 # Ensures a fault is logged only once per `Image` instance
                 if not image_w._ti_faulty:
                     image_w._ti_faulty = True
-            update_screen()
             last_image_w = image_w
 
         del image_w._ti_rendering
