@@ -50,17 +50,22 @@ def animate_image(image_w: Image, forced_render: bool = False) -> None:
     if not NO_ANIMATION and (
         mul(*image_w._ti_image._original_size) <= MAX_PIXELS or forced_render
     ):
-        # Animations with finite repetition that got completed
         try:
             del image_w._ti_anim_finished
+        except AttributeError:
+            try:
+                del image_w._ti_anim_ongoing
+            except AttributeError:
+                pass
+        else:
             if image_w._ti_canv:  # Hasn't been removed
                 image_w._ti_canv = None  # Deleting will break `ImageRenderManager`
-        except AttributeError:
-            pass
 
         # Switched from this animated image earlier, to another animated image while
         # AnimRenderManager was waiting on a frame's duration
+        # i.e the attributes didn't get to be removed by AnimRenderManager
         try:
+            # If one fails, the rest shouldn't exist (removed by AnimRenderManager)
             del image_w._ti_frame
             del image_w._ti_force_render
             del image_w._ti_forced_anim_size_hash
