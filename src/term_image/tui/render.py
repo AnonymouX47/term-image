@@ -145,15 +145,11 @@ def manage_image_renders():
         image_w, size, alpha = image_render_queue.get()
         if not image_w:
             break
+
         if image_w is not image_box.original_widget:
+            del image_w._ti_rendering
             continue
 
-        # Stored at this point to prevent an incorrect *rendered_size* for the
-        # Imagecanvas, since the image's size might've changed by the time the canvas is
-        # being created.
-        rendered_size = image_w._ti_image.rendered_size
-
-        Image._ti_rendering_image_info = (image_w, size, alpha)
         image_render_in.put(
             (
                 image_w._ti_image._source if multi else image_w._ti_image,
@@ -163,8 +159,7 @@ def manage_image_renders():
             )
         )
         notify.start_loading()
-        render = image_render_out.get()
-        Image._ti_rendering_image_info = (None,) * 3
+        render, rendered_size = image_render_out.get()
 
         if image_w is image_box.original_widget:
             del last_image_w._ti_canv
@@ -179,6 +174,8 @@ def manage_image_renders():
                     image_w._ti_faulty = True
             update_screen()
             last_image_w = image_w
+
+        del image_w._ti_rendering
         notify.stop_loading()
 
     clear_queue(image_render_in)
@@ -397,7 +394,8 @@ def render_images(
 
     Args:
         multi: True if being executed in a subprocess and False if in a thread.
-        out_extras: If True, image details other than the render output are passed out.
+        out_extras: If True, details other than the render output and it's size are
+          also passed out.
     Intended to be executed in a subprocess or thread.
     """
     while True:
@@ -428,11 +426,13 @@ def render_images(
                     image.rendered_size,
                 )
                 if out_extras
-                else f"{image:1.1{alpha}{style_spec}}"
+                else (f"{image:1.1{alpha}{style_spec}}", image.rendered_size)
             )
         except Exception as e:
             output.put(
-                (image._source, None, size, image.rendered_size) if out_extras else None
+                (image._source, None, size, image.rendered_size)
+                if out_extras
+                else (None, image.rendered_size)
             )
             # *faulty* ensures a fault is logged only once per `Image` instance
             if log_faults:

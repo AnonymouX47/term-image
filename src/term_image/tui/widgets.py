@@ -236,7 +236,7 @@ class Image(urwid.Widget):
 
     _ti_faulty = False
     _ti_canv = None
-    _ti_rendering_image_info = (None,) * 3
+    _ti_rendering = False
 
     _ti_grid_cache = {}
 
@@ -265,9 +265,7 @@ class Image(urwid.Widget):
         # Forced render
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
-            self._ti_canv
-            and self._ti_canv.size == size
-            or (self, size, self._ti_alpha) == __class__._ti_rendering_image_info
+            self._ti_canv and self._ti_canv.size == size or self._ti_rendering
         ):
             if self._ti_force_render:
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
@@ -368,7 +366,8 @@ class Image(urwid.Widget):
                 if not self._ti_anim_starting:
                     anim_render_queue.put((self, size, self._ti_force_render))
                     self._ti_anim_starting = True
-            elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
+            elif not self._ti_rendering:
+                self._ti_rendering = True
                 image_render_queue.put((self, size, self._ti_alpha))
             canv = (
                 placeholder
