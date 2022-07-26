@@ -37,6 +37,8 @@ def manage_anim_renders() -> bool:
 
         if not frame:
             try:
+                # If one fails, the rest shouldn't exist (removed in `animate_image()`)
+                del image_w._ti_anim_ongoing
                 del image_w._ti_frame
                 if forced:
                     # See "Forced render" section of `.widgets.Image.render()`
@@ -91,10 +93,6 @@ def manage_anim_renders() -> bool:
                 frame_render_in.put((data, size, image_w._ti_alpha))
                 if not next_frame():
                     frame_duration = None
-                try:
-                    del image_w._ti_canv  # Set in `.widgets.Image.render()`
-                except AttributeError:
-                    pass
             else:
                 image_w = data
                 frame_render_in.put(
@@ -105,7 +103,6 @@ def manage_anim_renders() -> bool:
                 image_w._ti_frame = None
                 if not next_frame():
                     frame_duration = None
-                del image_w._ti_anim_starting
 
             notify.stop_loading()
 

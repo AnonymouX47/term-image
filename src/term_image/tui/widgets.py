@@ -232,7 +232,7 @@ class Image(urwid.Widget):
     _ti_forced_anim_size_hash = None
 
     _ti_frame = None
-    _ti_anim_starting = _ti_anim_finished = False
+    _ti_anim_ongoing = _ti_anim_finished = False
 
     _ti_faulty = False
     _ti_canv = None
@@ -343,7 +343,7 @@ class Image(urwid.Widget):
         elif self._ti_frame:
             canv, repeat, frame_no = self._ti_frame
             if size != canv.size:
-                self._ti_canv = canv = (
+                canv = (
                     placeholder
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
@@ -363,9 +363,9 @@ class Image(urwid.Widget):
                 and not tui_main.NO_ANIMATION
                 and not self._ti_anim_finished
             ):
-                if not self._ti_anim_starting:
+                if not self._ti_anim_ongoing:
                     anim_render_queue.put((self, size, self._ti_force_render))
-                    self._ti_anim_starting = True
+                    self._ti_anim_ongoing = True
             elif not self._ti_rendering:
                 self._ti_rendering = True
                 image_render_queue.put((self, size, self._ti_alpha))
