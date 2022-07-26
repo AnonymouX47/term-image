@@ -14,15 +14,13 @@ from ..logging_multi import Process
 from ..utils import clear_queue
 
 
-def manage_anim_renders() -> bool:
+def manage_anim_renders() -> None:
     from .main import ImageClass, update_screen
     from .widgets import ImageCanvas, image_box
 
-    def next_frame() -> None:
-        if image_box.original_widget is image_w and (
-            not forced or image_w._ti_force_render
-        ):
-            frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
+    def next_frame() -> bool:
+        frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
+        if not_skip() and (not forced or image_w._ti_force_render):
             if frame:
                 canv = ImageCanvas(frame.encode().split(b"\n"), size, rendered_size)
                 image_w._ti_image._seek_position = frame_no
@@ -30,7 +28,12 @@ def manage_anim_renders() -> bool:
             else:
                 image_w._ti_anim_finished = True
                 image_w._ti_image.seek(0)
-        else:
+        # If this image is the one currently displayed, it's either:
+        # - forced but size changed -> End animation; Remove attributes
+        # - a size change -> Continue animation; Do not remove attributes
+        # - a restart (moved to another entry and back) -> Animation will be ended at
+        #   restart; attributes already removed in `.main.animate_image()`
+        elif image_w is not image_box.original_widget or forced:
             frame_render_in.put((..., None, None))
             clear_queue(frame_render_out)  # In case output is full
             frame = None
@@ -49,6 +52,9 @@ def manage_anim_renders() -> bool:
 
         update_screen()
         return bool(frame)
+
+    def not_skip():
+        return image_w is image_box.original_widget and anim_render_queue.empty()
 
     frame_render_in = (mp_Queue if logging.MULTI else Queue)()
     frame_render_out = (mp_Queue if logging.MULTI else Queue)(20)
@@ -83,26 +89,40 @@ def manage_anim_renders() -> bool:
 
             notify.start_loading()
 
-            ready.clear()
-            frame_render_in.put((..., None, None))
-            clear_queue(frame_render_out)  # In case output is full
-            ready.wait()
-            clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
+            if anim_render_queue.empty():
+                ready.clear()
+                frame_render_in.put((..., None, None))
+                clear_queue(frame_render_out)  # In case output is full
+                ready.wait()
+                # multiprocessing queues are not so reliable
+                clear_queue(frame_render_out)
 
             if isinstance(data, tuple):
-                frame_render_in.put((data, size, image_w._ti_alpha))
-                if not next_frame():
+                if not_skip():
+                    frame_render_in.put((data, size, image_w._ti_alpha))
+                    if not next_frame():
+                        frame_duration = None
+                elif image_w is not image_box.original_widget:
+                    # The next item in the queue is NOT a size change
                     frame_duration = None
             else:
+                # Safe, since the next item in the queue cannot be a size change cos no
+                # animation is ongoing
+                frame_duration = None
+
                 image_w = data
-                frame_render_in.put(
-                    (image_w._ti_image._source, size, image_w._ti_alpha)
-                )
-                frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
-                # Ensures successful deletion when the displayed image has changed
-                image_w._ti_frame = None
-                if not next_frame():
-                    frame_duration = None
+                if not_skip():
+                    frame_render_in.put(
+                        (image_w._ti_image._source, size, image_w._ti_alpha)
+                    )
+                    # Ensures successful deletion if the displayed image has changed
+                    # before the first frame is ready
+                    image_w._ti_frame = None
+
+                    if next_frame():
+                        frame_duration = (
+                            FRAME_DURATION or image_w._ti_image._frame_duration
+                        )
 
             notify.stop_loading()
 
