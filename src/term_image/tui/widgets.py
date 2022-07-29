@@ -267,11 +267,13 @@ class Image(urwid.Widget):
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
             self._ti_canv
-            # Canvas size will be adjusted later @ Rendering
             and (
-                # Can either be SolidCanvas (faulty) or ImageCanvas
-                not isinstance(self._ti_canv, ImageCanvas)
-                or self._ti_canv._ti_image_size == image.size
+                # will be resized later @ Rendering.
+                self._ti_canv._ti_image_size == image.size
+                # can either be SolidCanvas (faulty) or ImageCanvas
+                if isinstance(self._ti_canv, ImageCanvas)
+                # but faulty shouldn't be resized to allow re-rendering after resize
+                else self._ti_canv.size == size
             )
             or self._ti_rendering
         ):
@@ -346,9 +348,11 @@ class Image(urwid.Widget):
             else:
                 canv.size = size
         elif self._ti_canv and (
+            self._ti_canv._ti_image_size == image.size
             # Can either be SolidCanvas (faulty) or ImageCanvas
-            not isinstance(self._ti_canv, ImageCanvas)
-            or self._ti_canv._ti_image_size == image.size
+            if isinstance(self._ti_canv, ImageCanvas)
+            # but faulty shouldn't be resized to allow re-rendering after resize
+            else self._ti_canv.size == size
         ):
             self._ti_canv.size = size
             canv = self._ti_canv
