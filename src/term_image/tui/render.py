@@ -10,6 +10,7 @@ from threading import Event
 from typing import Optional, Union
 
 from .. import cli, logging, notify
+from ..image import Size
 from ..logging_multi import Process
 from ..utils import clear_queue
 
@@ -388,7 +389,7 @@ def render_frames(
                 )
                 next(animator)
                 animator.seek(frame_no)
-                image.set_size(maxsize=size)
+                image.set_size(Size.AUTO, maxsize=size)
                 block = False
             else:
                 # A new image is always created to ensure:
@@ -403,7 +404,7 @@ def render_frames(
                 animator = ImageIterator(
                     image, repeat, f"1.1{alpha}{style_spec}", cached
                 )
-                image.set_size(maxsize=size)
+                image.set_size(Size.AUTO, maxsize=size)
                 block = False
 
     clear_queue(output)
@@ -435,7 +436,7 @@ def render_images(
             break
 
         image = ImageClass.from_file(image)
-        image.set_size(maxsize=size)
+        image.set_size(Size.AUTO, maxsize=size)
 
         # Using `BaseImage` for padding will use more memory since all the
         # spaces will be in the render output string, and theoretically more time

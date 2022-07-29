@@ -9,6 +9,7 @@ __all__ = (
     "from_file",
     "from_url",
     "ImageSource",
+    "Size",
     "BaseImage",
     "GraphicsImage",
     "TextImage",
@@ -28,6 +29,7 @@ from .common import (  # noqa:F401
     GraphicsImage,
     ImageIterator,
     ImageSource,
+    Size,
     TextImage,
 )
 from .iterm2 import ITerm2Image  # noqa:F401

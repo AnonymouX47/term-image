@@ -12,7 +12,7 @@ import urwid
 
 from .. import cli, logging
 from ..config import _nav, cell_width, expand_key, nav
-from ..image import BaseImage
+from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
@@ -261,11 +261,21 @@ class Image(urwid.Widget):
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         context = tui_main.get_context()
         image = self._ti_image
+        image.set_size(Size.AUTO, maxsize=size)
 
         # Forced render
 
         if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
-            self._ti_canv and self._ti_canv.size == size or self._ti_rendering
+            self._ti_canv
+            and (
+                # will be resized later @ Rendering.
+                self._ti_canv._ti_image_size == image.size
+                # can either be SolidCanvas (faulty) or ImageCanvas
+                if isinstance(self._ti_canv, ImageCanvas)
+                # but faulty shouldn't be resized to allow re-rendering after resize
+                else self._ti_canv.size == size
+            )
+            or self._ti_rendering
         ):
             if self._ti_force_render:
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
@@ -273,8 +283,8 @@ class Image(urwid.Widget):
                 # creation and deletion per frame
                 if image._is_animated and not tui_main.NO_ANIMATION:
                     if not (self._ti_frame or self._ti_anim_finished):
-                        self._ti_forced_anim_size_hash = hash(size)
-                    elif hash(size) != self._ti_forced_anim_size_hash:
+                        self._ti_forced_anim_size_hash = hash(image.size)
+                    elif hash(image.size) != self._ti_forced_anim_size_hash:
                         self._ti_force_render = False
                         if context in self._ti_force_render_contexts:
                             keys.enable_actions(context, "Force Render")
@@ -307,16 +317,6 @@ class Image(urwid.Widget):
                 canv = __class__._ti_placeholder.render(size, focus)
             return canv
 
-        # Size augmentation and setting
-
-        if len(size) == 1:
-            size = image._valid_size(
-                None,
-                None,
-                maxsize=(size[0], get_terminal_size()[1]),
-            )
-        image.set_size(maxsize=size)
-
         # Rendering
 
         if view.original_widget is image_grid_box and context != "full-grid-image":
@@ -332,7 +332,7 @@ class Image(urwid.Widget):
                 canv = __class__._ti_faulty_image.render(size, focus)
         elif self._ti_frame:
             canv, repeat, frame_no = self._ti_frame
-            if size != canv.size:
+            if canv._ti_image_size != image.size:  # The canvas is always an ImageCanvas
                 canv = (
                     placeholder
                     if (
@@ -345,7 +345,16 @@ class Image(urwid.Widget):
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
                 tui_main.ImageClass._clear_images()
-        elif self._ti_canv and self._ti_canv.size == size:
+            else:
+                canv.size = size
+        elif self._ti_canv and (
+            self._ti_canv._ti_image_size == image.size
+            # Can either be SolidCanvas (faulty) or ImageCanvas
+            if isinstance(self._ti_canv, ImageCanvas)
+            # but faulty shouldn't be resized to allow re-rendering after resize
+            else self._ti_canv.size == size
+        ):
+            self._ti_canv.size = size
             canv = self._ti_canv
         else:
             if (

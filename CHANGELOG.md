@@ -5,10 +5,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- [lib] `term_image.image.Size` enumeration ([#64]).
+  - Implemented "original size" image sizing.
+- [cli] `--fit` and `--original-size` CL options ([#64]).
+
+### Changed
+- [lib] Changed the default value of `size`, `width` and `height` properties to `Size.FIT` ([#64]).
+- [lib] Updated `BaseImage.set_size()` ([#64]).
+  - **(BREAKING!!)** Removed *fit_to_width* and *fit_to_height* parameters.
+  - Now accepts `Size` enum mumbers.
+  - Refer to the linked PR for others.
+- [cli] Changed default sizing to `Size.AUTO` ([#64]).
+- [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
+- [tui] Changed sizing to `Size.AUTO` for all images ([#64]).
+- [tui] An image/frame is re-rendered only when its size changes, regardless of the canvas size ([#64]).
+
 ### Removed
 - [lib] `term_image.image.TermImage`.
 - [lib] `TermImageException` and `InvalidSize` from `term_image.exceptions`.
 - [lib] Top-level package `term_img`.
+
+[#64]: https://github.com/AnonymouX47/term-image/pull/64
 
 
 ## [0.4.0] - 2022-06-27

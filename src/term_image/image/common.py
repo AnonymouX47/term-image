@@ -4,7 +4,14 @@
 
 from __future__ import annotations
 
-__all__ = ("ImageSource", "BaseImage", "GraphicsImage", "TextImage", "ImageIterator")
+__all__ = (
+    "ImageSource",
+    "Size",
+    "BaseImage",
+    "GraphicsImage",
+    "TextImage",
+    "ImageIterator",
+)
 
 import io
 import os
@@ -66,6 +73,15 @@ def _close_validated(func: FunctionType) -> FunctionType:
     return close_validated_wrapper
 
 
+class Hidden:
+    """An object that hides it's original value representation."""
+
+    def __repr__(_):
+        return "<hidden>"
+
+    __ascii__ = __str__ = __repr__
+
+
 class ImageSource(Enum):
     """Image source type.
 
@@ -77,7 +93,7 @@ class ImageSource(Enum):
 
     _ignore_ = ["_SourceAttr"]
 
-    class _SourceAttr(str):
+    class _SourceAttr(Hidden, str):
         """A string that only compares equal to itself but returns the original hash of
         the string.
 
@@ -86,17 +102,13 @@ class ImageSource(Enum):
         """
 
         def __init__(self, *_):
-            self._str = super().__str__()
+            self._str = super(Hidden).__str__()
 
-        def __eq__(*_):
+        def __eq__(self, _):
             return NotImplemented
 
-        def __repr__(self):
-            return "<hidden>"
-
-        __hash__ = str.__hash__
         __ne__ = __eq__
-        __ascii__ = __str__ = __repr__
+        __hash__ = str.__hash__
 
     #: The instance was derived from a path to a local image file.
     FILE_PATH = _SourceAttr("_source")
@@ -108,14 +120,41 @@ class ImageSource(Enum):
     URL = _SourceAttr("_url")
 
 
+class Size(Enum):
+    """Enumeration for :term:`automatic sizing`"""
+
+    #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
+    #: :term:`available size`, else :py:attr:`FIT`.
+    AUTO = Hidden()
+
+    #: The image size is set to fit optimally **within** the :term:`available size`.
+    FIT = Hidden()
+
+    #: The size is set such that the width is exactly the :term:`available width`,
+    #: regardless of the :term:`font ratio`.
+    FIT_TO_WIDTH = Hidden()
+
+    #: The image size is set such that the image is rendered with as many pixels as the
+    #: the original image consists of.
+    ORIGINAL = Hidden()
+
+
 class BaseImage(ABC):
     """Base of all render styles.
 
     Args:
         image: Source image.
-        width: Horizontal dimension of the image, in columns.
-        height: Vertical dimension of the image, in lines.
-        scale: The fraction of the size on respective axes, to render the image with.
+        width: Can be
+
+          * an ``int``; horizontal dimension of the image, in columns.
+          * a :py:class:`~term_image.image.Size` enum member.
+
+        height: Can be
+
+          * an ``int``; vertical dimension of the image, in lines.
+          * a :py:class:`~term_image.image.Size` enum member.
+
+        scale: The fraction of the size (on respective axes) to render the image with.
 
     Raises:
         TypeError: An argument is of an inappropriate type.
@@ -126,13 +165,9 @@ class BaseImage(ABC):
     given.
 
     NOTE:
-        * *width* or *height* is the exact number of columns or lines that'll be used
-          to draw the image (assuming the scale equal `1`), regardless of the currently
-          set :term:`font ratio`.
-        * If neither is given or both are ``None``, the size is automatically determined
-          when the image is to be :term:`rendered`, such that it optimally fits
-          into the terminal.
-        * The image size is multiplied by the :term:`scale` on respective axes before
+        * If neither *width* nor *height* is given (or both are ``None``),
+          :py:attr:`~term_image.image.Size.FIT` applies.
+        * The image size is multiplied by the :term:`scale` on respective axes when
           the image is :term:`rendered`.
         * For animated images, the seek position is initialized to the current seek
           position of the given image.
@@ -157,8 +192,8 @@ class BaseImage(ABC):
         self,
         image: PIL.Image.Image,
         *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
         """See the class description"""
@@ -173,7 +208,7 @@ class BaseImage(ABC):
         self._source_type = ImageSource.PIL_IMAGE
         self._original_size = image.size
         if width is None is height:
-            self._size = None
+            self._size = Size.FIT
         else:
             self.set_size(width, height)
         self._scale = []
@@ -264,21 +299,32 @@ class BaseImage(ABC):
             self._frame_duration = value
 
     height = property(
-        lambda self: self._size and self._size[1],
+        lambda self: self._size if isinstance(self._size, Size) else self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
         The **unscaled** height of the image.
 
-        ``None`` when the image size is :ref:`unset <unset-size>`.
+        Returns:
 
-        Settable values:
+          * The image height (in lines), if the image size is
+            :term:`fixed <fixed size>`.
+          * A :py:class:`~term_image.image.Size` enum member; if the image size
+            is :term:`dynamic <dynamic size>`.
 
-          * ``None``: Sets the image size to an automatically calculated one,
-            based on the current terminal size.
-          * A positive ``int``: Sets the image height to the given value and
-            the width proportionally.
+        :rtype: Union[Size, int]
 
-        :rtype: int
+        SETTABLE VALUES:
+
+        * a positive ``int``; the image height is set to the given value and the
+          width is set proportionally.
+        * a :py:class:`~term_image.image.Size` enum member; the image size
+          is set as prescibed by the enum member.
+        * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
+
+        Setting this
+
+        * results in a :term:`fixed size`.
+        * resets the recognized advanced sizing options to their defaults.
         """,
     )
 
@@ -307,7 +353,12 @@ class BaseImage(ABC):
 
     rendered_height = property(
         lambda self: round(
-            (self._size or self._valid_size(None, None))[1] * self._scale[1]
+            (
+                self._valid_size(None, self._size)
+                if isinstance(self._size, Size)
+                else self._size
+            )[1]
+            * self._scale[1]
         ),
         doc="""
         The **scaled** height of the image.
@@ -322,7 +373,15 @@ class BaseImage(ABC):
         lambda self: tuple(
             map(
                 round,
-                map(mul, self._size or self._valid_size(None, None), self._scale),
+                map(
+                    mul,
+                    (
+                        self._valid_size(self._size, None)
+                        if isinstance(self._size, Size)
+                        else self._size
+                    ),
+                    self._scale,
+                ),
             )
         ),
         doc="""
@@ -337,7 +396,12 @@ class BaseImage(ABC):
 
     rendered_width = property(
         lambda self: round(
-            (self._size or self._valid_size(None, None))[0] * self._scale[0]
+            (
+                self._valid_size(self._size, None)
+                if isinstance(self._size, Size)
+                else self._size
+            )[0]
+            * self._scale[0]
         ),
         doc="""
         The **scaled** width of the image.
@@ -353,7 +417,7 @@ class BaseImage(ABC):
         doc="""
         Image :term:`scale`
 
-        Settable values are:
+        SETTABLE VALUES:
 
           * A *scale value*; sets both axes.
           * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
@@ -373,7 +437,7 @@ class BaseImage(ABC):
         elif isinstance(scale, tuple):
             self._scale[:] = self._check_scale(scale)
         else:
-            raise TypeError("Given value must be a float or a tuple of floats")
+            raise TypeError("'scale' must be a float or a tuple of floats")
 
     scale_x = property(
         lambda self: self._scale[0],
@@ -410,23 +474,35 @@ class BaseImage(ABC):
         doc="""
         The **unscaled** size of the image.
 
-        ``None`` when the image size is :ref:`unset <unset-size>`.
+        Returns:
 
-        Setting this to ``None`` :ref:`unsets <unset-size>` the image size (so that
-        it's automatically calculated whenever the image is :term:`rendered`) and
-        resets the recognized advanced sizing options to their defaults.
+          * The image size, ``(columns, lines)``, if the image size is
+            :term:`fixed <fixed size>`.
+          * A :py:class:`~term_image.image.Size` enum member, if the image size
+            is :term:`dynamic <dynamic size>`.
 
-        This is multiplied by the :term:`scale` on respective axes before the image
+        :rtype: Union[Size, Tuple[int, int]]
+
+        SETTABLE VALUES:
+
+        * A :py:class:`~term_image.image.Size` enum member; the image size
+          is set as prescibed by the enum member.
+
+        Setting this
+
+        * implies :term:`dynamic sizing` i.e the size is computed whenever the image is
+          :term:`rendered`.
+        * resets the recognized advanced sizing options to their defaults.
+
+        This is multiplied by the :term:`scale` on respective axes when the image
         is :term:`rendered`.
-
-        :rtype: Tuple[int, int]
         """,
     )
 
     @size.setter
-    def size(self, value: None) -> None:
-        if value is not None:
-            raise TypeError("The only acceptable value is `None`")
+    def size(self, value: Size) -> None:
+        if not isinstance(value, Size):
+            raise TypeError("'size' must be a `Size` enum member")
         self._size = value
         self._fit_to_width = False
         self._h_allow = 0
@@ -451,21 +527,32 @@ class BaseImage(ABC):
     )
 
     width = property(
-        lambda self: self._size and self._size[0],
+        lambda self: self._size if isinstance(self._size, Size) else self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
         The **unscaled** width of the image.
 
-        ``None`` when the image size is :ref:`unset <unset-size>`.
+        Returns:
 
-        Settable values:
+          * The image width (in columns), if the image size is
+            :term:`fixed <fixed size>`.
+          * A :py:class:`~term_image.image.Size` enum member; if the image size
+            is :term:`dynamic <dynamic size>`.
 
-          * ``None``: Sets the image size to an automatically calculated one,
-            based on the current terminal size.
-          * A positive ``int``: Sets the image width to the given value and
-            the height proportionally.
+        :rtype: Union[Size, int]
 
-        :rtype: int
+        SETTABLE VALUES:
+
+        * a positive ``int``; the image width is set to the given value and the
+          height is set proportionally.
+        * a :py:class:`~term_image.image.Size` enum member; the image size
+          is set as prescibed by the enum member.
+        * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
+
+        Setting this
+
+        * results in a :term:`fixed size`.
+        * resets the recognized advanced sizing options to their defaults.
         """,
     )
 
@@ -551,13 +638,9 @@ class BaseImage(ABC):
                   undetermined) is used.
                 * A hex color e.g ``ffffff``, ``7faa52``.
 
-            scroll: Only applies to non-animations. If ``True``:
-
-              * and the image size is set, allows the image's
+            scroll: Only applies to non-animations. If ``True``, allows the image's
                 :term:`rendered height` to be greater than the
                 :term:`available terminal height <available height>`.
-              * and the image size is :ref:`unset <unset-size>`, the image is
-                drawn to fit the terminal width.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
               an animated image.
@@ -584,14 +667,13 @@ class BaseImage(ABC):
               can not fit into the :term:`available terminal size <available size>`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
-        * If :py:meth:`set_size` was directly used to set the image size, the values
-          of the *fit_to_width*, *h_allow* and *v_allow* arguments
-          (when :py:meth:`set_size` was called) are taken into consideration during
-          size validation, with *fit_to_width* applying to only non-animations.
-        * If the size was set via another means or the size is
-          :ref:`unset <unset-size>`, the default values of those parameters are used.
-        * If the image size was set with the *fit_to_width* parameter of
-          :py:meth:`set_size` set to ``True``, then setting *scroll* is unnecessary.
+        * If :py:meth:`set_size` was used to set the image size, the horizontal and
+          vertical allowances (set when :py:meth:`set_size` was called) are taken into
+          consideration during size validation. If the size was set via another means or
+          the size is :term:`dynamic <dynamic size>`, the default allowances apply.
+        * For **non-animations**, if the image size was set with
+          :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
+          validated and setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
@@ -884,86 +966,58 @@ class BaseImage(ABC):
 
     def set_size(
         self,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         h_allow: int = 0,
         v_allow: int = 2,
-        *,
         maxsize: Optional[Tuple[int, int]] = None,
-        fit_to_width: bool = False,
-        fit_to_height: bool = False,
     ) -> None:
         """Sets the image size with extended control.
 
         Args:
-            width: Horizontal dimension of the image, in columns.
-            height: Vertical dimension of the image, in lines.
+            width: Can be
+
+              * an ``int``; horizontal dimension of the image, in columns.
+              * a :py:class:`~term_image.image.Size` enum member.
+
+            height: Can be
+
+              * an ``int``; vertical dimension of the image, in lines.
+              * a :py:class:`~term_image.image.Size` enum member.
+
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
             v_allow: Vertical allowance i.e minimum number of lines to leave unused.
             maxsize: If given, as ``(columns, lines)``, it's used instead of the
               terminal size.
-            fit_to_width: Only used with **automatic sizing**. See description below.
-            fit_to_height: Only used with **automatic sizing**. See description below.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
             ValueError: Both *width* and *height* are specified.
-            ValueError: *fit_to_width* or *fit_to_height* is ``True`` when *width*,
-              *height* or *maxsize* is given.
-            ValueError: The :term:`available size` is too small for automatic sizing.
+            ValueError: The :term:`available size` is too small for
+              :term:`automatic sizing`.
             term_image.exceptions.InvalidSizeError: *maxsize* is given and the
               resulting size will not fit into it.
 
-        If neither *width* nor *height* is given or anyone given is ``None``,
-        **automatic sizing** applies. In such a case, if:
+        If neither *width* nor *height* is given (or both are ``None``),
+        :py:attr:`~term_image.image.Size.FIT` applies.
 
-          * both *fit_to_width* and *fit_to_height* are ``False``, the size is
-            set to fit **within** the :term:`available terminal size <available size>`
-            (or *maxsize*, if given).
-          * *fit_to_width* is ``True``, the size is set such that the
-            :term:`rendered width` is exactly the
-            :term:`available terminal width <available width>`
-            (assuming the horizontal :term:`scale` equals 1),
-            regardless of the :term:`font ratio`.
-          * *fit_to_height* is ``True``, the size is set such that the
-            :term:`rendered height` is exactly the
-            :term:`available terminal height <available height>`
-            (assuming the vertical :term:`scale` equals 1),
-            regardless of the :term:`font ratio`.
+        If *width* or *height* is a :py:class:`~term_image.image.Size` enum
+        member, :term:`automatic sizing` applies as prescribed by the enum member.
 
-        .. important::
-            1. *fit_to_width* and *fit_to_height* are mutually exclusive.
-               Only one can be ``True`` at a time.
-            2. Neither *fit_to_width* nor *fit_to_height* may be ``True`` when *width*,
-               *height* or *maxsize* is given.
-            3. Be careful when setting *fit_to_height* to ``True`` as it might result
-               in the image's :term:`rendered width` being larger than the terminal
-               width (or maxsize[0]) because :py:meth:`draw` will (by default) raise
-               :py:exc:`term_image.exceptions.InvalidSizeError` if such is the case.
+        When :py:attr:`~term_image.image.Size.FIT_TO_WIDTH` is given,
 
-        | :term:`Vertical allowance` does not apply when *fit_to_width* is ``True``.
-        | :term:`horizontal allowance` does not apply when *fit_to_height* is ``True``.
+        * size validation operations take it into consideration.
+        * :term:`Vertical allowance` is nullified.
 
-        :term:`Allowance`\\ s are ignored when *maxsize* is given.
+        :term:`Allowances <allowance>` are ignored when *maxsize* is given.
 
-        *fit_to_width* might be set to ``True`` to set the image size for
-        vertically-oriented images (i.e images with height > width) such that the
-        drawn image spans more columns but the terminal window has to be scrolled
-        to view the entire image.
+        Image formatting and size validation operations recognize and respect the
+        horizontal and vertical allowances, until the image size is re-set.
 
-        Image formatting and all size validation recognize and respect the values of
-        the *fit_to_width*, *h_allow* and *v_allow* parameters,
-        until the size is re-set or :ref:`unset <unset-size>`.
-
-        *fit_to_height* is only provided for completeness, it should probably be used
-        only when the image will not be drawn to the current terminal.
-        The value of this parameter is **not** recognized by any other method or
-        operation.
-
-        .. note::
-           The size is checked to fit in only when *maxsize* is given along with
+        NOTE:
+           The size is checked to fit in only when *maxsize* is given along with a fixed
            *width* or *height* because :py:meth:`draw` is generally not the means of
            drawing such an image and all rendering methods don't perform any sort of
            size validation.
@@ -974,12 +1028,12 @@ class BaseImage(ABC):
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
         for argname, x in zip(("width", "height"), (width, height)):
-            if not (x is None or isinstance(x, int)):
+            if not (x is None or isinstance(x, (Size, int))):
                 raise TypeError(
-                    f"{argname!r} must be `None` or an integer "
+                    f"{argname!r} must be `None`, a `Size` enum member or an integer "
                     f"(got: type {type(x).__name__!r})"
                 )
-            if None is not x <= 0:
+            if isinstance(x, int) and x <= 0:
                 raise ValueError(f"{argname!r} must be positive (got: {x})")
 
         for argname, x in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
@@ -1003,32 +1057,17 @@ class BaseImage(ABC):
                     f"'maxsize' must contain two positive integers (got: {maxsize})"
                 )
 
-        for arg in ("fit_to_width", "fit_to_height"):
-            if not isinstance(locals()[arg], bool):
-                raise TypeError(f"{arg!r} must be a boolean")
-        if fit_to_width and fit_to_height:
-            raise ValueError(
-                "'fit_to_width' and 'fit_to_height` are mutually exclusive, only one "
-                "can be `True`."
-            )
-        arg = "fit_to_width" if fit_to_width else "fit_to_height"
-        if locals()[arg]:  # Both may be `False`
-            for arg2 in ("width", "height", "maxsize"):
-                if locals()[arg2]:
-                    raise ValueError(f"{arg!r} cannot be `True` when {arg2!r} is given")
-
+        fit_to_width = width is Size.FIT_TO_WIDTH
         self._size = self._valid_size(
             width,
             height,
-            h_allow * (not fit_to_height),
+            h_allow,
             v_allow * (not fit_to_width),
-            maxsize=maxsize,
-            fit_to_width=fit_to_width,
-            fit_to_height=fit_to_height,
+            maxsize,
         )
         self._fit_to_width = fit_to_width
-        self._h_allow = h_allow * (not maxsize) * (not fit_to_height)
-        self._v_allow = v_allow * (not maxsize) * (not fit_to_width)
+        self._h_allow = h_allow
+        self._v_allow = v_allow * (not fit_to_width)
 
     def tell(self) -> int:
         """Returns the current image frame number."""
@@ -1422,7 +1461,7 @@ class BaseImage(ABC):
 
         Args:
             size: If given (in pixels), it is used instead of the pixel-equivalent of
-              the image size (or auto size, if size is unset).
+              the image size.
             pixel_data: If ``False``, ``None`` is returned for all pixel data.
             round_alpha: Only applies when *alpha* is a ``float``.
 
@@ -1667,15 +1706,14 @@ class BaseImage(ABC):
             (directly or not), the last value of its *fit_to_width* parameter
             is taken into consideration, for non-animations.
         """
+        _size = self._size
         try:
-            reset_size = False
-            if not self._size:  # Size is unset
-                self.set_size(fit_to_width=scroll and not animated)
-                reset_size = True
-
-            # If the set size is larger than the available terminal size but the scale
-            # makes it fit in, then it's all good.
+            if isinstance(_size, Size):
+                self.set_size(_size)
             elif check_size or animated:
+                # NOTE: If the set size is larger than the available terminal size but
+                # the scale makes it fit in, then it's all good.
+
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
@@ -1715,19 +1753,16 @@ class BaseImage(ABC):
             return renderer(self._get_image(), *args, **kwargs)
 
         finally:
-            if reset_size:
-                self._size = None
+            if isinstance(_size, Size):
+                self.size = _size
 
     def _valid_size(
         self,
-        width: Optional[int],
-        height: Optional[int],
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
         h_allow: int = 0,
         v_allow: int = 2,
-        *,
         maxsize: Optional[Tuple[int, int]] = None,
-        fit_to_width: bool = False,
-        fit_to_height: bool = False,
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
@@ -1756,12 +1791,21 @@ class BaseImage(ABC):
         # and for the width, we always divide by the pixel ratio.
         # The non-constraining axis is always the one directly adjusted.
 
-        if width is None is height:
+        if all(not isinstance(x, int) for x in (width, height)):
             for name in ("columns", "lines"):
                 if locals()[name] <= 0:
                     raise ValueError(f"Amount of available {name} too small")
 
-            if fit_to_width:
+            if Size.AUTO in (width, height):
+                width = height = (
+                    Size.FIT
+                    if (
+                        ori_width > max_width
+                        or round(ori_height * self._pixel_ratio) > max_height
+                    )
+                    else Size.ORIGINAL
+                )
+            elif Size.FIT_TO_WIDTH in (width, height):
                 return (
                     self._pixels_cols(pixels=max_width),
                     self._pixels_lines(
@@ -1770,14 +1814,11 @@ class BaseImage(ABC):
                         )
                     ),
                 )
-            if fit_to_height:
+
+            if Size.ORIGINAL in (width, height):
                 return (
-                    self._pixels_cols(
-                        pixels=round(
-                            self._width_height_px(h=max_height) / self._pixel_ratio
-                        )
-                    ),
-                    self._pixels_lines(pixels=max_height),
+                    self._pixels_cols(pixels=ori_width),
+                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio)),
                 )
 
             # The smaller fraction will fit on both axis.
@@ -1963,8 +2004,7 @@ class ImageIterator:
     * If *repeat* equals ``1``, caching is disabled.
     * The iterator has immediate response to changes in the image size
       and :term:`scale`.
-    * If the image size is :ref:`unset <unset-size>`, it's automatically
-      calculated per frame.
+    * If the image size is :term:`dynamic <dynamic size>`, it's computed per frame.
     * The number of the last yielded frame is set as the image's seek position.
     * Directly adjusting the seek position of the image doesn't affect iteration.
       Use :py:meth:`ImageIterator.seek` instead.
@@ -2119,12 +2159,6 @@ class ImageIterator:
         n = 0
         while repeat:
             if sent is None:
-                # Size must be set before hashing, since `None` will always
-                # compare equal but doesn't mean the size is the same.
-                unset_size = not image._size
-                if unset_size:
-                    image.set_size()
-
                 image._seek_position = n
                 try:
                     frame = image._format_render(
@@ -2140,9 +2174,6 @@ class ImageIterator:
                 else:
                     if cached:
                         cache[n] = (frame, hash(image.rendered_size))
-                finally:
-                    if unset_size:
-                        image._size = None
 
             sent = yield frame
             n = n + 1 if sent is None else sent - 1
@@ -2152,12 +2183,6 @@ class ImageIterator:
         while repeat:
             while n < n_frames:
                 if sent is None:
-                    # Size must be set before hashing, since `None` will always
-                    # compare equal but doesn't mean the size is the same.
-                    unset_size = not image._size
-                    if unset_size:
-                        image.set_size()
-
                     image._seek_position = n
                     frame, size_hash = cache[n]
                     if hash(image.rendered_size) != size_hash:
@@ -2166,9 +2191,6 @@ class ImageIterator:
                             *fmt,
                         )
                         cache[n] = (frame, hash(image.rendered_size))
-
-                    if unset_size:
-                        image._size = None
 
                 sent = yield frame
                 n = n + 1 if sent is None else sent - 1
