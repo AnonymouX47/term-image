@@ -155,7 +155,7 @@ def manage_image_renders():
             ImageClass,
             image_style_specs.get(cli.args.style, ""),
         ),
-        kwargs=dict(multi=multi, out_extras=False, log_faults=True),
+        kwargs=dict(out_extras=False, log_faults=True),
         name="ImageRenderer",
         redirect_notifs=True,
     )
@@ -182,7 +182,7 @@ def manage_image_renders():
 
         image_render_in.put(
             (
-                image_w._ti_image._source if multi else image_w._ti_image,
+                image_w._ti_image._source,
                 size,
                 alpha,
                 image_w._ti_faulty,
@@ -238,7 +238,7 @@ def manage_grid_renders(n_renderers: int):
                 ImageClass,
                 grid_style_specs.get(cli.args.style, ""),
             ),
-            kwargs=dict(multi=multi, out_extras=True, log_faults=False),
+            kwargs=dict(out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
         for n in range(n_renderers if multi else 1)
@@ -415,14 +415,12 @@ def render_images(
     ImageClass: type,
     style_spec: str,
     *,
-    multi: bool,
     out_extras: bool,
     log_faults: bool,
 ):
     """Renders images.
 
     Args:
-        multi: True if being executed in a subprocess and False if in a thread.
         out_extras: If True, details other than the render output and it's size are
           also passed out.
     Intended to be executed in a subprocess or thread.
@@ -436,8 +434,7 @@ def render_images(
         if not image:  # Quitting
             break
 
-        if multi:
-            image = ImageClass.from_file(image)
+        image = ImageClass.from_file(image)
         image.set_size(maxsize=size)
 
         # Using `BaseImage` for padding will use more memory since all the
