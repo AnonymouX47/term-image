@@ -300,17 +300,7 @@ class Image(urwid.Widget):
         ):
             canv = __class__._ti_grid_cache.get(basename(image._source))
             if not canv:
-                grid_render_queue.put(
-                    (
-                        (
-                            image._source
-                            if logging.MULTI and tui_main.GRID_RENDERERS > 0
-                            else image
-                        ),
-                        size,
-                        self._ti_alpha,
-                    )
-                )
+                grid_render_queue.put((image._source, size, self._ti_alpha))
                 __class__._ti_grid_cache[basename(image._source)] = ...
                 canv = __class__._ti_placeholder.render(size, focus)
             elif canv is ...:
