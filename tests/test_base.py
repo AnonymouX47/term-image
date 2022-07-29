@@ -735,7 +735,76 @@ class TestFormatting:
     image.scale = 0.5  # To ensure there's padding
     render = str(image)
     check_formatting = staticmethod(image._check_formatting)
-    format_render = image._format_render
+
+    def check_padding(self, *args, render=None, **kwargs):
+        h_align, width, v_align, height, *_ = args + (None,) * 4
+        for name, value in kwargs.items():
+            exec(f"{name} = {value!r}")
+        width = width or columns - self.image._h_allow
+        height = height or lines - self.image._v_allow
+
+        left, right = [], []
+        render = self.image._format_render(render or self.render, *args, **kwargs)
+
+        chunk, _, render = render.partition(ESC)
+        top, _, first_left = chunk.rpartition("\n")
+        left.append(first_left)
+
+        chunk, _, render = render.partition("\n")
+        right.append(chunk.rpartition("m")[2])
+
+        render, _, chunk = render.rpartition("m")
+        last_right, _, bottom = chunk.partition("\n")
+
+        render, _, chunk = render.rpartition("\n")
+        last_left = chunk.partition(ESC)[0]
+
+        for chunk in render.splitlines():
+            next_left, _, chunk = chunk.partition(ESC)
+            left.append(next_left)
+            right.append(chunk.rpartition("m")[2])
+
+        left.append(last_left)
+        right.append(last_right)
+        top, bottom = top.splitlines(), bottom.splitlines()
+
+        # unquote to debug padding
+        """
+        for name in ("left", "right", "top", "bottom"):
+            side = vars()[name]
+            print(f"------------ {name} - {len(side)} --------------")
+            for line in side:
+                print(f"{len(line)} {line!r}")
+        raise ValueError
+        """
+
+        n_left = (
+            0
+            if h_align == "<"
+            else width - self.image.rendered_width
+            if h_align == ">"
+            else (width - self.image.rendered_width) // 2
+        )
+        n_right = width - self.image.rendered_width - n_left
+        n_top = (
+            0
+            if v_align == "^"
+            else height - self.image.rendered_height
+            if v_align == "_"
+            else (height - self.image.rendered_height) // 2
+        )
+        n_bottom = height - self.image.rendered_height - n_top
+
+        assert len(left) == self.image.rendered_height
+        assert all(line == " " * n_left for line in left)
+        assert len(right) == self.image.rendered_height
+        assert all(line == " " * n_right for line in right)
+        assert len(top) == n_top
+        assert all(line == " " * width for line in top)
+        assert len(bottom) == n_bottom
+        assert all(line == " " * width for line in bottom)
+
+        return left, right, top, bottom
 
     def test_args(self):
         self.image.set_size()
@@ -809,117 +878,58 @@ class TestFormatting:
     def test_padding_width(self):
         self.image.set_size()
         for width in range(self.image.rendered_width, columns + 1):
-            assert (
-                self.format_render(self.render, "<", width)
-                .partition("\n")[0]
-                .count(" ")
-                == width
-            )
-            assert (
-                self.format_render(self.render, "|", width)
-                .partition("\n")[0]
-                .count(" ")
-                == width
-            )
-            assert (
-                self.format_render(self.render, ">", width)
-                .partition("\n")[0]
-                .count(" ")
-                == width
-            )
-            assert (
-                self.format_render(self.render, None, width)
-                .partition("\n")[0]
-                .count(" ")
-                == width
-            )
+            self.check_padding("<", width)
+            self.check_padding("|", width)
+            self.check_padding(">", width)
+            self.check_padding(None, width)
 
     def test_padding_height(self):
         self.image.set_size()
         for height in range(self.image.rendered_height, lines + 1):
-            assert (
-                self.format_render(self.render, None, None, "^", height).count("\n") + 1
-                == height
-            )
-            assert (
-                self.format_render(self.render, None, None, "-", height).count("\n") + 1
-                == height
-            )
-            assert (
-                self.format_render(self.render, None, None, "_", height).count("\n") + 1
-                == height
-            )
-            assert (
-                self.format_render(self.render, None, None, None, height).count("\n")
-                + 1
-                == height
-            )
+            self.check_padding(None, None, "^", height)
+            self.check_padding(None, None, "-", height)
+            self.check_padding(None, None, "_", height)
+            self.check_padding(None, None, None, height)
 
-    def test_align_left_top(self):
+    def test_align(self):
         self.image.set_size()
-        render = self.format_render(self.render, "<", columns, "^", lines)
-        assert (
-            len(render.partition("\n")[0].rpartition("m")[2])
-            == columns - self.image.rendered_width
-        )
-        assert (
-            render.rpartition("m")[2].count("\n") == lines - self.image.rendered_height
-        )
-
-    def test_align_center_middle(self):
-        self.image.set_size()
-        render = self.format_render(self.render, "|", columns, "-", lines)
-        left = (columns - self.image.rendered_width) // 2
-        right = columns - self.image.rendered_width - left
-        up = (lines - self.image.rendered_height) // 2
-        down = lines - self.image.rendered_height - up
-
-        partition = render.rpartition("m")[0]
-        assert partition.rpartition("\n")[2].index(ESC) == left
-        assert render.partition(ESC)[0].count("\n") == up
-
-        partition = render.partition(ESC)[2]
-        assert len(partition.partition("\n")[0].rpartition("m")[2]) == right
-        assert render.rpartition("m")[2].count("\n") == down
-
-    def test_align_right_bottom(self):
-        self.image.set_size()
-        render = self.format_render(self.render, ">", columns, "_", lines)
-        assert (
-            render.rpartition("\n")[2].index(ESC) == columns - self.image.rendered_width
-        )
-        assert (
-            render.partition(ESC)[0].count("\n") == lines - self.image.rendered_height
-        )
-
-    # First line in every render should be padding (except the terminal is so small)
-    # No '\n' after the last line, hence the `+ 1` when counting lines
+        self.check_padding("<", columns, "^", lines)
+        self.check_padding("|", columns, "-", lines)
+        self.check_padding(">", columns, "_", lines)
 
     def test_allowance_default(self):
         self.image.set_size()
-        render = self.format_render(self.render)
-        assert render.partition("\n")[0].count(" ") == columns
-        assert render.count("\n") + 1 == lines - 2
+        left, right, top, bottom = self.check_padding()
+        assert all(len(line) == columns for line in top)
+        assert all(len(line) == columns for line in bottom)
+        assert len(top) + len(left) + len(bottom) == lines - 2
+        assert len(top) + len(right) + len(bottom) == lines - 2
 
     def test_allowance_non_default(self):
         self.image.set_size(h_allow=2, v_allow=3)
-        render = self.format_render(str(self.image))
-        assert render.partition("\n")[0].count(" ") == columns - 2
-        assert render.count("\n") + 1 == lines - 3
+        left, right, top, bottom = self.check_padding(render=str(self.image))
+        assert all(len(line) == columns - 2 for line in top)
+        assert all(len(line) == columns - 2 for line in bottom)
+        assert len(top) + len(left) + len(bottom) == lines - 3
+        assert len(top) + len(right) + len(bottom) == lines - 3
 
     def test_allowance_fit_to_width(self):
         # Vertical allowance nullified
         self.image.set_size(Size.FIT_TO_WIDTH, h_allow=2, v_allow=3)
-        render = self.format_render(str(self.image))
-        assert render.partition("\n")[0].count(" ") == columns - 2
-        assert render.count("\n") + 1 == lines
+        left, right, top, bottom = self.check_padding(render=str(self.image))
+        assert all(len(line) == columns - 2 for line in top)
+        assert all(len(line) == columns - 2 for line in bottom)
+        assert len(top) + len(left) + len(bottom) == lines
+        assert len(top) + len(right) + len(bottom) == lines
 
     def test_allowance_maxsize(self):
         # `maxsize` ignores but doesn't nullify allowances
         self.image.set_size(h_allow=2, v_allow=3, maxsize=(_size,) * 2)
-        render = self.format_render(str(self.image))
-        assert render.partition("\n")[0].count(" ") == columns - 2
-        assert render.count("\n") + 1 == lines - 3
+        left, right, top, bottom = self.check_padding(render=str(self.image))
+        assert all(len(line) == columns - 2 for line in top)
+        assert all(len(line) == columns - 2 for line in bottom)
+        assert len(top) + len(left) + len(bottom) == lines - 3
+        assert len(top) + len(right) + len(bottom) == lines - 3
 
     def test_format_spec(self):
         for spec in (

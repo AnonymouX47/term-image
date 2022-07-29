@@ -15,15 +15,13 @@ from ..logging_multi import Process
 from ..utils import clear_queue
 
 
-def manage_anim_renders() -> bool:
+def manage_anim_renders() -> None:
     from .main import ImageClass, update_screen
     from .widgets import ImageCanvas, image_box
 
-    def next_frame() -> None:
-        if image_box.original_widget is image_w and (
-            not forced or image_w._ti_force_render
-        ):
-            frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
+    def next_frame() -> bool:
+        frame, repeat, frame_no, size, rendered_size = frame_render_out.get()
+        if not_skip() and (not forced or image_w._ti_force_render):
             if frame:
                 canv = ImageCanvas(frame.encode().split(b"\n"), size, rendered_size)
                 image_w._ti_image._seek_position = frame_no
@@ -31,13 +29,20 @@ def manage_anim_renders() -> bool:
             else:
                 image_w._ti_anim_finished = True
                 image_w._ti_image.seek(0)
-        else:
+        # If this image is the one currently displayed, it's either:
+        # - forced but size changed -> End animation; Remove attributes
+        # - a size change -> Continue animation; Do not remove attributes
+        # - a restart (moved to another entry and back) -> Animation will be ended at
+        #   restart; attributes already removed in `.main.animate_image()`
+        elif image_w is not image_box.original_widget or forced:
             frame_render_in.put((..., None, None))
             clear_queue(frame_render_out)  # In case output is full
             frame = None
 
         if not frame:
             try:
+                # If one fails, the rest shouldn't exist (removed in `animate_image()`)
+                del image_w._ti_anim_ongoing
                 del image_w._ti_frame
                 if forced:
                     # See "Forced render" section of `.widgets.Image.render()`
@@ -48,6 +53,9 @@ def manage_anim_renders() -> bool:
 
         update_screen()
         return bool(frame)
+
+    def not_skip():
+        return image_w is image_box.original_widget and anim_render_queue.empty()
 
     frame_render_in = (mp_Queue if logging.MULTI else Queue)()
     frame_render_out = (mp_Queue if logging.MULTI else Queue)(20)
@@ -82,31 +90,40 @@ def manage_anim_renders() -> bool:
 
             notify.start_loading()
 
-            ready.clear()
-            frame_render_in.put((..., None, None))
-            clear_queue(frame_render_out)  # In case output is full
-            ready.wait()
-            clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
+            if anim_render_queue.empty():
+                ready.clear()
+                frame_render_in.put((..., None, None))
+                clear_queue(frame_render_out)  # In case output is full
+                ready.wait()
+                # multiprocessing queues are not so reliable
+                clear_queue(frame_render_out)
 
             if isinstance(data, tuple):
-                frame_render_in.put((data, size, image_w._ti_alpha))
-                if not next_frame():
+                if not_skip():
+                    frame_render_in.put((data, size, image_w._ti_alpha))
+                    if not next_frame():
+                        frame_duration = None
+                elif image_w is not image_box.original_widget:
+                    # The next item in the queue is NOT a size change
                     frame_duration = None
-                try:
-                    del image_w._ti_canv  # Set in `.widgets.Image.render()`
-                except AttributeError:
-                    pass
             else:
+                # Safe, since the next item in the queue cannot be a size change cos no
+                # animation is ongoing
+                frame_duration = None
+
                 image_w = data
-                frame_render_in.put(
-                    (image_w._ti_image._source, size, image_w._ti_alpha)
-                )
-                frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
-                # Ensures successful deletion when the displayed image has changed
-                image_w._ti_frame = None
-                if not next_frame():
-                    frame_duration = None
-                del image_w._ti_anim_starting
+                if not_skip():
+                    frame_render_in.put(
+                        (image_w._ti_image._source, size, image_w._ti_alpha)
+                    )
+                    # Ensures successful deletion if the displayed image has changed
+                    # before the first frame is ready
+                    image_w._ti_frame = None
+
+                    if next_frame():
+                        frame_duration = (
+                            FRAME_DURATION or image_w._ti_image._frame_duration
+                        )
 
             notify.stop_loading()
 
@@ -121,6 +138,13 @@ def manage_image_renders():
     from .main import ImageClass, update_screen
     from .widgets import Image, ImageCanvas, image_box
 
+    def not_skip():
+        # If this image is the one currently displayed but the queue is non empty,
+        # it means some "forth and back" has occured.
+        # Skipping this render avoids the possibility of wasting time with this render
+        # in the case where the image size has changed.
+        return image_w is image_box.original_widget and image_render_queue.empty()
+
     multi = logging.MULTI
     image_render_in = (mp_Queue if multi else Queue)()
     image_render_out = (mp_Queue if multi else Queue)()
@@ -132,7 +156,7 @@ def manage_image_renders():
             ImageClass,
             image_style_specs.get(cli.args.style, ""),
         ),
-        kwargs=dict(multi=multi, out_extras=False, log_faults=True),
+        kwargs=dict(out_extras=False, log_faults=True),
         name="ImageRenderer",
         redirect_notifs=True,
     )
@@ -143,31 +167,32 @@ def manage_image_renders():
     last_image_w._ti_canv = None
 
     while True:
+        # A redraw is neccesary even when the render is skipped, in case the skipped
+        # render is of the currently displayed image.
+        # So that a new render can be sent in (after `._ti_rendering` is unset).
+        # Otherwise, the image will remain unrendered until a redraw.
+        update_screen()
+
         image_w, size, alpha = image_render_queue.get()
         if not image_w:
             break
-        if image_w is not image_box.original_widget:
+
+        if not not_skip():
+            del image_w._ti_rendering
             continue
 
-        # Stored at this point to prevent an incorrect *rendered_size* for the
-        # Imagecanvas, since the image's size might've changed by the time the canvas is
-        # being created.
-        rendered_size = image_w._ti_image.rendered_size
-
-        Image._ti_rendering_image_info = (image_w, size, alpha)
         image_render_in.put(
             (
-                image_w._ti_image._source if multi else image_w._ti_image,
+                image_w._ti_image._source,
                 size,
                 alpha,
                 image_w._ti_faulty,
             )
         )
         notify.start_loading()
-        render = image_render_out.get()
-        Image._ti_rendering_image_info = (None,) * 3
+        render, rendered_size = image_render_out.get()
 
-        if image_w is image_box.original_widget:
+        if not_skip():
             del last_image_w._ti_canv
             if render:
                 image_w._ti_canv = ImageCanvas(
@@ -178,8 +203,9 @@ def manage_image_renders():
                 # Ensures a fault is logged only once per `Image` instance
                 if not image_w._ti_faulty:
                     image_w._ti_faulty = True
-            update_screen()
             last_image_w = image_w
+
+        del image_w._ti_rendering
         notify.stop_loading()
 
     clear_queue(image_render_in)
@@ -213,7 +239,7 @@ def manage_grid_renders(n_renderers: int):
                 ImageClass,
                 grid_style_specs.get(cli.args.style, ""),
             ),
-            kwargs=dict(multi=multi, out_extras=True, log_faults=False),
+            kwargs=dict(out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
         )
         for n in range(n_renderers if multi else 1)
@@ -390,15 +416,14 @@ def render_images(
     ImageClass: type,
     style_spec: str,
     *,
-    multi: bool,
     out_extras: bool,
     log_faults: bool,
 ):
     """Renders images.
 
     Args:
-        multi: True if being executed in a subprocess and False if in a thread.
-        out_extras: If True, image details other than the render output are passed out.
+        out_extras: If True, details other than the render output and it's size are
+          also passed out.
     Intended to be executed in a subprocess or thread.
     """
     while True:
@@ -410,8 +435,7 @@ def render_images(
         if not image:  # Quitting
             break
 
-        if multi:
-            image = ImageClass.from_file(image)
+        image = ImageClass.from_file(image)
         image.set_size(Size.AUTO, maxsize=size)
 
         # Using `BaseImage` for padding will use more memory since all the
@@ -429,11 +453,13 @@ def render_images(
                     image.rendered_size,
                 )
                 if out_extras
-                else f"{image:1.1{alpha}{style_spec}}"
+                else (f"{image:1.1{alpha}{style_spec}}", image.rendered_size)
             )
         except Exception as e:
             output.put(
-                (image._source, None, size, image.rendered_size) if out_extras else None
+                (image._source, None, size, image.rendered_size)
+                if out_extras
+                else (None, image.rendered_size)
             )
             # *faulty* ensures a fault is logged only once per `Image` instance
             if log_faults:

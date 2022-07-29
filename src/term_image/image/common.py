@@ -1398,9 +1398,10 @@ class BaseImage(ABC):
 
         All arguments should be passed through ``_check_formatting()`` first.
         """
-        cols, rows = self.rendered_size
+        cols, lines = self.rendered_size
+        terminal_size = get_terminal_size()
 
-        width = width or get_terminal_size()[0] - self._h_allow
+        width = width or terminal_size[0] - self._h_allow
         if width > cols:
             if h_align == "<":  # left
                 left = ""
@@ -1415,27 +1416,25 @@ class BaseImage(ABC):
         else:
             left = right = ""
 
-        height = height or get_terminal_size()[1] - self._v_allow
-        if height > rows:
+        height = height or terminal_size[1] - self._v_allow
+        if height > lines:
             if v_align == "^":  # top
                 top = 0
-                bottom = height - rows
+                bottom = height - lines
             elif v_align == "_":  # bottom
-                top = height - rows
+                top = height - lines
                 bottom = 0
             else:  # middle
-                top = (height - rows) // 2
-                bottom = height - rows - top
-
-            line = f"{' ' * width}\n"
-            top = line * top
-            bottom = line * bottom
+                top = (height - lines) // 2
+                bottom = height - lines - top
+            top = f"{' ' * width}\n" * top
+            bottom = f"\n{' ' * width}" * bottom
         else:
             top = bottom = ""
 
         return (
             "".join((top, left, render, right, bottom))
-            if width > cols or height > rows
+            if width > cols or height > lines
             else render
         )
 

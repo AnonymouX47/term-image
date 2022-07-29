@@ -232,11 +232,11 @@ class Image(urwid.Widget):
     _ti_forced_anim_size_hash = None
 
     _ti_frame = None
-    _ti_anim_starting = _ti_anim_finished = False
+    _ti_anim_ongoing = _ti_anim_finished = False
 
     _ti_faulty = False
     _ti_canv = None
-    _ti_rendering_image_info = (None,) * 3
+    _ti_rendering = False
 
     _ti_grid_cache = {}
 
@@ -273,7 +273,7 @@ class Image(urwid.Widget):
                 not isinstance(self._ti_canv, ImageCanvas)
                 or self._ti_canv._ti_image_size == image.size
             )
-            or (self, size, self._ti_alpha) == __class__._ti_rendering_image_info
+            or self._ti_rendering
         ):
             if self._ti_force_render:
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
@@ -308,17 +308,7 @@ class Image(urwid.Widget):
         ):
             canv = __class__._ti_grid_cache.get(basename(image._source))
             if not canv:
-                grid_render_queue.put(
-                    (
-                        (
-                            image._source
-                            if logging.MULTI and tui_main.GRID_RENDERERS > 0
-                            else image
-                        ),
-                        size,
-                        self._ti_alpha,
-                    )
-                )
+                grid_render_queue.put((image._source, size, self._ti_alpha))
                 __class__._ti_grid_cache[basename(image._source)] = ...
                 canv = __class__._ti_placeholder.render(size, focus)
             elif canv is ...:
@@ -341,7 +331,7 @@ class Image(urwid.Widget):
         elif self._ti_frame:
             canv, repeat, frame_no = self._ti_frame
             if canv._ti_image_size != image.size:  # The canvas is always an ImageCanvas
-                self._ti_canv = canv = (
+                canv = (
                     placeholder
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
@@ -356,7 +346,7 @@ class Image(urwid.Widget):
             else:
                 canv.size = size
         elif self._ti_canv and (
-            # Can either be SolidCanvas (faulty or frame placeholder) or ImageCanvas
+            # Can either be SolidCanvas (faulty) or ImageCanvas
             not isinstance(self._ti_canv, ImageCanvas)
             or self._ti_canv._ti_image_size == image.size
         ):
@@ -368,10 +358,11 @@ class Image(urwid.Widget):
                 and not tui_main.NO_ANIMATION
                 and not self._ti_anim_finished
             ):
-                if not self._ti_anim_starting:
+                if not self._ti_anim_ongoing:
                     anim_render_queue.put((self, size, self._ti_force_render))
-                    self._ti_anim_starting = True
-            elif (self, size, self._ti_alpha) != __class__._ti_rendering_image_info:
+                    self._ti_anim_ongoing = True
+            elif not self._ti_rendering:
+                self._ti_rendering = True
                 image_render_queue.put((self, size, self._ti_alpha))
             canv = (
                 placeholder
