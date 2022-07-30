@@ -29,6 +29,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#64]: https://github.com/AnonymouX47/term-image/pull/64
 
 
+## [0.4.1] - 2022-07-30
+### Added
+- [tui] Handling for exceptions raised while rendering animation frames.
+- [docs] Interface stability status notice.
+
+### Fixed
+- [lib] `term_image.image.ImageSource` enum.
+- [lib] Accidental closure of the PIL image instance being used by an `ImageIterator` instance.
+- [lib] `ImageIterator` now caches frames by the image's rendered size, not the unscaled size.
+- [lib] `ImageIterator.seek()` now raises `TermImageError` after the iterator has been exhausted/finalized.
+- [lib] Placement of linebreaks in image bottom padding.
+- [lib] Fixed some utilities.
+- [cli] Errors in CLI help text.
+- [tui] Handling of crashes in the TUI, particularly when multiprocessing is enabled.
+- [tui] Image and animation rendering.
+
+See the commit messages for [0.4.1] for the full logs.
+
+
 ## [0.4.0] - 2022-06-27
 ### Fixed
 - [lib] Directly adjusting image seek position no longer affects iteration with `ImageIterator` ([#42]).
@@ -240,6 +259,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...HEAD
+[0.4.1]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AnonymouX47/term-image/compare/v0.2.0...v0.3.0
