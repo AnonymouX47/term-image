@@ -69,48 +69,51 @@ def manage_anim_renders() -> bool:
     )
     renderer.start()
 
-    image_w = None  # Silence flake8's F821
     frame_duration = None
-    while True:
-        try:
-            data, size, forced = anim_render_queue.get(timeout=frame_duration)
-        except Empty:
-            if not next_frame():
-                frame_duration = None
-        else:
-            if not data:
-                break
+    image_w = None  # Silence flake8's F821
 
-            notify.start_loading()
-
-            ready.clear()
-            frame_render_in.put((..., None, None))
-            clear_queue(frame_render_out)  # In case output is full
-            ready.wait()
-            clear_queue(frame_render_out)  # multiprocessing queues are not so reliable
-
-            if isinstance(data, tuple):
-                frame_render_in.put((data, size, image_w._ti_alpha))
+    try:
+        while True:
+            try:
+                data, size, forced = anim_render_queue.get(timeout=frame_duration)
+            except Empty:
                 if not next_frame():
                     frame_duration = None
             else:
-                image_w = data
-                frame_render_in.put(
-                    (image_w._ti_image._source, size, image_w._ti_alpha)
-                )
-                frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
-                # Ensures successful deletion when the displayed image has changed
-                image_w._ti_frame = None
-                if not next_frame():
-                    frame_duration = None
+                if not data:
+                    break
 
-            notify.stop_loading()
+                notify.start_loading()
 
-    clear_queue(frame_render_in)
-    frame_render_in.put((None,) * 3)
-    clear_queue(frame_render_out)  # In case output is full
-    renderer.join()
-    clear_queue(anim_render_queue)
+                ready.clear()
+                frame_render_in.put((..., None, None))
+                clear_queue(frame_render_out)  # In case output is full
+                ready.wait()
+                # multiprocessing queues are not so reliable
+                clear_queue(frame_render_out)
+
+                if isinstance(data, tuple):
+                    frame_render_in.put((data, size, image_w._ti_alpha))
+                    if not next_frame():
+                        frame_duration = None
+                else:
+                    image_w = data
+                    frame_render_in.put(
+                        (image_w._ti_image._source, size, image_w._ti_alpha)
+                    )
+                    frame_duration = FRAME_DURATION or image_w._ti_image._frame_duration
+                    # Ensures successful deletion when the displayed image has changed
+                    image_w._ti_frame = None
+                    if not next_frame():
+                        frame_duration = None
+
+                notify.stop_loading()
+    finally:
+        clear_queue(frame_render_in)
+        frame_render_in.put((None,) * 3)
+        clear_queue(frame_render_out)  # In case output is full
+        renderer.join()
+        clear_queue(anim_render_queue)
 
 
 def manage_image_renders():
@@ -133,52 +136,54 @@ def manage_image_renders():
         redirect_notifs=True,
     )
     renderer.start()
+
     faulty_image = Image._ti_faulty_image
     last_image_w = image_box.original_widget
     # To prevent an `AttributeError` with the first deletion, while avoiding `hasattr()`
     last_image_w._ti_canv = None
 
-    while True:
-        image_w, size, alpha = image_render_queue.get()
-        if not image_w:
-            break
+    try:
+        while True:
+            image_w, size, alpha = image_render_queue.get()
+            if not image_w:
+                break
 
-        if image_w is not image_box.original_widget:
-            del image_w._ti_rendering
-            continue
+            if image_w is not image_box.original_widget:
+                del image_w._ti_rendering
+                continue
 
-        image_render_in.put(
-            (
-                image_w._ti_image._source,
-                size,
-                alpha,
-                image_w._ti_faulty,
-            )
-        )
-        notify.start_loading()
-        render, rendered_size = image_render_out.get()
-
-        if image_w is image_box.original_widget:
-            del last_image_w._ti_canv
-            if render:
-                image_w._ti_canv = ImageCanvas(
-                    render.encode().split(b"\n"), size, rendered_size
+            image_render_in.put(
+                (
+                    image_w._ti_image._source,
+                    size,
+                    alpha,
+                    image_w._ti_faulty,
                 )
-            else:
-                image_w._ti_canv = faulty_image.render(size)
-                # Ensures a fault is logged only once per `Image` instance
-                if not image_w._ti_faulty:
-                    image_w._ti_faulty = True
-            update_screen()
-            last_image_w = image_w
+            )
+            notify.start_loading()
+            render, rendered_size = image_render_out.get()
 
-        del image_w._ti_rendering
-        notify.stop_loading()
+            if image_w is image_box.original_widget:
+                del last_image_w._ti_canv
+                if render:
+                    image_w._ti_canv = ImageCanvas(
+                        render.encode().split(b"\n"), size, rendered_size
+                    )
+                else:
+                    image_w._ti_canv = faulty_image.render(size)
+                    # Ensures a fault is logged only once per `Image` instance
+                    if not image_w._ti_faulty:
+                        image_w._ti_faulty = True
+                update_screen()
+                last_image_w = image_w
 
-    clear_queue(image_render_in)
-    image_render_in.put((None,) * 4)
-    renderer.join()
-    clear_queue(image_render_queue)
+            del image_w._ti_rendering
+            notify.stop_loading()
+    finally:
+        clear_queue(image_render_in)
+        image_render_in.put((None,) * 4)
+        renderer.join()
+        clear_queue(image_render_queue)
 
 
 def manage_grid_renders(n_renderers: int):
@@ -219,77 +224,82 @@ def manage_grid_renders(n_renderers: int):
     grid_cache = Image._ti_grid_cache
     new_grid = False
 
-    while True:
-        while not (
-            grid_active.wait(0.1) or quitting.is_set() or not grid_render_out.empty()
-        ):
-            pass
-        if quitting.is_set():
-            break
+    try:
+        while True:
+            while not (
+                grid_active.wait(0.1)
+                or quitting.is_set()
+                or not grid_render_out.empty()
+            ):
+                pass
+            if quitting.is_set():
+                break
 
-        if new_grid or grid_change.is_set():  # New grid
-            grid_cache.clear()
-            grid_change.clear()  # Signal "cache cleared"
-            if not new_grid:  # The starting `None` hasn't been gotten
-                while grid_render_queue.get():
+            if new_grid or grid_change.is_set():  # New grid
+                grid_cache.clear()
+                grid_change.clear()  # Signal "cache cleared"
+                if not new_grid:  # The starting `None` hasn't been gotten
+                    while grid_render_queue.get():
+                        pass
+                for q in (grid_render_in, grid_render_out):
+                    while True:
+                        try:
+                            q.get(timeout=0.005)
+                            notify.stop_loading()
+                        except Empty:
+                            break
+                cell_width = image_grid.cell_width
+                grid_path = main.grid_path
+                new_grid = False
+
+            if grid_change.is_set():
+                continue
+
+            if grid_active.is_set():
+                try:
+                    image_info = grid_render_queue.get(timeout=0.02)
+                except Empty:
                     pass
-            for q in (grid_render_in, grid_render_out):
-                while True:
-                    try:
-                        q.get(timeout=0.005)
-                        notify.stop_loading()
-                    except Empty:
-                        break
-            cell_width = image_grid.cell_width
-            grid_path = main.grid_path
-            new_grid = False
+                else:
+                    if not image_info:  # Start of a new grid
+                        new_grid = True
+                        continue
+                    grid_render_in.put(image_info)
+                    notify.start_loading()
 
-        if grid_change.is_set():
-            continue
+            if grid_change.is_set():
+                continue
 
-        if grid_active.is_set():
             try:
-                image_info = grid_render_queue.get(timeout=0.02)
+                image_path, image, size, rendered_size = grid_render_out.get(
+                    timeout=0.02
+                )
             except Empty:
                 pass
             else:
-                if not image_info:  # Start of a new grid
-                    new_grid = True
-                    continue
-                grid_render_in.put(image_info)
-                notify.start_loading()
-
-        if grid_change.is_set():
-            continue
-
-        try:
-            image_path, image, size, rendered_size = grid_render_out.get(timeout=0.02)
-        except Empty:
-            pass
-        else:
-            dir, entry = split(image_path)
-            # The directory and cell-width checks are to filter out any remnants that
-            # were still being rendered at the other end
-            if (
-                not grid_change.is_set()
-                and dir == grid_path
-                and size[0] + 2 == cell_width
-            ):
-                grid_cache[entry] = (
-                    ImageCanvas(image.encode().split(b"\n"), size, rendered_size)
-                    if image
-                    else faulty_image.render(size)
-                )
-                if grid_active.is_set():
-                    update_screen()
-            notify.stop_loading()
-
-    clear_queue(grid_render_in)
-    for renderer in renderers:
-        grid_render_in.put((None,) * 3)
-    for renderer in renderers:
-        renderer.join()
-    clear_queue(grid_render_queue)
+                dir, entry = split(image_path)
+                # The directory and cell-width checks are to filter out any remnants
+                # that were still being rendered at the other end
+                if (
+                    not grid_change.is_set()
+                    and dir == grid_path
+                    and size[0] + 2 == cell_width
+                ):
+                    grid_cache[entry] = (
+                        ImageCanvas(image.encode().split(b"\n"), size, rendered_size)
+                        if image
+                        else faulty_image.render(size)
+                    )
+                    if grid_active.is_set():
+                        update_screen()
+                notify.stop_loading()
+    finally:
+        clear_queue(grid_render_in)
+        for renderer in renderers:
+            grid_render_in.put((None,) * 3)
+        for renderer in renderers:
+            renderer.join()
+        clear_queue(grid_render_queue)
 
 
 def render_frames(
