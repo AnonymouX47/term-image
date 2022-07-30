@@ -9,7 +9,7 @@ from traceback import format_exception
 
 import term_image
 
-from . import FontRatio, cli, logging, notify, set_font_ratio, tui
+from . import FontRatio, cli, logging, notify, set_font_ratio, tui, utils
 
 
 def process_multi_logs() -> None:
@@ -58,17 +58,18 @@ class Process(Process):
             "redirect_notifs": redirect_notifs,
         }
         self._main_process_interrupted = cli.interrupted
-        self._font_ratio = cli.args.font_ratio
-        self._query_timeout = term_image.utils.QUERY_TIMEOUT
-        self._swap_win_size = term_image.utils.SWAP_WIN_SIZE
         self._ImageClass = tui.main.ImageClass
-        exported_attrs = exported_style_attrs.get(cli.args.style)
-        if self._ImageClass and exported_attrs:
-            self._style_attrs = {
-                item
-                for item in vars(tui.main.ImageClass).items()
-                if item[0] in exported_attrs
-            }
+        if self._ImageClass:  # if the TUI is initialized
+            self._font_ratio = cli.args.font_ratio
+            self._query_timeout = utils.QUERY_TIMEOUT
+            self._swap_win_size = utils.SWAP_WIN_SIZE
+            exported_attrs = exported_style_attrs.get(cli.args.style)
+            if exported_attrs:
+                self._style_attrs = {
+                    item
+                    for item in vars(self._ImageClass).items()
+                    if item[0] in exported_attrs
+                }
         child_processes.append(self)
 
     def run(self):
@@ -76,10 +77,7 @@ class Process(Process):
         _logger.debug("Starting")
 
         try:
-            term_image.utils.QUERY_TIMEOUT = self._query_timeout
-            term_image.utils.SWAP_WIN_SIZE = self._swap_win_size
-
-            if self._ImageClass:
+            if self._ImageClass:  # if the TUI is initialized
                 # The unpickled class object is in the originally defined state
                 # Eliminates queries for style support checks
                 self._ImageClass._supported = True
@@ -87,10 +85,13 @@ class Process(Process):
                     for item in self._style_attrs:
                         setattr(self._ImageClass, *item)
 
-            if not self._font_ratio:
-                # Avoid error in case the terminal would not respond on time
-                term_image._auto_font_ratio = True
-            set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
+                utils.QUERY_TIMEOUT = self._query_timeout
+                utils.SWAP_WIN_SIZE = self._swap_win_size
+
+                if not self._font_ratio:
+                    # Avoid an error in case the terminal wouldn`t respond on time
+                    term_image._auto_font_ratio = True
+                set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
 
             super().run()
         except KeyboardInterrupt:
