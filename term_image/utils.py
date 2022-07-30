@@ -267,12 +267,12 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
-        The terminal cell size in pixels.
+        The terminal cell size in pixels or `None` if undetermined.
     """
     ws = get_window_size()
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
-    return size and (0 in size and None or size)
+    return size if size and 0 not in size else None
 
 
 @cached
@@ -565,27 +565,27 @@ def x_parse_color(spec: str) -> Tuple[int, int, int]:
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock
 
-    if isinstance(_tty_lock, type(RLock())):
-        try:
-            # Ensure it's not acquired by another process/thread before changing it.
-            # The only way this can be countered is if the owner process/thread is the
-            # one starting a process, which is very unlikely within a function meant
-            # for input :|
-            with _tty_lock:
+    # Ensure it's not acquired by another process/thread before changing it.
+    # The only way this can be countered is if the owner process/thread is the
+    # one starting a process, which is very unlikely within a function meant
+    # for input :|
+    with _tty_lock:
+        if isinstance(_tty_lock, type(RLock())):
+            try:
                 self._tty_lock = _tty_lock = mp_RLock()
-        except ImportError:
-            self._tty_lock = None
-            warnings.warn(
-                "Multi-process synchronization is not supported on this platform! "
-                "Hence, if any subprocess will be reading from STDIN, "
-                "it will be unsafe to use any image render style based on a terminal "
-                "graphics protocol or to use automatic font ratio.\n"
-                "You can simply set an 'ignore' filter for this warning if not using "
-                "any of the features affected.",
-                UserWarning,
-            )
-    else:
-        self._tty_lock = _tty_lock
+            except ImportError:
+                self._tty_lock = None
+                warnings.warn(
+                    "Multi-process synchronization is not supported on this platform!\n"
+                    "Hence, if any subprocess will be reading from STDIN, "
+                    "it will be unsafe to use any image render style based on a "
+                    "terminal graphics protocol or to use automatic font ratio.\n"
+                    "You can simply set an 'ignore' filter for this warning if not "
+                    "using any of the features affected.",
+                    UserWarning,
+                )
+        else:
+            self._tty_lock = _tty_lock
 
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
