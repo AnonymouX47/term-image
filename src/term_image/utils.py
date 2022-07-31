@@ -617,34 +617,28 @@ BG_FMT = f"{CSI}48;2;%d;%d;%dm"
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 COLOR_RESET = f"{CSI}m"
 
-# Appended to ensure it is overriden by any filter prepended before loading this module
-warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
-
 _tty_lock = RLock()
 _tty: Optional[int] = None
 if OS_IS_UNIX:
-    # In order of priority
-    try:
-        _tty = os.ttyname(sys.__stdout__.fileno())
-    except (OSError, AttributeError):
+    for stream in ("out", "in", "err"):  # In order of priority
         try:
-            _tty = os.ttyname(sys.__stdin__.fileno())
+            _tty = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
+            break
         except (OSError, AttributeError):
-            try:
-                _tty = os.ttyname(sys.__stderr__.fileno())
-            except (OSError, AttributeError):
-                try:
-                    _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
-                except OSError:
-                    warnings.warn(
-                        "It seems this process is not running within a terminal. "
-                        "Hence, automatic font ratio and render styles based on "
-                        "terminal graphics protocols will not work.\n"
-                        "You can set an 'ignore' filter for this warning before "
-                        "loading `term_image`, if not using any of the features "
-                        "affected.",
-                        UserWarning,
-                    )
+            pass
+    else:
+        try:
+            _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+        except OSError:
+            warnings.warn(
+                "It seems this process is not running within a terminal. "
+                "Hence, some features will behave differently or be disabled.\n"
+                "See https://term-image.readthedocs.io/en/stable/library/reference"
+                "/utils.html#terminal-queries.\n"
+                "You can set an 'ignore' filter for this warning before loading "
+                "`term_image`, if not using any of the features affected.",
+                TermImageWarning,
+            )
     if _tty:
         if isinstance(_tty, str):
             _tty = os.open(_tty, os.O_RDWR)
