@@ -18,18 +18,9 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import (
-    FontRatio,
-    TermImageWarning,
-    config,
-    logging,
-    notify,
-    set_font_ratio,
-    tui,
-    utils,
-)
+from . import FontRatio, config, logging, notify, set_font_ratio, tui, utils
 from .config import config_options, store_config
-from .exceptions import StyleError, TermImageError, URLNotFoundError
+from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
 from .logging import Thread, init_log, log, log_exception

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **(BREAKING!!)** Removed *fit_to_width* and *fit_to_height* parameters.
   - Now accepts `Size` enum mumbers.
   - Refer to the linked PR for others.
+- [lib] Moved `TermImageWarning` from the top-level into `term_image.exceptions`.
 - [cli] Changed default sizing to `Size.AUTO` ([#64]).
 - [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
 - [tui] Changed sizing to `Size.AUTO` for all images ([#64]).

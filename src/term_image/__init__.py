@@ -20,7 +20,7 @@ Copyright (c) 2022
 
 from __future__ import annotations
 
-__all__ = ("set_font_ratio", "get_font_ratio", "FontRatio", "TermImageWarning")
+__all__ = ("set_font_ratio", "get_font_ratio", "FontRatio")
 __author__ = "AnonymouX47"
 
 from enum import Enum, auto
@@ -108,10 +108,6 @@ class FontRatio(Enum):
 
     AUTO = auto()
     FULL_AUTO = auto()
-
-
-class TermImageWarning(UserWarning):
-    """Package-specific warning category"""
 
 
 _font_ratio = 0.5

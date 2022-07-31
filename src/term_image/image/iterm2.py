@@ -13,8 +13,7 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 
 import PIL
 
-from .. import TermImageWarning
-from ..exceptions import _style_error
+from ..exceptions import TermImageWarning, _style_error
 from ..utils import (
     CSI,
     ESC,

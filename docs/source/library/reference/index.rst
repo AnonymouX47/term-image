@@ -36,9 +36,6 @@ Top-Level Definitions
    .. autoattribute:: FULL_AUTO
       :annotation:
 
-.. autoclass:: term_image.TermImageWarning
-   :show-inheritance:
-
 |
 
 
