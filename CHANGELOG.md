@@ -5,9 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [lib] Eliminated race condition in `term_image.utils.lock_tty()` multi-process integration ([#66]).
+
 ### Added
 - [lib] `term_image.image.Size` enumeration ([#64]).
   - Implemented "original size" image sizing.
+- [lib] `term_image.utils.DISABLE_QUERIES` to disable terminal queries ([#66]).
+- [lib] Implemented synchronized terminal window size multi-process caching ([#66]).
+  - Significant effect on cell ratio and image size computation when using multiprocessing.
 - [cli] `--fit` and `--original-size` CL options ([#64]).
 
 ### Changed
@@ -17,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Now accepts `Size` enum mumbers.
   - Refer to the linked PR for others.
 - [lib] Moved `TermImageWarning` from the top-level into `term_image.exceptions`.
+- [lib] Refactored and improved various utilities ([#66]).
+  - `TermImageWarning` is now issued instead of `Userwarning` when not running in a terminal or multi-process synchronization is unsupported.
 - [cli] Changed default sizing to `Size.AUTO` ([#64]).
 - [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
 - [tui] Changed sizing to `Size.AUTO` for all images ([#64]).
@@ -28,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Top-level package `term_img`.
 
 [#64]: https://github.com/AnonymouX47/term-image/pull/64
+[#66]: https://github.com/AnonymouX47/term-image/pull/66
 
 
 ## [0.4.1] - 2022-07-30
