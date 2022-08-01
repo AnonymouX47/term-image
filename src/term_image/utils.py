@@ -52,6 +52,10 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
+#: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
+#: :ref:`dependent features <queried-features>`.
+DISABLE_QUERIES: bool = False
+
 #: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
 #: report window dimensions swapped.
 #:
@@ -297,9 +301,11 @@ def get_fg_bg_colors(
             # Not all terminals (e.g VTE-based) support multiple queries in one escape
             # sequence, hence the repetition of OSC ... ST
             f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
-            lambda s: not s.endswith(f"{CSI}".encode()),
+            # The response might contain a "c"; can't stop reading at "c"
+            lambda s: not s.endswith(CSI.encode()),
         )
-        read_tty()  # Rest of the reply to CSI c
+        if not DISABLE_QUERIES:
+            read_tty()  # The rest of the response to `CSI c`
 
     fg = bg = None
     if response:
@@ -326,7 +332,8 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
             # The response might contain a "c"; can't stop reading at "c"
             lambda s: not s.endswith(CSI.encode()),
         )
-        read_tty()  # The rest of the response to `CSI c`
+        if not DISABLE_QUERIES:
+            read_tty()  # The rest of the response to `CSI c`
 
     match = response and NAME_VERSION.fullmatch(response.decode().rpartition(ESC)[0])
     name, version = (
@@ -433,16 +440,19 @@ def query_terminal(
           (infinite if negative).
 
           If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
-          :py:func:`term_image.set_query_timeout`) is used.
+          :py:func:`set_query_timeout`) is used.
 
     Returns:
-        The terminal's response (empty, if no response is recieved after *timeout*
-        is up).
+        `None` if :py:data:`DISABLE_QUERIES` is true, else the terminal's response
+        (empty, if no response is recieved after *timeout* is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
         it can be read using :py:func:`read_tty()` before calling this fucntion.
     """
+    if DISABLE_QUERIES:
+        return None
+
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
