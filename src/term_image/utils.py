@@ -29,7 +29,7 @@ import sys
 import warnings
 from array import array
 from functools import wraps
-from multiprocessing import Process, Queue as mp_Queue, RLock as mp_RLock
+from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
 from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
@@ -339,7 +339,6 @@ def get_terminal_size() -> os.terminal_size:
 
 
 @unix_tty_only
-@terminal_size_cached
 def get_window_size() -> Optional[Tuple[int, int]]:
     """Returns the current window size of the :term:`active terminal`.
 
@@ -352,33 +351,44 @@ def get_window_size() -> Optional[Tuple[int, int]]:
     Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
     support.
     """
-    # First try ioctl
-    buf = array("H", [0, 0, 0, 0])
-    try:
-        if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
-            size = tuple(buf[2:])
-            if size != (0, 0):
-                return size
-    except OSError:
-        pass
+    with _win_size_lock:
+        ts = get_terminal_size()
+        if ts == tuple(_win_size_cache[:2]):
+            size = tuple(_win_size_cache[2:])
+            return None if 0 in size else size
 
-    # Then CSI 14 t
-    # The second sequence is to speed up the entire query since most (if not all)
-    # terminals should support it and most terminals treat queries as FIFO
-    response = query_terminal(
-        f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
-    )
-    size = (response or None) and WIN_SIZE.match(response.decode())
-    if size:
-        size = tuple(map(int, size.groups()))[::-1]  # XTerm spicifies (height, width)
+        # First try ioctl
+        size = None
+        buf = array("H", [0, 0, 0, 0])
+        try:
+            if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
+                size = tuple(buf[2:])
+                if size == (0, 0):
+                    size = None
+        except OSError:
+            pass
 
-        # Termux seems to respond with (height / 2, width), though the values are
-        # incorrect as they change with different zoom levels but still always
-        # give a reasonable (almost always the same) cell size and ratio.
-        if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-            size = (size[0], size[1] * 2)
+        if not size:
+            # Then CSI 14 t
+            # The second sequence is to speed up the entire query since most (if not
+            # all) terminals should support it and most terminals treat queries as FIFO
+            response = query_terminal(
+                f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
+            )
+            size = (response or None) and WIN_SIZE.match(response.decode())
+            if size:
+                # XTWINOPS specifies (height, width)
+                size = tuple(map(int, size.groups()))[::-1]
 
-    return size[:: -SWAP_WIN_SIZE or 1] if size and 0 not in size else None
+                # Termux seems to respond with (height / 2, width), though the values
+                # are incorrect as they change with different zoom levels but still
+                # always give a reasonable (almost always the same) cell size and ratio.
+                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                    size = (size[0], size[1] * 2)
+
+        size = size[:: -SWAP_WIN_SIZE or 1] if size else (0, 0)
+        _win_size_cache[:] = ts + size
+        return None if 0 in size else size
 
 
 @unix_tty_only
@@ -565,7 +575,8 @@ def x_parse_color(spec: str) -> Tuple[int, int, int]:
 
 
 def _process_start_wrapper(self, *args, **kwargs):
-    global _tty_lock
+    global _tty_lock, _win_size_cache, _win_size_lock
+
     # Ensure it's not acquired by another process/thread before changing it.
     # The only way this can be countered is if the owner thread is the
     # one starting a process, which is very unlikely within a function meant
@@ -592,14 +603,28 @@ def _process_start_wrapper(self, *args, **kwargs):
         else:
             self._tty_lock = _tty_lock
 
+    with _win_size_lock:
+        if isinstance(_win_size_lock, type(RLock())):
+            try:
+                self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
+                _win_size_lock = _win_size_cache.get_lock()
+            except ImportError:
+                self._win_size_cache = None
+        else:
+            self._win_size_cache = _win_size_cache
+
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
 def _process_run_wrapper(self, *args, **kwargs):
-    global _tty_lock
+    global _tty_lock, _win_size_cache, _win_size_lock
 
     if self._tty_lock:
         _tty_lock = self._tty_lock
+    if self._win_size_cache:
+        _win_size_cache = self._win_size_cache
+        _win_size_lock = _win_size_cache.get_lock()
+
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
@@ -617,8 +642,11 @@ BG_FMT = f"{CSI}48;2;%d;%d;%dm"
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 COLOR_RESET = f"{CSI}m"
 
-_tty_lock = RLock()
 _tty: Optional[int] = None
+_tty_lock = RLock()
+_win_size_cache = [0] * 4
+_win_size_lock = RLock()
+
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
         try:
