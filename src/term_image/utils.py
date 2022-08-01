@@ -29,7 +29,7 @@ import sys
 import warnings
 from array import array
 from functools import wraps
-from multiprocessing import Process, Queue as mp_Queue, RLock as mp_RLock
+from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
 from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
@@ -37,6 +37,8 @@ from threading import RLock
 from time import monotonic
 from types import FunctionType
 from typing import Callable, Optional, Tuple, Union
+
+from .exceptions import TermImageWarning
 
 # import logging
 
@@ -49,6 +51,10 @@ except ImportError:
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True
+
+#: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
+#: :ref:`dependent features <queried-features>`.
+DISABLE_QUERIES: bool = False
 
 #: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
 #: report window dimensions swapped.
@@ -267,12 +273,12 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
-        The terminal cell size in pixels.
+        The terminal cell size in pixels or `None` if undetermined.
     """
     ws = get_window_size()
     size = ws and tuple(map(floordiv, ws, get_terminal_size()))
 
-    return size and (0 in size and None or size)
+    return size if size and 0 not in size else None
 
 
 @cached
@@ -295,9 +301,11 @@ def get_fg_bg_colors(
             # Not all terminals (e.g VTE-based) support multiple queries in one escape
             # sequence, hence the repetition of OSC ... ST
             f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
-            lambda s: not s.endswith(f"{CSI}".encode()),
+            # The response might contain a "c"; can't stop reading at "c"
+            lambda s: not s.endswith(CSI.encode()),
         )
-        read_tty()  # Rest of the reply to CSI c
+        if not DISABLE_QUERIES:
+            read_tty()  # The rest of the response to `CSI c`
 
     fg = bg = None
     if response:
@@ -312,7 +320,32 @@ def get_fg_bg_colors(
     )
 
 
-def get_terminal_size() -> Optional[Tuple[int, int]]:
+@cached
+def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
+    """Queries the :term:`active terminal` for it's name and version"""
+    with _tty_lock:  # the terminal's response to the query is not read all at once
+        # Terminal name/version query + terminal attribute query
+        # The latter is to speed up the entire query since most (if not all)
+        # terminals should support it and most terminals treat queries as FIFO
+        response = query_terminal(
+            f"{CSI}>q{CSI}c".encode(),
+            # The response might contain a "c"; can't stop reading at "c"
+            lambda s: not s.endswith(CSI.encode()),
+        )
+        if not DISABLE_QUERIES:
+            read_tty()  # The rest of the response to `CSI c`
+
+    match = response and NAME_VERSION.fullmatch(response.decode().rpartition(ESC)[0])
+    name, version = (
+        match.groups()
+        if match
+        else map(os.environ.get, ("TERM_PROGRAM", "TERM_PROGRAM_VERSION"))
+    )
+
+    return (name and name.lower(), version)
+
+
+def get_terminal_size() -> os.terminal_size:
     """Returns the current size of the :term:`active terminal`.
 
     Returns:
@@ -337,7 +370,6 @@ def get_terminal_size() -> Optional[Tuple[int, int]]:
 
 
 @unix_tty_only
-@terminal_size_cached
 def get_window_size() -> Optional[Tuple[int, int]]:
     """Returns the current window size of the :term:`active terminal`.
 
@@ -350,33 +382,44 @@ def get_window_size() -> Optional[Tuple[int, int]]:
     Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
     support.
     """
-    # First try ioctl
-    buf = array("H", [0, 0, 0, 0])
-    try:
-        if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
-            size = tuple(buf[2:])
-            if size != (0, 0):
-                return size
-    except OSError:
-        pass
+    with _win_size_lock:
+        ts = get_terminal_size()
+        if ts == tuple(_win_size_cache[:2]):
+            size = tuple(_win_size_cache[2:])
+            return None if 0 in size else size
 
-    # Then CSI 14 t
-    # The second sequence is to speed up the entire query since most (if not all)
-    # terminals should support it and most terminals treat queries as FIFO
-    response = query_terminal(
-        f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
-    )
-    size = (response or None) and WIN_SIZE.match(response.decode())
-    if size:
-        size = tuple(map(int, size.groups()))[::-1]  # XTerm spicifies (height, width)
+        # First try ioctl
+        size = None
+        buf = array("H", [0, 0, 0, 0])
+        try:
+            if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
+                size = tuple(buf[2:])
+                if size == (0, 0):
+                    size = None
+        except OSError:
+            pass
 
-        # Termux seems to respond with (height / 2, width), though the values are
-        # incorrect as they change with different zoom levels but still always
-        # give a reasonable (almost always the same) cell size and ratio.
-        if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-            size = (size[0], size[1] * 2)
+        if not size:
+            # Then CSI 14 t
+            # The second sequence is to speed up the entire query since most (if not
+            # all) terminals should support it and most terminals treat queries as FIFO
+            response = query_terminal(
+                f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
+            )
+            size = (response or None) and WIN_SIZE.match(response.decode())
+            if size:
+                # XTWINOPS specifies (height, width)
+                size = tuple(map(int, size.groups()))[::-1]
 
-    return size[:: -SWAP_WIN_SIZE or 1] if size and 0 not in size else None
+                # Termux seems to respond with (height / 2, width), though the values
+                # are incorrect as they change with different zoom levels but still
+                # always give a reasonable (almost always the same) cell size and ratio.
+                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                    size = (size[0], size[1] * 2)
+
+        size = size[:: -SWAP_WIN_SIZE or 1] if size else (0, 0)
+        _win_size_cache[:] = ts + size
+        return None if 0 in size else size
 
 
 @unix_tty_only
@@ -397,16 +440,19 @@ def query_terminal(
           (infinite if negative).
 
           If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
-          :py:func:`term_image.set_query_timeout`) is used.
+          :py:func:`set_query_timeout`) is used.
 
     Returns:
-        The terminal's response (empty, if no response is recieved after *timeout*
-        is up).
+        `None` if :py:data:`DISABLE_QUERIES` is true, else the terminal's response
+        (empty, if no response is recieved after *timeout* is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
         it can be read using :py:func:`read_tty()` before calling this fucntion.
     """
+    if DISABLE_QUERIES:
+        return None
+
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
@@ -563,44 +609,64 @@ def x_parse_color(spec: str) -> Tuple[int, int, int]:
 
 
 def _process_start_wrapper(self, *args, **kwargs):
-    global _tty_lock
+    global _tty_lock, _win_size_cache, _win_size_lock
 
-    if isinstance(_tty_lock, type(RLock())):
-        try:
-            # Ensure it's not acquired by another process/thread before changing it.
-            # The only way this can be countered is if the owner process/thread is the
-            # one starting a process, which is very unlikely within a function meant
-            # for input :|
-            with _tty_lock:
+    # Ensure it's not acquired by another process/thread before changing it.
+    # The only way this can be countered is if the owner thread is the
+    # one starting a process, which is very unlikely within a function meant
+    # for input/output :|
+    with _tty_lock:
+        if isinstance(_tty_lock, type(RLock())):
+            try:
                 self._tty_lock = _tty_lock = mp_RLock()
-        except ImportError:
-            self._tty_lock = None
-            warnings.warn(
-                "Multi-process synchronization is not supported on this platform! "
-                "Hence, if any subprocess will be reading from STDIN, "
-                "it will be unsafe to use any image render style based on a terminal "
-                "graphics protocol or to use automatic font ratio.\n"
-                "You can simply set an 'ignore' filter for this warning if not using "
-                "any of the features affected.",
-                UserWarning,
-            )
-    else:
-        self._tty_lock = _tty_lock
+            except ImportError:
+                self._tty_lock = None
+                warnings.warn(
+                    "Multi-process synchronization is not supported on this platform!\n"
+                    "Hence, if any subprocess will be writing/reading to/from the "
+                    "active terminal, it may be unsafe to use any features requiring"
+                    "terminal queries.\n"
+                    "See https://term-image.readthedocs.io/en/stable/library/reference"
+                    "/utils.html#terminal-queries.\n"
+                    "If any related issues occur, it's advisable to set "
+                    "`term_image.utils.DISABLE_QUERIES = True`.\n"
+                    "Simply set an 'ignore' filter for this warning (before starting "
+                    "any subprocess) if not using any of the affected features.",
+                    TermImageWarning,
+                )
+        else:
+            self._tty_lock = _tty_lock
+
+    with _win_size_lock:
+        if isinstance(_win_size_lock, type(RLock())):
+            try:
+                self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
+                _win_size_lock = _win_size_cache.get_lock()
+            except ImportError:
+                self._win_size_cache = None
+        else:
+            self._win_size_cache = _win_size_cache
 
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-def _process_run_wrapper(self, *args, **kwargs):
-    global _tty_lock
+def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
+    global _tty_lock, _win_size_cache, _win_size_lock
 
-    if self._tty_lock:
-        _tty_lock = self._tty_lock
+    if set_tty_lock:
+        if self._tty_lock:
+            _tty_lock = self._tty_lock
+        if self._win_size_cache:
+            _win_size_cache = self._win_size_cache
+            _win_size_lock = _win_size_cache.get_lock()
+
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
 QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
 WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
+NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
 
 # Constants for escape sequences
 
@@ -612,34 +678,31 @@ BG_FMT = f"{CSI}48;2;%d;%d;%dm"
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 COLOR_RESET = f"{CSI}m"
 
-# Appended to ensure it is overriden by any filter prepended before loading this module
-warnings.filterwarnings("default", category=UserWarning, module=__name__, append=True)
-
-_tty_lock = RLock()
 _tty: Optional[int] = None
+_tty_lock = RLock()
+_win_size_cache = [0] * 4
+_win_size_lock = RLock()
+
 if OS_IS_UNIX:
-    # In order of priority
-    try:
-        _tty = os.ttyname(sys.__stdout__.fileno())
-    except (OSError, AttributeError):
+    for stream in ("out", "in", "err"):  # In order of priority
         try:
-            _tty = os.ttyname(sys.__stdin__.fileno())
+            _tty = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
+            break
         except (OSError, AttributeError):
-            try:
-                _tty = os.ttyname(sys.__stderr__.fileno())
-            except (OSError, AttributeError):
-                try:
-                    _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
-                except OSError:
-                    warnings.warn(
-                        "It seems this process is not running within a terminal. "
-                        "Hence, automatic font ratio and render styles based on "
-                        "terminal graphics protocols will not work.\n"
-                        "You can set an 'ignore' filter for this warning before "
-                        "loading `term_image`, if not using any of the features "
-                        "affected.",
-                        UserWarning,
-                    )
+            pass
+    else:
+        try:
+            _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+        except OSError:
+            warnings.warn(
+                "It seems this process is not running within a terminal. "
+                "Hence, some features will behave differently or be disabled.\n"
+                "See https://term-image.readthedocs.io/en/stable/library/reference"
+                "/utils.html#terminal-queries.\n"
+                "You can set an 'ignore' filter for this warning before loading "
+                "`term_image`, if not using any of the features affected.",
+                TermImageWarning,
+            )
     if _tty:
         if isinstance(_tty, str):
             _tty = os.open(_tty, os.O_RDWR)

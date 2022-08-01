@@ -12,7 +12,7 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..utils import CSI, ESC, ST, lock_tty, query_terminal
+from ..utils import CSI, ESC, ST, get_terminal_name_version, query_terminal
 from .common import GraphicsImage
 
 # Constants for render methods
@@ -227,7 +227,6 @@ class KittyImage(GraphicsImage):
         )
 
     @classmethod
-    @lock_tty
     def is_supported(cls):
         if cls._supported is None:
             cls._supported = False
@@ -247,32 +246,21 @@ class KittyImage(GraphicsImage):
             if response and (
                 response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
             ):
-                # Currently, only kitty >= 0.20.0 and Konsole >= 22.04.0 implement the
-                # protocol features utilized
-                response = query_terminal(
-                    f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
-                ).decode()  # Can not be `None` since the previous query was successful
-                match = re.match(
-                    r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response, re.ASCII
-                )
-                if match:
-                    name, version = match.groups()
+                # Only kitty >= 0.20.0 implement the protocol features utilized
+                # Konsole is good as long as it responds to the graphics query
+                name, version = get_terminal_name_version()
+                if name and version:
                     try:
                         version = tuple(map(int, version.split(".")))
                     except ValueError:  # Version string not "understood"
                         pass
                     else:
-                        if name.lower() == "kitty":
+                        if name == "kitty" and version >= (0, 20, 0):
                             cls._KITTY_VERSION = version
-                        elif name.lower() == "konsole":
+                            cls._supported = True
+                        elif name == "konsole":
                             cls._KONSOLE_VERSION = version
-
-                        # fmt: off
-                        cls._supported = (
-                            cls._KITTY_VERSION >= (0, 20, 0)
-                            or cls._KONSOLE_VERSION >= (22, 4, 0)
-                        )
-                        # fmt: on
+                            cls._supported = True
 
         return cls._supported
 

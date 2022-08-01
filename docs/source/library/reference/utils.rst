@@ -1,5 +1,5 @@
 .. automodule:: term_image.utils
-   :members: SWAP_WIN_SIZE, lock_tty, read_tty, set_query_timeout
+   :members: DISABLE_QUERIES, SWAP_WIN_SIZE, lock_tty, read_tty, set_query_timeout
    :show-inheritance:
 
 
@@ -72,6 +72,32 @@
         process that can interfere with a query (e.g a shell) is currently running in the
         active terminal.
       | For instance, such a process can be temporarily put to sleep.
+
+   .. _queried-features:
+
+   List of features that use terminal queries
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   In parentheses are the outcomes when the terminal doesn't support queries or when queries
+   are disabled.
+
+   - :ref:`auto-font-ratio` (determined to be unsupported)
+   - Support checks for :ref:`graphics-based` (determined to be unsupported)
+   - Auto background color (black is used)
+   - Alpha blend for pixels above the alpha threshold in transparent renders with
+     :ref:`text-based` (black is used)
+   - Workaround for ANSI background colors in text-based renders on the Kitty terminal
+     (the workaround is disabled)
+
+   .. note::
+      This list might not always be complete. In case you notice
+
+      - any difference with any unlisted feature when terminal queries are enabled versus
+        when disabled, or
+      - a behaviour different from the one specified for the listed features, when terminal
+        queries are disabled,
+
+      please open an issue `here <https://github.com/AnonymouX47/term-image/issues>`_.
 
    |
 

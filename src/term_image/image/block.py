@@ -4,7 +4,6 @@ __all__ = ("BlockImage",)
 
 import io
 import os
-import re
 import warnings
 from math import ceil
 from operator import mul
@@ -15,12 +14,10 @@ import PIL
 from ..utils import (
     BG_FMT,
     COLOR_RESET,
-    CSI,
     FG_FMT,
-    ST,
     cached,
     get_fg_bg_colors,
-    query_terminal,
+    get_terminal_name_version,
 )
 from .common import TextImage
 
@@ -59,13 +56,7 @@ class BlockImage(TextImage):
     @staticmethod
     @cached
     def _is_on_kitty() -> bool:
-        response = query_terminal(
-            f"{CSI}>q".encode(), lambda s: not s.endswith(ST.encode())
-        )
-        match = response and re.match(
-            r"\033P>\|(\w+)[( ]?([^)\033]+)\)?\033\\", response.decode(), re.ASCII
-        )
-        return bool(match) and match.group(1).lower() == "kitty"
+        return get_terminal_name_version()[0] == "kitty"
 
     @staticmethod
     def _pixels_lines(

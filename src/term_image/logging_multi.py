@@ -93,7 +93,7 @@ class Process(Process):
                     term_image._auto_font_ratio = True
                 set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
 
-            super().run()
+            super().run(set_tty_lock=bool(self._ImageClass))
         except KeyboardInterrupt:
             # Log only if the main process was not interrupted
             if not self._main_process_interrupted.wait(0.1):
