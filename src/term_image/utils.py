@@ -616,14 +616,15 @@ def _process_start_wrapper(self, *args, **kwargs):
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-def _process_run_wrapper(self, *args, **kwargs):
+def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
     global _tty_lock, _win_size_cache, _win_size_lock
 
-    if self._tty_lock:
-        _tty_lock = self._tty_lock
-    if self._win_size_cache:
-        _win_size_cache = self._win_size_cache
-        _win_size_lock = _win_size_cache.get_lock()
+    if set_tty_lock:
+        if self._tty_lock:
+            _tty_lock = self._tty_lock
+        if self._win_size_cache:
+            _win_size_cache = self._win_size_cache
+            _win_size_lock = _win_size_cache.get_lock()
 
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
