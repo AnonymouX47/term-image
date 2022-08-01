@@ -314,6 +314,30 @@ def get_fg_bg_colors(
     )
 
 
+@cached
+def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
+    """Queries the :term:`active terminal` for it's name and version"""
+    with _tty_lock:  # the terminal's response to the query is not read all at once
+        # Terminal name/version query + terminal attribute query
+        # The latter is to speed up the entire query since most (if not all)
+        # terminals should support it and most terminals treat queries as FIFO
+        response = query_terminal(
+            f"{CSI}>q{CSI}c".encode(),
+            # The response might contain a "c"; can't stop reading at "c"
+            lambda s: not s.endswith(CSI.encode()),
+        )
+        read_tty()  # The rest of the response to `CSI c`
+
+    match = response and NAME_VERSION.fullmatch(response.decode().rpartition(ESC)[0])
+    name, version = (
+        match.groups()
+        if match
+        else map(os.environ.get, ("TERM_PROGRAM", "TERM_PROGRAM_VERSION"))
+    )
+
+    return (name and name.lower(), version)
+
+
 def get_terminal_size() -> os.terminal_size:
     """Returns the current size of the :term:`active terminal`.
 
@@ -632,6 +656,7 @@ def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
 QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
 WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
+NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
 
 # Constants for escape sequences
 

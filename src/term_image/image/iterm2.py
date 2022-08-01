@@ -14,16 +14,7 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 import PIL
 
 from ..exceptions import TermImageWarning, _style_error
-from ..utils import (
-    CSI,
-    ESC,
-    OSC,
-    ST,
-    get_terminal_size,
-    lock_tty,
-    query_terminal,
-    read_tty,
-)
+from ..utils import CSI, ESC, OSC, ST, get_terminal_name_version, get_terminal_size
 from .common import GraphicsImage, ImageSource
 
 # Constants for render methods
@@ -299,35 +290,20 @@ class ITerm2Image(GraphicsImage):
         )
 
     @classmethod
-    @lock_tty  # the terminal's response to the query is not read all at once
     def is_supported(cls):
         if cls._supported is None:
             cls._supported = False
-            # Terminal name/version query + terminal attribute query
-            # The latter is to speed up the entire query since most (if not all)
-            # terminals should support it and most terminals treat queries as FIFO
-            response = query_terminal(
-                f"{CSI}>q{CSI}c".encode(), lambda s: not s.endswith(CSI.encode())
-            )
-            read_tty()  # The rest of the response to `CSI c`
 
-            # Not supported if the terminal doesn't respond to either query
-            # or responds to the second but not the first
-            if response:
-                match = re.fullmatch(
-                    r"\033P>\|(\w+)[( ]([^\033]+)\)?\033\\",
-                    response.decode().rpartition(ESC)[0],
-                )
-                if match and match.group(1).lower() in {"iterm2", "konsole", "wezterm"}:
-                    name, version = map(str.lower, match.groups())
-                    try:
-                        if name != "konsole" or (
-                            tuple(map(int, version.split("."))) >= (22, 4, 0)
-                        ):
-                            cls._supported = True
-                            cls._TERM, cls._TERM_VERSION = name, version
-                    except ValueError:  # version string not "understood"
-                        pass
+            name, version = get_terminal_name_version()
+            if name in {"iterm2", "konsole", "wezterm"}:
+                try:
+                    if name != "konsole" or (
+                        tuple(map(int, version.split("."))) >= (22, 4, 0)
+                    ):
+                        cls._supported = True
+                        cls._TERM, cls._TERM_VERSION = name, version
+                except ValueError:  # version string not "understood"
+                    pass
 
         return cls._supported
 
