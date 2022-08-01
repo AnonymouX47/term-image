@@ -10,8 +10,7 @@ from PIL import Image
 from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
 
-from term_image import TermImageWarning
-from term_image.exceptions import ITerm2ImageError
+from term_image.exceptions import ITerm2ImageError, TermImageWarning
 from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
 from term_image.utils import CSI, ST, get_fg_bg_colors
 
