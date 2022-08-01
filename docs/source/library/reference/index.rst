@@ -53,6 +53,8 @@ All render styles are designed to share a common interface (with some styles hav
 
 There a two categories of render styles:
 
+.. _text-based:
+
 Text-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -63,6 +65,8 @@ Classes for render styles in this category are subclasses of
 :py:class:`TextImage <term_image.image.TextImage>`. These include:
 
 * :py:class:`BlockImage <term_image.image.BlockImage>`
+
+.. _graphics-based:
 
 Graphics-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
