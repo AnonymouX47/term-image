@@ -43,8 +43,10 @@ from ..utils import (
     COLOR_RESET,
     CSI,
     ClassInstanceMethod,
+    cached,
     get_cell_size,
     get_fg_bg_colors,
+    get_terminal_name_version,
     get_terminal_size,
     no_redecorate,
 )
@@ -1977,6 +1979,11 @@ class TextImage(BaseImage):
     # pixel-size == width * height/2
     # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
     _pixel_ratio = property(lambda _: get_font_ratio() * 2)
+
+    @staticmethod
+    @cached
+    def _is_on_kitty() -> bool:
+        return get_terminal_name_version()[0] == "kitty"
 
 
 class ImageIterator:

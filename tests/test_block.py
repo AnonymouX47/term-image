@@ -16,13 +16,6 @@ for name, obj in vars(common).items():
         globals()[name] = obj
 
 
-def _is_on_kitty():
-    return False
-
-
-BlockImage._is_on_kitty = staticmethod(_is_on_kitty)
-
-
 @pytest.mark.order("first")
 def test_setup_common():
     setup_common(BlockImage)
