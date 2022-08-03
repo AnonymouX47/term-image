@@ -3,7 +3,7 @@ from random import randint, random
 
 import pytest
 
-from term_image import FontRatio, get_font_ratio, set_font_ratio
+from term_image import AutoFontRatio, get_font_ratio, set_font_ratio
 from term_image.exceptions import TermImageError
 from term_image.image import AutoImage, BaseImage, ImageSource, from_file
 
@@ -51,7 +51,7 @@ class TestFontRatio:
                 set_font_ratio(value)
 
         set_cell_size(None)
-        for value in FontRatio:
+        for value in AutoFontRatio:
             with pytest.raises(TermImageError):
                 set_font_ratio(value)
 
@@ -65,22 +65,22 @@ class TestFontRatio:
             set_font_ratio(value)
             assert get_font_ratio() == value
 
-    def test_auto(self):
+    def test_fixed_auto(self):
         set_cell_size((4, 9))
-        set_font_ratio(FontRatio.AUTO)
+        set_font_ratio(AutoFontRatio.FIXED)
         assert get_font_ratio() == 4 / 9 == get_font_ratio()
 
         for _ in range(20):
             cell_size = (randint(1, 20), randint(1, 20))
             set_cell_size(cell_size)
-            set_font_ratio(FontRatio.AUTO)
+            set_font_ratio(AutoFontRatio.FIXED)
             assert get_font_ratio() == truediv(*cell_size) == get_font_ratio()
             set_cell_size((0, 1))
             assert get_font_ratio() == truediv(*cell_size)
 
-    def test_full_auto(self):
+    def test_dynamic_auto(self):
         set_cell_size((4, 9))
-        set_font_ratio(FontRatio.FULL_AUTO)
+        set_font_ratio(AutoFontRatio.DYNAMIC)
         assert get_font_ratio() == 4 / 9 == get_font_ratio()
 
         for _ in range(20):
