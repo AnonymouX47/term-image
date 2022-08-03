@@ -7,9 +7,7 @@ import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-import term_image
-
-from . import FontRatio, cli, logging, notify, set_font_ratio, tui, utils
+from . import AutoFontRatio, cli, logging, notify, set_font_ratio, tui, utils
 
 
 def process_multi_logs() -> None:
@@ -90,8 +88,8 @@ class Process(Process):
 
                 if not self._font_ratio:
                     # Avoid an error in case the terminal wouldn`t respond on time
-                    term_image._auto_font_ratio = True
-                set_font_ratio(self._font_ratio or FontRatio.FULL_AUTO)
+                    AutoFontRatio.is_supported = True
+                set_font_ratio(self._font_ratio or AutoFontRatio.DYNAMIC)
 
             super().run(set_tty_lock=bool(self._ImageClass))
         except KeyboardInterrupt:

@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, config, logging, notify, set_font_ratio, tui, utils
+from . import AutoFontRatio, config, logging, notify, set_font_ratio, tui, utils
 from .config import config_options, store_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
@@ -645,7 +645,7 @@ def main() -> None:
     if args.auto_font_ratio:
         args.font_ratio = None
     try:
-        set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
+        set_font_ratio(args.font_ratio or AutoFontRatio.DYNAMIC)
     except TermImageError:
         notify.notify(
             "Auto font ratio is not supported in the active terminal or on this "
