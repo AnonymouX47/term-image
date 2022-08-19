@@ -6,8 +6,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from operator import gt
-from typing import Any, Dict
+from typing import Dict
 
 import urwid
 
@@ -82,71 +81,54 @@ def init_config() -> None:
         )
 
 
-def load_config() -> bool:
-    """Load user config from disk"""
-    updated = False
-
+def load_config(config_file: str) -> None:
+    """Loads a user config file."""
     try:
         with open(config_file) as f:
             config = json.load(f)
     except Exception as e:
         error(
-            f"Failed to load user config ({type(e).__name__}: {e})... Using defaults."
+            f"Failed to load config file {config_file!r} ({type(e).__name__}: {e})... "
+            "Using fallbacks."
         )
-        update_context_nav_keys(context_keys, nav, nav)
-        return updated
+        return
 
-    try:
-        c_version = config["version"]
-        if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
-            info("Updating user config...")
-            updated = update_config(config, c_version)
-            if not updated:
-                error("... Failed to update user config.")
-    except KeyError:
-        error("Config version not found... Please correct this manually.")
+    keys = config.pop("keys", None)
 
-    for name, (is_valid, msg) in config_options.items():
+    for name, value in config.items():
         try:
-            value = config[name]
+            is_valid, msg = config_options[name]
+        except KeyError:
+            error(f"Unknown option {name!r} from {config_file!r}.")
+        else:
             if is_valid(value):
                 globals()[name.replace(" ", "_")] = value
             else:
                 error(
                     f"Invalid type/value for {name!r}, {msg} "
                     f"(got: {value!r} of type {type(value).__name__!r})... "
-                    "Using default."
+                    f"Using fallback: {globals()[name.replace(' ', '_')]!r}."
                 )
+
+    if keys:
+        prev_nav = deepcopy(nav)  # used for identification
+        try:
+            nav_update = keys.pop("navigation")
         except KeyError:
-            error(f"{name!r} not found... Using default.")
+            pass
+        else:
+            # Resolves all issues with *nav_update* in the process
+            update_context("navigation", nav, nav_update, config_file)
 
-    try:
-        keys = config["keys"]
-    except KeyError:
-        error("Key config not found... Using defaults.")
-        update_context_nav_keys(context_keys, nav, nav)
-        return updated
+        # Done before updating other context keys to prevent modifying user-customized
+        # actions having keys that are among those in `prev_nav`
+        update_context_nav_keys(context_keys, prev_nav, nav)
 
-    prev_nav = deepcopy(nav)  # used for identification.
-    try:
-        nav_update = keys.pop("navigation")
-    except KeyError:
-        error("Navigation keys config not found... Using defaults.")
-    else:
-        # Resolves all issues with _nav_update_ in the process
-        update_context("navigation", nav, nav_update)
-
-    # Done before updating other context keys to prevent modifying user-customized
-    # actions using keys that are among the default navigation keys.
-    update_context_nav_keys(context_keys, prev_nav, nav)
-
-    for context, keyset in keys.items():
-        if context not in context_keys:
-            error(f"Unknown context {context!r}.")
-            continue
-        update_context(context, context_keys[context], keyset)
-
-    return updated
+        for context, keyset in keys.items():
+            if context in context_keys:
+                update_context(context, context_keys[context], keyset, config_file)
+            else:
+                error(f"Unknown context {context!r}.")
 
 
 def store_config(*, default: bool = False) -> None:
@@ -180,71 +162,6 @@ def store_config(*, default: bool = False) -> None:
             )
     except Exception as e:
         error(f"Failed to write user config ({type(e).__name__}: {e}).")
-
-
-def update_config(config: Dict[str, Any], old_version: str) -> bool:
-    """Updates the user config to latest version
-
-    Returns:
-        ``True``, if successful. Otherwise, ``False``.
-    """
-    # Must use the values directly, never reference the corresponding global variables,
-    # as those might change later and will break updating since it's incremental
-    #
-    # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
-    changes = {
-        "0.1": [],
-        "0.2": [
-            ("['anim cache']", NotImplemented, 100),
-            ("['checkers']", NotImplemented, None),
-            ("['getters']", NotImplemented, 4),
-            ("['grid renderers']", NotImplemented, 1),
-            ("['log file']", NotImplemented, os.path.join(user_dir, "term_image.log")),
-            ("['max notifications']", NotImplemented, 2),
-            ("['frame duration']", 0.1, NotImplemented),
-            ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
-            ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
-            ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
-        ],
-        "0.3": [
-            ("['font ratio']", 0.5, None),
-            ("['no multi']", NotImplemented, False),
-            ("['query timeout']", NotImplemented, 0.1),
-            ("['style']", NotImplemented, "auto"),
-            ("['swap win size']", NotImplemented, False),
-        ],
-    }
-
-    versions = tuple(changes)
-    versions = versions[versions.index(old_version) :]
-
-    for version in versions:
-        for location, old, new in changes[version]:
-            try:
-                if old is NotImplemented:  # Addition
-                    exec(f"config{location} = new")
-                elif new is NotImplemented:  # Removal
-                    exec("del config" + location)
-                else:  # Update
-                    if old == eval("config" + location):  # Still default
-                        exec(f"config{location} = new")
-            except (KeyError, IndexError):
-                if new is not NotImplemented:
-                    error(
-                        f"Config option/value at {location!r} is missing, "
-                        "the new default will be put in place."
-                    )
-
-    config["version"] = version
-    try:
-        os.replace(config_file, f"{config_file}.old")
-    except OSError as e:
-        error(f"Failed to backup previous config file ({type(e).__name__}: {e})")
-        return False
-    else:
-        info(f"Previous config file has been moved to '{config_file}.old'.")
-
-    return True
 
 
 def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:
@@ -342,7 +259,6 @@ def update_context_nav_keys(
 
 user_dir = os.path.join(os.path.expanduser("~"), ".term_image")
 config_file = os.path.join(user_dir, "config.json")
-version = "0.3"  # For config upgrades
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
