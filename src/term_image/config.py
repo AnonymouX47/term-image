@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from copy import deepcopy
+from os import path
 from typing import Dict
 
 import urwid
@@ -39,7 +40,7 @@ def fatal(msg: str) -> None:
 
 
 def init_config() -> None:
-    """Initializes user configuration
+    """Initializes user configuration.
 
     IMPORTANT:
         Must be called before any other function in this module
@@ -47,25 +48,15 @@ def init_config() -> None:
     """
     global checkers
 
-    if os.path.exists(user_dir):
-        if not os.path.isdir(user_dir):
-            fatal(f"Please rename or remove the file {user_dir!r}.")
-            sys.exit(CONFIG_ERROR)
-    else:
-        os.mkdir(user_dir)
-
-    if os.path.isfile(config_file):
-        if load_config():
-            # Stored at this point in order to put missing values in place.
-            store_config()
-            info("... Successfully updated user config.")
-    else:
-        update_context_nav_keys(context_keys, nav, nav)
-        store_config(default=True)
+    update_context_nav_keys(context_keys, nav, nav)  # Update symbols
+    if user_config_file:
+        load_config(user_config_file)
+    elif xdg_config_file:
+        load_xdg_config()
 
     for keyset in context_keys.values():
         for action in keyset.values():
-            action[3:] = (True, True)  # Default: "shown", "enabled"
+            action[3:] = (True, True)  # "shown", "enabled"
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
@@ -129,6 +120,21 @@ def load_config(config_file: str) -> None:
                 update_context(context, context_keys[context], keyset, config_file)
             else:
                 error(f"Unknown context {context!r}.")
+
+
+def load_xdg_config() -> None:
+    """Loads user config files according to the XDG Base Directories spec."""
+    for config_dir in reversed(os.environ.get("XDG_CONFIG_DIRS", "/etc").split(":")):
+        config_file = path.join(config_dir, "term_image", "config.json")
+        if (
+            # The XDG Base Dirs spec states that relative paths should be ignored
+            path.abspath(config_dir) == config_dir
+            and path.isfile(config_file)
+        ):
+            load_config(config_file)
+
+    if path.isfile(xdg_config_file):
+        load_config(xdg_config_file)
 
 
 def store_config(*, default: bool = False) -> None:
@@ -257,8 +263,13 @@ def update_context_nav_keys(
                 properties[:2] = nav_update[navi[properties[0]]]
 
 
-user_dir = os.path.join(os.path.expanduser("~"), ".term_image")
-config_file = os.path.join(user_dir, "config.json")
+user_dir = path.join(path.expanduser("~"), ".term_image")
+user_config_file = None
+xdg_config_file = path.join(
+    os.environ.get("XDG_CONFIG_HOME", path.join(path.expanduser("~"), ".config")),
+    "term_image",
+    "config.json",
+)
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
@@ -311,7 +322,7 @@ checkers = _checkers = None
 font_ratio = _font_ratio = None
 getters = _getters = 4
 grid_renderers = _grid_renderers = 1
-log_file = _log_file = os.path.join(user_dir, "term_image.log")
+log_file = _log_file = path.join(user_dir, "term_image.log")
 max_notifications = _max_notifications = 2
 max_pixels = _max_pixels = 2**22  # 2048x2048
 no_multi = _no_multi = False
@@ -446,9 +457,9 @@ config_options = {
             isinstance(x, str)
             and (
                 # exists, is a file and writable
-                (os.path.isfile(x) and os.access(x, os.W_OK))
+                (path.isfile(x) and os.access(x, os.W_OK))
                 # is not a directory and the parent directory is writable
-                or (not os.path.isdir(x) and os.access(os.path.dirname(x), os.W_OK))
+                or (not path.isdir(x) and os.access(path.dirname(x), os.W_OK))
             )
         ),
         "must be a string containing a writable path to a file",
