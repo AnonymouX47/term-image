@@ -48,7 +48,6 @@ def init_config() -> None:
     """
     global checkers
 
-    update_context_nav_keys(context_keys, nav, nav)  # Update symbols
     if user_config_file:
         load_config(user_config_file)
     elif xdg_config_file:
@@ -100,9 +99,7 @@ def load_config(config_file: str) -> None:
                     f"(got: {value!r} of type {type(value).__name__!r})... "
                     f"Using fallback: {globals()[name.replace(' ', '_')]!r}."
                 )
-
     if keys:
-        prev_nav = deepcopy(nav)  # used for identification
         try:
             nav_update = keys.pop("navigation")
         except KeyError:
@@ -111,9 +108,9 @@ def load_config(config_file: str) -> None:
             # Resolves all issues with *nav_update* in the process
             update_context("navigation", nav, nav_update, config_file)
 
-        # Done before updating other context keys to prevent modifying user-customized
-        # actions having keys that are among those in `prev_nav`
-        update_context_nav_keys(context_keys, prev_nav, nav)
+        # Done before updating other context keys so that actions having keys
+        # conflicting with those for naviagation in the same context can be detected
+        update_context_nav(context_keys, nav)
 
         for context, keyset in keys.items():
             if context in context_keys:
@@ -248,19 +245,18 @@ def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) 
             keyset[action][:2] = (key, symbol)
 
 
-def update_context_nav_keys(
+def update_context_nav(
     context_keys: Dict[str, Dict[str, list]],
-    nav: Dict[str, list],
     nav_update: Dict[str, list],
 ) -> None:
-    """Update keys and symbols of navigation actions in all contexts in _context_keys_
-    using _nav_ to identify navigation actions and _nav_update_ to update
+    """Updates keys and symbols of navigation actions in all contexts
+    in *context_keys*.
     """
-    navi = {v[0]: k for k, v in nav.items()}
     for context, keyset in context_keys.items():
+        navi = _context_navs[context]
         for action, properties in keyset.items():
-            if properties[0] in navi:
-                properties[:2] = nav_update[navi[properties[0]]]
+            if action in navi:
+                properties[:2] = nav_update[navi[action]]
 
 
 user_dir = path.join(path.expanduser("~"), ".term_image")
@@ -357,10 +353,10 @@ _context_keys = {
         "Back": ["backspace", "\u27f5 ", "Return to the previous directory"],
         "Delete": ["d", "d", "Delete selected image"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
-        "Page Up": ["page up", "PgUp", "Jump up one page"],
-        "Page Down": ["page down", "PgDn", "Jump down one page"],
-        "Top": ["home", "Home", "Jump to the top of the list"],
-        "Bottom": ["end", "End", "Jump to the bottom of the list"],
+        "Page Up": ["page up", "", "Jump up one page"],
+        "Page Down": ["page down", "", "Jump down one page"],
+        "Top": ["home", "", "Jump to the top of the list"],
+        "Bottom": ["end", "", "Jump to the bottom of the list"],
     },
     "image": {
         "Prev": ["left", "", "Move to the previous image"],
@@ -383,10 +379,10 @@ _context_keys = {
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
         "Size-": ["-", "-", "Decrease grid cell size"],
         "Size+": ["+", "+", "Increase grid cell size"],
-        "Page Up": ["page up", "PgUp", "Jump up one page"],
-        "Page Down": ["page down", "PgDn", "Jump down one page"],
-        "Top": ["home", "Home", "Jump to the top of the grid"],
-        "Bottom": ["end", "End", "Jump to the bottom of the grid"],
+        "Page Up": ["page up", "", "Jump up one page"],
+        "Page Down": ["page down", "", "Jump down one page"],
+        "Top": ["home", "", "Jump to the top of the grid"],
+        "Bottom": ["end", "", "Jump to the bottom of the grid"],
     },
     "full-image": {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
@@ -415,14 +411,22 @@ _context_keys = {
         "Close": ["esc", "\u238b", ""],
         "Up": ["up", "", "Scroll up"],
         "Down": ["down", "", "Scroll down"],
-        "Page Up": ["page up", "PgUp", "Scroll up one page"],
-        "Page Down": ["page down", "PgDn", "Scroll down one page"],
-        "Top": ["home", "Home", "Jump to the top"],
-        "Bottom": ["end", "End", "Jump to the bottom"],
+        "Page Up": ["page up", "", "Scroll up one page"],
+        "Page Down": ["page down", "", "Scroll down one page"],
+        "Top": ["home", "", "Jump to the top"],
+        "Bottom": ["end", "", "Jump to the bottom"],
     },
 }
 # End of Defaults
 
+navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
+_context_navs = {
+    context: {action: navi[key] for action, (key, *_) in keyset.items() if key in navi}
+    for context, keyset in _context_keys.items()
+}
+del navi
+
+update_context_nav(_context_keys, _nav)  # Update symbols
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
