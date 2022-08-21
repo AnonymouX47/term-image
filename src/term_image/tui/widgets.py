@@ -18,12 +18,14 @@ from ..utils import get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
 
-command = urwid.Widget._command_map._command_defaults.copy()
-for action, (key, _) in _nav.items():
-    val = command.pop(key)
-    command[nav[action][0]] = val
-urwid.Widget._command_map._command = command
-del command
+navi = {key: action for action, (key, _) in _nav.items()}
+command = urwid.command_map._command_defaults.copy()
+command = {
+    urwid_action: navi[key] for key, urwid_action in command.items() if key in navi
+}
+command = {nav[action][0]: urwid_action for urwid_action, action in command.items()}
+urwid.command_map._command = command
+del navi, command
 
 # NOTE: Any new "private" attribute set on any subclass or instance of an urwid class
 # should be prepended with "_ti" to prevent clashes with names used by urwid itself.
