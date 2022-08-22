@@ -6,13 +6,55 @@ import json
 import os
 import sys
 from copy import deepcopy
+from dataclasses import dataclass, field
 from os import path
-from typing import Dict
+from typing import Any, Callable, Dict, Tuple
 
 import urwid
 
 from .exit_codes import CONFIG_ERROR
 from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT
+
+
+class ConfigOptions(dict):
+    """Config options store
+
+    * Subscription with an option name returns the corresponding :py:class:`Option`
+      instance.
+    * Attribute reference with a variable name ('s/ /_/g') returns the option's current
+      value.
+    * Attribute reference with a "private" name ('s/ /_/g' and preceded by '_') returns
+      the option's default value.
+    """
+
+    def _attr_to_option(self, attr: str) -> Tuple[Option, str]:
+        default = attr.startswith("_")
+        name = attr.replace("_", " ")
+        if default:
+            name = name[1:]
+        try:
+            return self[name], "default" if default else "value"
+        except KeyError:
+            raise AttributeError(f"Ain't no such config option as {name!r}") from None
+
+    def __getattr__(self, attr: str):
+        return getattr(*self._attr_to_option(attr))
+
+    def __setattr__(self, attr: str, value: Any):
+        setattr(*self._attr_to_option(attr), value)
+
+
+@dataclass
+class Option:
+    """A config option."""
+
+    value: Any = field(init=False)
+    default: Any
+    is_valid: Callable[[Any], bool]
+    error_msg: str
+
+    def __post_init__(self):
+        self.value = self.default
 
 
 def action_with_key(key: str, keyset: Dict[str, list]) -> str:
@@ -46,8 +88,6 @@ def init_config() -> None:
         Must be called before any other function in this module
         and before anything else is imported from this module.
     """
-    global checkers
-
     if user_config_file:
         load_config(user_config_file)
     elif xdg_config_file:
@@ -59,8 +99,8 @@ def init_config() -> None:
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
-    if checkers is None:
-        checkers = max(
+    if config_options.checkers is None:
+        config_options.checkers = max(
             (
                 len(os.sched_getaffinity(0))
                 if hasattr(os, "sched_getaffinity")
@@ -87,17 +127,17 @@ def load_config(config_file: str) -> None:
 
     for name, value in config.items():
         try:
-            is_valid, msg = config_options[name]
+            option = config_options[name]
         except KeyError:
             error(f"Unknown option {name!r} from {config_file!r}.")
         else:
-            if is_valid(value):
-                globals()[name.replace(" ", "_")] = value
+            if option.is_valid(value):
+                option.value = value
             else:
                 error(
-                    f"Invalid type/value for {name!r}, {msg} "
+                    f"Invalid type/value for {name!r}; {option.error_msg} "
                     f"(got: {value!r} of type {type(value).__name__!r})... "
-                    f"Using fallback: {globals()[name.replace(' ', '_')]!r}."
+                    f"Using fallback: {option.value!r}."
                 )
     if keys:
         # Globals first...
@@ -356,20 +396,82 @@ for key in ("page up", "page down"):
     valid_keys.remove("ctrl " + key)
 valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
-# Defaults
-anim_cache = _anim_cache = 100
-cell_width = _cell_width = 30
-checkers = _checkers = None
-font_ratio = _font_ratio = None
-getters = _getters = 4
-grid_renderers = _grid_renderers = 1
-log_file = _log_file = path.join(user_dir, "term_image.log")
-max_notifications = _max_notifications = 2
-max_pixels = _max_pixels = 2**22  # 2048x2048
-no_multi = _no_multi = False
-query_timeout = _query_timeout = QUERY_TIMEOUT
-style = _style = "auto"
-swap_win_size = _swap_win_size = False
+config_options = {
+    "anim cache": Option(
+        100,
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "cell width": Option(
+        30,
+        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
+        "must be an even integer between 30 and 50 (both inclusive)",
+    ),
+    "checkers": Option(
+        None,
+        lambda x: x is None or isinstance(x, int) and x >= 0,
+        "must be `null` or a non-negative integer",
+    ),
+    "font ratio": Option(
+        None,
+        lambda x: x is None or isinstance(x, float) and x > 0.0,
+        "must be `null` or a float greater than zero",
+    ),
+    "getters": Option(
+        4,
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "grid renderers": Option(
+        1,
+        lambda x: isinstance(x, int) and x >= 0,
+        "must be a non-negative integer",
+    ),
+    "log file": Option(
+        path.join(user_dir, "term_image.log"),
+        lambda x: (
+            isinstance(x, str)
+            and (
+                # exists, is a file and writable
+                (path.isfile(x) and os.access(x, os.W_OK))
+                # is not a directory and the parent directory is writable
+                or (not path.isdir(x) and os.access(path.dirname(x), os.W_OK))
+            )
+        ),
+        "must be a string containing a writable path to a file",
+    ),
+    "max notifications": Option(
+        2,
+        lambda x: isinstance(x, int) and x > -1,
+        "must be an non-negative integer",
+    ),
+    "max pixels": Option(
+        2**22,  # 2048x2048
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "no multi": Option(
+        False,
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
+    ),
+    "query timeout": Option(
+        QUERY_TIMEOUT,
+        lambda x: isinstance(x, float) and x > 0.0,
+        "must be a float greater than zero",
+    ),
+    "style": Option(
+        "auto",
+        lambda x: x in {"auto", "block", "iterm2", "kitty"},
+        "must be one of 'auto', 'block', 'iterm2', 'kitty'",
+    ),
+    "swap win size": Option(
+        False,
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
+    ),
+}
+config_options = ConfigOptions(config_options)
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -462,7 +564,6 @@ _context_keys = {
         "Bottom": ["end", "", "Jump to the bottom"],
     },
 }
-# End of Defaults
 
 navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
 _context_navs = {
@@ -475,66 +576,3 @@ update_context_nav(_context_keys, _nav)  # Update symbols
 nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
-
-config_options = {
-    "anim cache": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "cell width": (
-        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
-        "must be an even integer between 30 and 50 (both inclusive)",
-    ),
-    "checkers": (
-        lambda x: x is None or isinstance(x, int) and x >= 0,
-        "must be `null` or a non-negative integer",
-    ),
-    "font ratio": (
-        lambda x: x is None or isinstance(x, float) and x > 0.0,
-        "must be `null` or a float greater than zero",
-    ),
-    "getters": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "grid renderers": (
-        lambda x: isinstance(x, int) and x >= 0,
-        "must be a non-negative integer",
-    ),
-    "log file": (
-        lambda x: (
-            isinstance(x, str)
-            and (
-                # exists, is a file and writable
-                (path.isfile(x) and os.access(x, os.W_OK))
-                # is not a directory and the parent directory is writable
-                or (not path.isdir(x) and os.access(path.dirname(x), os.W_OK))
-            )
-        ),
-        "must be a string containing a writable path to a file",
-    ),
-    "max notifications": (
-        lambda x: isinstance(x, int) and x > -1,
-        "must be an non-negative integer",
-    ),
-    "max pixels": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "no multi": (
-        lambda x: isinstance(x, bool),
-        "must be a boolean",
-    ),
-    "query timeout": (
-        lambda x: isinstance(x, float) and x > 0.0,
-        "must be a float greater than zero",
-    ),
-    "style": (
-        lambda x: x in {"auto", "block", "iterm2", "kitty"},
-        "must be one of 'auto', 'block', 'iterm2', 'kitty'",
-    ),
-    "swap win size": (
-        lambda x: isinstance(x, bool),
-        "must be a boolean",
-    ),
-}

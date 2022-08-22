@@ -11,7 +11,7 @@ from typing import List, Optional, Tuple
 import urwid
 
 from .. import cli, logging
-from ..config import _nav, cell_width, expand_key, nav
+from ..config import _nav, config_options, expand_key, nav
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
@@ -519,7 +519,7 @@ logger = _logging.getLogger(__name__)
 placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 menu_box = urwid.LineBox(menu, "List", "left")
-image_grid = urwid.GridFlow([], cell_width, 2, 1, "left")
+image_grid = urwid.GridFlow([], config_options.cell_width, 2, 1, "left")
 image_box = urwid.LineBox(placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
 view = urwid.AttrMap(image_box, "unfocused box", "focused box")

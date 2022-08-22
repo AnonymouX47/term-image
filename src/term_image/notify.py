@@ -12,7 +12,7 @@ from typing import Any, Optional, Tuple, Union
 import urwid
 
 from . import cli, logging, tui
-from .config import max_notifications
+from .config import config_options
 from .tui import main, widgets
 from .utils import COLOR_RESET, CSI
 
@@ -24,7 +24,7 @@ CRITICAL = 3
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
     """Adds a message to the TUI notification bar."""
-    if _alarms.qsize() == max_notifications:
+    if _alarms.qsize() == config_options.max_notifications:
         clear_notification(main.loop, None)
     widgets.notifications.contents.insert(
         0, (urwid.Filler(urwid.Text(msg, wrap="ellipsis")), ("given", 1))
@@ -129,7 +129,7 @@ def notify(
     else:
         # CRITICAL-level notifications should never be displayed in the TUI,
         # since the program shouldn't recover from the cause.
-        if max_notifications:
+        if config_options.max_notifications:
             add_notification((msg, ("warning", msg), ("error", msg))[level])
 
 
@@ -151,7 +151,7 @@ def stop_loading() -> None:
 
 logger = _logging.getLogger(__name__)
 
-_alarms = Queue(max_notifications)
+_alarms = Queue(config_options.max_notifications)
 
 _loading = Event()
 _n_loading = 0

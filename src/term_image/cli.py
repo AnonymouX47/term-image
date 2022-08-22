@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, config, logging, notify, set_font_ratio, tui, utils
+from . import FontRatio, logging, notify, set_font_ratio, tui, utils
 from .config import config_options, store_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
@@ -596,8 +596,8 @@ def main() -> None:
     init_log(
         (
             args.log_file
-            if config_options["log file"][0](args.log_file)
-            else config.log_file
+            if config_options["log file"].is_valid(args.log_file)
+            else config_options.log_file
         ),
         getattr(_logging, args.log_level),
         args.debug,
@@ -623,21 +623,21 @@ def main() -> None:
         if not check_arg(*details):
             return INVALID_ARG
 
-    for name, (is_valid, msg) in config_options.items():
+    for name, option in config_options.items():
         var_name = name.replace(" ", "_")
         value = getattr(args, var_name, None)
         # Not all config options have corresponding command-line arguments
-        if value is not None and not is_valid(value):
+        if value is not None and not option.is_valid(value):
             arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"{arg_name}: {msg} (got: {value!r})",
+                f"{arg_name}: {option.error_msg} (got: {value!r})",
                 level=notify.ERROR,
             )
             notify.notify(
-                f"{arg_name}: Using config value: {getattr(config, var_name)!r}",
+                f"{arg_name}: Using config value: {option.value!r}",
                 level=notify.WARNING,
             )
-            setattr(args, var_name, getattr(config, var_name))
+            setattr(args, var_name, option.value)
 
     set_query_timeout(args.query_timeout)
     utils.SWAP_WIN_SIZE = args.swap_win_size
@@ -664,7 +664,7 @@ def main() -> None:
         ImageClass = _best_style()
     args.style = ImageClass.__name__[:-5].lower()
 
-    if args.force_style or args.style == config.style != "auto":
+    if args.force_style or args.style == config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
