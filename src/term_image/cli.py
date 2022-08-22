@@ -19,7 +19,7 @@ import PIL
 import requests
 
 from . import FontRatio, logging, notify, set_font_ratio, tui, utils
-from .config import config_options, store_config
+from .config import config_options
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
@@ -584,10 +584,6 @@ def main() -> None:
     MAX_DEPTH = args.max_depth
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
-
-    if args.reset_config:
-        store_config(default=True)
-        sys.exit(SUCCESS)
 
     force_cli_mode = not sys.stdout.isatty() and not args.cli
     if force_cli_mode:

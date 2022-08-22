@@ -95,11 +95,6 @@ general.add_argument(
     help="Show the program version and exit",
 )
 general.add_argument(
-    "--reset-config",
-    action="store_true",
-    help="Restore default config and exit (Overwrites the config file)",
-)
-general.add_argument(
     "--query-timeout",
     type=float,
     metavar="N",

@@ -182,37 +182,47 @@ def load_xdg_config() -> None:
         load_config(xdg_config_file)
 
 
-def store_config(*, default: bool = False) -> None:
-    """Write current config to disk"""
-    stored_keys = {"navigation": (_nav if default else nav)}
+def store_config(config_file: str) -> None:
+    """Writes current config to a file."""
+    config = {
+        name: option.value
+        for name, option in config_options.items()
+        if option.value != option.default
+    }
 
-    # Remove description and navigation keys from contexts
-    navi = {v[0] for v in (_nav if default else nav).values()}
-    for context, keyset in (_context_keys if default else context_keys).items():
+    modified_keys = {}
+    modified_nav = {
+        action: properties
+        for _properties, (action, properties) in zip(_nav.values(), nav.items())
+        if properties != _properties
+    }
+    if modified_nav:
+        modified_keys["navigation"] = modified_nav
+    for _keyset, (context, keyset) in zip(_context_keys.values(), context_keys.items()):
+        context_nav = _context_navs[context]
         keys = {}
-        for action, (key, symbol, *_) in keyset.items():
-            if key not in navi:
-                keys[action] = [key, symbol]
-        # Exclude contexts with navigation-only controls
-        if keys:
-            stored_keys[context] = keys
+        for _properties, (action, properties) in zip(_keyset.values(), keyset.items()):
+            # Exclude context navigation actions and of course, unmodified actions
+            if action not in context_nav and properties[:2] != _properties[:2]:
+                keys[action] = properties[:2]  # Remove description and state
+        if keys:  # Exclude contexts with only navigation actions
+            modified_keys[context] = keys
+    if modified_keys:
+        config["keys"] = modified_keys
 
+    err = None
     try:
-        with open(config_file, "w") as f:
-            json.dump(
-                {
-                    "version": version,
-                    **{
-                        name: globals()["_" * default + f"{name.replace(' ', '_')}"]
-                        for name in config_options
-                    },
-                    "keys": stored_keys,
-                },
-                f,
-                indent=4,
-            )
+        try:
+            os.makedirs(path.dirname(config_file) or ".", exist_ok=True)
+        except (FileExistsError, NotADirectoryError):
+            err = "one of the parent paths is a non-directory"
+        else:
+            with open(config_file, "w") as f:
+                json.dump(config, f, indent=4)
     except Exception as e:
-        error(f"Failed to write user config ({type(e).__name__}: {e}).")
+        err = f"{type(e).__name__}: {e}"
+    if err:
+        error(f"Failed to write user config to {config_file!r} ({err}).")
 
 
 def update_context(
