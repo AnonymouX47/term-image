@@ -162,8 +162,9 @@ class KittyImage(GraphicsImage):
         ),
     }
 
+    _TERM: str = ""
+    _TERM_VERSION: str = ""
     _KITTY_VERSION: Tuple[int, int, int] = ()
-    _KONSOLE_VERSION: Tuple[int, int, int] = ()
 
     # Only defined for the purpose of proper self-documentation
     def draw(
@@ -246,21 +247,22 @@ class KittyImage(GraphicsImage):
             if response and (
                 response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
             ):
-                # Only kitty >= 0.20.0 implement the protocol features utilized
-                # Konsole is good as long as it responds to the graphics query
                 name, version = get_terminal_name_version()
-                if name and version:
+                # Only kitty >= 0.20.0 implement the protocol features utilized
+                if name == "kitty" and version:
                     try:
-                        version = tuple(map(int, version.split(".")))
+                        version_tuple = tuple(map(int, version.split(".")))
                     except ValueError:  # Version string not "understood"
                         pass
                     else:
-                        if name == "kitty" and version >= (0, 20, 0):
-                            cls._KITTY_VERSION = version
+                        if version_tuple >= (0, 20, 0):
+                            cls._TERM, cls._TERM_VERSION = name, version
+                            cls._KITTY_VERSION = version_tuple
                             cls._supported = True
-                        elif name == "konsole":
-                            cls._KONSOLE_VERSION = version
-                            cls._supported = True
+                # Konsole is good as long as it responds to the graphics query
+                elif name == "konsole":
+                    cls._TERM, cls._TERM_VERSION = name, version or ""
+                    cls._supported = True
 
         return cls._supported
 
@@ -392,16 +394,16 @@ class KittyImage(GraphicsImage):
                 buffer.write(jump_right)
 
                 return buffer.getvalue()
-        else:
-            vars(control_data).update(dict(v=height, r=r_height))
-            return "".join(
-                (
-                    z_index is None and delete or "",
-                    Transmission(control_data, raw_image, compress).get_chunked(),
-                    f"{erase}{jump_right}\n" * (r_height - 1),
-                    f"{erase}{jump_right}",
-                )
+
+        vars(control_data).update(v=height, r=r_height)
+        return "".join(
+            (
+                z_index is None and delete or "",
+                Transmission(control_data, raw_image, compress).get_chunked(),
+                f"{erase}{jump_right}\n" * (r_height - 1),
+                f"{erase}{jump_right}",
             )
+        )
 
 
 @dataclass
@@ -448,18 +450,19 @@ class Transmission:
         return "".join(self.get_chunks())
 
     def get_chunks(self, size: int = 4096) -> Generator[str, None, None]:
-        payload = self.get_payload()
+        with self.get_payload() as payload:
+            chunk, next_chunk = payload.read(size), payload.read(size)
+            yield (
+                f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
+            )
 
-        chunk, next_chunk = payload.read(size), payload.read(size)
-        yield f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
-
-        chunk, next_chunk = next_chunk, payload.read(size)
-        while next_chunk:
-            yield f"{START}m=1;{chunk}{ST}"
             chunk, next_chunk = next_chunk, payload.read(size)
+            while next_chunk:
+                yield f"{START}m=1;{chunk}{ST}"
+                chunk, next_chunk = next_chunk, payload.read(size)
 
-        if chunk:  # false if there was never a next chunk
-            yield f"{START}m=0;{chunk}{ST}"
+            if chunk:  # false if there was never a next chunk
+                yield f"{START}m=0;{chunk}{ST}"
 
     def get_control_data(self) -> str:
         return ",".join(

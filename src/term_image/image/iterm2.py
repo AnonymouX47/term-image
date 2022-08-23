@@ -540,7 +540,6 @@ class ITerm2Image(GraphicsImage):
             with io.StringIO() as buffer, raw_image, compressed_image:
                 for line in range(1, r_height + 1):
                     compressed_image.seek(0)
-                    compressed_image.truncate()
                     with PIL.Image.frombytes(
                         img.mode, (width, cell_height), raw_image.read(bytes_per_line)
                     ) as img:
@@ -550,6 +549,7 @@ class ITerm2Image(GraphicsImage):
                             compress_level=compress,  # PNG
                             quality=jpeg_quality,
                         )
+                    compressed_image.truncate()
 
                     buffer.write(erase)
                     buffer.write(f"{START}size={compressed_image.tell()}")
