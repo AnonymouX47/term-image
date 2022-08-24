@@ -23,6 +23,7 @@ from .config import config_options, store_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
+from .image.common import _ALPHA_BG_FORMAT
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -567,7 +568,7 @@ def main() -> None:
                 log_exception(
                     f"--{name.replace('_', '-')}: Invalid! See the logs",
                     direct=True,
-                    fatal=True,
+                    fatal=fatal,
                 )
         else:
             valid = check(value)
@@ -615,10 +616,16 @@ def main() -> None:
             lambda x: (
                 x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
             ),
-            "too high",
+            "too deep",
             (RecursionError, OverflowError),
         ),
         ("repeat", lambda x: x != 0, "must be non-zero"),
+        ("alpha", lambda x: 0.0 <= x < 1.0, "out of range"),
+        (
+            "alpha_bg",
+            lambda x: not x or _ALPHA_BG_FORMAT.fullmatch("#" + x),
+            "invalid hex color",
+        ),
     ):
         if not check_arg(*details):
             return INVALID_ARG
