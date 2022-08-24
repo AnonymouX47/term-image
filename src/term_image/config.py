@@ -445,10 +445,10 @@ config_options = {
                 # exists, is a file and writable
                 (path.isfile(x) and os.access(x, os.W_OK))
                 # is not a directory and the parent directory is writable
-                or (not path.isdir(x) and os.access(path.dirname(x), os.W_OK))
+                or (not path.isdir(x) and os.access(path.dirname(x) or ".", os.W_OK))
             )
         ),
-        "must be a string containing a writable path to a file",
+        "must be a string containing a writable file path",
     ),
     "max notifications": Option(
         2,
