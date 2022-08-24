@@ -589,10 +589,12 @@ def main() -> None:
     if force_cli_mode:
         args.cli = True
 
+    # `check_arg()` requires logging.
     init_log(
         (
             args.log_file
-            if config_options["log file"].is_valid(args.log_file)
+            # If the argument is invalid, the error will be emitted later.
+            if args.log_file and config_options["log file"].is_valid(args.log_file)
             else config_options.log_file
         ),
         getattr(_logging, args.log_level),
@@ -621,12 +623,18 @@ def main() -> None:
 
     for name, option in config_options.items():
         var_name = name.replace(" ", "_")
-        value = getattr(args, var_name, None)
+        try:
+            arg_value = getattr(args, var_name)
         # Not all config options have corresponding command-line arguments
-        if value is not None and not option.is_valid(value):
+        except AttributeError:
+            continue
+
+        if arg_value is None:
+            setattr(args, var_name, option.value)
+        elif not option.is_valid(arg_value):
             arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"{arg_name}: {option.error_msg} (got: {value!r})",
+                f"{arg_name}: {option.error_msg} (got: {arg_value!r})",
                 level=notify.ERROR,
             )
             notify.notify(

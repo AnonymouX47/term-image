@@ -98,7 +98,6 @@ general.add_argument(
     "--query-timeout",
     type=float,
     metavar="N",
-    default=config_options.query_timeout,
     help=(
         "Timeout (in seconds) for all terminal queries "
         f"(default: {config_options.query_timeout})"
@@ -108,7 +107,6 @@ general.add_argument(
     "-S",
     "--style",
     choices=("auto", "block", "iterm2", "kitty"),
-    default=config_options.style,
     help=(
         f"Image render style (default: {config_options.style}). "
         'See "Render Styles" below'
@@ -129,7 +127,6 @@ font_ratio_options.add_argument(
     "--font-ratio",
     type=float,
     metavar="N",
-    default=config_options.font_ratio,
     help=(
         "The width-to-height ratio of a character cell in the terminal, to "
         f"preserve image aspect ratio (default: {config_options.font_ratio or 'auto'})"
@@ -145,7 +142,6 @@ win_size_options = general.add_mutually_exclusive_group()
 win_size_options.add_argument(
     "--swap-win-size",
     action="store_true",
-    default=config_options.swap_win_size,
     help=(
         "A workaround for 'auto font ratio' on some terminal emulators (e.g older "
         "VTE-based ones) that wrongly report window dimensions swapped"
@@ -154,7 +150,6 @@ win_size_options.add_argument(
 win_size_options.add_argument(
     "--no-swap-win-size",
     action="store_false",
-    default=config_options.swap_win_size,
     dest="swap_win_size",
     help="Unlike '--swap-win-size', use the reported window size as-is (default)",
 )
@@ -202,7 +197,6 @@ anim_cache_options = anim_options.add_mutually_exclusive_group()
 anim_cache_options.add_argument(
     "--anim-cache",
     type=int,
-    default=config_options.anim_cache,
     metavar="N",
     help=(
         "Maximum frame count for animation frames to be cached (Better performance "
@@ -460,7 +454,6 @@ perf_options.add_argument(
     "--max-pixels",
     type=int,
     metavar="N",
-    default=config_options.max_pixels,
     help=(
         "Maximum amount of pixels in images to be displayed "
         f"(default: {config_options.max_pixels}) [4]"
@@ -471,7 +464,6 @@ perf_options.add_argument(
     "--checkers",
     type=int,
     metavar="N",
-    default=config_options.checkers,
     help=(
         "Maximum number of sub-processes for checking directory sources "
         f"(default: {config_options.checkers})"
@@ -481,7 +473,6 @@ perf_options.add_argument(
     "--getters",
     type=int,
     metavar="N",
-    default=config_options.getters,
     help=(
         "Number of threads for downloading images from URL sources "
         f"(default: {config_options.getters})"
@@ -491,7 +482,6 @@ perf_options.add_argument(
     "--grid-renderers",
     type=int,
     metavar="N",
-    default=config_options.grid_renderers,
     help=(
         "Number of subprocesses for rendering grid cells "
         f"(default: {config_options.grid_renderers})"
@@ -502,14 +492,12 @@ multi_options = perf_options.add_mutually_exclusive_group()
 multi_options.add_argument(
     "--multi",
     action="store_false",
-    default=config_options.no_multi,
     dest="no_multi",
     help="Enable multiprocessing, if supported (default)",
 )
 multi_options.add_argument(
     "--no-multi",
     action="store_true",
-    default=config_options.no_multi,
     help="Disable multiprocessing",
 )
 
@@ -524,7 +512,6 @@ log_options_.add_argument(
     "-l",
     "--log-file",
     metavar="FILE",
-    default=config_options.log_file,
     help=f"The file to write logs to (default: {config_options.log_file})",
 )
 log_options.add_argument(
