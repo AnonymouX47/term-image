@@ -11,21 +11,20 @@ from typing import List, Optional, Tuple
 import urwid
 
 from .. import cli, logging
-from ..config import _nav, config_options, expand_key, nav
+from ..config import _navi, config_options, expand_key, nav, navi
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
 
-navi = {key: action for action, (key, _) in _nav.items()}
 command = urwid.command_map._command_defaults.copy()
 command = {
-    urwid_action: navi[key] for key, urwid_action in command.items() if key in navi
+    urwid_action: _navi[key] for key, urwid_action in command.items() if key in _navi
 }
 command = {nav[action][0]: urwid_action for urwid_action, action in command.items()}
 urwid.command_map._command = command
-del navi, command
+del command
 
 # NOTE: Any new "private" attribute set on any subclass or instance of an urwid class
 # should be prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -494,7 +493,7 @@ class MenuEntry(urwid.Text):
 class MenuListBox(urwid.ListBox):
     def keypress(self, size: Tuple[int, int], key: str) -> Optional[str]:
         ret = super().keypress(size, key)
-        return key if any(key == v[0] for v in nav.values()) else ret
+        return key if key in navi else ret
 
     def render(self, size: Tuple[int, int], focus: bool = False):
         self._ti_height = size[1]  # Used by MenuScanner

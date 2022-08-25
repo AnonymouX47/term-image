@@ -156,6 +156,7 @@ def load_config(config_file: str) -> None:
         # Done before updating other context keys so that actions having keys
         # conflicting with those for naviagation in the same context can be detected
         update_context_nav(context_keys, nav)
+        navi.update((key, nav_action) for nav_action, (key, _) in nav.items())
 
         # Then other context actions.
         # Also going through unupdated contexts to detect conflicts between the
@@ -493,6 +494,7 @@ _nav = {
     "Home": ["home", "Home"],
     "End": ["end", "End"],
 }
+_navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
 
 # {<context>: {<action>: [<key>, <symbol>, <desc>, <visibility>, <state>], ...}, ...}
 # <visibility> and <state> are added later in `init_config()`.
@@ -575,14 +577,12 @@ _context_keys = {
     },
 }
 
-navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
+nav = deepcopy(_nav)
+navi = deepcopy(_navi)
 context_navs = {
     context: {action: navi[key] for action, (key, *_) in keyset.items() if key in navi}
     for context, keyset in _context_keys.items()
 }
-del navi
-
 update_context_nav(_context_keys, _nav)  # Update symbols
-nav = deepcopy(_nav)
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
