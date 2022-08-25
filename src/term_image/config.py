@@ -199,7 +199,7 @@ def store_config(config_file: str) -> None:
     if modified_nav:
         modified_keys["navigation"] = modified_nav
     for _keyset, (context, keyset) in zip(_context_keys.values(), context_keys.items()):
-        context_nav = _context_navs[context]
+        context_nav = context_navs[context]
         keys = {}
         for _properties, (action, properties) in zip(_keyset.values(), keyset.items()):
             # Exclude context navigation actions and of course, unmodified actions
@@ -271,7 +271,7 @@ def update_context(
         if context == "global"
         else {key: action for action, (key, *_) in context_keys["global"].items()}
     )
-    context_nav = _context_navs.get(context, {})
+    context_nav = context_navs.get(context, {})
     assigned = {keyset[action][0]: action for action in keyset.keys() - update.keys()}
     # Must include all context nav actions and they should override normal actions
     # using the same key since they have been updated earlier.
@@ -348,10 +348,10 @@ def update_context_nav(
     in *context_keys*.
     """
     for context, keyset in context_keys.items():
-        navi = _context_navs[context]
+        context_nav = context_navs[context]
         for action, properties in keyset.items():
-            if action in navi:
-                properties[:2] = nav_update[navi[action]]
+            if action in context_nav:
+                properties[:2] = nav_update[context_nav[action]]
 
 
 user_dir = path.join(path.expanduser("~"), ".term_image")
@@ -576,7 +576,7 @@ _context_keys = {
 }
 
 navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
-_context_navs = {
+context_navs = {
     context: {action: navi[key] for action, (key, *_) in keyset.items() if key in navi}
     for context, keyset in _context_keys.items()
 }
