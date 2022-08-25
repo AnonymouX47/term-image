@@ -99,17 +99,6 @@ def init_config() -> None:
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
-    if config_options.checkers is None:
-        config_options.checkers = max(
-            (
-                len(os.sched_getaffinity(0))
-                if hasattr(os, "sched_getaffinity")
-                else os.cpu_count() or 0
-            )
-            - 1,
-            2,
-        )
-
 
 def load_config(config_file: str) -> None:
     """Loads a user config file."""

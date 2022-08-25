@@ -129,19 +129,20 @@ font_ratio_options.add_argument(
     metavar="N",
     help=(
         "The width-to-height ratio of a character cell in the terminal, to "
-        f"preserve image aspect ratio (default: {config_options.font_ratio or 'auto'})"
+        "preserve image aspect ratio (default: auto)"
     ),
 )
 font_ratio_options.add_argument(
     "--auto-font-ratio",
     action="store_true",
-    help="Determine the font ratio from the terminal, if possible",
+    help="Determine the font ratio from the terminal, if possible (default)",
 )
 
 win_size_options = general.add_mutually_exclusive_group()
 win_size_options.add_argument(
     "--swap-win-size",
     action="store_true",
+    default=None,
     help=(
         "A workaround for 'auto font ratio' on some terminal emulators (e.g older "
         "VTE-based ones) that wrongly report window dimensions swapped"
@@ -150,6 +151,7 @@ win_size_options.add_argument(
 win_size_options.add_argument(
     "--no-swap-win-size",
     action="store_false",
+    default=None,
     dest="swap_win_size",
     help="Unlike '--swap-win-size', use the reported window size as-is (default)",
 )
@@ -465,8 +467,7 @@ perf_options.add_argument(
     type=int,
     metavar="N",
     help=(
-        "Maximum number of sub-processes for checking directory sources "
-        f"(default: {config_options.checkers})"
+        "Maximum number of sub-processes for checking directory sources (default: auto)"
     ),
 )
 perf_options.add_argument(
@@ -492,12 +493,14 @@ multi_options = perf_options.add_mutually_exclusive_group()
 multi_options.add_argument(
     "--multi",
     action="store_false",
+    default=None,
     dest="no_multi",
     help="Enable multiprocessing, if supported (default)",
 )
 multi_options.add_argument(
     "--no-multi",
     action="store_true",
+    default=None,
     help="Disable multiprocessing",
 )
 

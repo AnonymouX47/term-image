@@ -599,7 +599,7 @@ def main() -> None:
         ),
         getattr(_logging, args.log_level),
         args.debug,
-        args.no_multi,
+        config_options.no_multi if args.no_multi is None else args.no_multi,
         args.quiet,
         args.verbose,
         args.verbose_log,
@@ -748,6 +748,16 @@ def main() -> None:
     opener_started = False
 
     if OS_IS_UNIX and not args.cli:
+        if args.checkers is None:
+            args.checkers = max(
+                (
+                    len(os.sched_getaffinity(0))
+                    if hasattr(os, "sched_getaffinity")
+                    else os.cpu_count() or 0
+                )
+                - 1,
+                2,
+            )
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
