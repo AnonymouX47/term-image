@@ -442,8 +442,8 @@ config_options = {
     ),
     "max notifications": Option(
         2,
-        lambda x: isinstance(x, int) and x > -1,
-        "must be an non-negative integer",
+        lambda x: isinstance(x, int) and 0 <= x <= 5,
+        "must be an integer between 0 and 5 (both inclusive)",
     ),
     "max pixels": Option(
         2**22,  # 2048x2048
