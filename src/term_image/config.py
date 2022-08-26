@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import urwid
 
 from .exit_codes import CONFIG_ERROR
-from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT
+from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT, is_writable
 
 
 class ConfigOptions(dict):
@@ -382,7 +382,6 @@ def update_context_nav(
                 properties[:2] = nav_update[context_nav[action]]
 
 
-user_dir = path.join(path.expanduser("~"), ".term_image")
 user_config_file = None
 xdg_config_file = path.join(
     os.environ.get("XDG_CONFIG_HOME", path.join(path.expanduser("~"), ".config")),
@@ -466,17 +465,9 @@ config_options = {
         "must be a non-negative integer",
     ),
     "log file": Option(
-        path.join(user_dir, "term_image.log"),
-        lambda x: (
-            isinstance(x, str)
-            and (
-                # exists, is a file and writable
-                (path.isfile(x) and os.access(x, os.W_OK))
-                # is not a directory and the parent directory is writable
-                or (not path.isdir(x) and os.access(path.dirname(x) or ".", os.W_OK))
-            )
-        ),
-        "must be a string containing a writable file path",
+        path.join("~", ".term_image", "term_image.log"),
+        lambda x: isinstance(x, str) and is_writable(x),
+        "must be a string containing a writable/creatable file path",
     ),
     "max notifications": Option(
         2,

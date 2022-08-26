@@ -27,6 +27,8 @@ def init_log(
     """Initialize application event logging"""
     global DEBUG, MULTI, QUIET, VERBOSE, VERBOSE_LOG
 
+    logfile = os.path.expanduser(logfile)
+    os.makedirs(os.path.dirname(logfile) or ".", exist_ok=True)
     handler = RotatingFileHandler(
         logfile,
         maxBytes=2**20,  # 1 MiB
