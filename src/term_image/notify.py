@@ -24,7 +24,7 @@ CRITICAL = 3
 
 def add_notification(msg: Union[str, Tuple[str, str]]) -> None:
     """Adds a message to the TUI notification bar."""
-    if _alarms.qsize() == config_options.max_notifications:
+    if _alarms.full():
         clear_notification(main.loop, None)
     widgets.notifications.contents.insert(
         0, (urwid.Filler(urwid.Text(msg, wrap="ellipsis")), ("given", 1))
@@ -151,7 +151,7 @@ def stop_loading() -> None:
 
 logger = _logging.getLogger(__name__)
 
-_alarms = Queue(config_options.max_notifications)
+_alarms = Queue(5)  # Max value for "max notifications" is 5
 
 _loading = Event()
 _n_loading = 0

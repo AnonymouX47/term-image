@@ -11,11 +11,10 @@ from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 import urwid
 
 from .. import logging
-from ..config import config_options
 from ..utils import CSI, lock_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .widgets import Image, ImageCanvas, info_bar, main as main_widget, notif_bar, pile
+from .widgets import Image, ImageCanvas, info_bar, main as main_widget
 
 
 def init(
@@ -28,8 +27,6 @@ def init(
     """Initializes the TUI"""
     global is_launched
 
-    if not logging.QUIET and config_options.max_notifications:
-        pile.contents.append((notif_bar, ("given", config_options.max_notifications)))
     if args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))

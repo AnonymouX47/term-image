@@ -19,7 +19,7 @@ import PIL
 import requests
 
 from . import FontRatio, logging, notify, set_font_ratio, tui, utils
-from .config import config_options
+from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
@@ -588,6 +588,8 @@ def main() -> None:
     force_cli_mode = not sys.stdout.isatty() and not args.cli
     if force_cli_mode:
         args.cli = True
+
+    init_config()
 
     # `check_arg()` requires logging.
     init_log(

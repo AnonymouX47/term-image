@@ -11,20 +11,12 @@ from typing import List, Optional, Tuple
 import urwid
 
 from .. import cli, logging
-from ..config import _navi, config_options, expand_key, nav, navi
+from ..config import config_options, expand_key, navi
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
-
-command = urwid.command_map._command_defaults.copy()
-command = {
-    urwid_action: _navi[key] for key, urwid_action in command.items() if key in _navi
-}
-command = {nav[action][0]: urwid_action for urwid_action, action in command.items()}
-urwid.command_map._command = command
-del command
 
 # NOTE: Any new "private" attribute set on any subclass or instance of an urwid class
 # should be prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -501,9 +493,8 @@ class MenuListBox(urwid.ListBox):
 
 
 class NoSwitchColumns(urwid.Columns):
-    _command_map = urwid.ListBox._command_map.copy()
-    for key in (nav["Left"][0], nav["Right"][0]):
-        _command_map._command.pop(key)
+    _command_map = urwid.command_map.copy()
+    _command_map._command.clear()
 
 
 class PlaceHolder(urwid.SolidFill):
@@ -518,7 +509,7 @@ logger = _logging.getLogger(__name__)
 placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 menu_box = urwid.LineBox(menu, "List", "left")
-image_grid = urwid.GridFlow([], config_options.cell_width, 2, 1, "left")
+image_grid = urwid.GridFlow([placeholder], config_options.cell_width, 2, 1, "left")
 image_box = urwid.LineBox(placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
 view = urwid.AttrMap(image_box, "unfocused box", "focused box")

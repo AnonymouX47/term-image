@@ -8,7 +8,7 @@ import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
 from os import path
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import urwid
 
@@ -57,9 +57,10 @@ class Option:
         self.value = self.default
 
 
-def action_with_key(key: str, keyset: Dict[str, list]) -> str:
-    """Return _action_ in _keyset_ having key _key_"""
-    # The way it's used internally, it'll always return an action.
+def action_with_key(key: str, keyset: Dict[str, list]) -> Optional[str]:
+    """Returns the *action* in *keyset* having key *key* or ``None`` if there's no
+    such action.
+    """
     for action, (k, *_) in keyset.items():
         if k == key:
             return action
@@ -82,12 +83,7 @@ def fatal(msg: str) -> None:
 
 
 def init_config() -> None:
-    """Initializes user configuration.
-
-    IMPORTANT:
-        Must be called before any other function in this module
-        and before anything else is imported from this module.
-    """
+    """Initializes user configuration."""
     if user_config_file:
         load_config(user_config_file)
     elif xdg_config_file:
@@ -98,6 +94,8 @@ def init_config() -> None:
             action[3:] = (True, True)  # "shown", "enabled"
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
+
+    reconfigure_tui(_context_keys)
 
 
 def load_config(config_file: str) -> None:
@@ -170,6 +168,46 @@ def load_xdg_config() -> None:
 
     if path.isfile(xdg_config_file):
         load_config(xdg_config_file)
+
+
+def reconfigure_tui(
+    old_context_keys: Optional[Dict[str, Dict[str, list]]] = None
+) -> None:
+    """Updates aspects of the TUI to use the current config option values and
+    keybindings.
+    """
+    from . import logging
+    from .tui.keys import change_key
+    from .tui.widgets import expand, image_grid, notif_bar, pile
+
+    command = urwid.command_map._command_defaults.copy()
+    urwid.command_map._command = {
+        nav[action][0]: command[key] for key, action in _navi.items()
+    }
+
+    if old_context_keys:
+        for context, keyset in context_keys.items():
+            old_keyset = old_context_keys[context]
+            for action, (key, *_) in keyset.items():
+                old_key = old_keyset[action][0]
+                if old_key != key:
+                    try:
+                        change_key(context, old_key, key)
+                    except KeyError:  # e.g navigation keys in "image-grid"
+                        pass
+
+    expand_or_collapse = expand.original_widget.text[0]
+    expand.original_widget.set_text(f"{expand_or_collapse} [{expand_key[1]}]")
+
+    if not logging.QUIET:
+        if pile.contents[-1][0] is notif_bar:
+            pile.contents.pop()
+        if config_options.max_notifications:
+            pile.contents.append(
+                (notif_bar, ("given", config_options.max_notifications))
+            )
+
+    image_grid.cell_width = config_options.cell_width
 
 
 def store_config(config_file: str) -> None:

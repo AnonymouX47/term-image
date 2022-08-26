@@ -73,6 +73,15 @@ def show_actions(context: str, *actions: str) -> None:
 # Main
 
 
+def change_key(context: str, old: str, new: str) -> None:
+    """Changes the key for a registered action from *old* to *new*.
+
+    Raises:
+        KeyError: *old* was not registered.
+    """
+    keys[context][new] = keys[context].pop(old)
+
+
 def display_context_help(context: str) -> None:
     """Displays the help menu for a particular context, showing all visible actions
     and their descriptions.
@@ -218,19 +227,17 @@ def display_context_keys(context: str) -> None:
 
 
 def register_key(*args: Tuple[str, str]) -> FunctionType:
-    """Returns a decorator to register a function to some context actions
+    """Returns a decorator to register a function to some context action(s).
 
-    Args: `(context, action)` tuple(s), each specifying an _action_ and it's _context_.
+    Args: `(context, action)` tuple(s), each specifying an *action* and it's *context*.
 
-    Returns: A decorator that registers a function to some context actions.
-
-    Each _context_ and _action_ must be valid.
-    If no argument is passed, the wrapper simply does nothing.
+    Each *context* and *action* must be valid.
+    If no argument is given, the wrapper simply does nothing.
     """
 
     def register(func: FunctionType) -> None:
-        """Register _func_ to the key corresponding to each `(context, action)` pair
-        recieved by the call to `register_key()` that returns it
+        """Registers *func* to the key corresponding to each ``(context, action)`` pair
+        recieved by the call to ``register_key()`` that defines it.
         """
         for context, action in args:
             # All actions are enabled by default
@@ -286,7 +293,7 @@ def set_confirmation(
 
 # Context Actions
 
-# {<context>: [<func>, <state>], ...}
+# {<context>: {<key>: [<func>, <state>], ...}, ...}
 keys = {context: {} for context in context_keys}
 
 
