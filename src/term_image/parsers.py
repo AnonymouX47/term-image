@@ -527,7 +527,7 @@ log_options.add_argument(
     "-q",
     "--quiet",
     action="store_true",
-    help="No notifications, except fatal and config errors",
+    help="No notifications, except fatal errors",
 )
 log_options.add_argument(
     "-v",

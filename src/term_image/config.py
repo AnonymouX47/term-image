@@ -12,7 +12,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import urwid
 
-from .exit_codes import CONFIG_ERROR
 from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT, is_writable
 
 
@@ -100,6 +99,13 @@ def init_config() -> None:
 
 def load_config(config_file: str) -> None:
     """Loads a user config file."""
+
+    def revert_context_update(
+        keyset: Dict[str, list], prev_keyset: Dict[str, list]
+    ) -> None:
+        for properties, prev_properties in zip(keyset.values(), prev_keyset.values()):
+            properties[:] = prev_properties
+
     try:
         with open(config_file) as f:
             config = json.load(f)
@@ -127,19 +133,27 @@ def load_config(config_file: str) -> None:
                     f"Using fallback: {option.value!r}."
                 )
     if keys:
+        prev_context_keys = deepcopy(context_keys)
+
         # Globals first...
-        keyset = keys.pop("global", None)
-        if keyset:
-            update_context("global", context_keys["global"], keyset, config_file)
+        g_keyset = context_keys["global"]
+        g_update = keys.pop("global", None)
+        if g_update:
+            prev_g_keyset = deepcopy(g_keyset)
+            if not update_context("global", g_keyset, g_update, config_file):
+                revert_context_update(g_keyset, prev_g_keyset)
+                return
 
         # Then navigation...
-        try:
-            nav_update = keys.pop("navigation")
-        except KeyError:
-            pass
-        else:
-            # Resolves all issues with *nav_update* in the process
-            update_context("navigation", nav, nav_update, config_file)
+        # Also going through if unupdated to detect conflicts between the unpdated keys
+        # and global keys
+        nav_update = keys.pop("navigation", {})
+        prev_nav = deepcopy(nav)
+        if not update_context("navigation", nav, nav_update, config_file):
+            g_update and revert_context_update(g_keyset, prev_g_keyset)
+            revert_context_update(nav, prev_nav)
+            return
+
         # Done before updating other context keys so that actions having keys
         # conflicting with those for naviagation in the same context can be detected
         update_context_nav(context_keys, nav)
@@ -150,7 +164,14 @@ def load_config(config_file: str) -> None:
         # unpdated keys and navigation or global keys
         for context, keyset in context_keys.items():
             update = keys.pop(context, {})
-            update_context(context, keyset, update, config_file)
+            if not update_context(context, keyset, update, config_file):
+                for keyset, prev_keyset in zip(
+                    context_keys.values(), prev_context_keys.values()
+                ):  # Includes the global context
+                    revert_context_update(keyset, prev_keyset)
+                revert_context_update(nav, prev_nav)
+                navi.update((key, nav_action) for nav_action, (key, _) in nav.items())
+                return
         for context in keys:
             error(f"Unknown context {context!r}.")
 
@@ -255,10 +276,18 @@ def store_config(config_file: str) -> None:
 
 def update_context(
     context: str, keyset: Dict[str, list], update: Dict[str, list], config_file: str
-) -> None:
-    """Updates the *keyset* of context *context* with *update*"""
+) -> bool:
+    """Updates the *keyset* of context *context* with *update*.
 
-    def try_fallback(default: bool = False) -> None:
+    Returns ``True`` if successful, otherwise ``False``.
+    """
+
+    def try_fallback(default: bool = False) -> bool:
+        """Sets the fallback (old) or default key for the current action if not already
+        assigned to another action.
+
+        Returns ``True`` if successful, otherwise ``False``.
+        """
         default_keyset = _nav if context == "navigation" else _context_keys[context]
         _key = default_keyset[action][0] if default else keyset[action][0]
         default = default or _key == default_keyset[action][0]
@@ -272,12 +301,12 @@ def update_context(
             + "..."
         )
         if in_global or in_assigned:
-            emit, end = (fatal, ".") if default else (error, "...")
+            end = "." if default else "..."
             if in_global:
-                emit(f"... already assigned to global action {global_[_key]!r}{end}")
+                error(f"... already assigned to global action {global_[_key]!r}{end}")
             elif in_assigned:
                 _action = assigned[_key]
-                emit(
+                error(
                     f"... already assigned to action {_action!r} "
                     + (
                         f"(derived from navigation action {context_nav[_action]!r}) "
@@ -286,13 +315,14 @@ def update_context(
                     )
                     + f"in the same context{end}"
                 )
-            sys.exit(CONFIG_ERROR) if default else try_fallback(default=True)
-            return
+            return not default and try_fallback(default=True)
 
         assigned[_key] = action
         if default:
             keyset[action][:2] = default_keyset[action][:2]
         info(f"... using key {_key!r} for action {action!r} in context {context!r}.")
+
+        return True
 
     global_ = (
         set()
@@ -305,13 +335,15 @@ def update_context(
     # using the same key since they have been updated earlier.
     assigned.update({keyset[action][0]: action for action in context_nav.keys()})
 
+    failed = True
     for action, (key, *_) in keyset.items():
         try:
             properties = update.pop(action)
         except KeyError:
             if key in global_:
                 error(f"Unupdated key {key!r} already assigned to a global action...")
-                try_fallback(default=True)
+                if not try_fallback(default=True):
+                    break
             elif assigned[key] != action:  # Has been assigned to a nav action earlier
                 _action = assigned[key]
                 error(
@@ -319,7 +351,8 @@ def update_context(
                     f"(derived from navigation action {context_nav[_action]!r}) "
                     "in the same context..."
                 )
-                try_fallback(default=True)
+                if not try_fallback(default=True):
+                    break
             continue
 
         if action in context_nav:
@@ -335,19 +368,22 @@ def update_context(
             and all(isinstance(x, str) for x in properties)
         ):
             error(f"The properties {repr(properties)!r} are in an incorrect format...")
-            try_fallback()
+            if not try_fallback():
+                break
             continue
 
         key, symbol = properties
         if key not in _valid_keys:
             error(f"Invalid key {key!r}...")
-            try_fallback()
+            if not try_fallback():
+                break
         elif key in global_:
             error(
                 f"Updated Key {key!r} already assigned to global action "
                 f"{global_[key]!r}..."
             )
-            try_fallback()
+            if not try_fallback():
+                break
         elif key in assigned:
             _action = assigned[key]
             error(
@@ -359,13 +395,25 @@ def update_context(
                 )
                 + "in the same context..."
             )
-            try_fallback()
+            if not try_fallback():
+                break
         else:
             assigned[key] = action
             keyset[action][:2] = (key, symbol)
+    else:
+        failed = False
+        for action in update:
+            error(
+                f"Unknown action {action!r} in context {context!r} from "
+                f"{config_file!r}."
+            )
+    if failed:
+        error(
+            f"Unable to update with keybindings from {config_file!r} due to the "
+            "previous error... Changes reverted."
+        )
 
-    for action in update:
-        error(f"Unknown action {action!r} in context {context!r} from {config_file!r}.")
+    return not failed
 
 
 def update_context_nav(

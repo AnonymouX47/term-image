@@ -7,8 +7,7 @@ codes = {
     1: "FAILURE",
     2: "INVALID_ARG",
     3: "INTERRUPTED",
-    4: "CONFIG_ERROR",
-    5: "NO_VALID_SOURCE",
+    4: "NO_VALID_SOURCE",
 }
 
-globals().update(((v, k) for k, v in codes.items()))
+globals().update((v, k) for k, v in codes.items())
