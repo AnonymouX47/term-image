@@ -176,6 +176,7 @@ palette = [
     ("key", "", "", "", "#ffffff", "#5588ff"),
     ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
     ("error", "", "", "", "bold", "#ff0000"),
-    ("warning", "", "", "", "#ff0000, bold", ""),
+    ("warning", "", "", "", "#ff0000,bold", ""),
     ("input", "", "", "", "standout", ""),
+    ("notif context", "", "", "", "#0000ff,bold", ""),
 ]

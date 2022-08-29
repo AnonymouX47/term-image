@@ -107,30 +107,50 @@ def load() -> None:
 
 
 def notify(
-    msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
+    msg: str,
+    level: int = INFO,
+    context: str = "",
+    *,
+    verbose: bool = False,
+    loading: bool = False,
 ) -> None:
-    """Displays a message in the TUI's notification bar or on STDOUT."""
-    if logging.QUIET and level < CRITICAL or verbose and not logging.VERBOSE:
+    """Displays a message in the TUI's notification bar or to STDOUT/STDERR."""
+    if (
+        (cli.args.quiet if logging.QUIET is None else logging.QUIET)
+        and level < CRITICAL
+        or verbose
+        and not (
+            cli.args.verbose or cli.args.debug
+            if logging.VERBOSE is None
+            else logging.VERBOSE
+        )
+    ):
         return
 
     if not tui.is_launched:
         print(
-            (
-                f"{CSI}33m{msg}{COLOR_RESET}"
-                if level == WARNING
-                else f"{CSI}31m{msg}{COLOR_RESET}"
+            (f"{CSI}34m{context}:{COLOR_RESET} " if context else "")
+            + (
+                f"{CSI}31m{msg}{COLOR_RESET}"
                 if level >= ERROR
+                else f"{CSI}33m{msg}{COLOR_RESET}"
+                if level == WARNING
                 else msg
             ),
-            file=stderr if level >= ERROR else stdout,
+            file=stderr if level >= WARNING else stdout,
         )
         if loading:
             start_loading()
     else:
-        # CRITICAL-level notifications should never be displayed in the TUI,
-        # since the program shouldn't recover from the cause.
         if max_notifications:
-            add_notification((msg, ("warning", msg), ("error", msg))[level])
+            add_notification(
+                [
+                    ("notif context", f"{context}: " if context else ""),
+                    # CRITICAL-level notifications should never be displayed in the TUI,
+                    # since the program shouldn't recover from the cause.
+                    (msg, ("warning", msg), ("error", msg))[level],
+                ]
+            )
 
 
 def start_loading() -> None:
