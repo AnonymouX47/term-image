@@ -395,7 +395,7 @@ def manage_checkers(
                 return
 
             if not any(checks_in_progress):
-                logging.log(
+                log(
                     "All checkers were terminated, checking directory sources failed!",
                     logger,
                     _logging.ERROR,
@@ -414,7 +414,7 @@ def manage_checkers(
                     images.append((source, ...))
                 else:
                     del contents[source]
-                    logging.log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
     else:
         current_thread.name = "Checker"
 
@@ -434,7 +434,7 @@ def manage_checkers(
                     contents[source] = result
                     images.append((source, ...))
                 elif not interrupted.is_set() and result is None:
-                    log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
             _, links, source, _depth = dir_queue.get()
 
         if interrupted.is_set():
@@ -566,7 +566,9 @@ def main() -> None:
                 pass
             except Exception:
                 log_exception(
-                    f"--{name.replace('_', '-')}: Invalid! See the logs",
+                    "Invalid! See the logs",
+                    logger,
+                    f"--{name.replace('_', '-')}",
                     direct=True,
                     fatal=fatal,
                 )
@@ -575,8 +577,9 @@ def main() -> None:
 
         if not valid:
             notify.notify(
-                f"--{name.replace('_', '-')}: {msg} (got: {value!r})",
-                level=notify.CRITICAL if fatal else notify.ERROR,
+                f"{msg} (got: {value!r})",
+                notify.CRITICAL if fatal else notify.ERROR,
+                f"--{name.replace('_', '-')}",
             )
 
         return bool(valid)
@@ -636,13 +639,11 @@ def main() -> None:
         # Not all config options have corresponding command-line arguments
         if value is not None and not is_valid(value):
             arg_name = f"--{name.replace(' ', '-')}"
+            notify.notify(f"{msg} (got: {value!r})", notify.ERROR, arg_name)
             notify.notify(
-                f"{arg_name}: {msg} (got: {value!r})",
-                level=notify.ERROR,
-            )
-            notify.notify(
-                f"{arg_name}: Using config value: {getattr(config, var_name)!r}",
-                level=notify.WARNING,
+                f"Using config value: {getattr(config, var_name)!r}",
+                context=arg_name,
+                verbose=True,
             )
             setattr(args, var_name, getattr(config, var_name))
 
@@ -657,7 +658,7 @@ def main() -> None:
         notify.notify(
             "Auto font ratio is not supported in the active terminal or on this "
             "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
-            level=notify.WARNING,
+            notify.WARNING,
         )
         args.font_ratio = 0.5
 
@@ -683,7 +684,7 @@ def main() -> None:
                 f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
-                level=_logging.CRITICAL,
+                _logging.CRITICAL,
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
@@ -693,7 +694,7 @@ def main() -> None:
                     f"The {args.style!r} render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                 )
 
     # Some APCs (e.g kitty's) used for render style support detection get emitted on
@@ -712,17 +713,18 @@ def main() -> None:
     try:
         style_args = ImageClass._check_style_args(style_args)
     except ValueError as e:
-        notify.notify(str(e), level=notify.CRITICAL)
+        notify.notify(str(e), notify.CRITICAL)
         return INVALID_ARG
 
     if force_cli_mode:
         log(
             "Output is not a terminal, forcing CLI mode!",
             logger,
-            level=_logging.WARNING,
+            _logging.WARNING,
         )
 
-    log("Processing sources", logger, loading=True)
+    log("Processing sources...", logger, verbose=True)
+    notify.start_loading()
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
@@ -833,7 +835,7 @@ def main() -> None:
         )
         dir_images = []
 
-    log("... Done!", logger)
+    log("... Done!", logger, verbose=True)
 
     images = file_images + url_images + dir_images
     if not images:
@@ -855,7 +857,7 @@ def main() -> None:
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                     verbose=True,
                 )
                 continue
@@ -940,7 +942,7 @@ def main() -> None:
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except (ValueError, StyleError, TermImageWarning) as e:
-                notify.notify(str(e), level=notify.ERROR)
+                notify.notify(str(e), notify.ERROR)
     elif OS_IS_UNIX:
         notify.end_loading()
         tui.init(args, style_args, images, contents, ImageClass)
