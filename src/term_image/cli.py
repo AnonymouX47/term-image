@@ -6,6 +6,7 @@ import logging as _logging
 import os
 import sys
 import warnings
+from contextlib import suppress
 from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
@@ -943,6 +944,11 @@ def main() -> None:
             # or padding width/height checks.
             except (ValueError, StyleError, TermImageWarning) as e:
                 notify.notify(str(e), notify.ERROR)
+            except BrokenPipeError:
+                # Prevent ignored exception message at interpreter shutdown
+                with suppress(BrokenPipeError):
+                    sys.stdout.close()
+                break
     elif OS_IS_UNIX:
         notify.end_loading()
         tui.init(args, style_args, images, contents, ImageClass)
