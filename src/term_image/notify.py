@@ -44,8 +44,9 @@ def end_loading() -> None:
     """Signals the end of all progressive operations for the current mode."""
     global _n_loading
 
-    _n_loading = -1
-    _loading.set()
+    if not logging.QUIET:
+        _n_loading = -1
+        _loading.set()
 
 
 def is_loading() -> bool:
@@ -64,16 +65,19 @@ def load() -> None:
 
     global _n_loading
 
+    stream = stdout if stdout.isatty() else stderr
     _loading.wait()
 
     while _n_loading > -1:
         while _n_loading > 0:
             for stage in (".  ", ".. ", "..."):
-                print(stage + "\b" * 3, end="", flush=True)
+                stream.write(stage + "\b" * 3)
+                stream.flush()
                 if _n_loading <= 0:
                     break
                 sleep(0.25)
-        print(" " * 3 + "\b" * 3, end="", flush=True)
+        stream.write(" " * 3 + "\b" * 3)
+        stream.flush()
         if _n_loading > -1:
             _loading.clear()
             _loading.wait()
@@ -157,7 +161,7 @@ def start_loading() -> None:
     """Signals the start of a progressive operation."""
     global _n_loading
 
-    if not (cli.interrupted.is_set() or main.quitting.is_set()):
+    if not (logging.QUIET or cli.interrupted.is_set() or main.quitting.is_set()):
         _n_loading += 1
         _loading.set()
 
@@ -166,7 +170,8 @@ def stop_loading() -> None:
     """Signals the end of a progressive operation."""
     global _n_loading
 
-    _n_loading -= 1
+    if not logging.QUIET:
+        _n_loading -= 1
 
 
 logger = _logging.getLogger(__name__)
