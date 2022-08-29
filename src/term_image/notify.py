@@ -44,8 +44,9 @@ def end_loading() -> None:
     """Signals the end of all progressive operations for the current mode."""
     global _n_loading
 
-    _n_loading = -1
-    _loading.set()
+    if not logging.QUIET:
+        _n_loading = -1
+        _loading.set()
 
 
 def is_loading() -> bool:
@@ -64,16 +65,19 @@ def load() -> None:
 
     global _n_loading
 
+    stream = stdout if stdout.isatty() else stderr
     _loading.wait()
 
     while _n_loading > -1:
         while _n_loading > 0:
             for stage in (".  ", ".. ", "..."):
-                print(stage + "\b" * 3, end="", flush=True)
+                stream.write(stage + "\b" * 3)
+                stream.flush()
                 if _n_loading <= 0:
                     break
                 sleep(0.25)
-        print(" " * 3 + "\b" * 3, end="", flush=True)
+        stream.write(" " * 3 + "\b" * 3)
+        stream.flush()
         if _n_loading > -1:
             _loading.clear()
             _loading.wait()
@@ -107,37 +111,57 @@ def load() -> None:
 
 
 def notify(
-    msg: str, *, verbose: bool = False, level: int = INFO, loading: bool = False
+    msg: str,
+    level: int = INFO,
+    context: str = "",
+    *,
+    verbose: bool = False,
+    loading: bool = False,
 ) -> None:
-    """Displays a message in the TUI's notification bar or on STDOUT."""
-    if logging.QUIET and level < CRITICAL or verbose and not logging.VERBOSE:
+    """Displays a message in the TUI's notification bar or to STDOUT/STDERR."""
+    if (
+        (cli.args.quiet if logging.QUIET is None else logging.QUIET)
+        and level < CRITICAL
+        or verbose
+        and not (
+            cli.args.verbose or cli.args.debug
+            if logging.VERBOSE is None
+            else logging.VERBOSE
+        )
+    ):
         return
 
     if not tui.is_launched:
         print(
-            (
-                f"{CSI}33m{msg}{COLOR_RESET}"
-                if level == WARNING
-                else f"{CSI}31m{msg}{COLOR_RESET}"
+            (f"{CSI}34m{context}:{COLOR_RESET} " if context else "")
+            + (
+                f"{CSI}31m{msg}{COLOR_RESET}"
                 if level >= ERROR
+                else f"{CSI}33m{msg}{COLOR_RESET}"
+                if level == WARNING
                 else msg
             ),
-            file=stderr if level >= ERROR else stdout,
+            file=stderr if level >= WARNING else stdout,
         )
         if loading:
             start_loading()
     else:
-        # CRITICAL-level notifications should never be displayed in the TUI,
-        # since the program shouldn't recover from the cause.
         if config_options.max_notifications:
-            add_notification((msg, ("warning", msg), ("error", msg))[level])
+            add_notification(
+                [
+                    ("notif context", f"{context}: " if context else ""),
+                    # CRITICAL-level notifications should never be displayed in the TUI,
+                    # since the program shouldn't recover from the cause.
+                    (msg, ("warning", msg), ("error", msg))[level],
+                ]
+            )
 
 
 def start_loading() -> None:
     """Signals the start of a progressive operation."""
     global _n_loading
 
-    if not (cli.interrupted.is_set() or main.quitting.is_set()):
+    if not (logging.QUIET or cli.interrupted.is_set() or main.quitting.is_set()):
         _n_loading += 1
         _loading.set()
 
@@ -146,7 +170,8 @@ def stop_loading() -> None:
     """Signals the end of a progressive operation."""
     global _n_loading
 
-    _n_loading -= 1
+    if not logging.QUIET:
+        _n_loading -= 1
 
 
 logger = _logging.getLogger(__name__)

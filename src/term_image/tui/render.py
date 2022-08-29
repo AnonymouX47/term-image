@@ -245,6 +245,7 @@ def manage_grid_renders(n_renderers: int):
             ),
             kwargs=dict(out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,
+            redirect_notifs=True,
         )
         for n in range(n_renderers if multi else 1)
     ]

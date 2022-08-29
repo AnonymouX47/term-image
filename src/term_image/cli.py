@@ -6,6 +6,7 @@ import logging as _logging
 import os
 import sys
 import warnings
+from contextlib import suppress
 from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
@@ -23,6 +24,7 @@ from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
+from .image.common import _ALPHA_BG_FORMAT
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -394,7 +396,7 @@ def manage_checkers(
                 return
 
             if not any(checks_in_progress):
-                logging.log(
+                log(
                     "All checkers were terminated, checking directory sources failed!",
                     logger,
                     _logging.ERROR,
@@ -413,7 +415,7 @@ def manage_checkers(
                     images.append((source, ...))
                 else:
                     del contents[source]
-                    logging.log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
     else:
         current_thread.name = "Checker"
 
@@ -433,7 +435,7 @@ def manage_checkers(
                     contents[source] = result
                     images.append((source, ...))
                 elif not interrupted.is_set() and result is None:
-                    log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
             _, links, source, _depth = dir_queue.get()
 
         if interrupted.is_set():
@@ -565,17 +567,20 @@ def main() -> None:
                 pass
             except Exception:
                 log_exception(
-                    f"--{name.replace('_', '-')}: Invalid! See the logs",
+                    "Invalid! See the logs",
+                    logger,
+                    f"--{name.replace('_', '-')}",
                     direct=True,
-                    fatal=True,
+                    fatal=fatal,
                 )
         else:
             valid = check(value)
 
         if not valid:
             notify.notify(
-                f"--{name.replace('_', '-')}: {msg} (got: {value!r})",
-                level=notify.CRITICAL if fatal else notify.ERROR,
+                f"{msg} (got: {value!r})",
+                notify.CRITICAL if fatal else notify.ERROR,
+                f"--{name.replace('_', '-')}",
             )
 
         return bool(valid)
@@ -615,10 +620,16 @@ def main() -> None:
             lambda x: (
                 x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
             ),
-            "too high",
+            "too deep",
             (RecursionError, OverflowError),
         ),
         ("repeat", lambda x: x != 0, "must be non-zero"),
+        ("alpha", lambda x: 0.0 <= x < 1.0, "out of range"),
+        (
+            "alpha_bg",
+            lambda x: not x or _ALPHA_BG_FORMAT.fullmatch("#" + x),
+            "invalid hex color",
+        ),
     ):
         if not check_arg(*details):
             return INVALID_ARG
@@ -636,12 +647,14 @@ def main() -> None:
         elif not option.is_valid(arg_value):
             arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"{arg_name}: {option.error_msg} (got: {arg_value!r})",
-                level=notify.ERROR,
+                f"{option.error_msg} (got: {arg_value!r})",
+                notify.ERROR,
+                arg_name,
             )
             notify.notify(
-                f"{arg_name}: Using config value: {option.value!r}",
-                level=notify.WARNING,
+                f"Using config value: {option.value!r}",
+                context=arg_name,
+                verbose=True,
             )
             setattr(args, var_name, option.value)
 
@@ -656,7 +669,7 @@ def main() -> None:
         notify.notify(
             "Auto font ratio is not supported in the active terminal or on this "
             "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
-            level=notify.WARNING,
+            notify.WARNING,
         )
         args.font_ratio = 0.5
 
@@ -682,7 +695,7 @@ def main() -> None:
                 f"The {args.style!r} render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
-                level=_logging.CRITICAL,
+                _logging.CRITICAL,
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
@@ -692,7 +705,7 @@ def main() -> None:
                     f"The {args.style!r} render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                 )
 
     # Some APCs (e.g kitty's) used for render style support detection get emitted on
@@ -711,17 +724,18 @@ def main() -> None:
     try:
         style_args = ImageClass._check_style_args(style_args)
     except ValueError as e:
-        notify.notify(str(e), level=notify.CRITICAL)
+        notify.notify(str(e), notify.CRITICAL)
         return INVALID_ARG
 
     if force_cli_mode:
         log(
             "Output is not a terminal, forcing CLI mode!",
             logger,
-            level=_logging.WARNING,
+            _logging.WARNING,
         )
 
-    log("Processing sources", logger, loading=True)
+    log("Processing sources...", logger, verbose=True)
+    notify.start_loading()
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
@@ -842,7 +856,7 @@ def main() -> None:
         )
         dir_images = []
 
-    log("... Done!", logger)
+    log("... Done!", logger, verbose=True)
 
     images = file_images + url_images + dir_images
     if not images:
@@ -864,7 +878,7 @@ def main() -> None:
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                     verbose=True,
                 )
                 continue
@@ -949,7 +963,12 @@ def main() -> None:
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except (ValueError, StyleError, TermImageWarning) as e:
-                notify.notify(str(e), level=notify.ERROR)
+                notify.notify(str(e), notify.ERROR)
+            except BrokenPipeError:
+                # Prevent ignored exception message at interpreter shutdown
+                with suppress(BrokenPipeError):
+                    sys.stdout.close()
+                break
     elif OS_IS_UNIX:
         notify.end_loading()
         tui.init(args, style_args, images, contents, ImageClass)

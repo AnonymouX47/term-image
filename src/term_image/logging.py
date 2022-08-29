@@ -59,6 +59,7 @@ def init_log(
 
     if debug:
         _logger.setLevel(logging.DEBUG)
+
     _logger.info("Starting a new session")
     _logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
@@ -102,6 +103,7 @@ def log(
     msg: str,
     logger: Optional[logging.Logger] = None,
     level: int = logging.INFO,
+    context: str = "",
     *,
     direct: bool = True,
     file: bool = True,
@@ -116,7 +118,10 @@ def log(
         if VERBOSE:
             logger.log(level, msg, **_kwargs)
             notify.notify(
-                msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
+                msg,
+                getattr(notify, logging.getLevelName(level)),
+                context,
+                loading=loading,
             )
         elif VERBOSE_LOG:
             logger.log(level, msg, **_kwargs)
@@ -125,12 +130,20 @@ def log(
             logger.log(level, msg, **_kwargs)
         if direct:
             notify.notify(
-                msg, level=getattr(notify, logging.getLevelName(level)), loading=loading
+                msg,
+                getattr(notify, logging.getLevelName(level)),
+                context,
+                loading=loading,
             )
 
 
 def log_exception(
-    msg: str, logger: logging.Logger, *, direct: bool = False, fatal: bool = False
+    msg: str,
+    logger: logging.Logger,
+    context: str = "",
+    *,
+    direct: bool = False,
+    fatal: bool = False,
 ) -> None:
     """Report an error with the exception reponsible
 
@@ -149,7 +162,7 @@ def log_exception(
         logger.error(msg, **_kwargs)
 
     if VERBOSE and direct:
-        notify.notify(msg, level=notify.CRITICAL if fatal else notify.ERROR)
+        notify.notify(msg, notify.CRITICAL if fatal else notify.ERROR, context)
 
 
 # Not annotated because it's not directly used.

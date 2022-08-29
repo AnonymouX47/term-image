@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 import urwid
 
 from .. import logging
-from ..utils import CSI, lock_tty
+from ..utils import CSI, lock_tty, write_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .widgets import Image, ImageCanvas, info_bar, main as main_widget
@@ -118,7 +118,7 @@ def init(
     anim_render_manager.start()
 
     try:
-        print(f"{CSI}?1049h", end="", flush=True)  # Switch to the alternate buffer
+        write_tty(f"{CSI}?1049h".encode())  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
         grid_render_manager.join()
@@ -136,7 +136,7 @@ def init(
         raise
     finally:
         # urwid fails to restore the normal buffer on some terminals
-        print(f"{CSI}?1049l", end="", flush=True)  # Switch back to the normal buffer
+        write_tty(f"{CSI}?1049l".encode())  # Switch back to the normal buffer
         main.displayer.close()
         is_launched = False
         os.close(main.update_pipe)
@@ -173,6 +173,7 @@ palette = [
     ("key", "", "", "", "#ffffff", "#5588ff"),
     ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
     ("error", "", "", "", "bold", "#ff0000"),
-    ("warning", "", "", "", "#ff0000, bold", ""),
+    ("warning", "", "", "", "#ff0000,bold", ""),
     ("input", "", "", "", "standout", ""),
+    ("notif context", "", "", "", "#0000ff,bold", ""),
 ]
