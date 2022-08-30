@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging as _logging
 import os
-import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
 from os import path
@@ -12,7 +12,8 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import urwid
 
-from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT, is_writable
+from . import logging, notify
+from .utils import QUERY_TIMEOUT, is_writable
 
 
 class ConfigOptions(dict):
@@ -65,24 +66,24 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> Optional[str]:
             return action
 
 
-def info(msg: str) -> None:
-    print(
-        f"{CSI}34mconfig: {COLOR_RESET}{msg}",
-        # In case output is being redirected or piped
-        file=sys.stdout if sys.stdout.isatty() else sys.stderr,
-    )
+def get_log_function(level) -> Callable[[str], None]:
+    def log(msg: str) -> None:
+        if logging.VERBOSE is None:  # logging not yet initialized
+            notify.notify(msg, notify_level, "config")
+        else:
+            logging.log(msg, _logger, log_level, "config")
 
+    notify_level = getattr(notify, level)
+    log_level = getattr(_logging, level)
 
-def error(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}31m{msg}{COLOR_RESET}", file=sys.stderr)
-
-
-def fatal(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}39m{CSI}41m{msg}{COLOR_RESET}", file=sys.stderr)
+    return log
 
 
 def init_config() -> None:
     """Initializes user configuration."""
+    for var, level in (("error", "ERROR"), ("info", "INFO"), ("warn", "WARNING")):
+        globals()[var] = get_log_function(level)
+
     if user_config_file:
         load_config(user_config_file)
     elif xdg_config_file:
@@ -111,7 +112,7 @@ def load_config(config_file: str) -> None:
             config = json.load(f)
     except Exception as e:
         error(
-            f"Failed to load config file {config_file!r} ({type(e).__name__}: {e})... "
+            f"Failed to load {config_file!r} ({type(e).__name__}: {e})... "
             "Using fallbacks."
         )
         return
@@ -122,7 +123,7 @@ def load_config(config_file: str) -> None:
         try:
             option = config_options[name]
         except KeyError:
-            error(f"Unknown option {name!r} from {config_file!r}.")
+            warn(f"Unknown option {name!r} (in {config_file!r}).")
         else:
             if option.is_valid(value):
                 option.value = value
@@ -173,7 +174,7 @@ def load_config(config_file: str) -> None:
                 navi.update((key, nav_action) for nav_action, (key, _) in nav.items())
                 return
         for context in keys:
-            error(f"Unknown context {context!r}.")
+            warn(f"Unknown context {context!r} (in {config_file!r}).")
 
 
 def load_xdg_config() -> None:
@@ -264,7 +265,7 @@ def store_config(config_file: str) -> None:
         try:
             os.makedirs(path.dirname(config_file) or ".", exist_ok=True)
         except (FileExistsError, NotADirectoryError):
-            err = "one of the parent paths is a non-directory"
+            err = "one of the parents is not a directory"
         else:
             with open(config_file, "w") as f:
                 json.dump(config, f, indent=4)
@@ -297,7 +298,7 @@ def update_context(
         info(
             f"... trying {'default' if default else 'fallback'} key {_key!r} "
             + f"for action {action!r} in context {context!r}"
-            + (f" from {config_file!r}" if action in update else "")
+            + (f" (in {config_file!r})" if action in update else "")
             + "..."
         )
         if in_global or in_assigned:
@@ -356,9 +357,9 @@ def update_context(
             continue
 
         if action in context_nav:
-            error(
-                f"Navigation action {action!r} in context {context!r} should be "
-                f"modified via navigation action {context_nav[action]!r}."
+            warn(
+                f"Action {action!r} in context {context!r} should be modified via "
+                f"navigation action {context_nav[action]!r} (in {config_file!r})."
             )
             continue
 
@@ -403,9 +404,9 @@ def update_context(
     else:
         failed = False
         for action in update:
-            error(
-                f"Unknown action {action!r} in context {context!r} from "
-                f"{config_file!r}."
+            warn(
+                f"Unknown action {action!r} in context {context!r} "
+                f"(in {config_file!r})."
             )
     if failed:
         error(
@@ -429,6 +430,11 @@ def update_context_nav(
             if action in context_nav:
                 properties[:2] = nav_update[context_nav[action]]
 
+
+_logger = _logging.getLogger(__name__)
+error: Callable[[str], None] = None
+info: Callable[[str], None] = None
+warn: Callable[[str], None] = None
 
 user_config_file = None
 xdg_config_file = path.join(
