@@ -69,12 +69,13 @@ def action_with_key(key: str, keyset: Dict[str, list]) -> Optional[str]:
 def get_log_function(level) -> Callable[[str], None]:
     def log(msg: str) -> None:
         if logging.VERBOSE is None:  # logging not yet initialized
-            notify.notify(msg, notify_level, "config")
+            notify.notify(msg, notify_level, "config", verbose=verbose)
         else:
-            logging.log(msg, _logger, log_level, "config")
+            logging.log(msg, _logger, log_level, "config", verbose=verbose)
 
     notify_level = getattr(notify, level)
     log_level = getattr(_logging, level)
+    verbose = level == "INFO"
 
     return log
 
@@ -289,39 +290,49 @@ def update_context(
 
         Returns ``True`` if successful, otherwise ``False``.
         """
-        default_keyset = _nav if context == "navigation" else _context_keys[context]
-        _key = default_keyset[action][0] if default else keyset[action][0]
-        default = default or _key == default_keyset[action][0]
+        if default:
+            default_keyset = _nav if context == "navigation" else _context_keys[context]
+            _key = default_keyset[action][0]
+            if _key == keyset[action][0]:
+                info("... default key is the same as the current/former key.")
+                error("... unable to find an unassigned fallback.")
+                return False
+        else:
+            _key = keyset[action][0]
+            if _key == key:
+                info("... former key is the same as the new key.")
+                return try_fallback(default=True)
         in_global = _key in global_
         in_assigned = _key in assigned
+        fallback = "default" if default else "former"
 
-        info(
-            f"... trying {'default' if default else 'fallback'} key {_key!r} "
-            + f"for action {action!r} in context {context!r}"
-            + (f" (in {config_file!r})" if action in update else "")
-            + "..."
-        )
         if in_global or in_assigned:
-            end = "." if default else "..."
             if in_global:
-                error(f"... already assigned to global action {global_[_key]!r}{end}")
+                error(
+                    f"... {fallback} key {_key!r} already assigned to global action "
+                    f"{global_[_key]!r}."
+                )
             elif in_assigned:
                 _action = assigned[_key]
                 error(
-                    f"... already assigned to action {_action!r} "
+                    f"... {fallback} key {_key!r} already assigned to action "
+                    f"{_action!r} "
                     + (
-                        f"(derived from navigation action {context_nav[_action]!r}) "
+                        f"(derived from 'navigation::{context_nav[_action]}') "
                         if _action in context_nav
                         else ""
                     )
-                    + f"in the same context{end}"
+                    + "in the same context."
                 )
-            return not default and try_fallback(default=True)
+            if default:
+                error("... unable to find an unassigned fallback.")
+                return False
+            return try_fallback(default=True)
 
         assigned[_key] = action
         if default:
             keyset[action][:2] = default_keyset[action][:2]
-        info(f"... using key {_key!r} for action {action!r} in context {context!r}.")
+        info(f"... using {fallback} key {_key!r}.")
 
         return True
 
@@ -338,19 +349,26 @@ def update_context(
 
     failed = True
     for action, (key, *_) in keyset.items():
+        context_action = f"'{context}::{action}'"
         try:
             properties = update.pop(action)
         except KeyError:
+            conflict_msg = f"Key conclict with {context_action}..."
             if key in global_:
-                error(f"Unupdated key {key!r} already assigned to a global action...")
+                error(conflict_msg)
+                error(
+                    f"... current key {key!r} already assigned to global action "
+                    f"{global_[key]!r}."
+                )
                 if not try_fallback(default=True):
                     break
             elif assigned[key] != action:  # Has been assigned to a nav action earlier
                 _action = assigned[key]
+                error(conflict_msg)
                 error(
-                    f"Unupdated key {key!r} already assigned to action {_action!r} "
-                    f"(derived from navigation action {context_nav[_action]!r}) "
-                    "in the same context..."
+                    f"... current key {key!r} already assigned to action {_action!r} "
+                    f"(derived from 'navigation::{context_nav[_action]}') "
+                    "in the same context."
                 )
                 if not try_fallback(default=True):
                     break
@@ -358,8 +376,8 @@ def update_context(
 
         if action in context_nav:
             warn(
-                f"Action {action!r} in context {context!r} should be modified via "
-                f"navigation action {context_nav[action]!r} (in {config_file!r})."
+                f"{context_action} should be updated via 'navigation::"
+                f"{context_nav[action]}' (in {config_file!r})."
             )
             continue
 
@@ -368,33 +386,42 @@ def update_context(
             and len(properties) == 2
             and all(isinstance(x, str) for x in properties)
         ):
-            error(f"The properties {repr(properties)!r} are in an incorrect format...")
+            error(
+                f"The properties ({properties!r}) of {context_action} are not in the "
+                f"correct format (in {config_file!r})..."
+            )
             if not try_fallback():
                 break
             continue
 
         key, symbol = properties
+        conflict_msg = (
+            f"Key conclict with {context_action} (updated in {config_file!r})..."
+        )
+
         if key not in _valid_keys:
-            error(f"Invalid key {key!r}...")
+            error(f"Invalid key {key!r} for {context_action} (in {config_file!r})...")
             if not try_fallback():
                 break
         elif key in global_:
+            error(conflict_msg)
             error(
-                f"Updated Key {key!r} already assigned to global action "
-                f"{global_[key]!r}..."
+                f"... new key {key!r} already assigned to global action "
+                f"{global_[key]!r}."
             )
             if not try_fallback():
                 break
         elif key in assigned:
             _action = assigned[key]
+            error(conflict_msg)
             error(
-                f"Updated Key {key!r} already assigned to action {_action!r} "
+                f"... new Key {key!r} already assigned to action {_action!r} "
                 + (
-                    f"(derived from navigation action {context_nav[_action]!r}) "
+                    f"(derived from 'navigation::{context_nav[_action]}') "
                     if _action in context_nav
                     else ""
                 )
-                + "in the same context..."
+                + "in the same context."
             )
             if not try_fallback():
                 break
