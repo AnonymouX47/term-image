@@ -530,6 +530,7 @@ def open_files(
 
 def main() -> None:
     """CLI execution sub-entry-point"""
+    from . import config  # Importing a module-level will result in a circular import
     from .parsers import parser, style_parsers
 
     global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
@@ -594,6 +595,9 @@ def main() -> None:
     if force_cli_mode:
         args.cli = True
 
+    config.user_config_file = args.config
+    if args.no_config:
+        config.xdg_config_file = None
     init_config()
 
     # `check_arg()` requires logging.

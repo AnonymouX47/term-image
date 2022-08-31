@@ -504,6 +504,24 @@ multi_options.add_argument(
     help="Disable multiprocessing",
 )
 
+# Config
+config_options__ = parser.add_argument_group(
+    "Config Options",
+    "NOTE: These are mutually exclusive",
+)
+config_options_ = config_options__.add_mutually_exclusive_group()
+
+config_options_.add_argument(
+    "--config",
+    metavar="FILE",
+    help="The config file to use for this session (default: Searches XDG Base Dirs)",
+)
+config_options_.add_argument(
+    "--no-config",
+    action="store_true",
+    help="Use the default configuration",
+)
+
 # Logging
 log_options_ = parser.add_argument_group(
     "Logging Options",
