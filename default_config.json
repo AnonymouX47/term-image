@@ -1,0 +1,163 @@
+{
+    "anim cache": 100,
+    "cell width": 30,
+    "checkers": null,
+    "font ratio": null,
+    "getters": 4,
+    "grid renderers": 1,
+    "log file": "~/.term_image/term_image.log",
+    "max notifications": 2,
+    "max pixels": 4194304,
+    "no multi": false,
+    "query timeout": 0.1,
+    "style": "auto",
+    "swap win size": false,
+    "keys": {
+        "navigation": {
+            "Left": [
+                "left",
+                "\u25c0"
+            ],
+            "Up": [
+                "up",
+                "\u25b2"
+            ],
+            "Right": [
+                "right",
+                "\u25b6"
+            ],
+            "Down": [
+                "down",
+                "\u25bc"
+            ],
+            "Page Up": [
+                "page up",
+                "PgUp"
+            ],
+            "Page Down": [
+                "page down",
+                "PgDn"
+            ],
+            "Home": [
+                "home",
+                "Home"
+            ],
+            "End": [
+                "end",
+                "End"
+            ]
+        },
+        "global": {
+            "Config": [
+                "C",
+                "\u21e7C"
+            ],
+            "Help": [
+                "f1",
+                "F1"
+            ],
+            "Quit": [
+                "q",
+                "q"
+            ],
+            "Key Bar": [
+                ".",
+                "."
+            ]
+        },
+        "menu": {
+            "Open": [
+                "enter",
+                "\u23ce"
+            ],
+            "Back": [
+                "backspace",
+                "\u27f5 "
+            ],
+            "Delete": [
+                "d",
+                "d"
+            ],
+            "Switch Pane": [
+                "tab",
+                "\u21b9"
+            ]
+        },
+        "image": {
+            "Force Render": [
+                "F",
+                "\u21e7F"
+            ],
+            "Maximize": [
+                "f",
+                "f"
+            ],
+            "Delete": [
+                "d",
+                "d"
+            ],
+            "Switch Pane": [
+                "tab",
+                "\u21b9"
+            ]
+        },
+        "image-grid": {
+            "Open": [
+                "enter",
+                "\u23ce"
+            ],
+            "Switch Pane": [
+                "tab",
+                "\u21b9"
+            ],
+            "Size-": [
+                "-",
+                "-"
+            ],
+            "Size+": [
+                "+",
+                "+"
+            ]
+        },
+        "full-image": {
+            "Restore": [
+                "esc",
+                "\u238b"
+            ],
+            "Force Render": [
+                "F",
+                "\u21e7F"
+            ],
+            "Delete": [
+                "d",
+                "d"
+            ]
+        },
+        "full-grid-image": {
+            "Back": [
+                "esc",
+                "\u238b"
+            ],
+            "Force Render": [
+                "F",
+                "\u21e7F"
+            ]
+        },
+        "confirmation": {
+            "Confirm": [
+                "enter",
+                "\u23ce"
+            ],
+            "Cancel": [
+                "esc",
+                "\u238b"
+            ]
+        },
+        "overlay": {
+            "Close": [
+                "esc",
+                "\u238b"
+            ]
+        }
+    }
+}
