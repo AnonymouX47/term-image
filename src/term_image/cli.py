@@ -19,8 +19,8 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, config, logging, notify, set_font_ratio, tui, utils
-from .config import config_options, store_config
+from . import FontRatio, logging, notify, set_font_ratio, tui, utils
+from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
@@ -530,6 +530,7 @@ def open_files(
 
 def main() -> None:
     """CLI execution sub-entry-point"""
+    from . import config  # Importing a module-level will result in a circular import
     from .parsers import parser, style_parsers
 
     global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
@@ -590,23 +591,26 @@ def main() -> None:
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
 
-    if args.reset_config:
-        store_config(default=True)
-        sys.exit(SUCCESS)
-
     force_cli_mode = not sys.stdout.isatty() and not args.cli
     if force_cli_mode:
         args.cli = True
 
+    config.user_config_file = args.config
+    if args.no_config:
+        config.xdg_config_file = None
+    init_config()
+
+    # `check_arg()` requires logging.
     init_log(
         (
             args.log_file
-            if config_options["log file"][0](args.log_file)
-            else config.log_file
+            # If the argument is invalid, the error will be emitted later.
+            if args.log_file and config_options["log file"].is_valid(args.log_file)
+            else config_options.log_file
         ),
         getattr(_logging, args.log_level),
         args.debug,
-        args.no_multi,
+        config_options.multi if args.multi is None else args.multi,
         args.quiet,
         args.verbose,
         args.verbose_log,
@@ -634,19 +638,30 @@ def main() -> None:
         if not check_arg(*details):
             return INVALID_ARG
 
-    for name, (is_valid, msg) in config_options.items():
+    for name, option in config_options.items():
         var_name = name.replace(" ", "_")
-        value = getattr(args, var_name, None)
+        try:
+            arg_value = getattr(args, var_name)
         # Not all config options have corresponding command-line arguments
-        if value is not None and not is_valid(value):
+        except AttributeError:
+            continue
+
+        if arg_value is None:
+            setattr(args, var_name, option.value)
+        elif not option.is_valid(arg_value):
             arg_name = f"--{name.replace(' ', '-')}"
-            notify.notify(f"{msg} (got: {value!r})", notify.ERROR, arg_name)
             notify.notify(
-                f"Using config value: {getattr(config, var_name)!r}",
+                f"{option.error_msg} (got: {arg_value!r})",
+                notify.ERROR,
+                arg_name,
+            )
+            option_repr = "null" if option.value is None else repr(option.value)
+            notify.notify(
+                f"Using config value: {option_repr}",
                 context=arg_name,
                 verbose=True,
             )
-            setattr(args, var_name, getattr(config, var_name))
+            setattr(args, var_name, option.value)
 
     set_query_timeout(args.query_timeout)
     utils.SWAP_WIN_SIZE = args.swap_win_size
@@ -673,7 +688,7 @@ def main() -> None:
         ImageClass = _best_style()
     args.style = ImageClass.__name__[:-5].lower()
 
-    if args.force_style or args.style == config.style != "auto":
+    if args.force_style or args.style == config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
@@ -754,6 +769,16 @@ def main() -> None:
     opener_started = False
 
     if OS_IS_UNIX and not args.cli:
+        if args.checkers is None:
+            args.checkers = max(
+                (
+                    len(os.sched_getaffinity(0))
+                    if hasattr(os, "sched_getaffinity")
+                    else os.cpu_count() or 0
+                )
+                - 1,
+                2,
+            )
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(

@@ -3,7 +3,8 @@
 import argparse
 import sys
 
-from . import __version__, config
+from . import __version__
+from .config import config_options
 from .image import ITerm2Image, Size
 from .image.common import _ALPHA_THRESHOLD
 
@@ -94,26 +95,22 @@ general.add_argument(
     help="Show the program version and exit",
 )
 general.add_argument(
-    "--reset-config",
-    action="store_true",
-    help="Restore default config and exit (Overwrites the config file)",
-)
-general.add_argument(
     "--query-timeout",
     type=float,
     metavar="N",
-    default=config.query_timeout,
     help=(
         "Timeout (in seconds) for all terminal queries "
-        f"(default: {config.query_timeout})"
+        f"(default: {config_options.query_timeout})"
     ),
 )
 general.add_argument(
     "-S",
     "--style",
     choices=("auto", "block", "iterm2", "kitty"),
-    default=config.style,
-    help=f'Image render style (default: {config.style}). See "Render Styles" below',
+    help=(
+        f"Image render style (default: {config_options.style}). "
+        'See "Render Styles" below'
+    ),
 )
 general.add_argument(
     "--force-style",
@@ -130,23 +127,22 @@ font_ratio_options.add_argument(
     "--font-ratio",
     type=float,
     metavar="N",
-    default=config.font_ratio,
     help=(
         "The width-to-height ratio of a character cell in the terminal, to "
-        f"preserve image aspect ratio (default: {config.font_ratio or 'auto'})"
+        "preserve image aspect ratio (default: auto)"
     ),
 )
 font_ratio_options.add_argument(
     "--auto-font-ratio",
     action="store_true",
-    help="Determine the font ratio from the terminal, if possible",
+    help="Determine the font ratio from the terminal, if possible (default)",
 )
 
 win_size_options = general.add_mutually_exclusive_group()
 win_size_options.add_argument(
     "--swap-win-size",
     action="store_true",
-    default=config.swap_win_size,
+    default=None,
     help=(
         "A workaround for 'auto font ratio' on some terminal emulators (e.g older "
         "VTE-based ones) that wrongly report window dimensions swapped"
@@ -155,9 +151,9 @@ win_size_options.add_argument(
 win_size_options.add_argument(
     "--no-swap-win-size",
     action="store_false",
-    default=config.swap_win_size,
+    default=None,
     dest="swap_win_size",
-    help="Unlike '--swap-win-size', use the reported window size as-is",
+    help="Unlike '--swap-win-size', use the reported window size as-is (default)",
 )
 
 mode_options = general.add_mutually_exclusive_group()
@@ -203,11 +199,10 @@ anim_cache_options = anim_options.add_mutually_exclusive_group()
 anim_cache_options.add_argument(
     "--anim-cache",
     type=int,
-    default=config.anim_cache,
     metavar="N",
     help=(
         "Maximum frame count for animation frames to be cached (Better performance "
-        f"at the cost of memory) (default: {config.anim_cache}) [5]"
+        f"at the cost of memory) (default: {config_options.anim_cache}) [5]"
     ),
 )
 anim_cache_options.add_argument(
@@ -461,10 +456,9 @@ perf_options.add_argument(
     "--max-pixels",
     type=int,
     metavar="N",
-    default=config.max_pixels,
     help=(
         "Maximum amount of pixels in images to be displayed "
-        f"(default: {config.max_pixels}) [4]"
+        f"(default: {config_options.max_pixels}) [4]"
     ),
 )
 
@@ -472,49 +466,60 @@ perf_options.add_argument(
     "--checkers",
     type=int,
     metavar="N",
-    default=config.checkers,
     help=(
-        "Maximum number of sub-processes for checking directory sources "
-        f"(default: {config.checkers})"
+        "Maximum number of sub-processes for checking directory sources (default: auto)"
     ),
 )
 perf_options.add_argument(
     "--getters",
     type=int,
     metavar="N",
-    default=config.getters,
     help=(
         "Number of threads for downloading images from URL sources "
-        f"(default: {config.getters})"
+        f"(default: {config_options.getters})"
     ),
 )
 perf_options.add_argument(
     "--grid-renderers",
     type=int,
     metavar="N",
-    default=config.grid_renderers,
     help=(
         "Number of subprocesses for rendering grid cells "
-        f"(default: {config.grid_renderers})"
+        f"(default: {config_options.grid_renderers})"
     ),
 )
 
 multi_options = perf_options.add_mutually_exclusive_group()
 multi_options.add_argument(
     "--multi",
-    action="store_false",
-    default=config.no_multi,
-    dest="no_multi",
-    help=f"Enable multiprocessing (default: {'dis' if config.no_multi else 'en'}abled)",
+    action="store_true",
+    default=None,
+    help="Enable multiprocessing, if supported (default)",
 )
 multi_options.add_argument(
     "--no-multi",
+    action="store_false",
+    default=None,
+    dest="multi",
+    help="Disable multiprocessing",
+)
+
+# Config
+config_options__ = parser.add_argument_group(
+    "Config Options",
+    "NOTE: These are mutually exclusive",
+)
+config_options_ = config_options__.add_mutually_exclusive_group()
+
+config_options_.add_argument(
+    "--config",
+    metavar="FILE",
+    help="The config file to use for this session (default: Searches XDG Base Dirs)",
+)
+config_options_.add_argument(
+    "--no-config",
     action="store_true",
-    default=config.no_multi,
-    help=(
-        "Disable multiprocessing "
-        f"(default: {'dis' if config.no_multi else 'en'}abled)"
-    ),
+    help="Use the default configuration",
 )
 
 # Logging
@@ -528,8 +533,7 @@ log_options_.add_argument(
     "-l",
     "--log-file",
     metavar="FILE",
-    default=config.log_file,
-    help=f"The file to write logs to (default: {config.log_file})",
+    help=f"The file to write logs to (default: {config_options.log_file})",
 )
 log_options.add_argument(
     "--log-level",
@@ -541,7 +545,7 @@ log_options.add_argument(
     "-q",
     "--quiet",
     action="store_true",
-    help="No notifications, except fatal and config errors",
+    help="No notifications, except fatal errors",
 )
 log_options.add_argument(
     "-v",

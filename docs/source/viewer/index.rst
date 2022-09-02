@@ -174,8 +174,7 @@ Exit Codes
 * ``1`` (FAILURE): Exited due to an unhandled exception or a non-specific error.
 * ``2`` (INVALID_ARG): Exited due to an invalid command-line argument value or option combination.
 * ``3`` (INTERRUPTED): The program recieved an interrupt signal i.e ``SIGINT``.
-* ``4`` (CONFIG_ERROR): Exited due to an irremediable error while loading the user config.
-* ``5`` (NO_VALID_SOURCE): Exited due to lack of any valid source.
+* ``4`` (NO_VALID_SOURCE): Exited due to lack of any valid source.
 
 
 Known Issues

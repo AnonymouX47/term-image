@@ -3,346 +3,472 @@
 from __future__ import annotations
 
 import json
+import logging as _logging
 import os
-import sys
 from copy import deepcopy
-from operator import gt
-from typing import Any, Dict
+from dataclasses import dataclass, field
+from os import path
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import urwid
 
-from .exit_codes import CONFIG_ERROR
-from .utils import COLOR_RESET, CSI, QUERY_TIMEOUT
+from . import logging, notify
+from .utils import QUERY_TIMEOUT, is_writable
 
 
-def action_with_key(key: str, keyset: Dict[str, list]) -> str:
-    """Return _action_ in _keyset_ having key _key_"""
-    # The way it's used internally, it'll always return an action.
+class ConfigOptions(dict):
+    """Config options store
+
+    * Subscription with an option name returns the corresponding :py:class:`Option`
+      instance.
+    * Attribute reference with a variable name ('s/ /_/g') returns the option's current
+      value.
+    * Attribute reference with a "private" name ('s/ /_/g' and preceded by '_') returns
+      the option's default value.
+    """
+
+    def _attr_to_option(self, attr: str) -> Tuple[Option, str]:
+        default = attr.startswith("_")
+        name = attr.replace("_", " ")
+        if default:
+            name = name[1:]
+        try:
+            return self[name], "default" if default else "value"
+        except KeyError:
+            raise AttributeError(f"Ain't no such config option as {name!r}") from None
+
+    def __getattr__(self, attr: str):
+        return getattr(*self._attr_to_option(attr))
+
+    def __setattr__(self, attr: str, value: Any):
+        setattr(*self._attr_to_option(attr), value)
+
+
+@dataclass
+class Option:
+    """A config option."""
+
+    value: Any = field(init=False)
+    default: Any
+    is_valid: Callable[[Any], bool]
+    error_msg: str
+
+    def __post_init__(self):
+        self.value = self.default
+
+
+def action_with_key(key: str, keyset: Dict[str, list]) -> Optional[str]:
+    """Returns the *action* in *keyset* having key *key* or ``None`` if there's no
+    such action.
+    """
     for action, (k, *_) in keyset.items():
         if k == key:
             return action
 
 
-def info(msg: str) -> None:
-    print(
-        f"{CSI}34mconfig: {COLOR_RESET}{msg}",
-        # In case output is being redirected or piped
-        file=sys.stdout if sys.stdout.isatty() else sys.stderr,
-    )
+def get_log_function(level) -> Callable[[str], None]:
+    def log(msg: str) -> None:
+        if logging.VERBOSE is None:  # logging not yet initialized
+            notify.notify(msg, notify_level, "config", verbose=verbose)
+        else:
+            logging.log(msg, _logger, log_level, "config", verbose=verbose)
 
+    notify_level = getattr(notify, level)
+    log_level = getattr(_logging, level)
+    verbose = level == "INFO"
 
-def error(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}31m{msg}{COLOR_RESET}", file=sys.stderr)
-
-
-def fatal(msg: str) -> None:
-    print(f"{CSI}34mconfig: {CSI}39m{CSI}41m{msg}{COLOR_RESET}", file=sys.stderr)
+    return log
 
 
 def init_config() -> None:
-    """Initializes user configuration
+    """Initializes user configuration."""
+    for var, level in (("error", "ERROR"), ("info", "INFO"), ("warn", "WARNING")):
+        globals()[var] = get_log_function(level)
 
-    IMPORTANT:
-        Must be called before any other function in this module
-        and before anything else is imported from this module.
-    """
-    global checkers
-
-    if os.path.exists(user_dir):
-        if not os.path.isdir(user_dir):
-            fatal(f"Please rename or remove the file {user_dir!r}.")
-            sys.exit(CONFIG_ERROR)
-    else:
-        os.mkdir(user_dir)
-
-    if os.path.isfile(config_file):
-        if load_config():
-            # Stored at this point in order to put missing values in place.
-            store_config()
-            info("... Successfully updated user config.")
-    else:
-        update_context_nav_keys(context_keys, nav, nav)
-        store_config(default=True)
+    if user_config_file:
+        load_config(user_config_file)
+    elif xdg_config_file:
+        load_xdg_config()
 
     for keyset in context_keys.values():
         for action in keyset.values():
-            action[3:] = (True, True)  # Default: "shown", "enabled"
+            action[3:] = (True, True)  # "shown", "enabled"
     context_keys["global"]["Config"][3] = False  # Till the config menu is implemented
     expand_key[3] = False  # "Key bar" action should be hidden
 
-    if checkers is None:
-        checkers = max(
-            (
-                len(os.sched_getaffinity(0))
-                if hasattr(os, "sched_getaffinity")
-                else os.cpu_count() or 0
-            )
-            - 1,
-            2,
-        )
+    reconfigure_tui(_context_keys)
 
 
-def load_config() -> bool:
-    """Load user config from disk"""
-    updated = False
+def load_config(config_file: str) -> None:
+    """Loads a user config file."""
+
+    def revert_context_update(
+        keyset: Dict[str, list], prev_keyset: Dict[str, list]
+    ) -> None:
+        for properties, prev_properties in zip(keyset.values(), prev_keyset.values()):
+            properties[:] = prev_properties
 
     try:
         with open(config_file) as f:
             config = json.load(f)
     except Exception as e:
-        error(
-            f"Failed to load user config ({type(e).__name__}: {e})... Using defaults."
-        )
-        update_context_nav_keys(context_keys, nav, nav)
-        return updated
+        error(f"Failed to load {config_file!r} ({type(e).__name__}: {e}).")
+        return
 
-    try:
-        c_version = config["version"]
-        if gt(*[(*map(int, v.split(".")),) for v in (version, c_version)]):
-            info("Updating user config...")
-            updated = update_config(config, c_version)
-            if not updated:
-                error("... Failed to update user config.")
-    except KeyError:
-        error("Config version not found... Please correct this manually.")
+    keys = config.pop("keys", None)
 
-    for name, (is_valid, msg) in config_options.items():
+    for name, value in config.items():
         try:
-            value = config[name]
-            if is_valid(value):
-                globals()[name.replace(" ", "_")] = value
-            else:
-                error(
-                    f"Invalid type/value for {name!r}, {msg} "
-                    f"(got: {value!r} of type {type(value).__name__!r})... "
-                    "Using default."
-                )
+            option = config_options[name]
         except KeyError:
-            error(f"{name!r} not found... Using default.")
+            warn(f"Unknown option {name!r} (in {config_file!r}).")
+        else:
+            if option.is_valid(value):
+                option.value = value
+            else:
+                value_repr = "null" if value is None else repr(value)
+                value_type_name = "null" if value is None else type(value).__name__
+                error(
+                    f"Invalid type/value for {name!r}; {option.error_msg} "
+                    f"(got: {value_repr} of type {value_type_name!r})."
+                )
+                option_repr = "null" if option.value is None else repr(option.value)
+                info(f"Using former value: {option_repr}.")
+    if keys:
+        prev_context_keys = deepcopy(context_keys)
 
-    try:
-        keys = config["keys"]
-    except KeyError:
-        error("Key config not found... Using defaults.")
-        update_context_nav_keys(context_keys, nav, nav)
-        return updated
+        # Globals first...
+        g_keyset = context_keys["global"]
+        g_update = keys.pop("global", None)
+        if g_update:
+            prev_g_keyset = deepcopy(g_keyset)
+            if not update_context("global", g_keyset, g_update, config_file):
+                revert_context_update(g_keyset, prev_g_keyset)
+                return
 
-    prev_nav = deepcopy(nav)  # used for identification.
-    try:
-        nav_update = keys.pop("navigation")
-    except KeyError:
-        error("Navigation keys config not found... Using defaults.")
-    else:
-        # Resolves all issues with _nav_update_ in the process
-        update_context("navigation", nav, nav_update)
+        # Then navigation...
+        # Also going through if unupdated to detect conflicts between the unpdated keys
+        # and global keys
+        nav_update = keys.pop("navigation", {})
+        prev_nav = deepcopy(nav)
+        if not update_context("navigation", nav, nav_update, config_file):
+            g_update and revert_context_update(g_keyset, prev_g_keyset)
+            revert_context_update(nav, prev_nav)
+            return
 
-    # Done before updating other context keys to prevent modifying user-customized
-    # actions using keys that are among the default navigation keys.
-    update_context_nav_keys(context_keys, prev_nav, nav)
+        # Done before updating other context keys so that actions having keys
+        # conflicting with those for naviagation in the same context can be detected
+        update_context_nav(context_keys, nav)
+        navi.update((key, nav_action) for nav_action, (key, _) in nav.items())
 
-    for context, keyset in keys.items():
-        if context not in context_keys:
-            error(f"Unknown context {context!r}.")
-            continue
-        update_context(context, context_keys[context], keyset)
-
-    return updated
-
-
-def store_config(*, default: bool = False) -> None:
-    """Write current config to disk"""
-    stored_keys = {"navigation": (_nav if default else nav)}
-
-    # Remove description and navigation keys from contexts
-    navi = {v[0] for v in (_nav if default else nav).values()}
-    for context, keyset in (_context_keys if default else context_keys).items():
-        keys = {}
-        for action, (key, symbol, *_) in keyset.items():
-            if key not in navi:
-                keys[action] = [key, symbol]
-        # Exclude contexts with navigation-only controls
-        if keys:
-            stored_keys[context] = keys
-
-    try:
-        with open(config_file, "w") as f:
-            json.dump(
-                {
-                    "version": version,
-                    **{
-                        name: globals()["_" * default + f"{name.replace(' ', '_')}"]
-                        for name in config_options
-                    },
-                    "keys": stored_keys,
-                },
-                f,
-                indent=4,
-            )
-    except Exception as e:
-        error(f"Failed to write user config ({type(e).__name__}: {e}).")
+        # Then other context actions.
+        # Also going through unupdated contexts to detect conflicts between the
+        # unpdated keys and navigation or global keys
+        for context, keyset in context_keys.items():
+            update = keys.pop(context, {})
+            if not update_context(context, keyset, update, config_file):
+                for keyset, prev_keyset in zip(
+                    context_keys.values(), prev_context_keys.values()
+                ):  # Includes the global context
+                    revert_context_update(keyset, prev_keyset)
+                revert_context_update(nav, prev_nav)
+                navi.update((key, nav_action) for nav_action, (key, _) in nav.items())
+                return
+        for context in keys:
+            warn(f"Unknown context {context!r} (in {config_file!r}).")
 
 
-def update_config(config: Dict[str, Any], old_version: str) -> bool:
-    """Updates the user config to latest version
+def load_xdg_config() -> None:
+    """Loads user config files according to the XDG Base Directories spec."""
+    for config_dir in reversed(os.environ.get("XDG_CONFIG_DIRS", "/etc").split(":")):
+        config_file = path.join(config_dir, "term_image", "config.json")
+        if (
+            # The XDG Base Dirs spec states that relative paths should be ignored
+            path.abspath(config_dir) == config_dir
+            and path.isfile(config_file)
+        ):
+            load_config(config_file)
 
-    Returns:
-        ``True``, if successful. Otherwise, ``False``.
+    if path.isfile(xdg_config_file):
+        load_config(xdg_config_file)
+
+
+def reconfigure_tui(
+    old_context_keys: Optional[Dict[str, Dict[str, list]]] = None
+) -> None:
+    """Updates aspects of the TUI to use the current config option values and
+    keybindings.
     """
-    # Must use the values directly, never reference the corresponding global variables,
-    # as those might change later and will break updating since it's incremental
-    #
-    # {<version>: [(<location>, <old-value>, <new-value>), ...], ...}
-    changes = {
-        "0.1": [],
-        "0.2": [
-            ("['anim cache']", NotImplemented, 100),
-            ("['checkers']", NotImplemented, None),
-            ("['getters']", NotImplemented, 4),
-            ("['grid renderers']", NotImplemented, 1),
-            ("['log file']", NotImplemented, os.path.join(user_dir, "term_image.log")),
-            ("['max notifications']", NotImplemented, 2),
-            ("['frame duration']", 0.1, NotImplemented),
-            ("['keys']['image']['Force Render'][1]", "F", "\u21e7F"),
-            ("['keys']['full-image']['Force Render'][1]", "F", "\u21e7F"),
-            ("['keys']['full-grid-image']['Force Render'][1]", "F", "\u21e7F"),
-        ],
-        "0.3": [
-            ("['font ratio']", 0.5, None),
-            ("['no multi']", NotImplemented, False),
-            ("['query timeout']", NotImplemented, 0.1),
-            ("['style']", NotImplemented, "auto"),
-            ("['swap win size']", NotImplemented, False),
-        ],
+    from . import logging
+    from .tui.keys import change_key
+    from .tui.widgets import expand, image_grid, notif_bar, pile
+
+    command = urwid.command_map._command_defaults.copy()
+    urwid.command_map._command = {
+        nav[action][0]: command[key] for key, action in _navi.items()
     }
 
-    versions = tuple(changes)
-    versions = versions[versions.index(old_version) :]
+    if old_context_keys:
+        for context, keyset in context_keys.items():
+            old_keyset = old_context_keys[context]
+            for action, (key, *_) in keyset.items():
+                old_key = old_keyset[action][0]
+                if old_key != key:
+                    try:
+                        change_key(context, old_key, key)
+                    except KeyError:  # e.g navigation keys in "image-grid"
+                        pass
 
-    for version in versions:
-        for location, old, new in changes[version]:
-            try:
-                if old is NotImplemented:  # Addition
-                    exec(f"config{location} = new")
-                elif new is NotImplemented:  # Removal
-                    exec("del config" + location)
-                else:  # Update
-                    if old == eval("config" + location):  # Still default
-                        exec(f"config{location} = new")
-            except (KeyError, IndexError):
-                if new is not NotImplemented:
-                    error(
-                        f"Config option/value at {location!r} is missing, "
-                        "the new default will be put in place."
-                    )
+    expand_or_collapse = expand.original_widget.text[0]
+    expand.original_widget.set_text(f"{expand_or_collapse} [{expand_key[1]}]")
 
-    config["version"] = version
-    try:
-        os.replace(config_file, f"{config_file}.old")
-    except OSError as e:
-        error(f"Failed to backup previous config file ({type(e).__name__}: {e})")
-        return False
-    else:
-        info(f"Previous config file has been moved to '{config_file}.old'.")
-
-    return True
-
-
-def update_context(name: str, keyset: Dict[str, list], update: Dict[str, list]) -> None:
-    """Update _keyset_ for context _name_ with _update_"""
-
-    def use_default_key() -> None:
-        default = keyset[action][0]
-        if key == default or default in assigned | navi | global_:
-            fatal(
-                f"...Failed to fallback to default key {default!r} "
-                f"for action {action!r} in context {name!r}, ..."
+    if not logging.QUIET:
+        if pile.contents[-1][0] is notif_bar:
+            pile.contents.pop()
+        if config_options.max_notifications:
+            pile.contents.append(
+                (notif_bar, ("given", config_options.max_notifications))
             )
-            if default in global_:
-                fatal(
-                    f"...already assigned to global action "
-                    f"{action_with_key(default, context_keys['global'])!r}."
-                )
-            elif default in navi:
-                fatal(
-                    f"...already assigned to navigation action "
-                    f"{action_with_key(default, nav)!r}."
-                )
-            elif default in assigned:
-                fatal(
-                    f"...already assigned to action "
-                    f"{action_with_key(default, keyset)!r} in the same context."
-                )
-            sys.exit(CONFIG_ERROR)
 
-        assigned.add(key)
-        info(
-            f"...Using default key {default!r} for action {action!r} "
-            f"in context {name!r}."
-        )
+    image_grid.cell_width = config_options.cell_width
+
+
+def store_config(config_file: str) -> None:
+    """Writes current config to a file."""
+    config = {
+        name: option.value
+        for name, option in config_options.items()
+        if option.value != option.default
+    }
+
+    modified_keys = {}
+    modified_nav = {
+        action: properties
+        for _properties, (action, properties) in zip(_nav.values(), nav.items())
+        if properties != _properties
+    }
+    if modified_nav:
+        modified_keys["navigation"] = modified_nav
+    for _keyset, (context, keyset) in zip(_context_keys.values(), context_keys.items()):
+        context_nav = context_navs[context]
+        keys = {}
+        for _properties, (action, properties) in zip(_keyset.values(), keyset.items()):
+            # Exclude context navigation actions and of course, unmodified actions
+            if action not in context_nav and properties[:2] != _properties[:2]:
+                keys[action] = properties[:2]  # Remove description and state
+        if keys:  # Exclude contexts with only navigation actions
+            modified_keys[context] = keys
+    if modified_keys:
+        config["keys"] = modified_keys
+
+    err = None
+    try:
+        try:
+            os.makedirs(path.dirname(config_file) or ".", exist_ok=True)
+        except (FileExistsError, NotADirectoryError):
+            err = "one of the parents is not a directory"
+        else:
+            with open(config_file, "w") as f:
+                json.dump(config, f, indent=4)
+    except Exception as e:
+        err = f"{type(e).__name__}: {e}"
+    if err:
+        error(f"Failed to write user config to {config_file!r} ({err}).")
+
+
+def update_context(
+    context: str, keyset: Dict[str, list], update: Dict[str, list], config_file: str
+) -> bool:
+    """Updates the *keyset* of context *context* with *update*.
+
+    Returns ``True`` if successful, otherwise ``False``.
+    """
+
+    def try_fallback(default: bool = False) -> bool:
+        """Sets the fallback (old) or default key for the current action if not already
+        assigned to another action.
+
+        Returns ``True`` if successful, otherwise ``False``.
+        """
+        if default:
+            default_keyset = _nav if context == "navigation" else _context_keys[context]
+            _key = default_keyset[action][0]
+            if _key == keyset[action][0]:
+                info("... default key is the same as the current/former key.")
+                error("... unable to find an unassigned fallback.")
+                return False
+        else:
+            _key = keyset[action][0]
+            if _key == key:
+                info("... former key is the same as the new key.")
+                return try_fallback(default=True)
+        in_global = _key in global_
+        in_assigned = _key in assigned
+        fallback = "default" if default else "former"
+
+        if in_global or in_assigned:
+            if in_global:
+                error(
+                    f"... {fallback} key {_key!r} already assigned to global action "
+                    f"{global_[_key]!r}."
+                )
+            elif in_assigned:
+                _action = assigned[_key]
+                error(
+                    f"... {fallback} key {_key!r} already assigned to action "
+                    f"{_action!r} "
+                    + (
+                        f"(derived from 'navigation::{context_nav[_action]}') "
+                        if _action in context_nav
+                        else ""
+                    )
+                    + "in the same context."
+                )
+            if default:
+                error("... unable to find an unassigned fallback.")
+                return False
+            return try_fallback(default=True)
+
+        assigned[_key] = action
+        if default:
+            keyset[action][:2] = default_keyset[action][:2]
+        info(f"... using {fallback} key {_key!r}.")
+
+        return True
 
     global_ = (
-        {v[0] for v in context_keys["global"].values()} if name != "global" else set()
+        set()
+        if context == "global"
+        else {key: action for action, (key, *_) in context_keys["global"].items()}
     )
-    navi = set() if name == "navigation" else {v[0] for v in nav.values()}
-    assigned = set()
+    context_nav = context_navs.get(context, {})
+    assigned = {keyset[action][0]: action for action in keyset.keys() - update.keys()}
+    # Must include all context nav actions and they should override normal actions
+    # using the same key since they have been updated earlier.
+    assigned.update({keyset[action][0]: action for action in context_nav.keys()})
 
-    for action, properties in update.items():
+    failed = True
+    for action, (key, *_) in keyset.items():
+        context_action = f"'{context}::{action}'"
+        try:
+            properties = update.pop(action)
+        except KeyError:
+            conflict_msg = f"Key conclict with {context_action}..."
+            if key in global_:
+                error(conflict_msg)
+                error(
+                    f"... current key {key!r} already assigned to global action "
+                    f"{global_[key]!r}."
+                )
+                if not try_fallback(default=True):
+                    break
+            elif assigned[key] != action:  # Has been assigned to a nav action earlier
+                _action = assigned[key]
+                error(conflict_msg)
+                error(
+                    f"... current key {key!r} already assigned to action {_action!r} "
+                    f"(derived from 'navigation::{context_nav[_action]}') "
+                    "in the same context."
+                )
+                if not try_fallback(default=True):
+                    break
+            continue
+
+        if action in context_nav:
+            warn(
+                f"{context_action} should be updated via 'navigation::"
+                f"{context_nav[action]}' (in {config_file!r})."
+            )
+            continue
+
         if not (
             isinstance(properties, list)
             and len(properties) == 2
             and all(isinstance(x, str) for x in properties)
         ):
             error(
-                f"The properties of action {action!r} in context {name!r} "
-                "is in an incorrect format... Using the default."
+                f"The properties ({properties!r}) of {context_action} are not in the "
+                f"correct format (in {config_file!r})..."
             )
+            if not try_fallback():
+                break
             continue
 
         key, symbol = properties
-        if action not in keyset:
-            error(f"Action {action!r} not available in context {name!r}.")
-            continue
+        conflict_msg = (
+            f"Key conclict with {context_action} (updated in {config_file!r})..."
+        )
+
         if key not in _valid_keys:
-            error(f"Invalid key {key!r}; Trying default...")
-            use_default_key()
-            continue
-
-        if key in global_:
-            error(f"{key!r} already assigned to a global action; Trying default...")
-            use_default_key()
-        elif key in navi:
-            error(f"{key!r} already assigned to a navigation action; Trying default...")
-            use_default_key()
-        elif key in assigned:
+            error(f"Invalid key {key!r} for {context_action} (in {config_file!r})...")
+            if not try_fallback():
+                break
+        elif key in global_:
+            error(conflict_msg)
             error(
-                f"{key!r} already assigned to action "
-                f"{action_with_key(key, keyset)!r} in the same context; "
-                "Trying default..."
+                f"... new key {key!r} already assigned to global action "
+                f"{global_[key]!r}."
             )
-            use_default_key()
+            if not try_fallback():
+                break
+        elif key in assigned:
+            _action = assigned[key]
+            error(conflict_msg)
+            error(
+                f"... new Key {key!r} already assigned to action {_action!r} "
+                + (
+                    f"(derived from 'navigation::{context_nav[_action]}') "
+                    if _action in context_nav
+                    else ""
+                )
+                + "in the same context."
+            )
+            if not try_fallback():
+                break
         else:
-            assigned.add(key)
+            assigned[key] = action
             keyset[action][:2] = (key, symbol)
+    else:
+        failed = False
+        for action in update:
+            warn(
+                f"Unknown action {action!r} in context {context!r} "
+                f"(in {config_file!r})."
+            )
+    if failed:
+        error(
+            f"Unable to update with keybindings from {config_file!r} due to the "
+            "previous error... Changes reverted."
+        )
+
+    return not failed
 
 
-def update_context_nav_keys(
+def update_context_nav(
     context_keys: Dict[str, Dict[str, list]],
-    nav: Dict[str, list],
     nav_update: Dict[str, list],
 ) -> None:
-    """Update keys and symbols of navigation actions in all contexts in _context_keys_
-    using _nav_ to identify navigation actions and _nav_update_ to update
+    """Updates keys and symbols of navigation actions in all contexts
+    in *context_keys*.
     """
-    navi = {v[0]: k for k, v in nav.items()}
     for context, keyset in context_keys.items():
+        context_nav = context_navs[context]
         for action, properties in keyset.items():
-            if properties[0] in navi:
-                properties[:2] = nav_update[navi[properties[0]]]
+            if action in context_nav:
+                properties[:2] = nav_update[context_nav[action]]
 
 
-user_dir = os.path.join(os.path.expanduser("~"), ".term_image")
-config_file = os.path.join(user_dir, "config.json")
-version = "0.3"  # For config upgrades
+_logger = _logging.getLogger(__name__)
+error: Callable[[str], None] = None
+info: Callable[[str], None] = None
+warn: Callable[[str], None] = None
+
+user_config_file = None
+xdg_config_file = path.join(
+    os.environ.get("XDG_CONFIG_HOME", path.join(path.expanduser("~"), ".config")),
+    "term_image",
+    "config.json",
+)
 
 _valid_keys = {*bytes(range(32, 127)).decode(), *urwid.escape._keyconv.values(), "esc"}
 _valid_keys.update(
@@ -388,20 +514,74 @@ for key in ("page up", "page down"):
     valid_keys.remove("ctrl " + key)
 valid_keys.extend(("page up", "ctrl page up", "page down", "ctrl page down"))
 
-# Defaults
-anim_cache = _anim_cache = 100
-cell_width = _cell_width = 30
-checkers = _checkers = None
-font_ratio = _font_ratio = None
-getters = _getters = 4
-grid_renderers = _grid_renderers = 1
-log_file = _log_file = os.path.join(user_dir, "term_image.log")
-max_notifications = _max_notifications = 2
-max_pixels = _max_pixels = 2**22  # 2048x2048
-no_multi = _no_multi = False
-query_timeout = _query_timeout = QUERY_TIMEOUT
-style = _style = "auto"
-swap_win_size = _swap_win_size = False
+config_options = {
+    "anim cache": Option(
+        100,
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "cell width": Option(
+        30,
+        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
+        "must be an even integer between 30 and 50 (both inclusive)",
+    ),
+    "checkers": Option(
+        None,
+        lambda x: x is None or isinstance(x, int) and x >= 0,
+        "must be `null` or a non-negative integer",
+    ),
+    "font ratio": Option(
+        None,
+        lambda x: x is None or isinstance(x, float) and x > 0.0,
+        "must be `null` or a float greater than zero",
+    ),
+    "getters": Option(
+        4,
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "grid renderers": Option(
+        1,
+        lambda x: isinstance(x, int) and x >= 0,
+        "must be a non-negative integer",
+    ),
+    "log file": Option(
+        path.join("~", ".term_image", "term_image.log"),
+        lambda x: isinstance(x, str) and is_writable(x),
+        "must be a string containing a writable/creatable file path",
+    ),
+    "max notifications": Option(
+        2,
+        lambda x: isinstance(x, int) and 0 <= x <= 5,
+        "must be an integer between 0 and 5 (both inclusive)",
+    ),
+    "max pixels": Option(
+        2**22,  # 2048x2048
+        lambda x: isinstance(x, int) and x > 0,
+        "must be an integer greater than zero",
+    ),
+    "multi": Option(
+        True,
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
+    ),
+    "query timeout": Option(
+        QUERY_TIMEOUT,
+        lambda x: isinstance(x, float) and x > 0.0,
+        "must be a float greater than zero",
+    ),
+    "style": Option(
+        "auto",
+        lambda x: x in {"auto", "block", "iterm2", "kitty"},
+        "must be one of 'auto', 'block', 'iterm2', 'kitty'",
+    ),
+    "swap win size": Option(
+        False,
+        lambda x: isinstance(x, bool),
+        "must be a boolean",
+    ),
+}
+config_options = ConfigOptions(config_options)
 
 _nav = {
     "Left": ["left", "\u25c0"],
@@ -413,6 +593,7 @@ _nav = {
     "Home": ["home", "Home"],
     "End": ["end", "End"],
 }
+_navi = {key: nav_action for nav_action, (key, _) in _nav.items()}
 
 # {<context>: {<action>: [<key>, <symbol>, <desc>, <visibility>, <state>], ...}, ...}
 # <visibility> and <state> are added later in `init_config()`.
@@ -430,10 +611,10 @@ _context_keys = {
         "Back": ["backspace", "\u27f5 ", "Return to the previous directory"],
         "Delete": ["d", "d", "Delete selected image"],
         "Switch Pane": ["tab", "\u21b9", "Switch to image pane"],
-        "Page Up": ["page up", "PgUp", "Jump up one page"],
-        "Page Down": ["page down", "PgDn", "Jump down one page"],
-        "Top": ["home", "Home", "Jump to the top of the list"],
-        "Bottom": ["end", "End", "Jump to the bottom of the list"],
+        "Page Up": ["page up", "", "Jump up one page"],
+        "Page Down": ["page down", "", "Jump down one page"],
+        "Top": ["home", "", "Jump to the top of the list"],
+        "Bottom": ["end", "", "Jump to the bottom of the list"],
     },
     "image": {
         "Prev": ["left", "", "Move to the previous image"],
@@ -456,10 +637,10 @@ _context_keys = {
         "Switch Pane": ["tab", "\u21b9", "Switch to list pane"],
         "Size-": ["-", "-", "Decrease grid cell size"],
         "Size+": ["+", "+", "Increase grid cell size"],
-        "Page Up": ["page up", "PgUp", "Jump up one page"],
-        "Page Down": ["page down", "PgDn", "Jump down one page"],
-        "Top": ["home", "Home", "Jump to the top of the grid"],
-        "Bottom": ["end", "End", "Jump to the bottom of the grid"],
+        "Page Up": ["page up", "", "Jump up one page"],
+        "Page Down": ["page down", "", "Jump down one page"],
+        "Top": ["home", "", "Jump to the top of the grid"],
+        "Bottom": ["end", "", "Jump to the bottom of the grid"],
     },
     "full-image": {
         "Restore": ["esc", "\u238b", "Exit maximized view"],
@@ -488,77 +669,19 @@ _context_keys = {
         "Close": ["esc", "\u238b", ""],
         "Up": ["up", "", "Scroll up"],
         "Down": ["down", "", "Scroll down"],
-        "Page Up": ["page up", "PgUp", "Scroll up one page"],
-        "Page Down": ["page down", "PgDn", "Scroll down one page"],
-        "Top": ["home", "Home", "Jump to the top"],
-        "Bottom": ["end", "End", "Jump to the bottom"],
+        "Page Up": ["page up", "", "Scroll up one page"],
+        "Page Down": ["page down", "", "Scroll down one page"],
+        "Top": ["home", "", "Jump to the top"],
+        "Bottom": ["end", "", "Jump to the bottom"],
     },
 }
-# End of Defaults
 
 nav = deepcopy(_nav)
+navi = deepcopy(_navi)
+context_navs = {
+    context: {action: navi[key] for action, (key, *_) in keyset.items() if key in navi}
+    for context, keyset in _context_keys.items()
+}
+update_context_nav(_context_keys, _nav)  # Update symbols
 context_keys = deepcopy(_context_keys)
 expand_key = context_keys["global"]["Key Bar"]
-
-config_options = {
-    "anim cache": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "cell width": (
-        lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
-        "must be an even integer between 30 and 50 (both inclusive)",
-    ),
-    "checkers": (
-        lambda x: x is None or isinstance(x, int) and x >= 0,
-        "must be `null` or a non-negative integer",
-    ),
-    "font ratio": (
-        lambda x: x is None or isinstance(x, float) and x > 0.0,
-        "must be `null` or a float greater than zero",
-    ),
-    "getters": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "grid renderers": (
-        lambda x: isinstance(x, int) and x >= 0,
-        "must be a non-negative integer",
-    ),
-    "log file": (
-        lambda x: (
-            isinstance(x, str)
-            and (
-                # exists, is a file and writable
-                (os.path.isfile(x) and os.access(x, os.W_OK))
-                # is not a directory and the parent directory is writable
-                or (not os.path.isdir(x) and os.access(os.path.dirname(x), os.W_OK))
-            )
-        ),
-        "must be a string containing a writable path to a file",
-    ),
-    "max notifications": (
-        lambda x: isinstance(x, int) and x > -1,
-        "must be an non-negative integer",
-    ),
-    "max pixels": (
-        lambda x: isinstance(x, int) and x > 0,
-        "must be an integer greater than zero",
-    ),
-    "no multi": (
-        lambda x: isinstance(x, bool),
-        "must be a boolean",
-    ),
-    "query timeout": (
-        lambda x: isinstance(x, float) and x > 0.0,
-        "must be a float greater than zero",
-    ),
-    "style": (
-        lambda x: x in {"auto", "block", "iterm2", "kitty"},
-        "must be one of 'auto', 'block', 'iterm2', 'kitty'",
-    ),
-    "swap win size": (
-        lambda x: isinstance(x, bool),
-        "must be a boolean",
-    ),
-}
