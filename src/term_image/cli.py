@@ -655,8 +655,9 @@ def main() -> None:
                 notify.ERROR,
                 arg_name,
             )
+            option_repr = "null" if option.value is None else repr(option.value)
             notify.notify(
-                f"Using config value: {option.value!r}",
+                f"Using config value: {option_repr}",
                 context=arg_name,
                 verbose=True,
             )

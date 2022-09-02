@@ -112,10 +112,7 @@ def load_config(config_file: str) -> None:
         with open(config_file) as f:
             config = json.load(f)
     except Exception as e:
-        error(
-            f"Failed to load {config_file!r} ({type(e).__name__}: {e})... "
-            "Using fallbacks."
-        )
+        error(f"Failed to load {config_file!r} ({type(e).__name__}: {e}).")
         return
 
     keys = config.pop("keys", None)
@@ -129,11 +126,14 @@ def load_config(config_file: str) -> None:
             if option.is_valid(value):
                 option.value = value
             else:
+                value_repr = "null" if value is None else repr(value)
+                value_type_name = "null" if value is None else type(value).__name__
                 error(
                     f"Invalid type/value for {name!r}; {option.error_msg} "
-                    f"(got: {value!r} of type {type(value).__name__!r})... "
-                    f"Using fallback: {option.value!r}."
+                    f"(got: {value_repr} of type {value_type_name!r})."
                 )
+                option_repr = "null" if option.value is None else repr(option.value)
+                info(f"Using former value: {option_repr}.")
     if keys:
         prev_context_keys = deepcopy(context_keys)
 
