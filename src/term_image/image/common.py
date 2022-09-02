@@ -1314,24 +1314,19 @@ class BaseImage(ABC):
             )
         return {}
 
-    @staticmethod
-    def _clear_frame() -> bool:
-        """Clear the animation frame on-screen, if necessary.
+    @classmethod
+    def _clear_frame(cls) -> bool:
+        """Clears an animation frame on-screen.
 
-        Used by some graphics-based styles.
+        Called by :py:meth:`_display_animated` just before drawing a new frame.
+
+        | Only required by styles wherein an image is not overwritten by another image
+          e.g some graphics-based styles.
+        | The base implementation does nothing and should be overridden only if
+          required.
 
         Returns:
             ``True`` if the frame was cleared. Otherwise, ``False``.
-        """
-        return False
-
-    @staticmethod
-    def _clear_images() -> bool:
-        """Clear images on-screen.
-
-        Used by some graphics-based styles.
-
-        Any overriding method should return ``True``.
         """
         return False
 

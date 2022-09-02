@@ -166,6 +166,16 @@ class KittyImage(GraphicsImage):
     _TERM_VERSION: str = ""
     _KITTY_VERSION: Tuple[int, int, int] = ()
 
+    @staticmethod
+    def clear(all: bool = True) -> None:
+        """Clears images on-screen.
+
+        Args:
+            all: If ``False``, clears only the images intersecting with the cursor.
+              Otherwise, clears all images currently on the screen.
+        """
+        _stdout_write(DELETE_ALL_IMAGES if all else DELETE_CURSOR_IMAGES)
+
     # Only defined for the purpose of proper self-documentation
     def draw(
         self,
@@ -285,15 +295,19 @@ class KittyImage(GraphicsImage):
 
         return cls._check_style_args(args)
 
-    @staticmethod
-    def _clear_images():
-        _stdout_write(DELETE_ALL_IMAGES)
-        return True
-
     @classmethod
-    def _clear_frame(cls):
+    def _clear_frame(cls) -> bool:
+        """Clears an animation frame on-screen.
+
+        | Only used on Kitty <= 0.25.0 because ``z_index=None`` is buggy on these
+          versions. Does nothing on any other version or terminal.
+        | Note that this implementation might do more than required since it clears
+          all images on screen.
+
+        See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
+        """
         if cls._KITTY_VERSION and cls._KITTY_VERSION <= (0, 25, 0):
-            cls._clear_images()
+            cls.clear()
             return True
         return False
 
@@ -564,4 +578,5 @@ class _ControlData:  # Currently Unused
 START = f"{ESC}_G"
 FMT = f"{START}%(control)s;%(payload)s{ST}"
 DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
+DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}".encode()
 _stdout_write = sys.stdout.buffer.write

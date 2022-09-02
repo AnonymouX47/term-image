@@ -77,7 +77,9 @@ class GridListBox(urwid.ListBox):
         if self._ti_grid_path == grid_path and not (
             self._ti_topmost is topmost and self._ti_top_trim == top_trim
         ):
-            tui_main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(
+                tui_main.ImageClass, "clear", lambda: True
+            )() or ImageCanvas.change()
 
         self._ti_topmost = topmost
         self._ti_top_trim = top_trim
@@ -344,7 +346,7 @@ class Image(urwid.Widget):
                 ).render(size)
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
-                tui_main.ImageClass._clear_images()
+                getattr(tui_main.ImageClass, "clear", lambda: True)()
             else:
                 canv.size = size
         elif self._ti_canv and (

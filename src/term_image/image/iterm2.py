@@ -216,6 +216,17 @@ class ITerm2Image(GraphicsImage):
     _TERM: str = ""
     _TERM_VERSION: str = ""
 
+    @classmethod
+    def clear(cls) -> None:
+        """Clears all images on-screen.
+
+        Required and works only on Konsole, as text doesn't overwrite images.
+        """
+        if cls._TERM == "konsole":
+            # Seems Konsole utilizes the same image rendering implementation as it
+            # uses for the kiity graphics protocol.
+            _stdout_write(DELETE_ALL_IMAGES)
+
     def draw(
         self,
         *args,
@@ -323,16 +334,6 @@ class ITerm2Image(GraphicsImage):
             args["compress"] = int(compress[-1])
 
         return cls._check_style_args(args)
-
-    @classmethod
-    def _clear_images(cls):
-        if cls._TERM == "konsole":
-            # Only works and required on Konsole, as text doesn't overwrite image cells.
-            # Seems Konsole utilizes the same image rendering implementation as it
-            # uses for the kiity graphics protocol.
-            _stdout_write(DELETE_ALL_IMAGES)
-            return True
-        return False
 
     def _display_animated(
         self,
