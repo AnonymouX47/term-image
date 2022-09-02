@@ -7,14 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib] Eliminated race condition in `term_image.utils.lock_tty()` multi-process integration ([#66]).
+- [config] Updating of TUI keybindings ([#69]).
+- [cli,config] "log file" and `--log-file` validation ([#69]).
 
 ### Added
 - [lib] `term_image.image.Size` enumeration ([#64]).
   - Implemented "original size" image sizing.
 - [lib] `term_image.utils.DISABLE_QUERIES` to disable terminal queries ([#66]).
-- [lib] Implemented synchronized terminal window size multi-process caching ([#66]).
+- [lib] Synchronized terminal window size multi-process caching ([#66]).
   - Significant effect on cell ratio and image size computation when using multiprocessing.
 - [cli] `--fit` and `--original-size` CL options ([#64]).
+- [config] Support for partial configs ([#69]).
+- [config] An upper limit of 5 for the "max notifications" option ([#69]).
+- [cli,config] `--config` and `--no-config` CL options ([#69]).
 
 ### Changed
 - [lib] Changed the default value of `size`, `width` and `height` properties to `Size.FIT` ([#64]).
@@ -29,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
 - [tui] Changed sizing to `Size.AUTO` for all images ([#64]).
 - [tui] An image/frame is re-rendered only when its size changes, regardless of the canvas size ([#64]).
+- [config] Now respects the XDG Base Directories Specification ([#69]).
+- [config] User config is now initialized after command-line arguments have been parsed ([#69]).
+- [config] Renamed "no multi" to "multi" ([#69]).
 
 ### Removed
 - [lib] `term_image.image.TermImage`.
@@ -37,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#64]: https://github.com/AnonymouX47/term-image/pull/64
 [#66]: https://github.com/AnonymouX47/term-image/pull/66
+[#69]: https://github.com/AnonymouX47/term-image/pull/69
 
 
 ## [0.4.1] - 2022-07-30
