@@ -610,7 +610,7 @@ def main() -> None:
         ),
         getattr(_logging, args.log_level),
         args.debug,
-        config_options.no_multi if args.no_multi is None else args.no_multi,
+        config_options.multi if args.multi is None else args.multi,
         args.quiet,
         args.verbose,
         args.verbose_log,

@@ -560,8 +560,8 @@ config_options = {
         lambda x: isinstance(x, int) and x > 0,
         "must be an integer greater than zero",
     ),
-    "no multi": Option(
-        False,
+    "multi": Option(
+        True,
         lambda x: isinstance(x, bool),
         "must be a boolean",
     ),

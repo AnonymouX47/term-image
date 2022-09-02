@@ -19,7 +19,7 @@ def init_log(
     logfile: str,
     level: int,
     debug: bool,
-    no_multi: bool,
+    multi: bool,
     quiet: bool,
     verbose: bool,
     verbose_log: bool,
@@ -73,7 +73,7 @@ def init_log(
         notify.loading_indicator.start()
 
     if (
-        no_multi
+        not multi
         or cli.args.cli
         or (os.cpu_count() or 0) <= 2  # Avoid affecting overall system performance
         or sys.platform in {"win32", "cygwin"}

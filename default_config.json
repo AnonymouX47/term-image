@@ -8,7 +8,7 @@
     "log file": "~/.term_image/term_image.log",
     "max notifications": 2,
     "max pixels": 4194304,
-    "no multi": false,
+    "multi": true,
     "query timeout": 0.1,
     "style": "auto",
     "swap win size": false,

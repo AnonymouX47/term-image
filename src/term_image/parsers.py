@@ -492,15 +492,15 @@ perf_options.add_argument(
 multi_options = perf_options.add_mutually_exclusive_group()
 multi_options.add_argument(
     "--multi",
-    action="store_false",
+    action="store_true",
     default=None,
-    dest="no_multi",
     help="Enable multiprocessing, if supported (default)",
 )
 multi_options.add_argument(
     "--no-multi",
-    action="store_true",
+    action="store_false",
     default=None,
+    dest="multi",
     help="Disable multiprocessing",
 )
 
