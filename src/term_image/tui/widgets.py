@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 
 import urwid
 
-from .. import cli, logging
+from .. import logging
 from ..config import _nav, cell_width, expand_key, nav
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
@@ -339,7 +339,7 @@ class Image(urwid.Widget):
                     placeholder
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
-                        cli.args.style == "iterm2"
+                        tui_main.ImageClass.style == "iterm2"
                         and tui_main.ImageClass._TERM == "wezterm"
                     )
                     else __class__._ti_placeholder
@@ -376,7 +376,7 @@ class Image(urwid.Widget):
                     # Workaround to erase text on wezterm without glitchy animation
                     image._is_animated
                     and not tui_main.NO_ANIMATION
-                    and cli.args.style == "iterm2"
+                    and tui_main.ImageClass.style == "iterm2"
                     and tui_main.ImageClass._TERM == "wezterm"
                 )
                 else __class__._ti_placeholder

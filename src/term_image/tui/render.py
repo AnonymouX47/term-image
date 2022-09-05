@@ -9,7 +9,7 @@ from queue import Empty, Queue
 from threading import Event
 from typing import Optional, Union
 
-from .. import cli, logging, notify
+from .. import logging, notify
 from ..image import Size
 from ..logging_multi import Process
 from ..utils import clear_queue
@@ -67,7 +67,7 @@ def manage_anim_renders() -> None:
             frame_render_out,
             ready,
             ImageClass,
-            anim_style_specs.get(cli.args.style, ""),
+            anim_style_specs.get(ImageClass.style, ""),
             REPEAT,
             ANIM_CACHED,
         ),
@@ -156,7 +156,7 @@ def manage_image_renders():
             image_render_in,
             image_render_out,
             ImageClass,
-            image_style_specs.get(cli.args.style, ""),
+            image_style_specs.get(ImageClass.style, ""),
         ),
         kwargs=dict(out_extras=False, log_faults=True),
         name="ImageRenderer",
@@ -241,7 +241,7 @@ def manage_grid_renders(n_renderers: int):
                 grid_render_in,
                 grid_render_out,
                 ImageClass,
-                grid_style_specs.get(cli.args.style, ""),
+                grid_style_specs.get(ImageClass.style, ""),
             ),
             kwargs=dict(out_extras=True, log_faults=False),
             name="GridRenderer" + f"-{n}" * multi,

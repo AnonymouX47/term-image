@@ -65,7 +65,7 @@ class Process(Process):
             self._swap_win_size = utils.SWAP_WIN_SIZE
             self._style_attrs = [
                 (attr, getattr(self._ImageClass, attr))
-                for attr in exported_style_attrs.get(cli.args.style, ())
+                for attr in exported_style_attrs.get(self._ImageClass.style, ())
             ]
         child_processes.append(self)
 
