@@ -7,6 +7,7 @@ from __future__ import annotations
 __all__ = (
     "ImageSource",
     "Size",
+    "ImageMeta",
     "BaseImage",
     "GraphicsImage",
     "TextImage",
@@ -18,7 +19,7 @@ import os
 import re
 import sys
 import time
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import Enum
 from functools import wraps
 from math import ceil
@@ -141,7 +142,60 @@ class Size(Enum):
     ORIGINAL = Hidden()
 
 
-class BaseImage(ABC):
+class ImageMeta(ABCMeta):
+    """Type of all render style classes.
+
+    NOTE:
+        | For all render style classes (instances of this class) defined **within** this
+          package, ``str(cls)`` yeilds the same value as :py:attr:`cls.style <style>`.
+        | For render style classes defined **outside** this package (subclasses of those
+          defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
+    """
+
+    def __str__(self):
+        return self.style or super().__str__()
+
+    style = property(
+        cached(
+            lambda self: (
+                self.__name__[:-5].lower()
+                if self.__module__.startswith("term_image.image")
+                else None
+            )
+        ),
+        doc="""Name of the render style [category].
+
+        Returns:
+            * The name of the render style [category] implemented by the invoking
+              class, if defined **within** this package (``term_image``)
+            * ``None``, if the invoking class is defined **outside** this package
+              (``term_image``)
+
+        :rtype: Optional[str]
+
+        **Examples**
+
+        For a class defined within this package:
+
+        >>> from term_image.image import KittyImage
+        >>> KittyImage.style
+        'kitty'
+
+        For a class defined outside this package:
+
+        >>> from term_image.image import KittyImage
+        >>> class MyImage(KittyImage): pass
+        >>> MyImage.style is None
+        True
+
+        HINT:
+            Equivalent to ``str(cls)`` for all render style classes (instances of
+            :py:class:`ImageMeta`) defined **within** this package.
+        """,
+    )
+
+
+class BaseImage(metaclass=ImageMeta):
     """Base of all render styles.
 
     Args:
