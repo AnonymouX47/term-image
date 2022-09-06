@@ -38,24 +38,22 @@ lint:
 
 # Installation
 
-install:
+pip:
 	python -m pip install --upgrade pip
+
+install: install-req
 	python -m pip install -e .
 
-install-all:
-	python -m pip install --upgrade pip
+install-all: pip
 	python -m pip install --upgrade -e . -r requirements.txt -r docs/requirements.txt
 
-install-req:
-	python -m pip install --upgrade pip
+install-req: pip
 	python -m pip install --upgrade -r requirements.txt
 
-install-req-all:
-	python -m pip install --upgrade pip
+install-req-all: pip
 	python -m pip install --upgrade -r requirements.txt -r docs/requirements.txt
 
-install-req-docs:
-	python -m pip install --upgrade pip
+install-req-docs: pip
 	python -m pip install --upgrade -r docs/requirements.txt
 
 uninstall:

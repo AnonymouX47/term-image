@@ -6,6 +6,7 @@ import logging as _logging
 import os
 import sys
 import warnings
+from contextlib import suppress
 from multiprocessing import Event as mp_Event, Queue as mp_Queue, Value
 from operator import mul, setitem
 from os.path import abspath, basename, exists, isdir, isfile, islink, realpath
@@ -18,11 +19,12 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, config, logging, notify, set_font_ratio, tui, utils
-from .config import config_options, store_config
+from . import FontRatio, logging, notify, set_font_ratio, tui, utils
+from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
+from .image.common import _ALPHA_BG_FORMAT
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -394,7 +396,7 @@ def manage_checkers(
                 return
 
             if not any(checks_in_progress):
-                logging.log(
+                log(
                     "All checkers were terminated, checking directory sources failed!",
                     logger,
                     _logging.ERROR,
@@ -413,7 +415,7 @@ def manage_checkers(
                     images.append((source, ...))
                 else:
                     del contents[source]
-                    logging.log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
     else:
         current_thread.name = "Checker"
 
@@ -433,7 +435,7 @@ def manage_checkers(
                     contents[source] = result
                     images.append((source, ...))
                 elif not interrupted.is_set() and result is None:
-                    log(f"{source!r} is empty", logger)
+                    log(f"{source!r} is empty", logger, verbose=True)
             _, links, source, _depth = dir_queue.get()
 
         if interrupted.is_set():
@@ -528,6 +530,7 @@ def open_files(
 
 def main() -> None:
     """CLI execution sub-entry-point"""
+    from . import config  # Importing a module-level will result in a circular import
     from .parsers import parser, style_parsers
 
     global args, url_images, MAX_DEPTH, RECURSIVE, SHOW_HIDDEN
@@ -565,17 +568,20 @@ def main() -> None:
                 pass
             except Exception:
                 log_exception(
-                    f"--{name.replace('_', '-')}: Invalid! See the logs",
+                    "Invalid! See the logs",
+                    logger,
+                    f"--{name.replace('_', '-')}",
                     direct=True,
-                    fatal=True,
+                    fatal=fatal,
                 )
         else:
             valid = check(value)
 
         if not valid:
             notify.notify(
-                f"--{name.replace('_', '-')}: {msg} (got: {value!r})",
-                level=notify.CRITICAL if fatal else notify.ERROR,
+                f"{msg} (got: {value!r})",
+                notify.CRITICAL if fatal else notify.ERROR,
+                f"--{name.replace('_', '-')}",
             )
 
         return bool(valid)
@@ -585,23 +591,26 @@ def main() -> None:
     RECURSIVE = args.recursive
     SHOW_HIDDEN = args.all
 
-    if args.reset_config:
-        store_config(default=True)
-        sys.exit(SUCCESS)
-
     force_cli_mode = not sys.stdout.isatty() and not args.cli
     if force_cli_mode:
         args.cli = True
 
+    config.user_config_file = args.config
+    if args.no_config:
+        config.xdg_config_file = None
+    init_config()
+
+    # `check_arg()` requires logging.
     init_log(
         (
             args.log_file
-            if config_options["log file"][0](args.log_file)
-            else config.log_file
+            # If the argument is invalid, the error will be emitted later.
+            if args.log_file and config_options["log file"].is_valid(args.log_file)
+            else config_options.log_file
         ),
         getattr(_logging, args.log_level),
         args.debug,
-        args.no_multi,
+        config_options.multi if args.multi is None else args.multi,
         args.quiet,
         args.verbose,
         args.verbose_log,
@@ -615,29 +624,44 @@ def main() -> None:
             lambda x: (
                 x + 50 > sys.getrecursionlimit() and sys.setrecursionlimit(x + 50)
             ),
-            "too high",
+            "too deep",
             (RecursionError, OverflowError),
         ),
         ("repeat", lambda x: x != 0, "must be non-zero"),
+        ("alpha", lambda x: 0.0 <= x < 1.0, "out of range"),
+        (
+            "alpha_bg",
+            lambda x: not x or _ALPHA_BG_FORMAT.fullmatch("#" + x),
+            "invalid hex color",
+        ),
     ):
         if not check_arg(*details):
             return INVALID_ARG
 
-    for name, (is_valid, msg) in config_options.items():
+    for name, option in config_options.items():
         var_name = name.replace(" ", "_")
-        value = getattr(args, var_name, None)
+        try:
+            arg_value = getattr(args, var_name)
         # Not all config options have corresponding command-line arguments
-        if value is not None and not is_valid(value):
+        except AttributeError:
+            continue
+
+        if arg_value is None:
+            setattr(args, var_name, option.value)
+        elif not option.is_valid(arg_value):
             arg_name = f"--{name.replace(' ', '-')}"
             notify.notify(
-                f"{arg_name}: {msg} (got: {value!r})",
-                level=notify.ERROR,
+                f"{option.error_msg} (got: {arg_value!r})",
+                notify.ERROR,
+                arg_name,
             )
+            option_repr = "null" if option.value is None else repr(option.value)
             notify.notify(
-                f"{arg_name}: Using config value: {getattr(config, var_name)!r}",
-                level=notify.WARNING,
+                f"Using config value: {option_repr}",
+                context=arg_name,
+                verbose=True,
             )
-            setattr(args, var_name, getattr(config, var_name))
+            setattr(args, var_name, option.value)
 
     set_query_timeout(args.query_timeout)
     utils.SWAP_WIN_SIZE = args.swap_win_size
@@ -650,7 +674,7 @@ def main() -> None:
         notify.notify(
             "Auto font ratio is not supported in the active terminal or on this "
             "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
-            level=notify.WARNING,
+            notify.WARNING,
         )
         args.font_ratio = 0.5
 
@@ -663,7 +687,7 @@ def main() -> None:
     if not ImageClass:
         ImageClass = _best_style()
 
-    if args.force_style or args.style is config.style != "auto":
+    if args.force_style or args.style is config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
@@ -675,7 +699,7 @@ def main() -> None:
                 f"The '{ImageClass}' render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
-                level=_logging.CRITICAL,
+                _logging.CRITICAL,
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
@@ -685,7 +709,7 @@ def main() -> None:
                     f"The '{ImageClass}' render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                 )
 
     # Some APCs (e.g kitty's) used for render style support detection get emitted on
@@ -704,17 +728,18 @@ def main() -> None:
     try:
         style_args = ImageClass._check_style_args(style_args)
     except ValueError as e:
-        notify.notify(str(e), level=notify.CRITICAL)
+        notify.notify(str(e), notify.CRITICAL)
         return INVALID_ARG
 
     if force_cli_mode:
         log(
             "Output is not a terminal, forcing CLI mode!",
             logger,
-            level=_logging.WARNING,
+            _logging.WARNING,
         )
 
-    log("Processing sources", logger, loading=True)
+    log("Processing sources...", logger, verbose=True)
+    notify.start_loading()
 
     file_images, url_images, dir_images = [], [], []
     contents = {}
@@ -743,6 +768,16 @@ def main() -> None:
     opener_started = False
 
     if OS_IS_UNIX and not args.cli:
+        if args.checkers is None:
+            args.checkers = max(
+                (
+                    len(os.sched_getaffinity(0))
+                    if hasattr(os, "sched_getaffinity")
+                    else os.cpu_count() or 0
+                )
+                - 1,
+                2,
+            )
         dir_queue = mp_Queue() if logging.MULTI and args.checkers > 1 else Queue()
         dir_queue.sources_finished = False
         check_manager = Thread(
@@ -825,7 +860,7 @@ def main() -> None:
         )
         dir_images = []
 
-    log("... Done!", logger)
+    log("... Done!", logger, verbose=True)
 
     images = file_images + url_images + dir_images
     if not images:
@@ -847,7 +882,7 @@ def main() -> None:
                 log(
                     f"Has more than the maximum pixel-count, skipping: {entry[0]!r}",
                     logger,
-                    level=_logging.WARNING,
+                    _logging.WARNING,
                     verbose=True,
                 )
                 continue
@@ -932,7 +967,12 @@ def main() -> None:
             # raised by `BaseImage.set_size()`, scaling value checks
             # or padding width/height checks.
             except (ValueError, StyleError, TermImageWarning) as e:
-                notify.notify(str(e), level=notify.ERROR)
+                notify.notify(str(e), notify.ERROR)
+            except BrokenPipeError:
+                # Prevent ignored exception message at interpreter shutdown
+                with suppress(BrokenPipeError):
+                    sys.stdout.close()
+                break
     elif OS_IS_UNIX:
         notify.end_loading()
         tui.init(args, style_args, images, contents, ImageClass)

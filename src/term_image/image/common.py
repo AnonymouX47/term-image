@@ -264,7 +264,7 @@ class BaseImage(metaclass=ImageMeta):
         self._source_type = ImageSource.PIL_IMAGE
         self._original_size = image.size
         if width is None is height:
-            self._size = Size.FIT
+            self.size = Size.FIT
         else:
             self.set_size(width, height)
         self._scale = []
@@ -275,13 +275,6 @@ class BaseImage(metaclass=ImageMeta):
             self._frame_duration = (image.info.get("duration") or 100) / 1000
             self._seek_position = image.tell()
             self._n_frames = None
-
-        # Recognized sizing parameters.
-        # These are initialized here only to avoid `AttributeError`s in case `_size` is
-        # initially set via a means other than `set_size()`.
-        self._fit_to_width = False
-        self._h_allow = 0
-        self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     def __del__(self) -> None:
         self.close()
@@ -560,7 +553,7 @@ class BaseImage(metaclass=ImageMeta):
         if not isinstance(value, Size):
             raise TypeError("'size' must be a `Size` enum member")
         self._size = value
-        self._fit_to_width = False
+        self._fit_to_width = value is Size.FIT_TO_WIDTH
         self._h_allow = 0
         self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
@@ -1113,7 +1106,7 @@ class BaseImage(metaclass=ImageMeta):
                     f"'maxsize' must contain two positive integers (got: {maxsize})"
                 )
 
-        fit_to_width = width is Size.FIT_TO_WIDTH
+        fit_to_width = Size.FIT_TO_WIDTH in (width, height)
         self._size = self._valid_size(
             width,
             height,
@@ -1753,9 +1746,9 @@ class BaseImage(metaclass=ImageMeta):
             term_image.exceptions.TermImageError: The image has been finalized.
 
         NOTE:
-            If the ``set_size()`` method was previously used to set the image size,
-            (directly or not), the last value of its *fit_to_width* parameter
-            is taken into consideration, for non-animations.
+            For **non-animations**, if the image size was set with
+            :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
+            validated and setting *scroll* is unnecessary.
         """
         _size = self._size
         try:
