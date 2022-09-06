@@ -8,9 +8,9 @@ from PIL import Image
 
 from term_image import exceptions, set_font_ratio
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
-from term_image.utils import get_terminal_size
+from term_image.utils import BG_FMT, COLOR_RESET, get_fg_bg_colors, get_terminal_size
 
-from . import set_cell_size
+from . import set_cell_size, set_fg_bg_colors, toggle_is_on_kitty
 
 columns, lines = get_terminal_size()
 
@@ -108,6 +108,11 @@ def get_actual_render_size(image):
             height = height - extra + r_height
 
     return width, height
+
+
+def test_style_All():
+    assert ImageClass.style == ImageClass.__name__[:-5].lower()
+    assert str(ImageClass) == ImageClass.style
 
 
 def test_instantiation_Text():
@@ -471,6 +476,40 @@ class TestFontRatio_Graphics:
                 assert self.image.size == size
         finally:
             set_font_ratio(0.5)
+
+
+def test_render_is_on_kitty_Text():
+    trans = ImageClass.from_file("tests/images/trans.png", height=_size)
+
+    for bg, r in (((0,) * 3, 1), ((100,) * 3, 101), ((255,) * 3, 254), (None, 0)):
+        set_fg_bg_colors(bg=bg)
+        bg_hex = get_fg_bg_colors(hex=True)[1] or "#000000"
+        bg = bg or (0, 0, 0)
+        print(bg, bg_hex)
+
+        assert all(
+            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+            for line in f"{trans:1.1##}".splitlines()
+        )
+        assert all(
+            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+            for line in f"{trans:1.1{bg_hex}}".splitlines()
+        )
+
+        toggle_is_on_kitty()
+        bg = (r, *bg[1:])
+
+        assert all(
+            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+            for line in f"{trans:1.1##}".splitlines()
+        )
+        assert all(
+            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+            for line in f"{trans:1.1{bg_hex}}".splitlines()
+        )
+
+        toggle_is_on_kitty()
+    set_fg_bg_colors((0, 0, 0), (0, 0, 0))
 
 
 def test_render_clean_up_All():

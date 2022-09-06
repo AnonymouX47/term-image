@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Eliminated race condition in `term_image.utils.lock_tty()` multi-process integration ([#66]).
 - [config] Updating of TUI keybindings ([#69]).
 - [cli,config] "log file" and `--log-file` validation ([#69]).
+- [cli,config] Render style force condition ([#67]).
 
 ### Added
 - [lib] `term_image.image.Size` enumeration ([#64]).
@@ -16,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] `term_image.utils.DISABLE_QUERIES` to disable terminal queries ([#66]).
 - [lib] Synchronized terminal window size multi-process caching ([#66]).
   - Significant effect on cell ratio and image size computation when using multiprocessing.
+- [lib] `clear()` method to each of `KittyImage` and `Iterm2Image` ([#67]).
+- [lib] Render style metaclass `.image.ImageMeta` with a `style` property ([#67]).
 - [cli] `--fit` and `--original-size` CL options ([#64]).
 - [config] Support for partial configs ([#69]).
 - [config] An upper limit of 5 for the "max notifications" option ([#69]).
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] Moved `TermImageWarning` from the top-level into `term_image.exceptions`.
 - [lib] Refactored and improved various utilities ([#66]).
   - `TermImageWarning` is now issued instead of `Userwarning` when not running in a terminal or multi-process synchronization is unsupported.
+- [lib] `str(ImageClass)` now returns the name of the render style (or category) ([#67]).
 - [cli] Changed default sizing to `Size.AUTO` ([#64]).
 - [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
 - [tui] Changed sizing to `Size.AUTO` for all images ([#64]).
@@ -45,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#64]: https://github.com/AnonymouX47/term-image/pull/64
 [#66]: https://github.com/AnonymouX47/term-image/pull/66
+[#67]: https://github.com/AnonymouX47/term-image/pull/67
 [#69]: https://github.com/AnonymouX47/term-image/pull/69
 
 

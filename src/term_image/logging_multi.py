@@ -63,13 +63,10 @@ class Process(Process):
             self._font_ratio = cli.args.font_ratio
             self._query_timeout = utils.QUERY_TIMEOUT
             self._swap_win_size = utils.SWAP_WIN_SIZE
-            exported_attrs = exported_style_attrs.get(cli.args.style)
-            if exported_attrs:
-                self._style_attrs = {
-                    item
-                    for item in vars(self._ImageClass).items()
-                    if item[0] in exported_attrs
-                }
+            self._style_attrs = [
+                (attr, getattr(self._ImageClass, attr))
+                for attr in exported_style_attrs.get(self._ImageClass.style, ())
+            ]
         child_processes.append(self)
 
     def run(self):
@@ -81,9 +78,8 @@ class Process(Process):
                 # The unpickled class object is in the originally defined state
                 # Eliminates queries for style support checks
                 self._ImageClass._supported = True
-                if self._ImageClass.__name__[:-5].lower() in exported_style_attrs:
-                    for item in self._style_attrs:
-                        setattr(self._ImageClass, *item)
+                for item in self._style_attrs:
+                    setattr(self._ImageClass, *item)
 
                 utils.QUERY_TIMEOUT = self._query_timeout
                 utils.SWAP_WIN_SIZE = self._swap_win_size
@@ -158,8 +154,8 @@ LOG = 0
 NOTIF = 1
 child_processes = []
 exported_style_attrs = {
-    "iterm2": {"_TERM", "_TERM_VERSION"},
-    "kitty": {"_KITTY_VERSION", "_KONSOLE_VERSION"},
+    "iterm2": ("_TERM", "_TERM_VERSION"),
+    "kitty": ("_TERM", "_TERM_VERSION", "_KITTY_VERSION"),
 }
 
 # The annotations below are put in comments for compatibility with Python 3.7

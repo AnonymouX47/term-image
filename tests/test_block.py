@@ -6,21 +6,14 @@ import pytest
 
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import COLOR_RESET, CSI, get_fg_bg_colors
+from term_image.utils import BG_FMT, COLOR_RESET, CSI
 
-from . import common
+from . import common, set_fg_bg_colors
 from .common import _size, setup_common
 
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Text")):
         globals()[name] = obj
-
-
-def _is_on_kitty():
-    return False
-
-
-BlockImage._is_on_kitty = staticmethod(_is_on_kitty)
 
 
 @pytest.mark.order("first")
@@ -66,13 +59,16 @@ class TestRender:
         self.trans.scale = 1.0
 
         # Terminal BG
-        r, g, b = get_fg_bg_colors()[1] or (0, 0, 0)
-        render = self.render_image("#")
-        assert render == f"{self.trans:1.1##}"
-        assert all(
-            line == f"{CSI}48;2;{r};{g};{b}m" + " " * self.trans.width + COLOR_RESET
-            for line in render.splitlines()
-        )
+        for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
+            set_fg_bg_colors(bg=bg)
+            bg = bg or (0, 0, 0)
+            render = self.render_image("#")
+            assert render == f"{self.trans:1.1##}"
+            assert all(
+                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                for line in render.splitlines()
+            )
+        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"

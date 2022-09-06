@@ -7,6 +7,7 @@ from __future__ import annotations
 __all__ = (
     "ImageSource",
     "Size",
+    "ImageMeta",
     "BaseImage",
     "GraphicsImage",
     "TextImage",
@@ -18,7 +19,7 @@ import os
 import re
 import sys
 import time
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import Enum
 from functools import wraps
 from math import ceil
@@ -43,8 +44,10 @@ from ..utils import (
     COLOR_RESET,
     CSI,
     ClassInstanceMethod,
+    cached,
     get_cell_size,
     get_fg_bg_colors,
+    get_terminal_name_version,
     get_terminal_size,
     no_redecorate,
 )
@@ -139,7 +142,60 @@ class Size(Enum):
     ORIGINAL = Hidden()
 
 
-class BaseImage(ABC):
+class ImageMeta(ABCMeta):
+    """Type of all render style classes.
+
+    NOTE:
+        | For all render style classes (instances of this class) defined **within** this
+          package, ``str(cls)`` yeilds the same value as :py:attr:`cls.style <style>`.
+        | For render style classes defined **outside** this package (subclasses of those
+          defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
+    """
+
+    def __str__(self):
+        return self.style or super().__str__()
+
+    style = property(
+        cached(
+            lambda self: (
+                self.__name__[:-5].lower()
+                if self.__module__.startswith("term_image.image")
+                else None
+            )
+        ),
+        doc="""Name of the render style [category].
+
+        Returns:
+            * The name of the render style [category] implemented by the invoking
+              class, if defined **within** this package (``term_image``)
+            * ``None``, if the invoking class is defined **outside** this package
+              (``term_image``)
+
+        :rtype: Optional[str]
+
+        **Examples**
+
+        For a class defined within this package:
+
+        >>> from term_image.image import KittyImage
+        >>> KittyImage.style
+        'kitty'
+
+        For a class defined outside this package:
+
+        >>> from term_image.image import KittyImage
+        >>> class MyImage(KittyImage): pass
+        >>> MyImage.style is None
+        True
+
+        HINT:
+            Equivalent to ``str(cls)`` for all render style classes (instances of
+            :py:class:`ImageMeta`) defined **within** this package.
+        """,
+    )
+
+
+class BaseImage(metaclass=ImageMeta):
     """Base of all render styles.
 
     Args:
@@ -1305,24 +1361,19 @@ class BaseImage(ABC):
             )
         return {}
 
-    @staticmethod
-    def _clear_frame() -> bool:
-        """Clear the animation frame on-screen, if necessary.
+    @classmethod
+    def _clear_frame(cls) -> bool:
+        """Clears an animation frame on-screen.
 
-        Used by some graphics-based styles.
+        Called by :py:meth:`_display_animated` just before drawing a new frame.
+
+        | Only required by styles wherein an image is not overwritten by another image
+          e.g some graphics-based styles.
+        | The base implementation does nothing and should be overridden only if
+          required.
 
         Returns:
             ``True`` if the frame was cleared. Otherwise, ``False``.
-        """
-        return False
-
-    @staticmethod
-    def _clear_images() -> bool:
-        """Clear images on-screen.
-
-        Used by some graphics-based styles.
-
-        Any overriding method should return ``True``.
         """
         return False
 
@@ -1970,6 +2021,11 @@ class TextImage(BaseImage):
     # pixel-size == width * height/2
     # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
     _pixel_ratio = property(lambda _: get_font_ratio() * 2)
+
+    @staticmethod
+    @cached
+    def _is_on_kitty() -> bool:
+        return get_terminal_name_version()[0] == "kitty"
 
 
 class ImageIterator:

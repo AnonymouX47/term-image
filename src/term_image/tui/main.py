@@ -144,7 +144,7 @@ def display_images(
             image_box.original_widget = placeholder  # halt image and anim rendering
             image_box.set_title("Image")
             view.original_widget = image_box
-            ImageClass._clear_images()
+            getattr(ImageClass, "clear", lambda: True)()
 
         elif pos == OPEN:  # Implements "menu::Open" action (for non-image entries)
             if prev_pos == -1:
@@ -282,7 +282,7 @@ def display_images(
                 # GridScanner in the course of generating the display widget.
                 grid_acknowledge.wait()
 
-            ImageClass._clear_images() and ImageCanvas.change()
+            getattr(ImageClass, "clear", lambda: True)() or ImageCanvas.change()
 
         prev_pos = pos
         pos = yield

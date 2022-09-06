@@ -9,9 +9,9 @@ import pytest
 
 from term_image.exceptions import KittyImageError
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ST, get_fg_bg_colors
+from term_image.utils import CSI, ST
 
-from . import common
+from . import common, set_fg_bg_colors
 from .common import _size, get_actual_render_size, python_img, setup_common
 
 for name, obj in vars(common).items():
@@ -328,14 +328,17 @@ class TestRenderLines:
         pixels_per_line = w * (h // _size)
 
         # Terminal BG
-        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
-        render = self.render_image("#")
-        assert render == f"{self.trans:1.1##}"
-        for line in render.splitlines():
-            control_codes, raw_image, _ = decode_image(line)
-            assert ("f", "24") in control_codes
-            assert len(raw_image) == pixels_per_line * 3
-            assert raw_image.count(pixel_bytes) == pixels_per_line
+        for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
+            set_fg_bg_colors(bg=bg)
+            pixel_bytes = bytes(bg or (0, 0, 0))
+            render = self.render_image("#")
+            assert render == f"{self.trans:1.1##}"
+            for line in render.splitlines():
+                control_codes, raw_image, _ = decode_image(line)
+                assert ("f", "24") in control_codes
+                assert len(raw_image) == pixels_per_line * 3
+                assert raw_image.count(pixel_bytes) == pixels_per_line
+        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
@@ -543,13 +546,15 @@ class TestRenderWhole:
         w, h = get_actual_render_size(self.trans)
 
         # Terminal BG
-        pixel_bytes = bytes(get_fg_bg_colors()[1] or (0, 0, 0))
-        render = self.render_image("#")
-        assert render == f"{self.trans:1.1##}"
-        control_codes, raw_image, _ = decode_image(render)
-        assert ("f", "24") in control_codes
-        assert len(raw_image) == w * h * 3
-        assert raw_image.count(pixel_bytes) == w * h
+        for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
+            set_fg_bg_colors(bg=bg)
+            pixel_bytes = bytes(bg or (0, 0, 0))
+            render = self.render_image("#")
+            assert render == f"{self.trans:1.1##}"
+            control_codes, raw_image, _ = decode_image(render)
+            assert ("f", "24") in control_codes
+            assert len(raw_image) == w * h * 3
+            assert raw_image.count(pixel_bytes) == w * h
 
         # red
         render = self.render_image("#ff0000")

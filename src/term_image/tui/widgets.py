@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 
 import urwid
 
-from .. import cli, logging
+from .. import logging
 from ..config import config_options, expand_key, navi
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
@@ -70,7 +70,9 @@ class GridListBox(urwid.ListBox):
         if self._ti_grid_path == grid_path and not (
             self._ti_topmost is topmost and self._ti_top_trim == top_trim
         ):
-            tui_main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(
+                tui_main.ImageClass, "clear", lambda: True
+            )() or ImageCanvas.change()
 
         self._ti_topmost = topmost
         self._ti_top_trim = top_trim
@@ -330,14 +332,14 @@ class Image(urwid.Widget):
                     placeholder
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
-                        cli.args.style == "iterm2"
+                        tui_main.ImageClass.style == "iterm2"
                         and tui_main.ImageClass._TERM == "wezterm"
                     )
                     else __class__._ti_placeholder
                 ).render(size)
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
-                tui_main.ImageClass._clear_images()
+                getattr(tui_main.ImageClass, "clear", lambda: True)()
             else:
                 canv.size = size
         elif self._ti_canv and (
@@ -367,7 +369,7 @@ class Image(urwid.Widget):
                     # Workaround to erase text on wezterm without glitchy animation
                     image._is_animated
                     and not tui_main.NO_ANIMATION
-                    and cli.args.style == "iterm2"
+                    and tui_main.ImageClass.style == "iterm2"
                     and tui_main.ImageClass._TERM == "wezterm"
                 )
                 else __class__._ti_placeholder

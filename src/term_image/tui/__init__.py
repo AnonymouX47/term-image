@@ -56,18 +56,18 @@ def init(
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     # `z_index=None` is pretty glitchy for animations with WHOLE method
-    if args.style == "kitty" and ImageClass._KITTY_VERSION:
+    if ImageClass.style == "kitty" and ImageClass._KITTY_VERSION:
         render.anim_style_specs["kitty"] = "+L"
     for name in ("anim", "grid", "image"):
         specs = getattr(render, f"{name}_style_specs")
-        if args.style == "kitty":
+        if ImageClass.style == "kitty":
             # Kitty blends images at the same z-index
             if ImageClass._KITTY_VERSION:
                 specs["kitty"] += "z"
             # Would've been removed if it had the default value
             if "compress" in style_args:
                 specs["kitty"] += f"c{style_args['compress']}"
-        elif args.style == "iterm2" and "compress" in style_args:
+        elif ImageClass.style == "iterm2" and "compress" in style_args:
             specs["iterm2"] += f"c{style_args['compress']}"
 
     Image._ti_alpha = (
@@ -79,7 +79,7 @@ def init(
             else "#" + (args.alpha_bg or "#")
         )
     )
-    Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
+    Image._ti_grid_style_spec = render.grid_style_specs.get(ImageClass.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted
     menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
@@ -152,7 +152,7 @@ class Loop(urwid.MainLoop):
         if "window resize" in keys:
             # Adjust bottom bar upon window resize
             keys.append("resized")
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
         return super().process_input(keys)
 
 

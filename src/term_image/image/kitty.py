@@ -162,8 +162,19 @@ class KittyImage(GraphicsImage):
         ),
     }
 
+    _TERM: str = ""
+    _TERM_VERSION: str = ""
     _KITTY_VERSION: Tuple[int, int, int] = ()
-    _KONSOLE_VERSION: Tuple[int, int, int] = ()
+
+    @staticmethod
+    def clear(all: bool = True) -> None:
+        """Clears images on-screen.
+
+        Args:
+            all: If ``False``, clears only the images intersecting with the cursor.
+              Otherwise, clears all images currently on the screen.
+        """
+        _stdout_write(DELETE_ALL_IMAGES if all else DELETE_CURSOR_IMAGES)
 
     # Only defined for the purpose of proper self-documentation
     def draw(
@@ -246,21 +257,22 @@ class KittyImage(GraphicsImage):
             if response and (
                 response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
             ):
-                # Only kitty >= 0.20.0 implement the protocol features utilized
-                # Konsole is good as long as it responds to the graphics query
                 name, version = get_terminal_name_version()
-                if name and version:
+                # Only kitty >= 0.20.0 implement the protocol features utilized
+                if name == "kitty" and version:
                     try:
-                        version = tuple(map(int, version.split(".")))
+                        version_tuple = tuple(map(int, version.split(".")))
                     except ValueError:  # Version string not "understood"
                         pass
                     else:
-                        if name == "kitty" and version >= (0, 20, 0):
-                            cls._KITTY_VERSION = version
+                        if version_tuple >= (0, 20, 0):
+                            cls._TERM, cls._TERM_VERSION = name, version
+                            cls._KITTY_VERSION = version_tuple
                             cls._supported = True
-                        elif name == "konsole":
-                            cls._KONSOLE_VERSION = version
-                            cls._supported = True
+                # Konsole is good as long as it responds to the graphics query
+                elif name == "konsole":
+                    cls._TERM, cls._TERM_VERSION = name, version or ""
+                    cls._supported = True
 
         return cls._supported
 
@@ -283,15 +295,19 @@ class KittyImage(GraphicsImage):
 
         return cls._check_style_args(args)
 
-    @staticmethod
-    def _clear_images():
-        _stdout_write(DELETE_ALL_IMAGES)
-        return True
-
     @classmethod
-    def _clear_frame(cls):
+    def _clear_frame(cls) -> bool:
+        """Clears an animation frame on-screen.
+
+        | Only used on Kitty <= 0.25.0 because ``z_index=None`` is buggy on these
+          versions. Does nothing on any other version or terminal.
+        | Note that this implementation might do more than required since it clears
+          all images on screen.
+
+        See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
+        """
         if cls._KITTY_VERSION and cls._KITTY_VERSION <= (0, 25, 0):
-            cls._clear_images()
+            cls.clear()
             return True
         return False
 
@@ -392,16 +408,16 @@ class KittyImage(GraphicsImage):
                 buffer.write(jump_right)
 
                 return buffer.getvalue()
-        else:
-            vars(control_data).update(dict(v=height, r=r_height))
-            return "".join(
-                (
-                    z_index is None and delete or "",
-                    Transmission(control_data, raw_image, compress).get_chunked(),
-                    f"{erase}{jump_right}\n" * (r_height - 1),
-                    f"{erase}{jump_right}",
-                )
+
+        vars(control_data).update(v=height, r=r_height)
+        return "".join(
+            (
+                z_index is None and delete or "",
+                Transmission(control_data, raw_image, compress).get_chunked(),
+                f"{erase}{jump_right}\n" * (r_height - 1),
+                f"{erase}{jump_right}",
             )
+        )
 
 
 @dataclass
@@ -448,18 +464,19 @@ class Transmission:
         return "".join(self.get_chunks())
 
     def get_chunks(self, size: int = 4096) -> Generator[str, None, None]:
-        payload = self.get_payload()
+        with self.get_payload() as payload:
+            chunk, next_chunk = payload.read(size), payload.read(size)
+            yield (
+                f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
+            )
 
-        chunk, next_chunk = payload.read(size), payload.read(size)
-        yield f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
-
-        chunk, next_chunk = next_chunk, payload.read(size)
-        while next_chunk:
-            yield f"{START}m=1;{chunk}{ST}"
             chunk, next_chunk = next_chunk, payload.read(size)
+            while next_chunk:
+                yield f"{START}m=1;{chunk}{ST}"
+                chunk, next_chunk = next_chunk, payload.read(size)
 
-        if chunk:  # false if there was never a next chunk
-            yield f"{START}m=0;{chunk}{ST}"
+            if chunk:  # false if there was never a next chunk
+                yield f"{START}m=0;{chunk}{ST}"
 
     def get_control_data(self) -> str:
         return ",".join(
@@ -561,4 +578,5 @@ class _ControlData:  # Currently Unused
 START = f"{ESC}_G"
 FMT = f"{START}%(control)s;%(payload)s{ST}"
 DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
+DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}".encode()
 _stdout_write = sys.stdout.buffer.write

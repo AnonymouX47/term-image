@@ -288,7 +288,7 @@ def set_confirmation(
     confirmation_overlay.bottom_w = bottom_widget
     main_widget.contents[0] = (confirmation_overlay, ("weight", 1))
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # Context Actions
@@ -314,18 +314,18 @@ def expand_collapse_keys():
                 ("given", key_bar_rows()),
             )
             key_bar._ti_collapsed = False
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
         elif not key_bar._ti_collapsed:
             expand.original_widget.set_text(f"\u25B2 [{expand_key[1]}]")
             main_widget.contents[-1] = (bottom_bar, ("given", 1))
             key_bar._ti_collapsed = True
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
 
 
 @register_key(("global", "Help"))
 def help():
     display_context_help(main.get_context())
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 def resize():
@@ -344,7 +344,7 @@ def resize():
     if not key_bar._ti_collapsed:
         new_rows = key_bar_rows()
         if main_widget.contents[-1][1][1] != new_rows:
-            main.ImageClass._clear_images()
+            getattr(main.ImageClass, "clear", lambda: True)()
         main_widget.contents[-1] = (
             bottom_bar,
             ("given", new_rows),
@@ -418,13 +418,13 @@ def open():
         main_widget.contents[0] = (view, ("weight", 1))
         set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("menu", "Back"))
 def back():
     main.displayer.send(main.BACK)
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image
@@ -434,7 +434,7 @@ def maximize():
     main_widget.contents[0] = (view, ("weight", 1))
     set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image-grid
@@ -447,7 +447,7 @@ def cell_width_dec():
         # Wait till GridRenderManager clears the cache
         while main.grid_change.is_set():
             pass
-        main.ImageClass._clear_images()
+        getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("image-grid", "Size+"))
@@ -459,7 +459,7 @@ def cell_width_inc():
         # Wait till GridRenderManager clears the cache
         while main.grid_change.is_set():
             pass
-        main.ImageClass._clear_images()
+        getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("image-grid", "Open"))
@@ -480,7 +480,7 @@ def maximize_cell():
     if image_w._ti_image._is_animated:
         main.animate_image(image_w)
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 def set_image_grid_actions():
@@ -516,7 +516,7 @@ def restore():
     elif main.get_context() == "image":
         set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image, full-image

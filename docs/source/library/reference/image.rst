@@ -31,6 +31,7 @@ Core Library Definitions
 
    * :py:class:`ImageSource`
    * :py:class:`Size`
+   * :py:class:`ImageMeta`
    * :py:class:`BaseImage`
 
      * :py:class:`GraphicsImage`
@@ -47,6 +48,10 @@ Core Library Definitions
       :show-inheritance:
 
    .. autoclass:: Size
+      :members:
+      :show-inheritance:
+
+   .. autoclass:: ImageMeta
       :members:
       :show-inheritance:
 

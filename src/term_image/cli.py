@@ -686,9 +686,8 @@ def main() -> None:
     }[args.style]
     if not ImageClass:
         ImageClass = _best_style()
-    args.style = ImageClass.__name__[:-5].lower()
 
-    if args.force_style or args.style == config_options.style != "auto":
+    if args.force_style or args.style is config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
@@ -697,7 +696,7 @@ def main() -> None:
         except StyleError:  # Instantiation isn't permitted
             write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
             log(
-                f"The {args.style!r} render style is not supported in the current "
+                f"The '{ImageClass}' render style is not supported in the current "
                 "terminal! To use it anyways, add '--force-style'.",
                 logger,
                 _logging.CRITICAL,
@@ -707,7 +706,7 @@ def main() -> None:
             if not ImageClass.is_supported():  # Also sets any required attributes
                 write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
                 log(
-                    f"The {args.style!r} render style might not be fully supported in "
+                    f"The '{ImageClass}' render style might not be fully supported in "
                     "the current terminal... using it anyways.",
                     logger,
                     _logging.WARNING,
@@ -717,11 +716,11 @@ def main() -> None:
     # some non-supporting terminal emulators
     write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
 
-    log(f"Using {args.style!r} render style", logger, verbose=True)
-    style_parser = style_parsers.get(args.style)
+    log(f"Using '{ImageClass}' render style", logger, verbose=True)
+    style_parser = style_parsers.get(ImageClass.style)
     style_args = vars(style_parser.parse_known_args()[0]) if style_parser else {}
 
-    if args.style == "iterm2":
+    if ImageClass.style == "iterm2":
         ITerm2Image.JPEG_QUALITY = style_args.pop("jpeg_quality")
         ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
         ITerm2Image.READ_FROM_FILE = style_args.pop("read_from_file")
@@ -914,7 +913,7 @@ def main() -> None:
                 if args.frame_duration:
                     image.frame_duration = args.frame_duration
 
-                if args.style == "kitty":
+                if ImageClass.style == "kitty":
                     image.set_render_method(
                         "lines"
                         if (
@@ -924,7 +923,7 @@ def main() -> None:
                         )
                         else "whole"
                     )
-                elif args.style == "iterm2":
+                elif ImageClass.style == "iterm2":
                     image.set_render_method(
                         "whole"
                         if (
