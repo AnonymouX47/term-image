@@ -11,11 +11,10 @@ from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 import urwid
 
 from .. import logging
-from ..config import max_notifications
-from ..utils import CSI, lock_tty
+from ..utils import CSI, lock_tty, write_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
-from .widgets import Image, ImageCanvas, info_bar, main as main_widget, notif_bar, pile
+from .widgets import Image, ImageCanvas, info_bar, main as main_widget
 
 
 def init(
@@ -28,8 +27,6 @@ def init(
     """Initializes the TUI"""
     global is_launched
 
-    if not logging.QUIET and max_notifications:
-        pile.contents.append((notif_bar, ("given", max_notifications)))
     if args.debug:
         main_widget.contents.insert(
             -1, (urwid.AttrMap(urwid.Filler(info_bar), "input"), ("given", 1))
@@ -59,18 +56,18 @@ def init(
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
     # `z_index=None` is pretty glitchy for animations with WHOLE method
-    if args.style == "kitty" and ImageClass._KITTY_VERSION:
+    if ImageClass.style == "kitty" and ImageClass._KITTY_VERSION:
         render.anim_style_specs["kitty"] = "+L"
     for name in ("anim", "grid", "image"):
         specs = getattr(render, f"{name}_style_specs")
-        if args.style == "kitty":
+        if ImageClass.style == "kitty":
             # Kitty blends images at the same z-index
             if ImageClass._KITTY_VERSION:
                 specs["kitty"] += "z"
             # Would've been removed if it had the default value
             if "compress" in style_args:
                 specs["kitty"] += f"c{style_args['compress']}"
-        elif args.style == "iterm2" and "compress" in style_args:
+        elif ImageClass.style == "iterm2" and "compress" in style_args:
             specs["iterm2"] += f"c{style_args['compress']}"
 
     Image._ti_alpha = (
@@ -82,7 +79,7 @@ def init(
             else "#" + (args.alpha_bg or "#")
         )
     )
-    Image._ti_grid_style_spec = render.grid_style_specs.get(args.style, "")
+    Image._ti_grid_style_spec = render.grid_style_specs.get(ImageClass.style, "")
 
     # daemon, to avoid having to check if the main process has been interrupted
     menu_scanner = logging.Thread(target=scan_dir_menu, name="MenuScanner", daemon=True)
@@ -121,7 +118,7 @@ def init(
     anim_render_manager.start()
 
     try:
-        print(f"{CSI}?1049h", end="", flush=True)  # Switch to the alternate buffer
+        write_tty(f"{CSI}?1049h".encode())  # Switch to the alternate buffer
         next(main.displayer)
         main.loop.run()
         grid_render_manager.join()
@@ -139,7 +136,7 @@ def init(
         raise
     finally:
         # urwid fails to restore the normal buffer on some terminals
-        print(f"{CSI}?1049l", end="", flush=True)  # Switch back to the normal buffer
+        write_tty(f"{CSI}?1049l".encode())  # Switch back to the normal buffer
         main.displayer.close()
         is_launched = False
         os.close(main.update_pipe)
@@ -155,7 +152,7 @@ class Loop(urwid.MainLoop):
         if "window resize" in keys:
             # Adjust bottom bar upon window resize
             keys.append("resized")
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
         return super().process_input(keys)
 
 
@@ -176,6 +173,7 @@ palette = [
     ("key", "", "", "", "#ffffff", "#5588ff"),
     ("disabled key", "", "", "", "#7f7f7f", "#5588ff"),
     ("error", "", "", "", "bold", "#ff0000"),
-    ("warning", "", "", "", "#ff0000, bold", ""),
+    ("warning", "", "", "", "#ff0000,bold", ""),
     ("input", "", "", "", "standout", ""),
+    ("notif context", "", "", "", "#0000ff,bold", ""),
 ]

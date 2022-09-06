@@ -11,14 +11,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..utils import (
-    BG_FMT,
-    COLOR_RESET,
-    FG_FMT,
-    cached,
-    get_fg_bg_colors,
-    get_terminal_name_version,
-)
+from ..utils import BG_FMT, COLOR_RESET, FG_FMT, get_fg_bg_colors
 from .common import TextImage
 
 warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
@@ -52,11 +45,6 @@ class BlockImage(TextImage):
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
         return pixels if pixels is not None else cols
-
-    @staticmethod
-    @cached
-    def _is_on_kitty() -> bool:
-        return get_terminal_name_version()[0] == "kitty"
 
     @staticmethod
     def _pixels_lines(
@@ -95,15 +83,8 @@ class BlockImage(TextImage):
             if not alpha or no_alpha:
                 r, g, b = cluster2
                 # Kitty does not render BG colors equal to the default BG color
-                if self._is_on_kitty() and cluster2 == bg_color:
-                    if r < 255:
-                        r += 1
-                    elif g < 255:
-                        g += 1
-                    elif b < 255:
-                        b += 1
-                    else:
-                        r -= 1
+                if is_on_kitty and cluster2 == bg_color:
+                    r += r < 255 or -1
                 buf_write(BG_FMT % (r, g, b))
                 if cluster1 == cluster2:
                     buf_write(" " * n)
@@ -115,6 +96,8 @@ class BlockImage(TextImage):
         buf_write = buffer.write  # Eliminate attribute resolution cost
 
         bg_color = get_fg_bg_colors()[1]
+        is_on_kitty = self._is_on_kitty()
+
         width, height = self._get_render_size()
         frame_img = img if frame else None
         img, rgb, a = self._get_render_data(img, alpha, round_alpha=True, frame=frame)

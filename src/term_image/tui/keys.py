@@ -73,6 +73,15 @@ def show_actions(context: str, *actions: str) -> None:
 # Main
 
 
+def change_key(context: str, old: str, new: str) -> None:
+    """Changes the key for a registered action from *old* to *new*.
+
+    Raises:
+        KeyError: *old* was not registered.
+    """
+    keys[context][new] = keys[context].pop(old)
+
+
 def display_context_help(context: str) -> None:
     """Displays the help menu for a particular context, showing all visible actions
     and their descriptions.
@@ -218,19 +227,17 @@ def display_context_keys(context: str) -> None:
 
 
 def register_key(*args: Tuple[str, str]) -> FunctionType:
-    """Returns a decorator to register a function to some context actions
+    """Returns a decorator to register a function to some context action(s).
 
-    Args: `(context, action)` tuple(s), each specifying an _action_ and it's _context_.
+    Args: `(context, action)` tuple(s), each specifying an *action* and it's *context*.
 
-    Returns: A decorator that registers a function to some context actions.
-
-    Each _context_ and _action_ must be valid.
-    If no argument is passed, the wrapper simply does nothing.
+    Each *context* and *action* must be valid.
+    If no argument is given, the wrapper simply does nothing.
     """
 
     def register(func: FunctionType) -> None:
-        """Register _func_ to the key corresponding to each `(context, action)` pair
-        recieved by the call to `register_key()` that returns it
+        """Registers *func* to the key corresponding to each ``(context, action)`` pair
+        recieved by the call to ``register_key()`` that defines it.
         """
         for context, action in args:
             # All actions are enabled by default
@@ -281,12 +288,12 @@ def set_confirmation(
     confirmation_overlay.bottom_w = bottom_widget
     main_widget.contents[0] = (confirmation_overlay, ("weight", 1))
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # Context Actions
 
-# {<context>: [<func>, <state>], ...}
+# {<context>: {<key>: [<func>, <state>], ...}, ...}
 keys = {context: {} for context in context_keys}
 
 
@@ -307,18 +314,18 @@ def expand_collapse_keys():
                 ("given", key_bar_rows()),
             )
             key_bar._ti_collapsed = False
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
         elif not key_bar._ti_collapsed:
             expand.original_widget.set_text(f"\u25B2 [{expand_key[1]}]")
             main_widget.contents[-1] = (bottom_bar, ("given", 1))
             key_bar._ti_collapsed = True
-            main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(main.ImageClass, "clear", lambda: True)() or ImageCanvas.change()
 
 
 @register_key(("global", "Help"))
 def help():
     display_context_help(main.get_context())
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 def resize():
@@ -337,7 +344,7 @@ def resize():
     if not key_bar._ti_collapsed:
         new_rows = key_bar_rows()
         if main_widget.contents[-1][1][1] != new_rows:
-            main.ImageClass._clear_images()
+            getattr(main.ImageClass, "clear", lambda: True)()
         main_widget.contents[-1] = (
             bottom_bar,
             ("given", new_rows),
@@ -411,13 +418,13 @@ def open():
         main_widget.contents[0] = (view, ("weight", 1))
         set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("menu", "Back"))
 def back():
     main.displayer.send(main.BACK)
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image
@@ -427,7 +434,7 @@ def maximize():
     main_widget.contents[0] = (view, ("weight", 1))
     set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image-grid
@@ -440,7 +447,7 @@ def cell_width_dec():
         # Wait till GridRenderManager clears the cache
         while main.grid_change.is_set():
             pass
-        main.ImageClass._clear_images()
+        getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("image-grid", "Size+"))
@@ -452,7 +459,7 @@ def cell_width_inc():
         # Wait till GridRenderManager clears the cache
         while main.grid_change.is_set():
             pass
-        main.ImageClass._clear_images()
+        getattr(main.ImageClass, "clear", lambda: True)()
 
 
 @register_key(("image-grid", "Open"))
@@ -473,7 +480,7 @@ def maximize_cell():
     if image_w._ti_image._is_animated:
         main.animate_image(image_w)
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 def set_image_grid_actions():
@@ -509,7 +516,7 @@ def restore():
     elif main.get_context() == "image":
         set_image_view_actions()
 
-    main.ImageClass._clear_images()
+    getattr(main.ImageClass, "clear", lambda: True)()
 
 
 # image, full-image

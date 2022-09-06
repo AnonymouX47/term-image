@@ -13,16 +13,6 @@ from .utils import write_tty
 
 def main() -> int:
     """CLI execution entry-point"""
-    from .config import init_config
-
-    # 1. `PIL.Image.open()` seems to cause forked child processes to block when called
-    # in both the parent and the child.
-    # 2. Unifies things across multiple platforms.
-    multiprocessing.set_start_method("spawn")
-
-    init_config()  # Must be called before anything else is imported from `.config`.
-
-    # Delay loading of other modules till after user-config is loaded
     from . import cli, logging, notify
     from .tui import main
 
@@ -44,6 +34,11 @@ def main() -> int:
                     process.join()
                 log_queue.put((None,) * 2)  # End of logs
                 log_queue.join()
+
+    # 1. `PIL.Image.open()` seems to cause forked child processes to block when called
+    # in both the parent and the child.
+    # 2. Unifies things across multiple platforms.
+    multiprocessing.set_start_method("spawn")
 
     # Can't use "term_image", since the logger's level is changed.
     # Otherwise, it would affect children of "term_image".

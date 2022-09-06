@@ -65,14 +65,18 @@ class TestConstructor:
 
         image = BlockImage(python_img, width=_size)
         assert isinstance(image._size, tuple)
+        assert not image._fit_to_width
         image = BlockImage(python_img, height=_size)
         assert isinstance(image._size, tuple)
+        assert not image._fit_to_width
 
         for value in Size:
             image = BlockImage(python_img, width=value)
             assert isinstance(image._size, tuple)
+            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
             image = BlockImage(python_img, height=value)
             assert isinstance(image._size, tuple)
+            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
 
         image = BlockImage(python_img, scale=(0.5, 0.4))
         assert image._scale == [0.5, 0.4]
@@ -343,6 +347,7 @@ class TestProperties:
         for value in Size:
             image.size = value
             assert image.size is image.height is image.width is value
+            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
 
         for value in (None, 0, 1, 0.1, "1", (1, 1), [1, 1]):
             with pytest.raises(TypeError):
@@ -1050,9 +1055,17 @@ class TestDraw:
         image = BlockImage(python_img, width=_size)
         anim_image = BlockImage(anim_img, width=_size)
 
-        def test_fit_to_width(self):
+        def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.image.set_size(Size.FIT_TO_WIDTH)
+            self.image.set_size(width=Size.FIT_TO_WIDTH)
+            self.image._size = (columns, lines + 1)
+            self.image.draw()
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
+
+        def test_fit_to_width_height(self):
+            sys.stdout = stdout
+            self.image.set_size(height=Size.FIT_TO_WIDTH)
             self.image._size = (columns, lines + 1)
             self.image.draw()
             assert stdout.getvalue().count("\n") == lines + 1
@@ -1078,9 +1091,17 @@ class TestDraw:
         image = BlockImage(python_img, width=_size)
         anim_image = BlockImage(anim_img, width=_size)
 
-        def test_fit_to_width(self):
+        def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.anim_image.set_size(Size.FIT_TO_WIDTH)
+            self.anim_image.set_size(width=Size.FIT_TO_WIDTH)
+            self.anim_image._size = (columns, lines + 1)
+            self.anim_image.draw(animate=False)
+            assert stdout.getvalue().count("\n") == lines + 1
+            clear_stdout()
+
+        def test_fit_to_width_height(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(height=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
             self.anim_image.draw(animate=False)
             assert stdout.getvalue().count("\n") == lines + 1
@@ -1106,9 +1127,16 @@ class TestDraw:
         image = BlockImage(python_img)
         anim_image = BlockImage(anim_img)
 
-        def test_fit_to_width(self):
+        def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.anim_image.set_size(Size.FIT_TO_WIDTH)
+            self.anim_image.set_size(width=Size.FIT_TO_WIDTH)
+            self.anim_image._size = (columns, lines + 1)
+            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
+                self.anim_image.draw()
+
+        def test_fit_to_width_height(self):
+            sys.stdout = stdout
+            self.anim_image.set_size(height=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
             with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
                 self.anim_image.draw()

@@ -19,9 +19,10 @@ Image viewer
    tui
    config
 
-The package comes with a standalone in-terminal image viewer based on the library.
+The package includes a standalone in-terminal image viewer based on the library.
 
-| The image viewer is started from the command line using either the ``term-image`` command (only works if the Python scripts directory is on ``PATH``) or ``python -m term_image``.
+| The image viewer is started from the command line using either the ``term-image`` command
+  (only works if the Python scripts directory is on ``PATH``) or ``python -m term_image``.
 | **\*Take note of the differences**.
 
 
@@ -30,8 +31,8 @@ Image sources
 
 The viewer accepts the following kinds of sources:
 
-* An image file on a local filesystem.
-* A directory on a local filesystem.
+* A path to an image file on a local filesystem.
+* A path to a directory on a local filesystem.
 * An Image URL.
 
 Any other thing given as a :term:`source` is simply reported as invalid.
@@ -44,16 +45,16 @@ The viewer can be used in two modes:
 
 1. **CLI mode**
 
-   In this mode, images are directly printed to standard output. It is used when:
+   In this mode, images are directly printed to standard output. It is used when
    
-   * output is not a terminal
+   * output is not a terminal (even if ``--tui`` is specified)
    * there is only a single image source
    * the ``--cli`` option is specified
 
 2. **TUI mode**
 
    In this mode, a Terminal/Text-based User Interface is launched, within which images
-   and directories can be browsed and viewed in different ways. It is used when:
+   and directories can be browsed and viewed in different ways. It is used when
 
    * there is at least one non-empty directory source
    * there are multiple image sources
@@ -64,7 +65,7 @@ Usage
 -----
 
 | Run ``term-image`` with the ``--help`` option to see the usage info and help text.
-| All arguments and options are described there.
+| All command-line arguments and options are described there.
 
 Note that some options are only applicable to a specific mode. If used with the other mode, they're simply ignored.
 
@@ -94,19 +95,31 @@ The ``--force-style`` command-line option can be used to bypass style support ch
 Font Ratio
 ----------
 
-The :term:`font ratio` is taken into consideration when setting image sizes for **text-based** render styles, in order to preserve the aspect ratio of images drawn to the terminal.
+The :term:`font ratio` is taken into consideration when setting image sizes for
+**text-based** render styles, in order to preserve the aspect ratio of images drawn to
+the terminal.
 
-| This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio`` OR either of the command-line options ``-F | --font-ratio`` and ``--auto-font-ratio``.
+| This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio``
+  OR either of the command-line options ``-F | --font-ratio`` or ``--auto-font-ratio``.
 | The command-line options are mutually exclusive and override the config option.
 
-| By default (i.e without changing the config option value or specifying the command-line option), ``term-image`` tries to determine the value from the :term:`active terminal` which works on most mordern terminal emulators (currently supported on UNIX-like platforms only).
+| By default (i.e without changing the config option value or specifying either
+  command-line option), ``term-image`` tries to determine the value from the
+  :term:`active terminal` which works on most mordern terminal emulators (currently
+  supported on UNIX-like platforms only).
 | This is probably the best choice, except the terminal emulator or platform doesn't support this feature.
 
-| If ``term-image`` is unable to determine this value automatically, it falls back to ``0.5``, which is a reasonable value in most cases.
-| In case *auto* font ratio is not supported and the fallback value does not give expected results, a different value can be specified using the config or command-line option.
+| If ``term-image`` is unable to determine this value automatically, it falls back to
+  ``0.5``, which is a reasonable value in most cases.
+| In case *auto* font ratio is not supported and the fallback value does not give expected
+  results, a different value can be specified using the config or command-line option.
 
 .. attention::
-   If using *auto* font ratio and the :term:`active terminal` is not the controlling terminal of the ``term-image`` process (e.g output is redirected to another terminal), ensure no process that might read input (e.g a shell) is currently running in the active terminal, as such a process might interfere with determining the font ratio on some terminal emulators (e.g VTE-based ones).
+   If using *auto* font ratio and the :term:`active terminal` is not the controlling
+   terminal of the ``term-image`` process (e.g output is redirected to another terminal),
+   ensure no process that might read input (e.g a shell) is currently running in the
+   active terminal, as such a process might interfere with determining the font ratio on
+   some terminal emulators (e.g VTE-based ones).
 
    For instance, the ``sleep`` command can be executed if a shell is currently running in the active terminal.
 
@@ -132,7 +145,7 @@ Logs are more detailed event reports meant for troubleshooting and debugging pur
 Logs are written to a file on a local filesystem. The default log file is ``~/.term_image/term_image.log`` but a different file can be specified:
 
 * for all sessions, using the :ref:`log file <log-file>` config option
-* per session, using the ``--log`` command-line option
+* per session, using the ``--log-file`` command-line option
 
 A log entry has the following format:
 
@@ -174,8 +187,7 @@ Exit Codes
 * ``1`` (FAILURE): Exited due to an unhandled exception or a non-specific error.
 * ``2`` (INVALID_ARG): Exited due to an invalid command-line argument value or option combination.
 * ``3`` (INTERRUPTED): The program recieved an interrupt signal i.e ``SIGINT``.
-* ``4`` (CONFIG_ERROR): Exited due to an irremediable error while loading the user config.
-* ``5`` (NO_VALID_SOURCE): Exited due to lack of any valid source.
+* ``4`` (NO_VALID_SOURCE): Exited due to lack of any valid source.
 
 
 Known Issues
@@ -206,7 +218,7 @@ In no particular order:
 * CLI grid view
 * Interactive CLI mode
 * Slideshow
-* Zoom/Pan
+* Zoom/Pan [TUI], Rotate, Flip/Mirror
 * Sorting options
 * Search in iist view
 * Filter in list and grid views
@@ -220,6 +232,6 @@ In no particular order:
    * Parent directory path
 
 * Theme customization
-* Config menu
+* Configuration menu
 * Also check the library's :ref:`library-planned` since the viewer is based on it.
 * etc...

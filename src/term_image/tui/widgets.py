@@ -10,20 +10,13 @@ from typing import List, Optional, Tuple
 
 import urwid
 
-from .. import cli, logging
-from ..config import _nav, cell_width, expand_key, nav
+from .. import logging
+from ..config import config_options, expand_key, navi
 from ..image import BaseImage, Size
 from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
-
-command = urwid.Widget._command_map._command_defaults.copy()
-for action, (key, _) in _nav.items():
-    val = command.pop(key)
-    command[nav[action][0]] = val
-urwid.Widget._command_map._command = command
-del command
 
 # NOTE: Any new "private" attribute set on any subclass or instance of an urwid class
 # should be prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -77,7 +70,9 @@ class GridListBox(urwid.ListBox):
         if self._ti_grid_path == grid_path and not (
             self._ti_topmost is topmost and self._ti_top_trim == top_trim
         ):
-            tui_main.ImageClass._clear_images() and ImageCanvas.change()
+            getattr(
+                tui_main.ImageClass, "clear", lambda: True
+            )() or ImageCanvas.change()
 
         self._ti_topmost = topmost
         self._ti_top_trim = top_trim
@@ -337,14 +332,14 @@ class Image(urwid.Widget):
                     placeholder
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
-                        cli.args.style == "iterm2"
+                        tui_main.ImageClass.style == "iterm2"
                         and tui_main.ImageClass._TERM == "wezterm"
                     )
                     else __class__._ti_placeholder
                 ).render(size)
                 anim_render_queue.put(((repeat, frame_no), size, self._ti_force_render))
                 self._ti_frame = None  # Avoid resending
-                tui_main.ImageClass._clear_images()
+                getattr(tui_main.ImageClass, "clear", lambda: True)()
             else:
                 canv.size = size
         elif self._ti_canv and (
@@ -374,7 +369,7 @@ class Image(urwid.Widget):
                     # Workaround to erase text on wezterm without glitchy animation
                     image._is_animated
                     and not tui_main.NO_ANIMATION
-                    and cli.args.style == "iterm2"
+                    and tui_main.ImageClass.style == "iterm2"
                     and tui_main.ImageClass._TERM == "wezterm"
                 )
                 else __class__._ti_placeholder
@@ -492,7 +487,7 @@ class MenuEntry(urwid.Text):
 class MenuListBox(urwid.ListBox):
     def keypress(self, size: Tuple[int, int], key: str) -> Optional[str]:
         ret = super().keypress(size, key)
-        return key if any(key == v[0] for v in nav.values()) else ret
+        return key if key in navi else ret
 
     def render(self, size: Tuple[int, int], focus: bool = False):
         self._ti_height = size[1]  # Used by MenuScanner
@@ -500,9 +495,8 @@ class MenuListBox(urwid.ListBox):
 
 
 class NoSwitchColumns(urwid.Columns):
-    _command_map = urwid.ListBox._command_map.copy()
-    for key in (nav["Left"][0], nav["Right"][0]):
-        _command_map._command.pop(key)
+    _command_map = urwid.command_map.copy()
+    _command_map._command.clear()
 
 
 class PlaceHolder(urwid.SolidFill):
@@ -517,7 +511,7 @@ logger = _logging.getLogger(__name__)
 placeholder = PlaceHolder(" ")
 menu = MenuListBox(urwid.SimpleFocusListWalker([]))
 menu_box = urwid.LineBox(menu, "List", "left")
-image_grid = urwid.GridFlow([], cell_width, 2, 1, "left")
+image_grid = urwid.GridFlow([placeholder], config_options.cell_width, 2, 1, "left")
 image_box = urwid.LineBox(placeholder, "Image", "left")
 image_grid_box = urwid.LineBox(urwid.Padding(GridListBox(image_grid)), "Image", "left")
 view = urwid.AttrMap(image_box, "unfocused box", "focused box")
