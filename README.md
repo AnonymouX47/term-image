@@ -29,6 +29,11 @@
 
 </div>
 
+> ### :warning: NOTICE!!! :warning:
+> I (AnonymouX47) will be taking a few (2-3) months off this project for some studies, from the beginning of September, 2022.
+>
+> During this period, bug reports, suggestions and (not large) pull requests are still welcome. Thanks!
+
 
 ## Contents
 - [Installation](#installation)
