@@ -23,18 +23,37 @@ Reference
 Top-Level Definitions
 ---------------------
 
-.. autofunction:: term_image.set_font_ratio
+.. autofunction:: term_image.set_cell_ratio
 
-.. autofunction:: term_image.get_font_ratio
+.. autofunction:: term_image.get_cell_ratio
 
-.. autoclass:: term_image.FontRatio
+.. autoclass:: term_image.AutoCellRatio
    :show-inheritance:
 
-   .. autoattribute:: AUTO
+   .. autoattribute:: is_supported
+
+      Auto cell ratio support status. Can be
+      
+      - ``None`` -> support status not yet determined
+      - ``True`` -> supported
+      - ``False`` -> not supported
+      
+      Can be explicitly set when using auto cell ratio but want to avoid the support
+      check in a situation where the support status is foreknown. Can help to avoid
+      being wrongly detected as unsupported on a :ref:`queried <terminal-queries>`
+      terminal that doesn't respond on time.
+      
+      For instance, when using multiprocessing, if the support status has been
+      determined in the main process, this value can simply be passed on to and set
+      within the child processes.
+
+   .. autoattribute:: FIXED
       :annotation:
 
-   .. autoattribute:: FULL_AUTO
+   .. autoattribute:: DYNAMIC
       :annotation:
+
+   See :py:func:`~term_image.set_cell_ratio`.
 
 |
 
@@ -80,12 +99,12 @@ Classes for render styles in this category are subclasses of
 * :py:class:`ITerm2Image <term_image.image.ITerm2Image>`
 
 
-.. _auto-font-ratio:
+.. _auto-cell-ratio:
 
-Auto Font Ratio
+Auto Cell Ratio
 ---------------
 
-When using **auto font ratio** (in either mode), it's important to note that some
+When using **auto cell ratio** (in either mode), it's important to note that some
 (not all) terminal emulators (e.g VTE-based ones) might have to be queried.
 **See** :ref:`terminal-queries`.
 
@@ -94,11 +113,11 @@ size is being set/calculated** (for an image with :term:`dynamic size`, while it
 being rendered or its :py:attr:`~term_image.image.BaseImage.rendered_size`,
 :py:attr:`~term_image.image.BaseImage.rendered_width` or
 :py:attr:`~term_image.image.BaseImage.rendered_height` property is invoked),
-then using ``FULL_AUTO`` mode is OK.
+then using ``DYNAMIC`` mode is OK.
 
-Otherwise i.e if the program will be expecting input, use ``AUTO`` mode and use
+Otherwise i.e if the program will be expecting input, use ``FIXED`` mode and use
 :py:func:`utils.read_tty() <term_image.utils.read_tty>` to read all currently unread
-input just before calling :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
+input just before calling :py:func:`set_cell_ratio() <term_image.set_cell_ratio>`.
 
 .. note:: This concerns **text-based** render styles only (see the sub-section above).
 

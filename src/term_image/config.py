@@ -520,6 +520,11 @@ config_options = {
         lambda x: isinstance(x, int) and x > 0,
         "must be an integer greater than zero",
     ),
+    "cell ratio": Option(
+        None,
+        lambda x: x is None or isinstance(x, float) and x > 0.0,
+        "must be `null` or a float greater than zero",
+    ),
     "cell width": Option(
         30,
         lambda x: isinstance(x, int) and 30 <= x <= 50 and not x % 2,
@@ -529,11 +534,6 @@ config_options = {
         None,
         lambda x: x is None or isinstance(x, int) and x >= 0,
         "must be `null` or a non-negative integer",
-    ),
-    "font ratio": Option(
-        None,
-        lambda x: x is None or isinstance(x, float) and x > 0.0,
-        "must be `null` or a float greater than zero",
     ),
     "getters": Option(
         4,

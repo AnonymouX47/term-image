@@ -33,7 +33,7 @@ import PIL
 import requests
 from PIL import Image, UnidentifiedImageError
 
-from .. import get_font_ratio
+from .. import get_cell_ratio
 from ..exceptions import (
     InvalidSizeError,
     TermImageError,
@@ -134,7 +134,7 @@ class Size(Enum):
     FIT = Hidden()
 
     #: The size is set such that the width is exactly the :term:`available width`,
-    #: regardless of the :term:`font ratio`.
+    #: regardless of the :term:`cell ratio`.
     FIT_TO_WIDTH = Hidden()
 
     #: The image size is set such that the image is rendered with as many pixels as the
@@ -1819,15 +1819,15 @@ class BaseImage(metaclass=ImageMeta):
 
         # NOTE: The image scale is not considered since it should never be > 1
 
-        # As for font ratio...
+        # As for cell ratio...
         #
         # Take for example, pixel ratio = 2.0
-        # (i.e font ratio = 1.0; square character cells).
+        # (i.e cell ratio = 1.0; square character cells).
         # To adjust the image to the proper scale, we either reduce the
         # width (i.e divide by 2.0) or increase the height (i.e multiply by 2.0).
         #
         # On the other hand, if the pixel ratio = 0.5
-        # (i.e font ratio = 0.25; vertically oblong character cells).
+        # (i.e cell ratio = 0.25; vertically oblong character cells).
         # To adjust the image to the proper scale, we either increase the width
         # (i.e divide by the 0.5) or reduce the height (i.e multiply by the 0.5).
         #
@@ -1874,7 +1874,7 @@ class BaseImage(metaclass=ImageMeta):
             _width_px = ori_width * min(x, y)
             _height_px = ori_height * min(x, y)
 
-            # The font ratio should affect the axis with the larger ratio since the axis
+            # The cell ratio should affect the axis with the larger ratio since the axis
             # the smaller ratio is already fully occupied
 
             if x < y:
@@ -2019,8 +2019,8 @@ class TextImage(BaseImage):
 
     # Pixels are represented in a 1-to-2 ratio within one character cell
     # pixel-size == width * height/2
-    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * font-ratio
-    _pixel_ratio = property(lambda _: get_font_ratio() * 2)
+    # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * cell-ratio
+    _pixel_ratio = property(lambda _: get_cell_ratio() * 2)
 
     @staticmethod
     @cached

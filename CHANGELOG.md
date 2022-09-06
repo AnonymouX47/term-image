@@ -19,21 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Significant effect on cell ratio and image size computation when using multiprocessing.
 - [lib] `clear()` method to each of `KittyImage` and `Iterm2Image` ([#67]).
 - [lib] Render style metaclass `.image.ImageMeta` with a `style` property ([#67]).
+- [lib] Auto cell ratio support status override; `AutoCellRatio.is_supported` ([#68])
 - [cli] `--fit` and `--original-size` CL options ([#64]).
 - [config] Support for partial configs ([#69]).
 - [config] An upper limit of 5 for the "max notifications" option ([#69]).
 - [cli,config] `--config` and `--no-config` CL options ([#69]).
 
 ### Changed
-- [lib] Changed the default value of `size`, `width` and `height` properties to `Size.FIT` ([#64]).
+- [lib] **(BREAKING!)** Changed the default value of `size`, `width` and `height` properties to `Size.FIT` ([#64]).
 - [lib] Updated `BaseImage.set_size()` ([#64]).
-  - **(BREAKING!!)** Removed *fit_to_width* and *fit_to_height* parameters.
+  - **(BREAKING!)** Removed *fit_to_width* and *fit_to_height* parameters.
   - Now accepts `Size` enum mumbers.
   - Refer to the linked PR for others.
 - [lib] Moved `TermImageWarning` from the top-level into `term_image.exceptions`.
 - [lib] Refactored and improved various utilities ([#66]).
   - `TermImageWarning` is now issued instead of `Userwarning` when not running in a terminal or multi-process synchronization is unsupported.
 - [lib] `str(ImageClass)` now returns the name of the render style (or category) ([#67]).
+- [lib] **(BREAKING!)** Changed `FontRatio` -> `AutoCellRatio` ([#68])
+  - Renamed modes `AUTO` -> `FIXED` and `FULL_AUTO` -> `DYNAMIC`
 - [cli] Changed default sizing to `Size.AUTO` ([#64]).
 - [cli] Changed default padding height to `1` i.e no vertical padding ([#64]).
 - [tui] Changed sizing to `Size.AUTO` for all images ([#64]).
@@ -41,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [config] Now respects the XDG Base Directories Specification ([#69]).
 - [config] User config is now initialized after command-line arguments have been parsed ([#69]).
 - [config] Renamed "no multi" to "multi" ([#69]).
+- **(BREAKING!)** "FONT ratio" -> "CELL ratio" ([#68])
+  - `term_image.get_font_ratio()` -> `term_image.get_cell_ratio()`
+  - `term_image.set_font_ratio()` -> `term_image.set_cell_ratio()`
+  - `-F/--font-ratio` -> `-C/--cell-ratio`
+  - `--auto-font-ratio` -> `--auto-cell-ratio`
+  - config option "font ratio" -> "cell ratio"
+  - etc...
 
 ### Removed
 - [lib] `term_image.image.TermImage`.
@@ -50,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#64]: https://github.com/AnonymouX47/term-image/pull/64
 [#66]: https://github.com/AnonymouX47/term-image/pull/66
 [#67]: https://github.com/AnonymouX47/term-image/pull/67
+[#68]: https://github.com/AnonymouX47/term-image/pull/68
 [#69]: https://github.com/AnonymouX47/term-image/pull/69
 
 

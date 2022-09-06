@@ -81,7 +81,7 @@
    In parentheses are the outcomes when the terminal doesn't support queries or when queries
    are disabled.
 
-   - :ref:`auto-font-ratio` (determined to be unsupported)
+   - :ref:`auto-cell-ratio` (determined to be unsupported)
    - Support checks for :ref:`graphics-based` (determined to be unsupported)
    - Auto background color (black is used)
    - Alpha blend for pixels above the alpha threshold in transparent renders with

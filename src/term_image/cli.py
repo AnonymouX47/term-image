@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 
-from . import FontRatio, logging, notify, set_font_ratio, tui, utils
+from . import AutoCellRatio, logging, notify, set_cell_ratio, tui, utils
 from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
@@ -666,17 +666,17 @@ def main() -> None:
     set_query_timeout(args.query_timeout)
     utils.SWAP_WIN_SIZE = args.swap_win_size
 
-    if args.auto_font_ratio:
-        args.font_ratio = None
+    if args.auto_cell_ratio:
+        args.cell_ratio = None
     try:
-        set_font_ratio(args.font_ratio or FontRatio.FULL_AUTO)
+        set_cell_ratio(args.cell_ratio or AutoCellRatio.DYNAMIC)
     except TermImageError:
         notify.notify(
-            "Auto font ratio is not supported in the active terminal or on this "
-            "platform, using 0.5. It can be set otherwise using `-F | --font-ratio`.",
+            "Auto cell ratio is not supported in the active terminal or on this "
+            "platform, using 0.5. It can be set otherwise using `-C | --cell-ratio`.",
             notify.WARNING,
         )
-        args.font_ratio = 0.5
+        args.cell_ratio = 0.5
 
     ImageClass = {
         "auto": None,

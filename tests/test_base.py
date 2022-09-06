@@ -9,7 +9,7 @@ from random import random
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from term_image import set_font_ratio
+from term_image import set_cell_ratio
 from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BlockImage, ImageIterator, ImageSource, Size
 from term_image.image.common import _ALPHA_THRESHOLD
@@ -264,16 +264,16 @@ class TestProperties:
 
         image.scale = 1.0
 
-        # The rendered size is independent of the font ratio
-        # Change in font-ratio must not affect the image's rendered size
+        # The rendered size is independent of the cell ratio
+        # Change in cell-ratio must not affect the image's rendered size
         try:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
             image.width = _width
             assert image.rendered_size == (_width, _height)
-            set_font_ratio(0.1)
+            set_cell_ratio(0.1)
             assert image.rendered_size == (_width, _height)
         finally:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
 
     def test_scale_value_checks(self):
         image = BlockImage(python_img)
