@@ -90,17 +90,17 @@ or the ``-S | --style`` command-line option.
 The ``--force-style`` command-line option can be used to bypass style support checks and force the usage of any style whether it's supported or not.
 
 
-.. _font-ratio-viewer:
+.. _cell-ratio-viewer:
 
-Font Ratio
+Cell Ratio
 ----------
 
-The :term:`font ratio` is taken into consideration when setting image sizes for
+The :term:`cell ratio` is taken into consideration when setting image sizes for
 **text-based** render styles, in order to preserve the aspect ratio of images drawn to
 the terminal.
 
-| This value is determined by the :ref:`config option <font-ratio-config>` ``font ratio``
-  OR either of the command-line options ``-F | --font-ratio`` or ``--auto-font-ratio``.
+| This value is determined by the :ref:`config option <cell-ratio-config>` ``cell ratio``
+  OR either of the command-line options ``-C | --cell-ratio`` or ``--auto-cell-ratio``.
 | The command-line options are mutually exclusive and override the config option.
 
 | By default (i.e without changing the config option value or specifying either
@@ -111,14 +111,14 @@ the terminal.
 
 | If ``term-image`` is unable to determine this value automatically, it falls back to
   ``0.5``, which is a reasonable value in most cases.
-| In case *auto* font ratio is not supported and the fallback value does not give expected
+| In case *auto* cell ratio is not supported and the fallback value does not give expected
   results, a different value can be specified using the config or command-line option.
 
 .. attention::
-   If using *auto* font ratio and the :term:`active terminal` is not the controlling
+   If using *auto* cell ratio and the :term:`active terminal` is not the controlling
    terminal of the ``term-image`` process (e.g output is redirected to another terminal),
    ensure no process that might read input (e.g a shell) is currently running in the
-   active terminal, as such a process might interfere with determining the font ratio on
+   active terminal, as such a process might interfere with determining the cell ratio on
    some terminal emulators (e.g VTE-based ones).
 
    For instance, the ``sleep`` command can be executed if a shell is currently running in the active terminal.

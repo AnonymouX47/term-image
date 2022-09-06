@@ -121,10 +121,10 @@ general.add_argument(
     ),
 )
 
-font_ratio_options = general.add_mutually_exclusive_group()
-font_ratio_options.add_argument(
-    "-F",
-    "--font-ratio",
+cell_ratio_options = general.add_mutually_exclusive_group()
+cell_ratio_options.add_argument(
+    "-C",
+    "--cell-ratio",
     type=float,
     metavar="N",
     help=(
@@ -132,10 +132,10 @@ font_ratio_options.add_argument(
         "preserve image aspect ratio (default: auto)"
     ),
 )
-font_ratio_options.add_argument(
-    "--auto-font-ratio",
+cell_ratio_options.add_argument(
+    "--auto-cell-ratio",
     action="store_true",
-    help="Determine the font ratio from the terminal, if possible (default)",
+    help="Determine the cell ratio from the terminal, if possible (default)",
 )
 
 win_size_options = general.add_mutually_exclusive_group()
@@ -144,7 +144,7 @@ win_size_options.add_argument(
     action="store_true",
     default=None,
     help=(
-        "A workaround for 'auto font ratio' on some terminal emulators (e.g older "
+        "A workaround for 'auto cell ratio' on some terminal emulators (e.g older "
         "VTE-based ones) that wrongly report window dimensions swapped"
     ),
 )

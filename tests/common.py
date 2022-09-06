@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from term_image import exceptions, set_font_ratio
+from term_image import exceptions, set_cell_ratio
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 from term_image.utils import BG_FMT, COLOR_RESET, get_fg_bg_colors, get_terminal_size
 
@@ -28,7 +28,7 @@ def setup_common(ImageClass):
     globals().update(locals())  # width_height() requires ImageClass
 
     set_cell_size((9, 18))
-    set_font_ratio(0.5)
+    set_cell_ratio(0.5)
 
     if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(
         lines=lines - 2
@@ -428,54 +428,54 @@ class TestSetSize_All:
         assert self.image.size == (100, 50)
 
 
-class TestFontRatio_Text:
+class TestCellRatio_Text:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
 
-    def test_fixed_width_font_ratio_adjustment(self):
+    def test_fixed_width_cell_ratio_adjustment(self):
         try:
             for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
+                set_cell_ratio(ratio)
                 self.image.set_size(width=_size)
                 assert self.image.width == _size
                 assert proportional(self.image)
         finally:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
 
-    def test_fixed_height_font_ratio_adjustment(self):
+    def test_fixed_height_cell_ratio_adjustment(self):
         try:
             for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
+                set_cell_ratio(ratio)
                 self.image.set_size(height=_size)
                 assert self.image.height == _size
                 assert proportional(self.image)
         finally:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
 
-    def test_auto_size_font_ratio_adjustment(self):
+    def test_auto_size_cell_ratio_adjustment(self):
         try:
             for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
+                set_cell_ratio(ratio)
                 self.image.set_size()
                 assert proportional(self.image)
         finally:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
 
 
-class TestFontRatio_Graphics:
+class TestCellRatio_Graphics:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
 
-    def test_font_ratio_adjustment(self):
+    def test_cell_ratio_adjustment(self):
         self.image.set_size()
         size = self.image.size
         try:
             for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_font_ratio(ratio)
+                set_cell_ratio(ratio)
                 self.image.set_size()
                 assert self.image.size == size
         finally:
-            set_font_ratio(0.5)
+            set_cell_ratio(0.5)
 
 
 def test_render_is_on_kitty_Text():

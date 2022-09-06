@@ -7,7 +7,7 @@ import os
 from multiprocessing import JoinableQueue, Process
 from traceback import format_exception
 
-from . import AutoFontRatio, cli, logging, notify, set_font_ratio, tui, utils
+from . import AutoCellRatio, cli, logging, notify, set_cell_ratio, tui, utils
 
 
 def process_multi_logs() -> None:
@@ -58,7 +58,7 @@ class Process(Process):
         self._main_process_interrupted = cli.interrupted
         self._ImageClass = tui.main.ImageClass
         if self._ImageClass:  # if the TUI is initialized
-            self._font_ratio = cli.args.font_ratio
+            self._cell_ratio = cli.args.cell_ratio
             self._query_timeout = utils.QUERY_TIMEOUT
             self._swap_win_size = utils.SWAP_WIN_SIZE
             self._style_attrs = [
@@ -82,10 +82,10 @@ class Process(Process):
                 utils.QUERY_TIMEOUT = self._query_timeout
                 utils.SWAP_WIN_SIZE = self._swap_win_size
 
-                if not self._font_ratio:
+                if not self._cell_ratio:
                     # Avoid an error in case the terminal wouldn`t respond on time
-                    AutoFontRatio.is_supported = True
-                set_font_ratio(self._font_ratio or AutoFontRatio.DYNAMIC)
+                    AutoCellRatio.is_supported = True
+                set_cell_ratio(self._cell_ratio or AutoCellRatio.DYNAMIC)
 
             super().run(set_tty_lock=bool(self._ImageClass))
         except KeyboardInterrupt:

@@ -48,6 +48,11 @@ Below are definitions of terms used across the library's public interface, excep
    available height
       The remainder after vertical allowance is subtracted from the maximum amount of lines.
 
+   cell ratio
+      The **aspect ratio** (i.e the ratio of **width to height**) of a **character cell** in the terminal emulator.
+
+      See also: :py:func:`get_cell_ratio() <term_image.get_cell_ratio>` and :py:func:`set_cell_ratio() <term_image.set_cell_ratio>`.
+
    render
    rendered
    rendering
@@ -64,11 +69,6 @@ Below are definitions of terms used across the library's public interface, excep
    rendered height
       The amount of **lines** that'll be occupied by a rendered image **when drawn onto a terminal screen**.
 
-   font ratio
-      The **aspect ratio** (i.e the ratio of **width to height**) of a **character cell** in the terminal emulator.
-
-      See also: :py:func:`get_font_ratio() <term_image.get_font_ratio>` and :py:func:`set_font_ratio() <term_image.set_font_ratio>`.
-
    padding
    padding width
       Amount of columns within which to fit an image. Excess columns on either or both sides of the image (depending on the :term:`horizontal alignment`) will be filled with spaces.
@@ -78,7 +78,7 @@ Below are definitions of terms used across the library's public interface, excep
 
    pixel ratio
       
-      It is equvalent to the :term:`font ratio` multiplied by 2, since there are two pixels (arranged vertically) in one character cell.
+      It is equvalent to the :term:`cell ratio` multiplied by 2, since there are two pixels (arranged vertically) in one character cell.
 
    scale
       The fraction of an image's size that'll actually be used to :term:`render` it.

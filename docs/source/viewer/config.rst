@@ -52,6 +52,19 @@ They are as follows:
    * Valid values: x > ``0``
    * Default: ``100``
 
+.. _cell-ratio-config:
+
+**cell ratio**
+   The :term:`cell ratio`. [\*]
+
+   * Type: null or float
+   * Valid values: ``null`` or x > ``0.0``
+   * Default: ``null``
+
+   If ``null``, the ratio is determined from the :term:`active terminal` such that the
+   aspect ratio of any image is always preserved. If this is not supported in the
+   :term:`active terminal` or on the platform, ``0.5`` is used instead.
+
 **cell width**
    The initial width of (no of columns for) grid cells, in the TUI.
 
@@ -69,19 +82,6 @@ They are as follows:
    | If ``null``, the number of subprocesses is automatically determined based on the amount of
      logical processors available. CPU affinity is also taken into account on supported platforms.
    | If less than ``2``, directory sources are checked within the main process.
-
-.. _font-ratio-config:
-
-**font ratio**
-   The :term:`font ratio`. [\*]
-
-   * Type: null or float
-   * Valid values: ``null`` or x > ``0.0``
-   * Default: ``null``
-
-   If ``null``, the ratio is determined from the :term:`active terminal` such that the
-   aspect ratio of any image is always preserved. If this is not supported in the
-   :term:`active terminal` or on the platform, ``0.5`` is used instead.
 
 **getters**
    Number of threads for downloading images from URL sources. [\*]
@@ -186,7 +186,7 @@ They are as follows:
    * Default: ``false``
 
    | If ``true``, the dimensions reported by the terminal emulator are swapped.
-   | This setting affects auto :ref:`font-ratio-viewer` computation.
+   | This setting affects auto :ref:`cell-ratio-viewer` computation.
 
 
 Keybindings

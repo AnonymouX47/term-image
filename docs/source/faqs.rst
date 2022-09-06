@@ -19,7 +19,7 @@ Why are colours not properly reproduced?
    - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
 
 Why are images out of scale?
-   - If :ref:`auto-font-ratio` is supported and enabled,
+   - If :ref:`auto-cell-ratio` is supported and enabled,
 
      - For the library, set :py:data:`~term_image.utils.SWAP_WIN_SIZE` to ``True``.
      - For the CLI or TUI, use the `swap win size` :ref:`config option <swap-win-size-config>`
@@ -29,9 +29,9 @@ Why are images out of scale?
 
    - Otherwise,
 
-     - For the library, adjust the :term:`font ratio` using :py:func:`~term_image.set_font_ratio`.
-     - For the CLI or TUI, adjust the :term:`font ratio` using the :ref:`config option <font-ratio-config>`
-       or the ``-F | --font-ratio`` command-line option.
+     - For the library, adjust the :term:`cell ratio` using :py:func:`~term_image.set_cell_ratio`.
+     - For the CLI or TUI, adjust the :term:`cell ratio` using the :ref:`config option <cell-ratio-config>`
+       or the ``-C | --cell-ratio`` command-line option.
 
 Why is the TUI unresponsive or slow in drawing images?
    - Drawing (not rendering) speed is **entirely** dependent on the terminal emulator itself.

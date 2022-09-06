@@ -9,7 +9,7 @@ def set_cell_size(size):
     global cell_size
 
     cell_size = size
-    term_image.AutoFontRatio.is_supported = None
+    term_image.AutoCellRatio.is_supported = None
 
 
 def get_terminal_size():

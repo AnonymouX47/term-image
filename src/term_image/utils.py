@@ -61,7 +61,7 @@ DISABLE_QUERIES: bool = False
 #: report window dimensions swapped.
 #:
 #: | If ``True``, the dimensions reported by the terminal emulator are swapped.
-#: | This setting affects :ref:`auto-font-ratio` computation.
+#: | This setting affects :ref:`auto-cell-ratio` computation.
 SWAP_WIN_SIZE: bool = False
 
 # Decorator Classes

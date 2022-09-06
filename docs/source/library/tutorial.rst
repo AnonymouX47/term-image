@@ -299,7 +299,7 @@ True
 
 .. important::
 
-   1. The currently set :term:`font ratio` is also taken into consideration when calculating sizes.
+   1. The currently set :term:`cell ratio` is also taken into consideration when calculating sizes.
    2. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
 .. hint::
