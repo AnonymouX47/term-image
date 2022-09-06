@@ -663,7 +663,7 @@ def main() -> None:
     if not ImageClass:
         ImageClass = _best_style()
 
-    if args.force_style or args.style == config.style != "auto":
+    if args.force_style or args.style is config.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
         ImageClass._supported = True
     else:
