@@ -30,9 +30,10 @@
 </div>
 
 > ### :warning: NOTICE!!! :warning:
-> I (AnonymouX47) will be taking a few (2-3) months off this project for some studies, from the beginning of September, 2022.
+> I (AnonymouX47) will be taking a couple of months off this project for some studies, from the beginning of September, 2022.
+> Taking a little longer than I expected... :/
 >
-> During this period, bug reports, suggestions and (not large) pull requests are still welcome. Thanks!
+> During this period, bug reports, suggestions and [not large] pull requests are still welcome. Thanks!
 
 
 ## Contents
