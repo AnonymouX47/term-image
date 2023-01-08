@@ -39,6 +39,11 @@ class GridListBox(urwid.ListBox):
     def rows(self, size: Tuple[int, int], focus: bool = False) -> int:
         return self._ti_grid.rows(size[:1], focus)
 
+    def keypress(self, size: Tuple[int, int], key: str) -> Optional[str]:
+        if not size[1]:
+            size = (size[0], 1)
+        return super().keypress(size, key)
+
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         # 0, if maxcol < cell_width (maxcol = size[0]).
         # Otherwise, number of cells per row.
@@ -487,6 +492,8 @@ class MenuEntry(urwid.Text):
 
 class MenuListBox(urwid.ListBox):
     def keypress(self, size: Tuple[int, int], key: str) -> Optional[str]:
+        if not size[1]:
+            size = (size[0], 1)
         ret = super().keypress(size, key)
         return key if key in navi else ret
 
