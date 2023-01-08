@@ -397,34 +397,35 @@ class ImageCanvas(urwid.Canvas):
         return self.size[1]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
+        # In all our use cases, the canvas is never trimmed horizontally
+        cols = self.cols()
+        rows = rows or self.rows()  # Visble rows of the widget
+        trim_bottom = self.rows() - trim_top - rows
+
         diff_x, diff_y = map(sub, self.size, self._ti_image_size)
         pad_up = diff_y // 2
         pad_down = diff_y - pad_up
         pad_left = diff_x // 2
         pad_right = diff_x - pad_left
 
-        cols = cols or self.cols()
-        rows = rows or self.rows()
+        # If negative, they imply the number of lines to be trimmed off the image on
+        # respective sides
+        pad_up -= trim_top
+        pad_down -= trim_bottom
 
         fill = b" " * cols
-        pad_left = b" " * pad_left
-        pad_right = b" " * pad_right + b"\b " * self._ti_change_state
+        fill_left = b" " * pad_left
+        fill_right = b" " * pad_right + b"\b " * self._ti_change_state
 
-        # Upper padding reduces when the top is trimmed
-        for _ in range(pad_up - trim_top):
+        # Visible padding may be larger than the visible rows
+        for _ in range(min(rows, pad_up)):
             yield [(None, "U", fill)]
 
-        # If top is not trimmed (_trim_top_ == 0), render all lines
-        # If top is trimmed (_trim_top_ > 0),
-        # - and _rows_ > _pad_down_, render the last (_rows_ - _pad_down_) lines
-        # - and _rows_ <= _pad_down_, do not render any line (i.e lines[len:])
-        for line in self.lines[
-            trim_top and (-max(0, rows - pad_down) or len(self.lines)) :
-        ]:
-            yield [(None, "U", pad_left + line + pad_right)]
+        # See the description of `pad_up` and `pad_down` above
+        for line in self.lines[-min(0, pad_up) : min(0, pad_down) or len(self.lines)]:
+            yield [(None, "U", fill_left + line + fill_right)]
 
-        # render full lower padding if _rows_ >= _pad_down_,
-        # otherwise only _rows_ rows of padding
+        # Visible padding may be larger than the visible rows
         for _ in range(min(rows, pad_down)):
             yield [(None, "U", fill)]
 
