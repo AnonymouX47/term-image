@@ -308,7 +308,11 @@ class BaseImage(metaclass=ImageMeta):
         return "<{}: source_type={} size={} scale={} is_animated={}>".format(
             type(self).__name__,
             self._source_type.name,
-            self._size and "x".join(map(str, self._size)),
+            (
+                self._size.name
+                if isinstance(self._size, Size)
+                else "x".join(map(str, self._size))
+            ),
             "x".join(format(x, ".2") for x in self._scale),
             self._is_animated,
         )
