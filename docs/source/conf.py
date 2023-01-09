@@ -48,7 +48,11 @@ html_theme = "furo"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
+# -- Options for sphinx-autodoc ----------------------------------------------
 autodoc_typehints = "description"
 autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
 autodoc_member_order = "bysource"
+
+# -- Others options ----------------------------------------------------------
+toc_object_entries = False
