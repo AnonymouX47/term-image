@@ -1,12 +1,4 @@
-import os
-import sys
-
 from setuptools import setup
-
-# To locate the package since `setuptools.build_meta` modifies `sys.path`
-sys.path.append(os.path.join(os.getcwd(), "src"))
-
-from term_image import __author__, __version__  # noqa: E402
 
 classifiers = [
     "Environment :: Console",
@@ -32,8 +24,8 @@ with open("README.md", "r") as fp:
 
 setup(
     name="term-image",
-    version=__version__,
-    author=__author__,
+    version="0.5.0.dev0",
+    author="AnonymouX47",
     author_email="anonymoux47@gmail.com",
     url="https://github.com/AnonymouX47/term-image",
     description="Display images in the terminal",
