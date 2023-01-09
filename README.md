@@ -29,12 +29,6 @@
 
 </div>
 
-> ### :warning: NOTICE!!! :warning:
-> I (AnonymouX47) will be taking a couple of months off this project for some studies, from the beginning of September, 2022.
-> Taking a little longer than I expected... :/
->
-> During this period, bug reports, suggestions and [not large] pull requests are still welcome. Thanks!
-
 
 ## Contents
 - [Installation](#installation)
@@ -249,7 +243,7 @@ Run `term-image --help` to see the full usage info and list of options.
 The controls are **context-based** and displayed at the bottom of the terminal window.
 Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
 
-The TUI can be configured by modifying the config file `~/.term_image/config.json`. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section of the docs.
+The TUI can be configured by modifying the config file. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section of the docs.
 
 [Here](https://github.com/AnonymouX47/term-image/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
 
