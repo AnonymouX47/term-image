@@ -5,18 +5,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [0.5.0] - 2023-01-09
 ### Fixed
-- [lib] Eliminated race condition in `term_image.utils.lock_tty()` multi-process integration ([#66]).
-- [config] Updating of TUI keybindings ([#69]).
-- [cli,config] "log file" and `--log-file` validation ([#69]).
+- [lib] Race condition in `term_image.utils.lock_tty()` multi-process integration ([#66]).
+- [cli,config] `--log-file` and "log file" validation ([#69]).
 - [cli,config] Render style force condition ([#67]).
+- [tui] TUI crash when menu or grid has zero rows ([4219010]).
+- [tui] Image canvas trim calculations for grid cells ([30ed143]).
+- [config] Initialization/Updating of TUI keybindings ([#69]).
 
 ### Added
 - [lib] `term_image.image.Size` enumeration ([#64]).
   - Implemented "original size" image sizing.
 - [lib] `term_image.utils.DISABLE_QUERIES` to disable terminal queries ([#66]).
-- [lib] Synchronized terminal window size multi-process caching ([#66]).
-  - Significant effect on cell ratio and image size computation when using multiprocessing.
+- [lib] Multi-process synchronization for terminal window size caching ([#66]).
+  - Significant effect (positive) on cell ratio and image size computation when using multiprocessing.
 - [lib] `clear()` method to each of `KittyImage` and `Iterm2Image` ([#67]).
 - [lib] Render style metaclass `.image.ImageMeta` with a `style` property ([#67]).
 - [lib] Auto cell ratio support status override; `AutoCellRatio.is_supported` ([#68])
@@ -62,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#67]: https://github.com/AnonymouX47/term-image/pull/67
 [#68]: https://github.com/AnonymouX47/term-image/pull/68
 [#69]: https://github.com/AnonymouX47/term-image/pull/69
+[4219010]: https://github.com/AnonymouX47/term-image/commit/4219010dc40981f99b2a63fafbf382ddc0cb895d
+[30ed143]: https://github.com/AnonymouX47/term-image/commit/30ed14312eb5c0667ab76897bc183511b62367e1
 
 
 ## [0.4.1] - 2022-07-30
@@ -293,7 +300,8 @@ See the commit messages for [0.4.1] for the full logs.
 - First official release
 
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.5.0
 [0.4.1]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.3.1
