@@ -26,7 +26,7 @@ from typing import Optional, Union
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
-version_info = (0, 5, 0)
+version_info = (0, 6, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
 
 
