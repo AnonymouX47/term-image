@@ -70,7 +70,8 @@ def main() -> int:
         cli.interrupted.set()  # Signal interruption to subprocesses and other threads.
         finish_loading()
         finish_multi_logging()
-        logger.exception("Session terminated due to:")
+        if logging.VERBOSE is not None:  # logging has been successfully initialized
+            logger.exception("Session terminated due to:")
         logging.log(
             "Session not ended successfully: "
             f"({type(e).__module__}.{type(e).__qualname__}) {e}",
