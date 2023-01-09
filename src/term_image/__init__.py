@@ -10,10 +10,6 @@ Provides
     3. A TUI to browse through images and directories on a local filesystem
        or from URLS.
 
-It basically works by converting images into text, since that's all conventional
-terminals can represent.
-Colored output is achieved using ANSI 24-bit color escape codes.
-
 AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
 Copyright (c) 2022
 """
