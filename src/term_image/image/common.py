@@ -54,11 +54,13 @@ from ..utils import (
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
 _FORMAT_SPEC = re.compile(
-    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-f]{6}|#)?)?(\+(.+))?",
+    r"(([<|>])?(\d+)?)?(\.([-^_])?(\d+)?)?(#(\.\d+|[0-9a-fA-F]{6}|#)?)?(\+(.+))?",
     re.ASCII,
 )
-_NO_VERTICAL_SPEC = re.compile(r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-f]{6})?)?", re.ASCII)
-_ALPHA_BG_FORMAT = re.compile("#([0-9a-f]{6})?", re.ASCII)
+_NO_VERTICAL_SPEC = re.compile(
+    r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-fA-F]{6})?)?", re.ASCII
+)
+_ALPHA_BG_FORMAT = re.compile("#([0-9a-fA-F]{6})?", re.ASCII)
 
 
 @no_redecorate
