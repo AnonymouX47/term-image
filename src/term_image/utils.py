@@ -19,6 +19,7 @@ __all__ = (
     "get_window_size",
     "query_terminal",
     "read_tty",
+    "read_tty_all",
     "set_query_timeout",
     "write_tty",
 )
@@ -501,7 +502,7 @@ def read_tty(
     min: int = 0,
     *,
     echo: bool = False,
-) -> Optional[bytes]:
+) -> bytes:
     """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
@@ -537,24 +538,6 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    if not callable(more):
-        raise TypeError("'more' must be callable")
-    try:
-        ret = more(bytearray())
-    except Exception:
-        raise ValueError(
-            "'more' must be able to accept a single argument, a `bytearray` object"
-        ) from None
-    else:
-        if not isinstance(ret, bool):
-            raise TypeError("'more' must return a boolean")
-    if not isinstance(timeout, (type(None), float)):
-        raise TypeError("'timeout' must be `None` or a float")
-    if not isinstance(min, int):
-        raise TypeError("'min' must be an integer")
-    if not isinstance(echo, bool):
-        raise TypeError("'echo' must be a boolean")
-
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
@@ -596,6 +579,20 @@ def read_tty(
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
     return bytes(input)
+
+
+@unix_tty_only
+def read_tty_all() -> bytes:
+    """Reads all available input directly from the :term:`active terminal` **without
+    blocking**.
+
+    Returns:
+        The input read.
+
+    HINT:
+        Synchronized with :py:func:`lock_tty`.
+    """
+    return read_tty()
 
 
 def set_query_timeout(timeout: float) -> None:
