@@ -160,6 +160,11 @@ def lock_tty(func: Callable) -> FunctionType:
             # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
 
+    lock_tty_wrapper.__doc__ += """
+    HINT:
+        Synchronized with :py:func:`lock_tty`.
+    """
+
     return lock_tty_wrapper
 
 
@@ -344,11 +349,14 @@ def get_terminal_size() -> os.terminal_size:
     Returns:
         The terminal size in columns and lines.
 
-    Tries to query the :term:`active terminal` device and falls back to
-    ``shutil.get_terminal_size()`` if that fails.
+    NOTE:
+        This implementation is quite different from ``shutil.get_terminal_size()`` and
+        ``os.get_terminal_size()`` in that it:
 
-    This implementation still gives the correct size of the process' controlling
-    terminal when output is redirected (in most cases), unlike the fallback.
+        - gives the correct size of the :term:`active terminal` even when output is
+          redirected, in most cases
+        - gives different results in certain situations
+        - is what this library works with
     """
     if _tty:
         # faster and gives correct results when output is redirected
@@ -609,8 +617,10 @@ def set_query_timeout(timeout: float) -> None:
 @unix_tty_only
 @lock_tty
 def write_tty(data: bytes) -> None:
-    """Writes *data* to the :term:`active terminal` and waits until it's completely
-    transmitted.
+    """Writes to the :term:`active terminal` and waits until complete transmission.
+
+    Args:
+        data: Data to be written.
     """
     os.write(_tty, data)
     try:
