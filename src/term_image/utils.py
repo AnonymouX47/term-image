@@ -6,19 +6,10 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
-    "OS_IS_UNIX",
-    "no_redecorate",
-    "cached",
-    "lock_tty",
-    "unix_tty_only",
-    "terminal_size_cached",
-    "color",
-    "get_cell_size",
-    "get_fg_bg_colors",
+    "DISABLE_QUERIES",
+    "SWAP_WIN_SIZE",
     "get_terminal_size",
-    "get_window_size",
-    "query_terminal",
-    "read_tty",
+    "lock_tty",
     "read_tty_all",
     "set_query_timeout",
     "write_tty",
