@@ -23,7 +23,7 @@ from . import AutoCellRatio, logging, notify, set_cell_ratio, tui, utils
 from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
+from .image import BlockImage, ITerm2Image, KittyImage, Size, auto_style
 from .image.common import _ALPHA_BG_FORMAT
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
@@ -685,7 +685,7 @@ def main() -> None:
         "block": BlockImage,
     }[args.style]
     if not ImageClass:
-        ImageClass = _best_style()
+        ImageClass = auto_style()
 
     if args.force_style or args.style is config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
