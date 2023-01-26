@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging as _logging
 import os
+import re
 import sys
 import warnings
 from contextlib import suppress
@@ -24,7 +25,6 @@ from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
 from .image import BlockImage, ITerm2Image, KittyImage, Size, auto_style
-from .image.common import _ALPHA_BG_FORMAT
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -631,7 +631,7 @@ def main() -> None:
         ("alpha", lambda x: 0.0 <= x < 1.0, "out of range"),
         (
             "alpha_bg",
-            lambda x: not x or _ALPHA_BG_FORMAT.fullmatch("#" + x),
+            lambda x: not x or re.fullmatch("#([0-9a-fA-F]{6})?", "#" + x),
             "invalid hex color",
         ),
     ):
