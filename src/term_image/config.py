@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 import urwid
 
 from . import logging, notify
+from .utils import DEFAULT_QUERY_TIMEOUT
 
 
 class ConfigOptions(dict):
@@ -597,7 +598,7 @@ config_options = {
         "must be a boolean",
     ),
     "query timeout": Option(
-        0.1,
+        DEFAULT_QUERY_TIMEOUT,
         lambda x: isinstance(x, float) and x > 0.0,
         "must be a float greater than zero",
     ),
