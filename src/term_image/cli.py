@@ -32,6 +32,7 @@ from .utils import (
     CSI,
     OS_IS_UNIX,
     clear_queue,
+    get_terminal_name_version,
     get_terminal_size,
     set_query_timeout,
     write_tty,
@@ -924,7 +925,7 @@ def main() -> None:
                     image.set_render_method(
                         "lines"
                         if (
-                            ImageClass._KITTY_VERSION
+                            get_terminal_name_version()[0] == "kitty"
                             and image.is_animated
                             and not args.no_anim
                         )

@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, Iterator, Tuple, Union
 import urwid
 
 from .. import logging
-from ..utils import CSI, lock_tty, write_tty
+from ..utils import CSI, get_terminal_name_version, lock_tty, write_tty
 from . import main, render
 from .main import process_input, scan_dir_grid, scan_dir_menu, sort_key_lexi
 from .widgets import Image, ImageCanvas, info_bar, main as main_widget
@@ -55,18 +55,20 @@ def init(
     )
     main.displayer = main.display_images(".", images, contents, top_level=True)
 
-    # `z_index=None` is pretty glitchy for animations with WHOLE method
-    if ImageClass.style == "kitty" and ImageClass._KITTY_VERSION:
+    is_on_kitty = get_terminal_name_version()[0] == "kitty"
+    if ImageClass.style == "kitty" and is_on_kitty:
+        # `z_index=None` is pretty glitchy for animations with WHOLE method
         render.anim_style_specs["kitty"] = "+L"
     for name in ("anim", "grid", "image"):
         specs = getattr(render, f"{name}_style_specs")
         if ImageClass.style == "kitty":
-            # Kitty blends images at the same z-index
-            if ImageClass._KITTY_VERSION:
+            if is_on_kitty:
+                # Kitty blends images at the same z-index and position, unlike Konsole
                 specs["kitty"] += "z"
-            # Would've been removed if it had the default value
+            # Style-specifc args with default values would've been removed
             if "compress" in style_args:
                 specs["kitty"] += f"c{style_args['compress']}"
+        # Style-specifc args with default values would've been removed
         elif ImageClass.style == "iterm2" and "compress" in style_args:
             specs["iterm2"] += f"c{style_args['compress']}"
 
