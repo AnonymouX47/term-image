@@ -935,7 +935,7 @@ def main() -> None:
                     image.set_render_method(
                         "whole"
                         if (
-                            ImageClass._TERM == "konsole"
+                            get_terminal_name_version()[0] == "konsole"
                             # Always applies to non-native animations also
                             or image.rendered_height <= get_terminal_size()[1]
                         )
