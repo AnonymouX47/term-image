@@ -72,15 +72,18 @@ def is_writable(path: Union[str, os.PathLike, Path]) -> bool:
     path = Path(path).expanduser()
     writable = False
 
-    if path.exists():
-        if path.is_file() and os.access(path, os.W_OK):
-            writable = True
-    else:
-        for path in path.parents:
-            if path.exists():
-                if path.is_dir() and os.access(path, os.W_OK):
-                    writable = True
-                break
+    try:
+        if path.exists():
+            if path.is_file() and os.access(path, os.W_OK):
+                writable = True
+        else:
+            for path in path.parents:
+                if path.exists():
+                    if path.is_dir() and os.access(path, os.W_OK):
+                        writable = True
+                    break
+    except OSError:  # Fails to stat some directories
+        pass
 
     return writable
 
