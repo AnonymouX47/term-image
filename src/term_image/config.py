@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import urwid
 
 from . import logging, notify
-from .utils import QUERY_TIMEOUT, is_writable
+from .utils import is_writable
 
 
 class ConfigOptions(dict):
@@ -566,7 +566,7 @@ config_options = {
         "must be a boolean",
     ),
     "query timeout": Option(
-        QUERY_TIMEOUT,
+        0.1,
         lambda x: isinstance(x, float) and x > 0.0,
         "must be a float greater than zero",
     ),
