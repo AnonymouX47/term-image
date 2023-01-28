@@ -75,7 +75,7 @@ class Process(Process):
             if self._ImageClass:  # if the TUI is initialized
                 # The unpickled class object is in the originally defined state
                 # Eliminates queries for style support checks
-                self._ImageClass._supported = True
+                self._ImageClass.enable_forced_support()
                 for item in self._style_attrs:
                     setattr(self._ImageClass, *item)
 

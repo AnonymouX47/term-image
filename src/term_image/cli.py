@@ -689,7 +689,7 @@ def main() -> None:
 
     if args.force_style or args.style is config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
-        ImageClass._supported = True
+        ImageClass.enable_forced_support()
     else:
         try:
             ImageClass(None)
@@ -703,7 +703,7 @@ def main() -> None:
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
-            if not ImageClass.is_supported():  # Also sets any required attributes
+            if not ImageClass.is_supported():
                 write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
                 log(
                     f"The '{ImageClass}' render style might not be fully supported in "
