@@ -237,6 +237,7 @@ class BaseImage(metaclass=ImageMeta):
 
     # Data Attributes
 
+    _forced_support: bool = False
     _supported: Optional[bool] = None
     _render_method: Optional[str] = None
     _render_methods: Set[str] = set()
@@ -644,6 +645,18 @@ class BaseImage(metaclass=ImageMeta):
         finally:
             self._closed = True
 
+    @classmethod
+    def disable_forced_support(cls):
+        """Disables forced support for a render style.
+
+        Causes the return value of :py:meth:`is_supported` determines if the render
+        style is supported or not, which is the default behaviour.
+
+        This affects only the class on which it is set and all its subclasses **for
+        which forced support is not enabled** (via :py:meth:`enable_forced_support`).
+        """
+        cls._forced_support = False
+
     def draw(
         self,
         h_align: Optional[str] = None,
@@ -812,6 +825,21 @@ class BaseImage(metaclass=ImageMeta):
             check_size=check_size,
             animated=not style.get("native") and self._is_animated and animate,
         )
+
+    @classmethod
+    def enable_forced_support(cls):
+        """Enables forced support for a render style.
+
+        Causes a render style to be treated as if it were supported, regardless of the
+        return value of :py:meth:`is_supported`.
+
+        This affects only the class on which it is set and all its subclasses **for
+        which forced support is not disabled** (via :py:meth:`disable_forced_support`).
+
+        NOTE:
+           This doesn't affect the return value of :py:meth:`is_supported`.
+        """
+        cls._forced_support = True
 
     @classmethod
     def from_file(
@@ -1955,12 +1983,14 @@ class GraphicsImage(BaseImage):
     # Size unit conversion already involves cell size calculation
     _pixel_ratio: float = 1.0
 
-    def __init__(self, image: PIL.Image.Image, **kwargs) -> None:
-        if not self.is_supported():
-            raise _style_error(type(self))(
-                "This image render style is not supported in the active terminal"
+    def __new__(cls, *args, **kwargs):
+        # calls `is_supported()` first to set required class attributes, in case
+        # support is forced for a style that is actually supported
+        if not (cls.is_supported() or cls._forced_support):
+            raise _style_error(cls)(
+                "This render style is not supported in the active terminal"
             )
-        super().__init__(image, **kwargs)
+        return super().__new__(cls)
 
     def _get_minimal_render_size(self, *, adjust: bool) -> Tuple[int, int]:
         render_size = self._get_render_size()
