@@ -8,6 +8,7 @@ from __future__ import annotations
 __all__ = (
     "DISABLE_QUERIES",
     "SWAP_WIN_SIZE",
+    "get_terminal_name_version",
     "get_terminal_size",
     "lock_tty",
     "read_tty_all",
@@ -320,7 +321,12 @@ def get_fg_bg_colors(
 
 @cached
 def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
-    """Queries the :term:`active terminal` for it's name and version"""
+    """Returns the name and version of the :term:`active terminal`, if available.
+
+    Returns:
+        A 2-tuple, ``(name, version)``. If either is not available, returns ``None``
+        in its place.
+    """
     with _tty_lock:  # the terminal's response to the query is not read all at once
         # Terminal name/version query + terminal attribute query
         # The latter is to speed up the entire query since most (if not all)
