@@ -6,6 +6,7 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
+    "DEFAULT_QUERY_TIMEOUT",
     "DISABLE_QUERIES",
     "SWAP_WIN_SIZE",
     "get_terminal_name_version",
@@ -29,7 +30,7 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Final, Optional, Tuple, Union
 
 from .exceptions import TermImageWarning
 
@@ -44,6 +45,11 @@ except ImportError:
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True
+
+#: Default global timeout for :ref:`terminal-queries`
+#:
+#: See also: :py:func:`set_query_timeout`
+DEFAULT_QUERY_TIMEOUT: Final[float] = 0.1
 
 #: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
 #: :ref:`dependent features <queried-features>`.
@@ -445,8 +451,8 @@ def query_terminal(
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
 
-          If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
-          :py:func:`set_query_timeout`) is used.
+          If not given or ``None``, the value set by :py:func:`set_query_timeout`
+          (or :py:data:`DEFAULT_QUERY_TIMEOUT` if never set) is used.
 
     Returns:
         `None` if :py:data:`DISABLE_QUERIES` is true, else the terminal's response
@@ -465,7 +471,7 @@ def query_terminal(
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
         write_tty(request)
-        return read_tty(more, timeout or QUERY_TIMEOUT)
+        return read_tty(more, timeout or _query_timeout)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
@@ -581,14 +587,14 @@ def set_query_timeout(timeout: float) -> None:
         TypeError: *timeout* is not a float.
         ValueError: *timeout* is less than or equal to zero.
     """
-    global QUERY_TIMEOUT
+    global _query_timeout
 
     if not isinstance(timeout, float):
         raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
     if timeout <= 0.0:
         raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
 
-    QUERY_TIMEOUT = timeout
+    _query_timeout = timeout
 
 
 @unix_tty_only
@@ -667,13 +673,11 @@ def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
 WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
 NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
 
 # Constants for escape sequences
-
 ESC = "\033"
 CSI = f"{ESC}["
 OSC = f"{ESC}]"
@@ -682,6 +686,8 @@ BG_FMT = f"{CSI}48;2;%d;%d;%dm"
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 COLOR_RESET = f"{CSI}m"
 
+# Private internal variables
+_query_timeout = DEFAULT_QUERY_TIMEOUT
 _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4
