@@ -244,7 +244,7 @@ def display_images(
                 image_box.set_title(entry)
                 view.original_widget = image_box
                 image_box.original_widget = value
-                if value._ti_image._is_animated:
+                if value._ti_image.is_animated:
                     animate_image(value)
             else:  # Directory
                 grid_acknowledge.clear()

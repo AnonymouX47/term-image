@@ -281,7 +281,7 @@ class Image(urwid.Widget):
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
                 # `_force_render` when the animation is done to avoid attribute
                 # creation and deletion per frame
-                if image._is_animated and not tui_main.NO_ANIMATION:
+                if image.is_animated and not tui_main.NO_ANIMATION:
                     if not (self._ti_frame or self._ti_anim_finished):
                         self._ti_forced_anim_size_hash = hash(image.size)
                     elif hash(image.size) != self._ti_forced_anim_size_hash:
@@ -358,7 +358,7 @@ class Image(urwid.Widget):
             canv = self._ti_canv
         else:
             if (
-                image._is_animated
+                image.is_animated
                 and not tui_main.NO_ANIMATION
                 and not self._ti_anim_finished
             ):
@@ -372,7 +372,7 @@ class Image(urwid.Widget):
                 placeholder
                 if (
                     # Workaround to erase text on wezterm without glitchy animation
-                    image._is_animated
+                    image.is_animated
                     and not tui_main.NO_ANIMATION
                     and tui_main.ImageClass.style == "iterm2"
                     and tui_main.ImageClass._TERM == "wezterm"

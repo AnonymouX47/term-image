@@ -896,7 +896,7 @@ def main() -> None:
 
             if (
                 not args.no_anim
-                and image._is_animated
+                and image.is_animated
                 and not style_args.get("native")
                 and len(images) > 1
             ):
@@ -925,7 +925,7 @@ def main() -> None:
                         "lines"
                         if (
                             ImageClass._KITTY_VERSION
-                            and image._is_animated
+                            and image.is_animated
                             and not args.no_anim
                         )
                         else "whole"

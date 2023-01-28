@@ -477,7 +477,7 @@ def maximize_cell():
     main_widget.contents[0] = (image_box, ("weight", 1))
 
     image_box.original_widget = image_w
-    if image_w._ti_image._is_animated:
+    if image_w._ti_image.is_animated:
         main.animate_image(image_w)
 
     getattr(main.ImageClass, "clear", lambda: True)()
@@ -497,7 +497,7 @@ def force_render_maximized_cell():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
     image_w = image_box._w.contents[1][0].contents[1][0]
-    if image_w._ti_image._is_animated:
+    if image_w._ti_image.is_animated:
         main.animate_image(image_w, True)
     else:
         image_w._ti_force_render = True
@@ -550,7 +550,7 @@ def force_render():
     # Will re-render immediately after processing input, since caching has been disabled
     # for `Image` widgets.
     image_w = main.menu_list[menu.focus_position - 1][1]
-    if image_w._ti_image._is_animated:
+    if image_w._ti_image.is_animated:
         main.animate_image(image_w, True)
     else:
         image_w._ti_force_render = True
