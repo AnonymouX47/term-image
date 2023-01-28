@@ -725,11 +725,18 @@ def main() -> None:
         ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
         ITerm2Image.READ_FROM_FILE = style_args.pop("read_from_file")
 
-    try:
-        style_args = ImageClass._check_style_args(style_args)
-    except ValueError as e:
-        notify.notify(str(e), notify.CRITICAL)
+    if ImageClass.style in {"kitty", "iterm2"} and not 0 <= style_args["compress"] <= 9:
+        notify.notify(
+            "Compression level must be between 0 and 9, both inclusive "
+            f"(got: {style_args['compress']})",
+            notify.CRITICAL,
+        )
         return INVALID_ARG
+
+    # Remove style-specific args with default values
+    for arg_name, value in tuple(style_args.items()):
+        if value == style_parser.get_default(arg_name):
+            del style_args[arg_name]
 
     if force_cli_mode:
         log(
