@@ -24,7 +24,6 @@ from array import array
 from functools import wraps
 from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
-from pathlib import Path
 from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
@@ -427,34 +426,6 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         size = size[:: -SWAP_WIN_SIZE or 1] if size else (0, 0)
         _win_size_cache[:] = ts + size
         return None if 0 in size else size
-
-
-def is_writable(path: Union[str, os.PathLike, Path]) -> bool:
-    """Checks if a file path is writable or creatable.
-
-    Returns:
-      - ``True``, if:
-        - the file exists and is writable
-        - the file doesn't exists but can be created
-      - ``False``, if:
-        - the path points to a directory
-        - the file exists but is unwritable
-        - the file doesn't exists and cannot be created
-    """
-    path = Path(path).expanduser()
-    writable = False
-
-    if path.exists():
-        if path.is_file() and os.access(path, os.W_OK):
-            writable = True
-    else:
-        for path in path.parents:
-            if path.exists():
-                if path.is_dir() and os.access(path, os.W_OK):
-                    writable = True
-                break
-
-    return writable
 
 
 @unix_tty_only
