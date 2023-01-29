@@ -13,7 +13,6 @@ import urwid
 from .. import logging
 from ..config import config_options, expand_key, navi
 from ..image import BaseImage, Size
-from ..image.common import _ALPHA_THRESHOLD
 from ..utils import get_terminal_name_version, get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
@@ -240,8 +239,8 @@ class Image(urwid.Widget):
 
     _ti_grid_cache = {}
 
-    # Updated from `.tui.init()`
-    _ti_alpha = f"{_ALPHA_THRESHOLD}"[1:]
+    # Set from `.tui.init()`
+    _ti_alpha = ""
     _ti_grid_style_spec = ""
 
     def __init__(self, image: BaseImage):
