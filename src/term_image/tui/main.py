@@ -48,7 +48,7 @@ from .widgets import (
 def animate_image(image_w: Image, forced_render: bool = False) -> None:
     """Initializes an animation."""
     if not NO_ANIMATION and (
-        mul(*image_w._ti_image._original_size) <= MAX_PIXELS or forced_render
+        mul(*image_w._ti_image.original_size) <= MAX_PIXELS or forced_render
     ):
         try:
             del image_w._ti_anim_finished

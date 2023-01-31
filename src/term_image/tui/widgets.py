@@ -264,7 +264,7 @@ class Image(urwid.Widget):
 
         # Forced render
 
-        if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
+        if mul(*image.original_size) > tui_main.MAX_PIXELS and not (
             self._ti_canv
             and (
                 # will be resized later @ Rendering.
