@@ -13,8 +13,7 @@ import urwid
 from .. import logging
 from ..config import config_options, expand_key, navi
 from ..image import BaseImage, Size
-from ..image.common import _ALPHA_THRESHOLD
-from ..utils import get_terminal_size
+from ..utils import get_terminal_name_version, get_terminal_size
 from . import keys, main as tui_main
 from .render import anim_render_queue, grid_render_queue, image_render_queue
 
@@ -240,8 +239,8 @@ class Image(urwid.Widget):
 
     _ti_grid_cache = {}
 
-    # Updated from `.tui.init()`
-    _ti_alpha = f"{_ALPHA_THRESHOLD}"[1:]
+    # Set from `.tui.init()`
+    _ti_alpha = ""
     _ti_grid_style_spec = ""
 
     def __init__(self, image: BaseImage):
@@ -265,7 +264,7 @@ class Image(urwid.Widget):
 
         # Forced render
 
-        if mul(*image._original_size) > tui_main.MAX_PIXELS and not (
+        if mul(*image.original_size) > tui_main.MAX_PIXELS and not (
             self._ti_canv
             and (
                 # will be resized later @ Rendering.
@@ -281,7 +280,7 @@ class Image(urwid.Widget):
                 # AnimRendermanager or `.tui.main.animate_image()` deletes
                 # `_force_render` when the animation is done to avoid attribute
                 # creation and deletion per frame
-                if image._is_animated and not tui_main.NO_ANIMATION:
+                if image.is_animated and not tui_main.NO_ANIMATION:
                     if not (self._ti_frame or self._ti_anim_finished):
                         self._ti_forced_anim_size_hash = hash(image.size)
                     elif hash(image.size) != self._ti_forced_anim_size_hash:
@@ -338,7 +337,7 @@ class Image(urwid.Widget):
                     if (
                         # Workaround to erase text on wezterm without glitchy animation
                         tui_main.ImageClass.style == "iterm2"
-                        and tui_main.ImageClass._TERM == "wezterm"
+                        and get_terminal_name_version()[0] == "wezterm"
                     )
                     else __class__._ti_placeholder
                 ).render(size)
@@ -358,7 +357,7 @@ class Image(urwid.Widget):
             canv = self._ti_canv
         else:
             if (
-                image._is_animated
+                image.is_animated
                 and not tui_main.NO_ANIMATION
                 and not self._ti_anim_finished
             ):
@@ -372,10 +371,10 @@ class Image(urwid.Widget):
                 placeholder
                 if (
                     # Workaround to erase text on wezterm without glitchy animation
-                    image._is_animated
+                    image.is_animated
                     and not tui_main.NO_ANIMATION
                     and tui_main.ImageClass.style == "iterm2"
-                    and tui_main.ImageClass._TERM == "wezterm"
+                    and get_terminal_name_version()[0] == "wezterm"
                 )
                 else __class__._ti_placeholder
             ).render(size)

@@ -154,6 +154,23 @@ def test_is_supported_All():
     assert isinstance(ImageClass.is_supported(), bool)
 
 
+def test_forced_support_Graphics():
+    original = ImageClass._supported
+    try:
+        ImageClass._supported = False
+        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+            ImageClass(python_img)
+
+        ImageClass.enable_forced_support()
+        assert isinstance(ImageClass(python_img), GraphicsImage)
+
+        ImageClass.disable_forced_support()
+        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+            ImageClass(python_img)
+    finally:
+        ImageClass._supported = original
+
+
 def test_set_render_method_All():
     for value in (2, 2.0, ()):
         with pytest.raises(TypeError):

@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5])
+- [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
 
+### Added
+- `auto_style()` to `term_image.image` ([#70]).
+- Render style forced support ([#70]).
+  - `enable_forced_support()` and `disable_forced_support()` to `BaseImage`.
+- Added/Exposed new utilities in `term_image.utils` ([#70]):
+  - `DEFAULT_QUERY_TIMEOUT`
+  - `get_terminal_name_version()`
+  - `get_terminal_size()`
+  - `read_tty_all()`
+  - `write_tty()`
+
+### Removed
+- `term_image.utils.read_tty()` from the public API ([#70]).
+- As much private API usage across the CLI and TUI code ([#70]).
+
+[#70]: https://github.com/AnonymouX47/term-image/pull/70
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 
 

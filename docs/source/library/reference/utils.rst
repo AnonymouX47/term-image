@@ -1,5 +1,5 @@
 .. automodule:: term_image.utils
-   :members: DISABLE_QUERIES, SWAP_WIN_SIZE, lock_tty, read_tty, set_query_timeout
+   :members:
    :show-inheritance:
 
 

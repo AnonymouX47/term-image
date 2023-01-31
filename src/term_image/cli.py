@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging as _logging
 import os
+import re
 import sys
 import warnings
 from contextlib import suppress
@@ -23,8 +24,7 @@ from . import AutoCellRatio, logging, notify, set_cell_ratio, tui, utils
 from .config import config_options, init_config
 from .exceptions import StyleError, TermImageError, TermImageWarning, URLNotFoundError
 from .exit_codes import FAILURE, INVALID_ARG, NO_VALID_SOURCE, SUCCESS
-from .image import BlockImage, ITerm2Image, KittyImage, Size, _best_style
-from .image.common import _ALPHA_BG_FORMAT
+from .image import BlockImage, ITerm2Image, KittyImage, Size, auto_style
 from .logging import Thread, init_log, log, log_exception
 from .logging_multi import Process
 from .tui.widgets import Image
@@ -32,6 +32,7 @@ from .utils import (
     CSI,
     OS_IS_UNIX,
     clear_queue,
+    get_terminal_name_version,
     get_terminal_size,
     set_query_timeout,
     write_tty,
@@ -631,7 +632,7 @@ def main() -> None:
         ("alpha", lambda x: 0.0 <= x < 1.0, "out of range"),
         (
             "alpha_bg",
-            lambda x: not x or _ALPHA_BG_FORMAT.fullmatch("#" + x),
+            lambda x: not x or re.fullmatch("#([0-9a-fA-F]{6})?", "#" + x),
             "invalid hex color",
         ),
     ):
@@ -685,11 +686,11 @@ def main() -> None:
         "block": BlockImage,
     }[args.style]
     if not ImageClass:
-        ImageClass = _best_style()
+        ImageClass = auto_style()
 
     if args.force_style or args.style is config_options.style != "auto":
         ImageClass.is_supported()  # Some classes need to set some attributes
-        ImageClass._supported = True
+        ImageClass.enable_forced_support()
     else:
         try:
             ImageClass(None)
@@ -703,7 +704,7 @@ def main() -> None:
             )
             return FAILURE
         except TypeError:  # Instantiation is permitted
-            if not ImageClass.is_supported():  # Also sets any required attributes
+            if not ImageClass.is_supported():
                 write_tty(f"{CSI}1K\r".encode())  # Erase emitted APCs
                 log(
                     f"The '{ImageClass}' render style might not be fully supported in "
@@ -725,11 +726,18 @@ def main() -> None:
         ITerm2Image.NATIVE_ANIM_MAXSIZE = style_args.pop("native_maxsize")
         ITerm2Image.READ_FROM_FILE = style_args.pop("read_from_file")
 
-    try:
-        style_args = ImageClass._check_style_args(style_args)
-    except ValueError as e:
-        notify.notify(str(e), notify.CRITICAL)
+    if ImageClass.style in {"kitty", "iterm2"} and not 0 <= style_args["compress"] <= 9:
+        notify.notify(
+            "Compression level must be between 0 and 9, both inclusive "
+            f"(got: {style_args['compress']})",
+            notify.CRITICAL,
+        )
         return INVALID_ARG
+
+    # Remove style-specific args with default values
+    for arg_name, value in tuple(style_args.items()):
+        if value == style_parser.get_default(arg_name):
+            del style_args[arg_name]
 
     if force_cli_mode:
         log(
@@ -889,7 +897,7 @@ def main() -> None:
 
             if (
                 not args.no_anim
-                and image._is_animated
+                and image.is_animated
                 and not style_args.get("native")
                 and len(images) > 1
             ):
@@ -917,8 +925,8 @@ def main() -> None:
                     image.set_render_method(
                         "lines"
                         if (
-                            ImageClass._KITTY_VERSION
-                            and image._is_animated
+                            get_terminal_name_version()[0] == "kitty"
+                            and image.is_animated
                             and not args.no_anim
                         )
                         else "whole"
@@ -927,7 +935,7 @@ def main() -> None:
                     image.set_render_method(
                         "whole"
                         if (
-                            ImageClass._TERM == "konsole"
+                            get_terminal_name_version()[0] == "konsole"
                             # Always applies to non-native animations also
                             or image.rendered_height <= get_terminal_size()[1]
                         )

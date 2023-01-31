@@ -59,7 +59,7 @@ class Process(Process):
         self._ImageClass = tui.main.ImageClass
         if self._ImageClass:  # if the TUI is initialized
             self._cell_ratio = cli.args.cell_ratio
-            self._query_timeout = utils.QUERY_TIMEOUT
+            self._query_timeout = cli.args.query_timeout
             self._swap_win_size = utils.SWAP_WIN_SIZE
             self._style_attrs = [
                 (attr, getattr(self._ImageClass, attr))
@@ -75,11 +75,11 @@ class Process(Process):
             if self._ImageClass:  # if the TUI is initialized
                 # The unpickled class object is in the originally defined state
                 # Eliminates queries for style support checks
-                self._ImageClass._supported = True
+                self._ImageClass.enable_forced_support()
                 for item in self._style_attrs:
                     setattr(self._ImageClass, *item)
 
-                utils.QUERY_TIMEOUT = self._query_timeout
+                utils.set_query_timeout(self._query_timeout)
                 utils.SWAP_WIN_SIZE = self._swap_win_size
 
                 if not self._cell_ratio:

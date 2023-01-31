@@ -24,7 +24,7 @@ def manage_anim_renders() -> None:
         if not_skip() and (not forced or image_w._ti_force_render):
             if frame:
                 canv = ImageCanvas(frame.encode().split(b"\n"), size, rendered_size)
-                image_w._ti_image._seek_position = frame_no
+                image_w._ti_image.seek(frame_no)
                 image_w._ti_frame = (canv, repeat, frame_no)
             else:
                 image_w._ti_anim_finished = True
@@ -124,7 +124,7 @@ def manage_anim_renders() -> None:
 
                         if next_frame():
                             frame_duration = (
-                                FRAME_DURATION or image_w._ti_image._frame_duration
+                                FRAME_DURATION or image_w._ti_image.frame_duration
                             )
 
                 notify.stop_loading()
@@ -360,7 +360,7 @@ def render_frames(
                 output.put(
                     (
                         next(animator),
-                        animator._loop_no,
+                        animator.loop_no,
                         image.tell(),
                         size,
                         image.rendered_size,

@@ -8,12 +8,13 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass, field
 from os import path
-from typing import Any, Callable, Dict, Optional, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import urwid
 
 from . import logging, notify
-from .utils import QUERY_TIMEOUT, is_writable
+from .utils import DEFAULT_QUERY_TIMEOUT
 
 
 class ConfigOptions(dict):
@@ -55,6 +56,37 @@ class Option:
 
     def __post_init__(self):
         self.value = self.default
+
+
+def is_writable(path: Union[str, os.PathLike, Path]) -> bool:
+    """Checks if a file path is writable or creatable.
+
+    Returns:
+      - ``True``, if:
+        - the file exists and is writable
+        - the file doesn't exists but can be created
+      - ``False``, if:
+        - the path points to a directory
+        - the file exists but is unwritable
+        - the file doesn't exists and cannot be created
+    """
+    path = Path(path).expanduser()
+    writable = False
+
+    try:
+        if path.exists():
+            if path.is_file() and os.access(path, os.W_OK):
+                writable = True
+        else:
+            for path in path.parents:
+                if path.exists():
+                    if path.is_dir() and os.access(path, os.W_OK):
+                        writable = True
+                    break
+    except OSError:  # Fails to stat some directories
+        pass
+
+    return writable
 
 
 def action_with_key(key: str, keyset: Dict[str, list]) -> Optional[str]:
@@ -566,7 +598,7 @@ config_options = {
         "must be a boolean",
     ),
     "query timeout": Option(
-        QUERY_TIMEOUT,
+        DEFAULT_QUERY_TIMEOUT,
         lambda x: isinstance(x, float) and x > 0.0,
         "must be a float greater than zero",
     ),

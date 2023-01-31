@@ -6,7 +6,6 @@ import sys
 from . import __version__
 from .config import config_options
 from .image import ITerm2Image, Size
-from .image.common import _ALPHA_THRESHOLD
 
 parser = argparse.ArgumentParser(
     prog="term-image",
@@ -244,10 +243,10 @@ alpha_options.add_argument(
     "--alpha",
     type=float,
     metavar="N",
-    default=_ALPHA_THRESHOLD,
+    default=40 / 255,
     help=(
         "Alpha ratio above which pixels are taken as opaque (0 <= x < 1), "
-        f"for text-based render styles (default: {_ALPHA_THRESHOLD:f})"
+        f"for text-based render styles (default: {40 / 255:f})"
     ),
 )
 alpha_options.add_argument(

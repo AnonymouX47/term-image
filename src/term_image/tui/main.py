@@ -48,7 +48,7 @@ from .widgets import (
 def animate_image(image_w: Image, forced_render: bool = False) -> None:
     """Initializes an animation."""
     if not NO_ANIMATION and (
-        mul(*image_w._ti_image._original_size) <= MAX_PIXELS or forced_render
+        mul(*image_w._ti_image.original_size) <= MAX_PIXELS or forced_render
     ):
         try:
             del image_w._ti_anim_finished
@@ -244,7 +244,7 @@ def display_images(
                 image_box.set_title(entry)
                 view.original_widget = image_box
                 image_box.original_widget = value
-                if value._ti_image._is_animated:
+                if value._ti_image.is_animated:
                     animate_image(value)
             else:  # Directory
                 grid_acknowledge.clear()

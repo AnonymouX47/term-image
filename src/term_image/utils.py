@@ -6,19 +6,13 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
-    "OS_IS_UNIX",
-    "no_redecorate",
-    "cached",
-    "lock_tty",
-    "unix_tty_only",
-    "terminal_size_cached",
-    "color",
-    "get_cell_size",
-    "get_fg_bg_colors",
+    "DEFAULT_QUERY_TIMEOUT",
+    "DISABLE_QUERIES",
+    "SWAP_WIN_SIZE",
+    "get_terminal_name_version",
     "get_terminal_size",
-    "get_window_size",
-    "query_terminal",
-    "read_tty",
+    "lock_tty",
+    "read_tty_all",
     "set_query_timeout",
     "write_tty",
 )
@@ -31,7 +25,6 @@ from array import array
 from functools import wraps
 from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
-from pathlib import Path
 from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
@@ -52,6 +45,11 @@ except ImportError:
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True
+
+#: Default global timeout for :ref:`terminal-queries`
+#:
+#: See also: :py:func:`set_query_timeout`
+DEFAULT_QUERY_TIMEOUT: float = 0.1  #: Final[float]
 
 #: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
 #: :ref:`dependent features <queried-features>`.
@@ -167,6 +165,11 @@ def lock_tty(func: Callable) -> FunctionType:
         with _tty_lock:
             # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
+
+    lock_tty_wrapper.__doc__ += """
+    HINT:
+        Synchronized with :py:func:`lock_tty`.
+    """
 
     return lock_tty_wrapper
 
@@ -323,7 +326,12 @@ def get_fg_bg_colors(
 
 @cached
 def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
-    """Queries the :term:`active terminal` for it's name and version"""
+    """Returns the name and version of the :term:`active terminal`, if available.
+
+    Returns:
+        A 2-tuple, ``(name, version)``. If either is not available, returns ``None``
+        in its place.
+    """
     with _tty_lock:  # the terminal's response to the query is not read all at once
         # Terminal name/version query + terminal attribute query
         # The latter is to speed up the entire query since most (if not all)
@@ -352,11 +360,14 @@ def get_terminal_size() -> os.terminal_size:
     Returns:
         The terminal size in columns and lines.
 
-    Tries to query the :term:`active terminal` device and falls back to
-    ``shutil.get_terminal_size()`` if that fails.
+    NOTE:
+        This implementation is quite different from ``shutil.get_terminal_size()`` and
+        ``os.get_terminal_size()`` in that it:
 
-    This implementation still gives the correct size of the process' controlling
-    terminal when output is redirected (in most cases), unlike the fallback.
+        - gives the correct size of the :term:`active terminal` even when output is
+          redirected, in most cases
+        - gives different results in certain situations
+        - is what this library works with
     """
     if _tty:
         # faster and gives correct results when output is redirected
@@ -423,34 +434,6 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         return None if 0 in size else size
 
 
-def is_writable(path: Union[str, os.PathLike, Path]) -> bool:
-    """Checks if a file path is writable or creatable.
-
-    Returns:
-      - ``True``, if:
-        - the file exists and is writable
-        - the file doesn't exists but can be created
-      - ``False``, if:
-        - the path points to a directory
-        - the file exists but is unwritable
-        - the file doesn't exists and cannot be created
-    """
-    path = Path(path).expanduser()
-    writable = False
-
-    if path.exists():
-        if path.is_file() and os.access(path, os.W_OK):
-            writable = True
-    else:
-        for path in path.parents:
-            if path.exists():
-                if path.is_dir() and os.access(path, os.W_OK):
-                    writable = True
-                break
-
-    return writable
-
-
 @unix_tty_only
 @lock_tty
 def query_terminal(
@@ -468,8 +451,8 @@ def query_terminal(
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
 
-          If not given or ``None``, :py:data:`QUERY_TIMEOUT` (set by
-          :py:func:`set_query_timeout`) is used.
+          If not given or ``None``, the value set by :py:func:`set_query_timeout`
+          (or :py:data:`DEFAULT_QUERY_TIMEOUT` if never set) is used.
 
     Returns:
         `None` if :py:data:`DISABLE_QUERIES` is true, else the terminal's response
@@ -488,7 +471,7 @@ def query_terminal(
     try:
         termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
         write_tty(request)
-        return read_tty(more, timeout or QUERY_TIMEOUT)
+        return read_tty(more, timeout or _query_timeout)
     finally:
         termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
 
@@ -501,7 +484,7 @@ def read_tty(
     min: int = 0,
     *,
     echo: bool = False,
-) -> Optional[bytes]:
+) -> bytes:
     """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
@@ -537,24 +520,6 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    if not callable(more):
-        raise TypeError("'more' must be callable")
-    try:
-        ret = more(bytearray())
-    except Exception:
-        raise ValueError(
-            "'more' must be able to accept a single argument, a `bytearray` object"
-        ) from None
-    else:
-        if not isinstance(ret, bool):
-            raise TypeError("'more' must return a boolean")
-    if not isinstance(timeout, (type(None), float)):
-        raise TypeError("'timeout' must be `None` or a float")
-    if not isinstance(min, int):
-        raise TypeError("'min' must be an integer")
-    if not isinstance(echo, bool):
-        raise TypeError("'echo' must be a boolean")
-
     old_attr = termios.tcgetattr(_tty)
     new_attr = termios.tcgetattr(_tty)
     new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
@@ -598,6 +563,20 @@ def read_tty(
     return bytes(input)
 
 
+@unix_tty_only
+def read_tty_all() -> bytes:
+    """Reads all available input directly from the :term:`active terminal` **without
+    blocking**.
+
+    Returns:
+        The input read.
+
+    HINT:
+        Synchronized with :py:func:`lock_tty`.
+    """
+    return read_tty()
+
+
 def set_query_timeout(timeout: float) -> None:
     """Sets the global timeout for :ref:`terminal-queries`.
 
@@ -608,21 +587,23 @@ def set_query_timeout(timeout: float) -> None:
         TypeError: *timeout* is not a float.
         ValueError: *timeout* is less than or equal to zero.
     """
-    global QUERY_TIMEOUT
+    global _query_timeout
 
     if not isinstance(timeout, float):
         raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
     if timeout <= 0.0:
         raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
 
-    QUERY_TIMEOUT = timeout
+    _query_timeout = timeout
 
 
 @unix_tty_only
 @lock_tty
 def write_tty(data: bytes) -> None:
-    """Writes *data* to the :term:`active terminal` and waits until it's completely
-    transmitted.
+    """Writes to the :term:`active terminal` and waits until complete transmission.
+
+    Args:
+        data: Data to be written.
     """
     os.write(_tty, data)
     try:
@@ -692,13 +673,11 @@ def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-QUERY_TIMEOUT = 0.1
 RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
 WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
 NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
 
 # Constants for escape sequences
-
 ESC = "\033"
 CSI = f"{ESC}["
 OSC = f"{ESC}]"
@@ -707,6 +686,8 @@ BG_FMT = f"{CSI}48;2;%d;%d;%dm"
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 COLOR_RESET = f"{CSI}m"
 
+# Private internal variables
+_query_timeout = DEFAULT_QUERY_TIMEOUT
 _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4
