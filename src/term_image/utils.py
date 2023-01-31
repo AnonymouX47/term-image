@@ -30,7 +30,7 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType
-from typing import Callable, Final, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 from .exceptions import TermImageWarning
 
@@ -49,7 +49,7 @@ else:
 #: Default global timeout for :ref:`terminal-queries`
 #:
 #: See also: :py:func:`set_query_timeout`
-DEFAULT_QUERY_TIMEOUT: Final[float] = 0.1
+DEFAULT_QUERY_TIMEOUT: float = 0.1  #: Final[float]
 
 #: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
 #: :ref:`dependent features <queried-features>`.
