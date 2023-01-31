@@ -59,8 +59,6 @@ Core Library Definitions
 
    |
 
-   .. note:: It's allowed to set properties for :term:`animated` images on non-animated ones, the values are simply ignored.
-
    .. autoclass:: BaseImage
       :members:
       :show-inheritance:

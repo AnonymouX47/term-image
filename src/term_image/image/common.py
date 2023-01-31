@@ -229,6 +229,8 @@ class BaseImage(metaclass=ImageMeta):
           the image is :term:`rendered`.
         * For animated images, the seek position is initialized to the current seek
           position of the given image.
+        * It's allowed to set properties for :term:`animated` images on non-animated
+          ones, the values are simply ignored.
 
     ATTENTION:
         This class cannot be directly instantiated. Image instances should be created
