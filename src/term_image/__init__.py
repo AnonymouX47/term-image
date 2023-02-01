@@ -3,13 +3,6 @@ term-image
 
 Display images in the terminal
 
-Provides
-========
-    1. A library with features to display images in a terminal in various ways.
-    2. A CLI to display images from a local filesystem or URLs.
-    3. A TUI to browse through images and directories on a local filesystem
-       or from URLS.
-
 AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
 Copyright (c) 2022
 """
