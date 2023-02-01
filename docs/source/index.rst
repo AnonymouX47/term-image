@@ -27,6 +27,8 @@ Welcome to term-image's documentation!
    glossary
 
 
+.. _issues:
+
 Known Issues
 ------------
 1. Drawing of images and animations doesn't work completely well with Python for windows
@@ -66,6 +68,8 @@ Known Issues
      utilizing the animation features provided by the protocol
      (See `#40 <https://github.com/AnonymouX47/term-image/issues/40>`_).
 
+
+.. _planned:
 
 Planned Features
 ----------------
