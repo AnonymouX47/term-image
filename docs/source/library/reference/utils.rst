@@ -58,7 +58,8 @@
       especially, read from the terminal or modify it's attributes, while a query is in
       progress, decorate it with :py:func:`lock_tty` to ensure it doesn't interfere.
 
-      For example, the TUI included in this package (i.e ``term_image``) uses
+      For example, the TUI frontend for this project
+      (`term-image-viewer <https://github.com/AnonymouX47/term-image-viewer>`_) uses
       `urwid <https://urwid.org>`_ which reads from the terminal using
       ``urwid.raw_display.Screen.get_available_raw_input()``.
       To prevent this method from interfering with terminal queries, it is wrapped thus::
