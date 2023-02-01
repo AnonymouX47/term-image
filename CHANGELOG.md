@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `write_tty()`
 
 ### Removed
+- The CLI and TUI.
 - `term_image.utils.read_tty()` from the public API ([#70]).
 - As much private API usage across the CLI and TUI code ([#70]).
 

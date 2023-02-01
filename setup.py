@@ -4,7 +4,6 @@ classifiers = [
     "Environment :: Console",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
-    "Intended Audience :: End Users/Desktop",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
     "Operating System :: Android",
@@ -17,7 +16,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development :: Libraries",
-    "Topic :: Utilities",
     "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 
@@ -36,10 +34,7 @@ setup(
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.7",
-    install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0", "urwid>=2.1,<3.0"],
-    entry_points={
-        "console_scripts": ["term-image=term_image.__main__:main"],
-    },
+    install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0"],
     project_urls={
         "Changelog": "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md",
         "Documentation": "https://term-image.readthedocs.io/",

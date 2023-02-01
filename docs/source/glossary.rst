@@ -1,7 +1,7 @@
 Glossary
 ========
 
-Below are definitions of terms used across the library's public interface, exception messages, CLI help text and the documentation.
+Below are definitions of terms used across the library's public interface, exception messages and the documentation.
 
 .. note::
 
