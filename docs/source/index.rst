@@ -19,7 +19,6 @@ Welcome to term-image's documentation!
    installation
    gallery
    library/index
-   viewer/index
    faqs
    glossary
 
