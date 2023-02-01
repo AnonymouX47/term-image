@@ -44,6 +44,10 @@
 - [Donate](#donate)
 
 
+> ### :warning: NOTICE!!! :warning:
+> The image viewer (CLI and TUI) has been moved to [term-image-viewer](https://github.com/AnonymouX47/term-image-viewer).
+
+
 ## Installation
 
 ### Requirements
