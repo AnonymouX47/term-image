@@ -46,10 +46,10 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-#: Default global timeout for :ref:`terminal-queries`
+#: Default timeout for :ref:`terminal-queries`
 #:
 #: See also: :py:func:`set_query_timeout`
-DEFAULT_QUERY_TIMEOUT: float = 0.1  #: Final[float]
+DEFAULT_QUERY_TIMEOUT: float = 0.1  # Final[float]
 
 #: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
 #: :ref:`dependent features <queried-features>`.
@@ -578,7 +578,7 @@ def read_tty_all() -> bytes:
 
 
 def set_query_timeout(timeout: float) -> None:
-    """Sets the global timeout for :ref:`terminal-queries`.
+    """Sets the timeout for :ref:`terminal-queries`.
 
     Args:
         timeout: Time limit for awaiting a response from the terminal, in seconds.
