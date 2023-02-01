@@ -62,7 +62,7 @@
   **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/latest/index.html#planned-features)).
 
 ### Steps
-The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip`:
+The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip` (**recommended**):
 
 ```shell
 pip install term-image
@@ -77,12 +77,12 @@ Clone this repository from within a terminal
 git clone https://github.com/AnonymouX47/term-image.git
 ```
 
-then navigate into the local repository
+Navigate into the local repository
 ```shell
 cd term-image
 ```
 
-and run
+Install
 ```shell
 pip install .
 ```
@@ -196,11 +196,11 @@ If you've found any bug or want to suggest a new feature, please open a new [iss
 For code contributions, please read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
 
 Also, check out the [Planned Features](#planned-features) section below.
-If you wish to work on any of the listed tasks, please click on the linked issue or go through the [issues](https://github.com/AnonymouX47/term-image/issues) tab and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
+If you wish to work on any of the listed tasks, please click on the linked issue or go through the [issues](https://github.com/AnonymouX47/term-image/issues) section and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
 
 Hint: You can filter issues by *label* or simply *search* using the task's name or description.
 
-For anything other than the above (such as questions or anything that would fit under the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-image/discussions) instead.
+For anything other than the above (such as questions or anything that would fit the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-image/discussions) instead.
 
 Thanks! :heart:
 
