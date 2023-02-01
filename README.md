@@ -34,8 +34,7 @@
 - [Installation](#installation)
 - [Features](#features)
 - [Demo](#demo)
-- [CLI/TUI Quick Start](#clitui-quick-start)
-- [Library Quick Start](#library-quick-start)
+- [Quick Start](#library-quick-start)
 - [Usage](#usage)
 - [Contribution](#contribution)
 - [Planned Features](#planned-features)
@@ -56,7 +55,7 @@
   - support for the [iTerm2 inline image protocol](https://iterm2.com/documentation-images.html).
   - full Unicode support and ANSI 24-bit color support
 
-  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features)).
+  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/latest/index.html#planned-features)).
 
 ### Steps
 The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip`:
@@ -87,20 +86,18 @@ pip install .
 ### Supported Terminal Emulators
 See [here](https://term-image.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
-If you've tested `term-image` on any other terminal emulator that meets the requirements for any of the render styles,
+If you've tested this library on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
 
 Also, if you have any issue with terminal support, you may report or check information about it in the discussion linked above.
 
 
 ## Features
-
-### Library features
 - Multiple image formats (basically all formats supported by [`PIL.Image.open()`](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html))
 - Multiple image source types: PIL image instance, local file, URL
-  - Exposes various features of the protocols
 - Multiple image render styles (with automatic support detection)
 - Support for multiple terminal graphics protocols: [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/), [iTerm2](https://iterm2.com/documentation-images.html)
+  - Exposes various features of the protocols
 - Transparency support (with multiple options)
 - Animated image support (including transparent ones)
   - Multiple formats: GIF, WEBP, APNG (and possibly more)
@@ -113,71 +110,18 @@ Also, if you have any issue with terminal support, you may report or check infor
 - Well-documented
 - and more... :grin:
 
-### CLI/TUI features
-- Almost everything the library supports
-- Individual/Multiple image display [CLI]
-- Browse multiple images and directories (recursively) [TUI]
-- Adjustable image grids [TUI]
-- Context-based controls [TUI]
-- Customizable controls and configuration options
-- Smooth and performant experience
-- and more... :grin:
-
-### How does this project compare with similar ones?
-As far as I know, the only aspect of this project that any other currently existing project can be compared with is the CLI.
-
-I prefer to leave comparisons to the users.
-
 
 ## Demo
 
-Check out the [gallery](https://term-image.readthedocs.io/en/latest/gallery.html).
-
-<details>
-<summary>Click to expand</summary>
-
-[TUI Demo Video](https://user-images.githubusercontent.com/61663146/163809903-e8fb254b-a0aa-4d0d-9fc9-dd676c10b735.mp4)
-
-_\*The video was recorded at normal speed and not sped up._
-
-</details>
+Check out the [gallery](https://term-image.readthedocs.io/en/latest/gallery.html) and this [image viewer](https://github.com/AnonymouX47/term-image-viewer) based on this library.
 
 
-## CLI/TUI Quick Start
-
-<details>
-<summary>Click to expand</summary>
-
-With a local image file
-```shell
-term-image path/to/image.png
-```
-
-With an image URL
-```shell
-term-image https://www.example.com/image.png
-```
-
-With a directory, recursively (not currently supported on Windows)
-```shell
-term-image -r path/to/dir/
-```
-
-If the image is animated (GIF, WEBP), the animation is infinitely looped **by default** but can be stopped with `Ctrl-C`.
-
-**By default, if multiple sources or at least one directory is given, the TUI (Text-based/Terminal User Interface) is launched to navigate through the images (and/or directories).**
-
-**NOTE:** `python -m term_image` can be used as an alternative to the `term-image` command **(take note of the _underscore_ VS _hyphen_)**.
-
-</details>
-
-
-## Library Quick Start
-
-<details>
-<summary>Click to expand</summary>
+## Quick Start
 
 ### Creating an instance
+
+<details>
+<summary>Click to expand</summary>
 
 ```python
 from term_image.image import from_file
@@ -201,7 +145,12 @@ img = Image.open("path/to/image.png")
 image = AutoImage(img)
 ```
 
+</details>
+
 ### Drawing/Displaying an image to/in the terminal
+
+<details>
+<summary>Click to expand</summary>
 
 There are two ways to draw an image to the terminal.
 
@@ -227,25 +176,13 @@ For animated images, only the first method can animate the output, the second on
 ## Usage
 
 <p align="center"><b>
-   :construction: Under Construction - There might be incompatible changes between minor versions of
+   :construction: Under Construction - There will most likely be incompatible changes between minor versions of
    <a href='https://semver.org/spec/v2.0.0.html#spec-item-4'>version zero</a>!
 </b></p>
 
-**If you want to use `term-image` in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
+**If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
-### Library
-See the [tutorial](https://term-image.readthedocs.io/en/latest/library/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/library/reference/index.html) for full descriptions and details of the available features.
-
-### CLI (Command-Line Interface)
-Run `term-image --help` to see the full usage info and list of options.
-
-### TUI (Text-based/Terminal User Interface)
-The controls are **context-based** and displayed at the bottom of the terminal window.
-Pressing the `F1` key (in most contexts) brings up a **help** menu describing the available controls (called *actions*) in that context.
-
-The TUI can be configured by modifying the config file. See the [Configuration](https://term-image.readthedocs.io/en/latest/viewer/config.html) section of the docs.
-
-[Here](https://github.com/AnonymouX47/term-image/blob/main/vim-style_config.json) is a config file with Vim-style key-bindings (majorly navigation). *Remember to rename the file to `config.json`.*
+See the [tutorial](https://term-image.readthedocs.io/en/latest/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/reference/index.html) for full descriptions and details of the available features.
 
 
 ## Contribution
@@ -266,11 +203,11 @@ Thanks! :heart:
 
 ## Planned Features
 
-Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#planned-features) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#planned-features) for the image viewer.
+See [here](https://term-image.readthedocs.io/en/latest/index.html#planned-features).
 
 ## Known Issues
 
-Check [here](https://term-image.readthedocs.io/en/latest/library/index.html#known-issues) for the library and [here](https://term-image.readthedocs.io/en/latest/viewer/index.html#known-issues) for the image viewer.
+See [here](https://term-image.readthedocs.io/en/latest/index.html#known-issues).
 
 ## FAQs
 
@@ -281,7 +218,6 @@ See the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html) section of
 The following projects have been (and are still) crucial to the development of this project:
 
 - [Pillow](https://python-pillow.org)
-- [Urwid](https://urwid.org)
 
 ## Donate
 
