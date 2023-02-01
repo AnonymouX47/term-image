@@ -1,9 +1,16 @@
 <div align="center">
 <h1><b>Term-Image</b></h1>
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/logo.png" height="200">
+
 <br><br>
 <b>Display Images in the terminal</b>
-<br><br>
+<br>
+
+<p align="center">
+   &#128214; <a href='https://term-image.readthedocs.io/'>Docs</a>
+    &#9553; 
+   &#127979; <a href='https://term-image.readthedocs.io/en/latest/tutorial.html'>Tutorial</a>
+</p>
 
 <p align="center">
    <a href='https://pypi.org/project/term-image/'>
