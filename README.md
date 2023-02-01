@@ -1,8 +1,9 @@
 <div align="center">
 <h1><b>Term-Image</b></h1>
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/logo.png" height="200">
+<br><br>
 <b>Display Images in the terminal</b>
-<br>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tui.png">
+<br><br>
 
 <p align="center">
    <a href='https://pypi.org/project/term-image/'>
