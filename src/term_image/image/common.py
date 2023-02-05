@@ -2116,9 +2116,7 @@ class ImageIterator:
             raise ValueError("'repeat' must be non-zero")
 
         if not isinstance(format, str):
-            raise TypeError(
-                "Invalid type for 'format' " f"(got: {type(format).__name__})"
-            )
+            raise TypeError(f"Invalid type for 'format' (got: {type(format).__name__})")
         *fmt, alpha, style_args = image._check_format_spec(format)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
