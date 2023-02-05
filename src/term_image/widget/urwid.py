@@ -48,9 +48,7 @@ class UrwidImage(urwid.Widget):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
 
         if not isinstance(format, str):
-            raise TypeError(
-                "Invalid type for 'format' " f"(got: {type(format).__name__})"
-            )
+            raise TypeError(f"Invalid type for 'format' (got: {type(format).__name__})")
         *fmt, alpha, style_args = image._check_format_spec(format)
 
         if not isinstance(upscale, bool):
@@ -81,7 +79,7 @@ class UrwidImage(urwid.Widget):
         """
         for cls in (KittyImage, ITerm2Image):
             cls.clear()
-        UrwidImageCanvas._change_disguise()
+        UrwidImageCanvas._ti_change_disguise()
 
     def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
@@ -196,7 +194,7 @@ class UrwidImageCanvas(urwid.Canvas):
         return self.size[1]
 
     @classmethod
-    def _change_disguise(cls) -> None:
+    def _ti_change_disguise(cls) -> None:
         """Changes the hidden text embedded on every line, such that every line of the
         canvas is different in every state.
 
