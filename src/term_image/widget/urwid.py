@@ -89,7 +89,7 @@ class UrwidImage(urwid.Widget):
 
         if len(size) == 2:
             image.set_size(self._ti_sizing, maxsize=size)
-        else:
+        elif len(size) == 1:
             if self._ti_sizing is Size.FIT:
                 image.set_size(size[0])
             else:
@@ -101,6 +101,8 @@ class UrwidImage(urwid.Widget):
                     else fit_size
                 )
             size = (size[0], image._size[1])
+        else:
+            raise ValueError("Not a packed widget")
 
         try:
             render = image._format_render(
