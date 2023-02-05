@@ -25,6 +25,8 @@ class UrwidImage(urwid.Widget):
           neccessary. Otherwise, the image is never upscaled and any ample space is
           padded up.
 
+    For animated images, the current frame (at render-time) is rendered.
+
     NOTE:
         If using an image widget with a :ref:`graphics-based <graphics-based>`
         render style as or within a **flow** widget, make sure to use a render method
@@ -170,7 +172,13 @@ class UrwidImageCanvas(urwid.Canvas):
 
     Args:
         lines: Lines of a rendered image.
-        size: The canvas size. Hence, the size of the rendered image.
+        size: The canvas size. Also, the size of the rendered image.
+
+    WARNING:
+        The constructor of this class performs NO argument validation at all for the
+        sake of performance. If instantiating this class directly, make sure to pass
+        appropriate arguments or create subclass, override the constructor and perform
+        the validation.
 
     IMPORTANT:
         This is defined if and only if the ``urwid`` package is available.
