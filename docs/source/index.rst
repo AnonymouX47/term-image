@@ -100,7 +100,6 @@ In no particular order:
 * Use ``termpile`` for URL-sourced images
 * Source images from raw pixel data
 * IPython Extension
-* Addition of urwid widgets for displaying images
 * etc...
 
 
