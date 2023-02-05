@@ -62,9 +62,10 @@ uninstall:
 # Tests
 
 test-all: test test-url
-test: test-base test-iterator test-others test-graphics test-text
+test: test-base test-iterator test-others test-graphics test-text test-widget
 test-graphics: test-kitty test-iterm2
 test-text: test-block
+test-widget: test-urwid
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
@@ -88,3 +89,6 @@ test-block:
 
 test-url:
 	python -m pytest -v tests/test_url.py
+
+test-urwid:
+	python -m pytest -v tests/test_widget/test_urwid.py
