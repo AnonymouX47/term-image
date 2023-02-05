@@ -119,7 +119,19 @@ class UrwidImage(urwid.Widget):
                 raise
             canv = type(self)._ti_error_placeholder.render(size, focus)
         else:
-            canv = UrwidImageCanvas(render.encode().split(b"\n"), size)
+            lines = render.encode().split(b"\n")
+
+            # On the last row of the screen, urwid inserts the second to the last
+            # character after writing the last (though placed before it i.e inserted),
+            # thereby messing up an escape sequence occurring at the end.
+            # See `urwid.raw_display.Screen._last_row()`
+            # Exceptions:
+            # - Unfortunately, this workaround results in the screen being scrolled with
+            #   iterm2 style on wezterm. So, I guess a missing image line is better off.
+            if not (isinstance(image, ITerm2Image) and ITerm2Image._TERM == "wezterm"):
+                lines = [line + b"\0\0" for line in lines]
+
+            canv = UrwidImageCanvas(lines, size)
 
         return canv
 
