@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `auto_style()` to `term_image.image` ([#70]).
 - Render style forced support ([#70]).
   - `enable_forced_support()` and `disable_forced_support()` to `BaseImage`.
-- Added/Exposed new utilities in `term_image.utils` ([#70]):
+- New utilities in `term_image.utils` ([#70]):
   - `DEFAULT_QUERY_TIMEOUT`
   - `get_terminal_name_version()`
   - `get_terminal_size()`
@@ -21,11 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `write_tty()`
 
 ### Removed
-- The CLI and TUI.
+- The CLI and TUI ([#72]).
 - `term_image.utils.read_tty()` from the public API ([#70]).
 - As much private API usage across the CLI and TUI code ([#70]).
 
 [#70]: https://github.com/AnonymouX47/term-image/pull/70
+[#72]: https://github.com/AnonymouX47/term-image/pull/72
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 
 
