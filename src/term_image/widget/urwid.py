@@ -33,6 +33,10 @@ class UrwidImage(urwid.Widget):
         that splits images across lines such as the **LINES** render method for *kitty*
         and *iterm2* styles.
 
+        If *image* is of *iterm2* render style, prevent the widget from reaching the
+        **last line** of the screen as **Wezterm** doesn't work properly in this case
+        (it scrolls the screen).
+
     IMPORTANT:
         This is defined if and only if the ``urwid`` package is available.
     """
@@ -127,11 +131,7 @@ class UrwidImage(urwid.Widget):
             # character after writing the last (though placed before it i.e inserted),
             # thereby messing up an escape sequence occurring at the end.
             # See `urwid.raw_display.Screen._last_row()`
-            # Exceptions:
-            # - Unfortunately, this workaround results in the screen being scrolled with
-            #   iterm2 style on wezterm. So, I guess a missing image line is better off.
-            if not (isinstance(image, ITerm2Image) and ITerm2Image._TERM == "wezterm"):
-                lines = [line + b"\0\0" for line in lines]
+            lines = [line + b"\0\0" for line in lines]
 
             canv = UrwidImageCanvas(lines, size)
 
