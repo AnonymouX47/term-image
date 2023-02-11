@@ -503,33 +503,30 @@ class TestRender_Text:
         return self.trans._renderer(self.trans._render_image, alpha)
 
     def test_is_on_kitty(self):
-        trans = ImageClass.from_file("tests/images/trans.png", height=_size)
-
         for bg, r in (((0,) * 3, 1), ((100,) * 3, 101), ((255,) * 3, 254), (None, 0)):
             set_fg_bg_colors(bg=bg)
-            bg_hex = get_fg_bg_colors(hex=True)[1] or "#000000"
+            bg_hex = get_fg_bg_colors(hex=True)[1]
             bg = bg or (0, 0, 0)
-            print(bg, bg_hex)
 
             assert all(
-                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-                for line in f"{trans:1.1##}".splitlines()
+                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                for line in self.render_image("#").splitlines()
             )
             assert all(
-                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-                for line in f"{trans:1.1{bg_hex}}".splitlines()
+                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                for line in self.render_image(bg_hex).splitlines()
             )
 
             toggle_is_on_kitty()
             bg = (r, *bg[1:])
 
             assert all(
-                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-                for line in f"{trans:1.1##}".splitlines()
+                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                for line in self.render_image("#").splitlines()
             )
             assert all(
-                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-                for line in f"{trans:1.1{bg_hex}}".splitlines()
+                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                for line in self.render_image(bg_hex).splitlines()
             )
 
             toggle_is_on_kitty()
