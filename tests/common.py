@@ -495,38 +495,45 @@ class TestCellRatio_Graphics:
             set_cell_ratio(0.5)
 
 
-def test_render_is_on_kitty_Text():
-    trans = ImageClass.from_file("tests/images/trans.png", height=_size)
+class TestRender_Text:
+    def test_setup(self):
+        type(self).trans = ImageClass.from_file("tests/images/trans.png", height=_size)
 
-    for bg, r in (((0,) * 3, 1), ((100,) * 3, 101), ((255,) * 3, 254), (None, 0)):
-        set_fg_bg_colors(bg=bg)
-        bg_hex = get_fg_bg_colors(hex=True)[1] or "#000000"
-        bg = bg or (0, 0, 0)
-        print(bg, bg_hex)
+    def render_image(self, alpha):
+        return self.trans._renderer(self.trans._render_image, alpha)
 
-        assert all(
-            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-            for line in f"{trans:1.1##}".splitlines()
-        )
-        assert all(
-            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-            for line in f"{trans:1.1{bg_hex}}".splitlines()
-        )
+    def test_is_on_kitty(self):
+        trans = ImageClass.from_file("tests/images/trans.png", height=_size)
 
-        toggle_is_on_kitty()
-        bg = (r, *bg[1:])
+        for bg, r in (((0,) * 3, 1), ((100,) * 3, 101), ((255,) * 3, 254), (None, 0)):
+            set_fg_bg_colors(bg=bg)
+            bg_hex = get_fg_bg_colors(hex=True)[1] or "#000000"
+            bg = bg or (0, 0, 0)
+            print(bg, bg_hex)
 
-        assert all(
-            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-            for line in f"{trans:1.1##}".splitlines()
-        )
-        assert all(
-            line == BG_FMT % bg + " " * trans.width + COLOR_RESET
-            for line in f"{trans:1.1{bg_hex}}".splitlines()
-        )
+            assert all(
+                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+                for line in f"{trans:1.1##}".splitlines()
+            )
+            assert all(
+                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+                for line in f"{trans:1.1{bg_hex}}".splitlines()
+            )
 
-        toggle_is_on_kitty()
-    set_fg_bg_colors((0, 0, 0), (0, 0, 0))
+            toggle_is_on_kitty()
+            bg = (r, *bg[1:])
+
+            assert all(
+                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+                for line in f"{trans:1.1##}".splitlines()
+            )
+            assert all(
+                line == BG_FMT % bg + " " * trans.width + COLOR_RESET
+                for line in f"{trans:1.1{bg_hex}}".splitlines()
+            )
+
+            toggle_is_on_kitty()
+        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
 
 
 def test_render_clean_up_All():
