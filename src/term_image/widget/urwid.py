@@ -8,7 +8,8 @@ from typing import List, Optional, Tuple
 
 import urwid
 
-from ..image import BaseImage, ITerm2Image, KittyImage, Size
+from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
+from ..utils import COLOR_RESET_b, ESC_b
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -28,10 +29,11 @@ class UrwidImage(urwid.Widget):
     For animated images, the current frame (at render-time) is rendered.
 
     NOTE:
-        If using an image widget with a :ref:`graphics-based <graphics-based>`
-        render style as or within a **flow** widget, make sure to use a render method
-        that splits images across lines such as the **LINES** render method for *kitty*
-        and *iterm2* styles.
+        If *image* is of a :ref:`graphics-based <graphics-based>` render style and the
+        widget is being used as or within a **flow** widget, with overlays or in any
+        other case where the canvas will require vertical trimming, make sure to use a
+        render method that splits images across lines such as the **LINES** render
+        method for *kitty* and *iterm2* render styles.
 
         If *image* is of *iterm2* render style, prevent the widget from reaching the
         **last line** of the screen as **Wezterm** doesn't work properly in this case
@@ -68,6 +70,9 @@ class UrwidImage(urwid.Widget):
         self._ti_alpha = alpha
         self._ti_style_args = style_args
         self._ti_sizing = Size.FIT if upscale else Size.AUTO
+
+        if isinstance(image, TextImage):
+            style_args["split_cells"] = True
 
     image = property(
         lambda self: self._ti_image,
@@ -133,7 +138,7 @@ class UrwidImage(urwid.Widget):
             # See `urwid.raw_display.Screen._last_row()`
             lines = [line + b"\0\0" for line in lines]
 
-            canv = UrwidImageCanvas(lines, size)
+            canv = UrwidImageCanvas(lines, size, image._size)
 
         return canv
 
@@ -173,6 +178,16 @@ class UrwidImageCanvas(urwid.Canvas):
     Args:
         lines: Lines of a rendered image.
         size: The canvas size. Also, the size of the rendered image.
+        image_size: The size with which the image was rendered (excluding padding).
+
+    NOTE:
+        The canvas outputs blanks (spaces) for :ref:`graphics-based <graphics-based>`
+        images when horizontal trimming is required (e.g when a widget is laid over
+        an image). This is temporary as horizontal trimming will be implemented in the
+        future.
+
+        This canvas is intended to be rendered by :py:class:`UrwidImage` (or a sublass
+        of it) only. Otherwise, the output isn't guaranteed to be as expected.
 
     WARNING:
         The constructor of this class performs NO argument validation at all for the
@@ -186,31 +201,219 @@ class UrwidImageCanvas(urwid.Canvas):
 
     _ti_disguise_state = 0
 
-    def __init__(self, lines: List[bytes], size: Tuple[int, int]) -> None:
+    def __init__(
+        self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
+    ) -> None:
         super().__init__()
         self.size = size
         self._ti_lines = lines
+        self._ti_image_size = image_size
 
     def cols(self) -> int:
         return self.size[0]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
-        visible_rows = rows or self.size[1]
-        trim_bottom = self.size[1] - trim_top - visible_rows
+        def calc_trim(
+            size: int,
+            image_size: int,
+            trim_side1: int,
+            pad_side1: int,
+            trim_side2: int,
+            pad_side2: int,
+        ) -> Tuple[int, int, int, int]:
+            """Calculates the new padding size on both sides after trimming and size to
+            be trimmed off the rendered image from both ends, all **along the same
+            axis**.
 
+            Args:
+                size: Canvas size.
+                image_size: Size with which the image was rendered (excluding padding).
+                trim_side1: Size to trim off the canvas (image with padding) from one
+                  size.
+                pad-side1: Padding size on one side of the image.
+                trim_side1: Size to trim off the canvas (image with padding) from the
+                  opposite size.
+                pad-side1: Padding size on the opposite side of the image.
+
+            The arguments must be along the **same axis** (vertical or horizontal).
+            """
+            image_end = size - pad_side2
+            if trim_side1 >= image_end:  # within side2 padding
+                new_pad_side1 = 0
+                trim_image_side1 = image_size
+                new_pad_side2 = size - trim_side1
+            elif trim_side1 >= pad_side1:  # within the image
+                new_pad_side1 = 0
+                trim_image_side1 = trim_side1 - pad_side1
+                new_pad_side2 = pad_side2
+            else:  # within side1 padding
+                new_pad_side1 = pad_side1 - trim_side1
+                trim_image_side1 = 0
+                new_pad_side2 = pad_side2
+
+            image_end = size - pad_side1
+            if trim_side2 >= image_end:  # within side1 padding
+                new_pad_side2 = 0
+                trim_image_side2 = image_size
+                new_pad_side1 -= trim_side2 - image_end
+            elif trim_side2 >= pad_side2:  # within the image
+                new_pad_side2 = 0
+                trim_image_side2 = trim_side2 - pad_side2
+            else:  # within side2 padding
+                new_pad_side2 -= trim_side2
+                trim_image_side2 = 0
+
+            return new_pad_side1, trim_image_side1, trim_image_side2, new_pad_side2
+
+        size = self.size
+        image_size = self._ti_image_size
+        visible_rows = rows or size[1]
+        trim_bottom = size[1] - trim_top - visible_rows
+        visible_cols = cols or size[0]
+        trim_right = size[0] - trim_left - visible_cols
+
+        widget = self.widget_info[0]
         try:
-            image = self.widget_info[0]._ti_image
+            image = widget._ti_image
+            h_align = widget._ti_h_align
+            v_align = widget._ti_v_align
         except AttributeError:  # the canvas wasn't rendered by `UrwidImage`
-            disguise = False
+            for line in self._ti_lines[trim_top : -trim_bottom or None]:
+                yield [(None, "U", line)]
+            return
+
+        if isinstance(image, TextImage):
+            if trim_left == 0 == trim_right:
+                for line in self._ti_lines[trim_top : -trim_bottom or None]:
+                    yield [(None, "U", line.replace(b"\0", b"")), (None, "U", b"\0\0")]
+                return
+
+            pad = size[1] - image_size[1]
+            if v_align == "^":
+                pad_top = 0
+                pad_bottom = pad
+            elif v_align == "_":
+                pad_top = pad
+                pad_bottom = 0
+            else:
+                pad_top = pad // 2
+                pad_bottom = pad - pad_top
+
+            (
+                new_pad_top,
+                trim_image_top,
+                trim_image_bottom,
+                new_pad_bottom,
+            ) = calc_trim(
+                size[1], image_size[1], trim_top, pad_top, trim_bottom, pad_bottom
+            )
+            image_is_empty = image_size[1] in (trim_image_top, trim_image_bottom)
+            image_is_partial = trim_image_top != image_size[1] != trim_image_bottom
+            padding_line = b" " * visible_cols
+
+            if not image_is_empty:
+                pad = size[0] - image_size[0]
+                if h_align == "<":
+                    pad_left = 0
+                    pad_right = pad
+                elif h_align == ">":
+                    pad_left = pad
+                    pad_right = 0
+                else:
+                    pad_left = pad // 2
+                    pad_right = pad - pad_left
+
+                (
+                    new_pad_left,
+                    trim_image_left,
+                    trim_image_right,
+                    new_pad_right,
+                ) = calc_trim(
+                    size[0], image_size[0], trim_left, pad_left, trim_right, pad_right
+                )
+                image_line_is_full = trim_image_left == 0 == trim_image_right
+                image_line_is_partial = (
+                    trim_image_left != image_size[0] != trim_image_right
+                )
+
+                left_padding = (
+                    ((None, "U", b" " * new_pad_left),) if new_pad_left else ()
+                )
+                right_padding = (
+                    ((None, "U", b" " * new_pad_right),) if new_pad_right else ()
+                )
+                color_reset = ((None, "U", COLOR_RESET_b),) if not new_pad_right else ()
+                last_row_workaround = (
+                    ((None, "U", b"\0\0"),)
+                    if image_line_is_full or image_line_is_partial
+                    else ()
+                )
+
+            if image_is_empty:
+                image_lines = []
+            else:
+                image_lines = self._ti_lines[pad_top : -pad_bottom or None]
+                if image_is_partial:
+                    image_lines = image_lines[
+                        trim_image_top : -trim_image_bottom or None
+                    ]
+
+            # top padding
+            for _ in range(new_pad_top):
+                yield [(None, "U", padding_line)]
+
+            # image
+            pad_right += 2  # For "\0\0"
+            for line in image_lines:
+                first_color = ()
+                if image_line_is_full:
+                    image_line = line[pad_left:-pad_right]
+                elif image_line_is_partial:
+                    line = line[pad_left:-pad_right].split(b"\0")
+                    image_line = b"".join(
+                        line[trim_image_left : -trim_image_right or None]
+                    )
+                    # Exclude non-colored images when the time comes
+                    if not line[trim_image_left].startswith(ESC_b):
+                        for cell in line[trim_image_left - 1 :: -1]:
+                            if cell.startswith(ESC_b):
+                                first_color = (
+                                    (None, "U", cell[: cell.rindex(b"m") + 1]),
+                                )
+                                break
+                image_line = (
+                    (*first_color, (None, "U", image_line))
+                    if image_line_is_full or image_line_is_partial
+                    else ()
+                )
+
+                yield [
+                    *left_padding,
+                    *image_line,
+                    *color_reset,
+                    *right_padding,
+                    *last_row_workaround,
+                ]
+
+            # bottom padding
+            for _ in range(new_pad_bottom):
+                yield [(None, "U", padding_line)]
+        elif trim_left or trim_right:
+            line = b" " * visible_cols
+            for _ in range(visible_rows):
+                yield [(None, "U", line)]
         else:
             disguise = (
-                isinstance(image, KittyImage)
-                or isinstance(image, ITerm2Image)
-                and ITerm2Image._TERM == "konsole"
+                b"\b "
+                * self._ti_disguise_state
+                * (
+                    isinstance(image, KittyImage)
+                    or isinstance(image, ITerm2Image)
+                    and ITerm2Image._TERM == "konsole"
+                )
             )
-
-        for line in self._ti_lines[trim_top : -trim_bottom or None]:
-            yield [(None, "U", line + b"\b " * disguise * self._ti_disguise_state)]
+            for line in self._ti_lines[trim_top : -trim_bottom or None]:
+                yield [(None, "U", line + disguise)]
 
     def rows(self) -> int:
         return self.size[1]
