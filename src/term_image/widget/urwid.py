@@ -283,6 +283,7 @@ class UrwidImageCanvas(urwid.Canvas):
                 image_line_is_partial = (
                     trim_image_left != image_size[0] != trim_image_right
                 )
+                pad_right += 2  # For "\0\0"
 
                 left_padding = (
                     ((None, "U", b" " * new_pad_left),) if new_pad_left else ()
@@ -311,7 +312,6 @@ class UrwidImageCanvas(urwid.Canvas):
                 yield [(None, "U", padding_line)]
 
             # image
-            pad_right += 2  # For "\0\0"
             for line in image_lines:
                 first_color = ()
                 if image_line_is_full:
