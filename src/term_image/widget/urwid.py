@@ -213,58 +213,6 @@ class UrwidImageCanvas(urwid.Canvas):
         return self.size[0]
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None, attr_map=None):
-        def calc_trim(
-            size: int,
-            image_size: int,
-            trim_side1: int,
-            pad_side1: int,
-            trim_side2: int,
-            pad_side2: int,
-        ) -> Tuple[int, int, int, int]:
-            """Calculates the new padding size on both sides after trimming and size to
-            be trimmed off the rendered image from both ends, all **along the same
-            axis**.
-
-            Args:
-                size: Canvas size.
-                image_size: Size with which the image was rendered (excluding padding).
-                trim_side1: Size to trim off the canvas (image with padding) from one
-                  size.
-                pad-side1: Padding size on one side of the image.
-                trim_side1: Size to trim off the canvas (image with padding) from the
-                  opposite size.
-                pad-side1: Padding size on the opposite side of the image.
-
-            The arguments must be along the **same axis** (vertical or horizontal).
-            """
-            image_end = size - pad_side2
-            if trim_side1 >= image_end:  # within side2 padding
-                new_pad_side1 = 0
-                trim_image_side1 = image_size
-                new_pad_side2 = size - trim_side1
-            elif trim_side1 >= pad_side1:  # within the image
-                new_pad_side1 = 0
-                trim_image_side1 = trim_side1 - pad_side1
-                new_pad_side2 = pad_side2
-            else:  # within side1 padding
-                new_pad_side1 = pad_side1 - trim_side1
-                trim_image_side1 = 0
-                new_pad_side2 = pad_side2
-
-            image_end = size - pad_side1
-            if trim_side2 >= image_end:  # within side1 padding
-                new_pad_side2 = 0
-                trim_image_side2 = image_size
-                new_pad_side1 -= trim_side2 - image_end
-            elif trim_side2 >= pad_side2:  # within the image
-                new_pad_side2 = 0
-                trim_image_side2 = trim_side2 - pad_side2
-            else:  # within side2 padding
-                new_pad_side2 -= trim_side2
-                trim_image_side2 = 0
-
-            return new_pad_side1, trim_image_side1, trim_image_side2, new_pad_side2
-
         size = self.size
         image_size = self._ti_image_size
         visible_rows = rows or size[1]
@@ -304,7 +252,7 @@ class UrwidImageCanvas(urwid.Canvas):
                 trim_image_top,
                 trim_image_bottom,
                 new_pad_bottom,
-            ) = calc_trim(
+            ) = self._ti_calc_trim(
                 size[1], image_size[1], trim_top, pad_top, trim_bottom, pad_bottom
             )
             image_is_empty = image_size[1] in (trim_image_top, trim_image_bottom)
@@ -328,7 +276,7 @@ class UrwidImageCanvas(urwid.Canvas):
                     trim_image_left,
                     trim_image_right,
                     new_pad_right,
-                ) = calc_trim(
+                ) = self._ti_calc_trim(
                     size[0], image_size[0], trim_left, pad_left, trim_right, pad_right
                 )
                 image_line_is_full = trim_image_left == 0 == trim_image_right
@@ -432,3 +380,63 @@ class UrwidImageCanvas(urwid.Canvas):
         much.
         """
         cls._ti_disguise_state = (cls._ti_disguise_state + 1) % 3
+
+    @staticmethod
+    def _ti_calc_trim(
+        size: int,
+        image_size: int,
+        trim_side1: int,
+        pad_side1: int,
+        trim_side2: int,
+        pad_side2: int,
+    ) -> Tuple[int, int, int, int]:
+        """Calculates the new padding size on both sides after trimming and size to be
+        trimmed off the rendered image from both ends, all **along the same axis**.
+
+        Args:
+            size: Canvas size.
+            image_size: Size with which the image was rendered (excluding padding).
+            trim_side1: Size to trim off the canvas (image with padding) from one size.
+            pad-side1: Padding size on one side of the image.
+            trim_side1: Size to trim off the canvas (image with padding) from the
+              opposite size.
+            pad-side1: Padding size on the opposite side of the image.
+
+        Returns:
+            A 4-tuple containing the following dimensions:
+
+            - The trimmed padding size on one side
+            - The size to be trimmed off the rendered image on one side
+            - The trimmed padding size on the opposite side
+            - The size to be trimmed off the rendered image on the opposite side
+
+        The dimension given as arguments must be along the **same axis** (vertical or
+        horizontal).
+        """
+        image_end = size - pad_side2
+        if trim_side1 >= image_end:  # within side2 padding
+            new_pad_side1 = 0
+            trim_image_side1 = image_size
+            new_pad_side2 = size - trim_side1
+        elif trim_side1 >= pad_side1:  # within the image
+            new_pad_side1 = 0
+            trim_image_side1 = trim_side1 - pad_side1
+            new_pad_side2 = pad_side2
+        else:  # within side1 padding
+            new_pad_side1 = pad_side1 - trim_side1
+            trim_image_side1 = 0
+            new_pad_side2 = pad_side2
+
+        image_end = size - pad_side1
+        if trim_side2 >= image_end:  # within side1 padding
+            new_pad_side2 = 0
+            trim_image_side2 = image_size
+            new_pad_side1 -= trim_side2 - image_end
+        elif trim_side2 >= pad_side2:  # within the image
+            new_pad_side2 = 0
+            trim_image_side2 = trim_side2 - pad_side2
+        else:  # within side2 padding
+            new_pad_side2 -= trim_side2
+            trim_image_side2 = 0
+
+        return new_pad_side1, trim_image_side1, trim_image_side2, new_pad_side2
