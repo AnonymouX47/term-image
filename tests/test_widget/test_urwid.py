@@ -2,6 +2,7 @@ import pytest
 from PIL import Image
 
 from term_image.image import BlockImage, KittyImage, Size
+from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import COLOR_RESET
 from term_image.widget import UrwidImage, UrwidImageCanvas
 
@@ -69,7 +70,13 @@ class TestRender:
     class TestBox:
         def _test_output(self, canv, size, image_size):
             trans._size = image_size
-            render = format(trans, f"{size[0]}.{size[1]}").splitlines()
+            render = trans._format_render(
+                trans._renderer(
+                    trans._render_image, _ALPHA_THRESHOLD, split_cells=True
+                ),
+                width=size[0],
+                height=size[1],
+            ).splitlines()
             lines = canv._ti_lines
 
             assert canv.size == size
@@ -138,7 +145,13 @@ class TestRender:
     class TestFlow:
         def _test_output(self, canv, size, image_size, upscaled):
             trans._size = image_size
-            render = format(trans, f"{size[0]}.{image_size[1]}").splitlines()
+            render = trans._format_render(
+                trans._renderer(
+                    trans._render_image, _ALPHA_THRESHOLD, split_cells=True
+                ),
+                width=size[0],
+                height=1,
+            ).splitlines()
             lines = canv._ti_lines
 
             assert canv.size == (size[0], image_size[1])
@@ -209,7 +222,17 @@ def test_ignore_padding():
         for fmt in ("", "200.200", "100.50")
     ]
     python_image.set_size(Size.AUTO, maxsize=_size)
-    render = format(python_image, f"{_size[0]}.{_size[1]}").encode().splitlines()
+    render = (
+        python_image._format_render(
+            python_image._renderer(
+                python_image._render_image, _ALPHA_THRESHOLD, split_cells=True
+            ),
+            width=_size[0],
+            height=_size[1],
+        )
+        .encode()
+        .splitlines()
+    )
 
     for render_line, line1, line2, line3 in zip(render, *canvases_lines):
         assert render_line + b"\0\0" == line1 == line2 == line3
@@ -233,17 +256,17 @@ class TestCanvas:
     def test_content(self):
         image_w = UrwidImage(python_image, upscale=True)
         canv = image_w.render(_size)
-        content = [line for [(*_, line)] in canv.content()]
+        content = canv.text
 
         assert len(content) == len(canv._ti_lines)
         for content_line, line in zip(content, canv._ti_lines):
-            assert content_line == line
+            assert content_line == line.replace(b"\0", b"") + b"\0\0"
 
     def test_disguise(self):
         image_w = UrwidImage(KittyImage(python_img), upscale=True)
         canv = image_w.render(_size)
         for disguise_state in (0, 1, 2, 0, 1, 2, 0):
-            content = [line for [(*_, line)] in canv.content()]
+            content = canv.text
             for line in content:
                 line = line.decode()
                 assert line.endswith("\0\0" + "\b " * disguise_state)
