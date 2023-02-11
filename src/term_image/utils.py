@@ -306,7 +306,7 @@ def get_fg_bg_colors(
             # sequence, hence the repetition of OSC ... ST
             f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
             # The response might contain a "c"; can't stop reading at "c"
-            lambda s: not s.endswith(CSI.encode()),
+            lambda s: not s.endswith(CSI_b),
         )
         if not DISABLE_QUERIES:
             read_tty()  # The rest of the response to `CSI c`
@@ -339,7 +339,7 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
         response = query_terminal(
             f"{CSI}>q{CSI}c".encode(),
             # The response might contain a "c"; can't stop reading at "c"
-            lambda s: not s.endswith(CSI.encode()),
+            lambda s: not s.endswith(CSI_b),
         )
         if not DISABLE_QUERIES:
             read_tty()  # The rest of the response to `CSI c`
@@ -679,12 +679,19 @@ NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
 
 # Constants for escape sequences
 ESC = "\033"
+ESC_b = ESC.encode()
 CSI = f"{ESC}["
+CSI_b = CSI.encode()
 OSC = f"{ESC}]"
+OSC_b = OSC.encode()
 ST = f"{ESC}\\"
+ST_b = ST.encode()
 BG_FMT = f"{CSI}48;2;%d;%d;%dm"
+BG_FMT_b = BG_FMT.encode()
 FG_FMT = f"{CSI}38;2;%d;%d;%dm"
+FG_FMT_b = FG_FMT.encode()
 COLOR_RESET = f"{CSI}m"
+COLOR_RESET_b = COLOR_RESET.encode()
 
 # Private internal variables
 _query_timeout = DEFAULT_QUERY_TIMEOUT

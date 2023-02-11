@@ -166,15 +166,16 @@ class KittyImage(GraphicsImage):
     _TERM_VERSION: str = ""
     _KITTY_VERSION: Tuple[int, int, int] = ()
 
-    @staticmethod
-    def clear(all: bool = True) -> None:
+    @classmethod
+    def clear(cls, *, all: bool = True) -> None:
         """Clears images on-screen.
 
         Args:
             all: If ``False``, clears only the images intersecting with the cursor.
               Otherwise, clears all images currently on the screen.
         """
-        _stdout_write(DELETE_ALL_IMAGES if all else DELETE_CURSOR_IMAGES)
+        if cls.is_supported():
+            _stdout_write(DELETE_ALL_IMAGES if all else DELETE_CURSOR_IMAGES)
 
     # Only defined for the purpose of proper self-documentation
     def draw(

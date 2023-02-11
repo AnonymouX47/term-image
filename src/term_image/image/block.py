@@ -58,6 +58,7 @@ class BlockImage(TextImage):
         alpha: Union[None, float, str],
         *,
         frame: bool = False,
+        split_cells: bool = False,
     ) -> str:
         # NOTE:
         # It's more efficient to write separate strings to the buffer separately
@@ -68,15 +69,15 @@ class BlockImage(TextImage):
                 no_alpha = False
                 if a_cluster1 == 0 == a_cluster2:
                     buf_write(COLOR_RESET)
-                    buf_write(" " * n)
+                    buf_write(blank * n)
                 elif a_cluster1 == 0:  # up is transparent
                     buf_write(COLOR_RESET)
                     buf_write(FG_FMT % cluster2)
-                    buf_write(LOWER_PIXEL * n)
+                    buf_write(lower_pixel * n)
                 elif a_cluster2 == 0:  # down is transparent
                     buf_write(COLOR_RESET)
                     buf_write(FG_FMT % cluster1)
-                    buf_write(UPPER_PIXEL * n)
+                    buf_write(upper_pixel * n)
                 else:
                     no_alpha = True
 
@@ -87,16 +88,25 @@ class BlockImage(TextImage):
                     r += r < 255 or -1
                 buf_write(BG_FMT % (r, g, b))
                 if cluster1 == cluster2:
-                    buf_write(" " * n)
+                    buf_write(blank * n)
                 else:
                     buf_write(FG_FMT % cluster1)
-                    buf_write(UPPER_PIXEL * n)
+                    buf_write(upper_pixel * n)
 
         buffer = io.StringIO()
         buf_write = buffer.write  # Eliminate attribute resolution cost
 
         bg_color = get_fg_bg_colors()[1]
         is_on_kitty = self._is_on_kitty()
+        if split_cells:
+            blank = " \0"
+            lower_pixel = LOWER_PIXEL + "\0"
+            upper_pixel = UPPER_PIXEL + "\0"
+        else:
+            blank = " "
+            lower_pixel = LOWER_PIXEL
+            upper_pixel = UPPER_PIXEL
+        end_of_line = COLOR_RESET + "\n"
 
         width, height = self._get_render_size()
         frame_img = img if frame else None
@@ -153,13 +163,15 @@ class BlockImage(TextImage):
                         a_cluster2 = a2
                     n = 0
                 n += 1
-            # Rest of the line
-            update_buffer()
+
+            update_buffer()  # Rest of the line
+            if split_cells:
+                # Set the last "\0" to be overwriten by the next byte
+                buffer.seek(buffer.tell() - 1)
             if row_no < height:  # last line not yet rendered
-                buf_write(f"{COLOR_RESET}\n")
+                buf_write(end_of_line)
 
         buf_write(COLOR_RESET)  # Reset color after last line
-        buffer.seek(0)  # Reset buffer pointer
 
         with buffer:
             return buffer.getvalue()

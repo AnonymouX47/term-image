@@ -222,7 +222,8 @@ class ITerm2Image(GraphicsImage):
 
         Required and works only on Konsole, as text doesn't overwrite images.
         """
-        if cls._TERM == "konsole":
+        # `is_supported()` is called first in case it has never been called
+        if cls.is_supported() and cls._TERM == "konsole":
             # Seems Konsole utilizes the same image rendering implementation as it
             # uses for the kiity graphics protocol.
             _stdout_write(DELETE_ALL_IMAGES)

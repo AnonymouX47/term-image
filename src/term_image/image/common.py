@@ -2065,6 +2065,30 @@ class TextImage(BaseImage):
     def _is_on_kitty() -> bool:
         return get_terminal_name_version()[0] == "kitty"
 
+    @abstractmethod
+    def _render_image(
+        self,
+        img: PIL.Image.Image,
+        alpha: Union[None, float, str],
+        *,
+        frame: bool = False,
+        split_cells: bool = False,  # For internal use only
+    ) -> str:
+        """
+        See :py:meth:`BaseImage._render_image` for the description of the method and
+        all other parameters not described here.
+
+        Args:
+            split_cells: If ``True``, the cells of the image are separated by ``NULL``
+              ("\0").
+
+              - must be defined and implemented by every text-based style
+                (i.e sublcasses of this class).
+              - required by some other parts of the library.
+              - only used internally, across the library.
+        """
+        raise NotImplementedError
+
 
 class ImageIterator:
     """Effeciently iterate over :term:`rendered` frames of an :term:`animated` image
@@ -2116,9 +2140,7 @@ class ImageIterator:
             raise ValueError("'repeat' must be non-zero")
 
         if not isinstance(format, str):
-            raise TypeError(
-                "Invalid type for 'format' " f"(got: {type(format).__name__})"
-            )
+            raise TypeError(f"Invalid type for 'format' (got: {type(format).__name__})")
         *fmt, alpha, style_args = image._check_format_spec(format)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
