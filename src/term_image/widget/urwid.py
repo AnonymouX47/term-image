@@ -4,7 +4,7 @@ from __future__ import annotations
 
 __all__ = ("UrwidImage", "UrwidImageCanvas")
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import urwid
 
@@ -130,15 +130,7 @@ class UrwidImage(urwid.Widget):
                 raise
             canv = type(self)._ti_error_placeholder.render(size, focus)
         else:
-            lines = render.encode().split(b"\n")
-
-            # On the last row of the screen, urwid inserts the second to the last
-            # character after writing the last (though placed before it i.e inserted),
-            # thereby messing up an escape sequence occurring at the end.
-            # See `urwid.raw_display.Screen._last_row()`
-            lines = [line + b"\0\0" for line in lines]
-
-            canv = UrwidImageCanvas(lines, size, image._size)
+            canv = UrwidImageCanvas(render, size, image._size)
 
         return canv
 
@@ -176,8 +168,8 @@ class UrwidImageCanvas(urwid.Canvas):
     """Image canvas for the urwid TUI framework.
 
     Args:
-        lines: Lines of a rendered image.
-        size: The canvas size. Also, the size of the rendered image.
+        render: The rendered image.
+        size: The canvas size. Also, the size of the rendered (and formatted) image.
         image_size: The size with which the image was rendered (excluding padding).
 
     NOTE:
@@ -202,12 +194,19 @@ class UrwidImageCanvas(urwid.Canvas):
     _ti_disguise_state = 0
 
     def __init__(
-        self, lines: List[bytes], size: Tuple[int, int], image_size: Tuple[int, int]
+        self, render: str, size: Tuple[int, int], image_size: Tuple[int, int]
     ) -> None:
         super().__init__()
         self.size = size
-        self._ti_lines = lines
         self._ti_image_size = image_size
+
+        # On the last row of the screen, urwid inserts the second to the last
+        # character after writing the last (though placed before it i.e inserted),
+        # thereby messing up an escape sequence occurring at the end.
+        # See `urwid.raw_display.Screen._last_row()`.
+        # Any line of the image could potentially be the last on the screen as a result
+        # of trimming.
+        self._ti_lines = [line + b"\0\0" for line in render.encode().split(b"\n")]
 
     def cols(self) -> int:
         return self.size[0]
