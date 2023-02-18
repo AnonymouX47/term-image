@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `get_terminal_size()`
   - `read_tty_all()`
   - `write_tty()`
+- Support for clearing *kitty* images by z-index ([97eceab]).
+
+### Changed
+- **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -28,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#70]: https://github.com/AnonymouX47/term-image/pull/70
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
+[97eceab]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 
 
 ## [0.5.0] - 2023-01-09
