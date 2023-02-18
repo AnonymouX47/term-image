@@ -2,12 +2,14 @@
 
 import io
 from base64 import standard_b64decode
+from contextlib import contextmanager
 from random import random
 from zlib import decompress
 
 import pytest
 
 from term_image.exceptions import KittyImageError
+from term_image.image import kitty
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
 from term_image.utils import CSI, ST
 
@@ -662,6 +664,97 @@ class TestRenderWhole:
             if 0 in self.trans.rendered_size:
                 continue
             self._test_image_size(self.trans)
+
+
+class TestClear:
+    @contextmanager
+    def setup_buffer(self):
+        buf = io.BytesIO()
+        tty_buf = io.BytesIO()
+
+        stdout_write = kitty._stdout_write
+        write_tty = kitty.write_tty
+        kitty._stdout_write = buf.write
+        kitty.write_tty = tty_buf.write
+
+        try:
+            yield buf, tty_buf
+        finally:
+            kitty._stdout_write = stdout_write
+            kitty.write_tty = write_tty
+            buf.close()
+
+    def test_args(self):
+        for value in (1, 1.1, "1", []):
+            with pytest.raises(TypeError, match="'cursor'"):
+                KittyImage.clear(cursor=value)
+
+        for value in (1.1, "1", []):
+            with pytest.raises(TypeError, match="'z_index'"):
+                KittyImage.clear(z_index=value)
+
+        for value in (-(2**31) - 1, 2**31):
+            with pytest.raises(ValueError, match="z-index .* range"):
+                KittyImage.clear(z_index=value)
+
+        for value in (1, 1.1, "1", []):
+            with pytest.raises(TypeError, match="'now'"):
+                KittyImage.clear(now=value)
+
+        with pytest.raises(ValueError, match="one argument"):
+            KittyImage.clear(cursor=True, z_index=0)
+
+    def test_all(self):
+        with self.setup_buffer() as (buf, tty_buf):
+            KittyImage.clear(now=True)
+            assert buf.getvalue() == b""
+            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES
+
+        with self.setup_buffer() as (buf, tty_buf):
+            KittyImage.clear()
+            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert tty_buf.getvalue() == b""
+
+    def test_cursor(self):
+        with self.setup_buffer() as (buf, tty_buf):
+            KittyImage.clear(cursor=True, now=True)
+            assert buf.getvalue() == b""
+            assert tty_buf.getvalue() == kitty.DELETE_CURSOR_IMAGES
+
+        with self.setup_buffer() as (buf, tty_buf):
+            KittyImage.clear(cursor=True)
+            assert buf.getvalue() == kitty.DELETE_CURSOR_IMAGES
+            assert tty_buf.getvalue() == b""
+
+    def test_z_index(self):
+        for value in range(-10, 11):
+            with self.setup_buffer() as (buf, tty_buf):
+                KittyImage.clear(z_index=value, now=True)
+                assert buf.getvalue() == b""
+                assert tty_buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % value
+
+            with self.setup_buffer() as (buf, tty_buf):
+                KittyImage.clear(z_index=value)
+                assert buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % value
+                assert tty_buf.getvalue() == b""
+
+    def test_not_supported(self):
+        KittyImage._supported = False
+        try:
+            with self.setup_buffer() as (buf, tty_buf):
+                KittyImage.clear()
+                assert buf.getvalue() == b""
+                assert tty_buf.getvalue() == b""
+
+                KittyImage.clear(cursor=True)
+                assert buf.getvalue() == b""
+                assert tty_buf.getvalue() == b""
+
+                KittyImage.clear(z_index=0)
+                assert buf.getvalue() == b""
+                assert tty_buf.getvalue() == b""
+        finally:
+            KittyImage._supported = True
 
 
 delete = f"{START}a=d,d=C;{ST}"
