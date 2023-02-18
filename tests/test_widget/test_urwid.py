@@ -1,9 +1,9 @@
 import pytest
 from PIL import Image
 
-from term_image.image import BlockImage, KittyImage, Size
+from term_image.image import BlockImage, GraphicsImage, KittyImage, Size, TextImage
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import COLOR_RESET
+from term_image.utils import COLOR_RESET, BG_FMT_b, COLOR_RESET_b
 from term_image.widget import UrwidImage, UrwidImageCanvas
 
 _size = (30, 15)
@@ -265,12 +265,103 @@ class TestCanvas:
     def test_disguise(self):
         image_w = UrwidImage(KittyImage(python_img), upscale=True)
         canv = image_w.render(_size)
-        for disguise_state in (0, 1, 2, 0, 1, 2, 0):
-            content = canv.text
-            for line in content:
-                line = line.decode()
-                assert line.endswith("\0\0" + "\b " * disguise_state)
-            UrwidImageCanvas._ti_change_disguise()
+        try:
+            for disguise_state in (0, 1, 2, 0, 1, 2, 0):
+                content = canv.text
+                for line in content:
+                    line = line.decode()
+                    assert line.endswith("\0\0" + "\b " * disguise_state)
+                UrwidImageCanvas._ti_change_disguise()
+        finally:
+            UrwidImageCanvas._ti_disguise_state = 0
+
+
+def get_trim_render_canv(ImageClass, image_size, h_align, v_align):
+    image = ImageClass.from_file("tests/images/trans.png")
+    image._size = image_size
+    style_args = {"split_cells": True} if issubclass(ImageClass, TextImage) else {}
+    render = image._renderer(image._render_image, _ALPHA_THRESHOLD, **style_args)
+    image_w = UrwidImage(image, f"{h_align}.{v_align}")
+    canv = UrwidImageCanvas(
+        image._format_render(render, h_align, _size[0], v_align, _size[1]),
+        _size,
+        image_size,
+    )
+    canv._widget_info = (image_w, _size, False)
+
+    pad = _size[0] - image_size[0]
+    if h_align == "<":
+        pad_left = 0
+        pad_right = pad
+    elif h_align == ">":
+        pad_left = pad
+        pad_right = 0
+    else:
+        pad_left = pad // 2
+        pad_right = pad - pad_left
+
+    if issubclass(ImageClass, TextImage):
+        pad = _size[1] - image_size[1]
+        if v_align == "^":
+            pad_top = 0
+            pad_bottom = pad
+        elif v_align == "_":
+            pad_top = pad
+            pad_bottom = 0
+        else:
+            pad_top = pad // 2
+            pad_bottom = pad - pad_top
+
+        padding_line = [[b" "] * _size[0]]
+        left_padding = [b" "] * pad_left
+        right_padding = [b" "] * pad_right
+
+        render = (
+            padding_line * pad_top
+            + [
+                left_padding + line.split(b"\0") + right_padding
+                for line in render.encode().split(b"\n")
+            ]
+            + padding_line * pad_bottom
+        )
+
+        return render, canv, pad_top, pad_bottom, pad_left, pad_right
+    else:
+        render = (
+            image._format_render(render, h_align, _size[0], v_align, _size[1])
+            .encode()
+            .split(b"\n")
+        )
+
+        return render, canv
+
+
+def content_to_text(content_iter):
+    return [b"".join(text for *_, text in line) for line in content_iter]
+
+
+def get_all_trim_args():
+    args = (
+        (trim_left, trim_top, cols, rows)
+        for trim_top in range(0, _size[1], 2)
+        for rows in range(_size[1] - trim_top, 0, -2)
+        for trim_left in range(0, _size[0], 2)
+        for cols in range(_size[0] - trim_left, 0, -2)
+        if cols != _size[0]
+    )
+
+    return args
+
+
+def get_hori_trim_args():
+    args = (
+        (trim_left, cols)
+        for trim_left in range(0, _size[0], 2)
+        for cols in range(_size[0] - trim_left, 0, -2)
+    )
+    next(args)  # skip whole canvas
+
+    return args
 
 
 class TestCanvasTrim:
@@ -365,3 +456,368 @@ class TestCanvasTrim:
                 ((20, 10, 12, 10, 2, 0), (0, 2, 2, 0)),  # side2 trim between B and C
             ):
                 assert UrwidImageCanvas._ti_calc_trim(*args) == result
+
+    class TestVertical:
+        def _test(self, ImageClass, h_align, v_align, graphics=False):
+            render, canv, *_ = get_trim_render_canv(
+                ImageClass, (_size[0] - 10, _size[1] - 10), h_align, v_align
+            )
+
+            for trim_top, rows in (
+                (trim, rows)
+                for trim in range(1, _size[1])
+                for rows in range(_size[1] - trim, 0, -1)
+            ):
+                # print(trim_top, rows)
+                render_text = [
+                    line if graphics else b"".join(line)
+                    for line in render[trim_top : trim_top + rows]
+                ]
+                canv_text = content_to_text(canv.content(0, trim_top, None, rows))
+
+                assert len(render_text) == len(canv_text)
+                for render_line, canv_line in zip(render_text, canv_text):
+                    render_line += b"\0\0"
+                    assert len(render_line) == len(canv_line)
+                    assert render_line == canv_line
+
+        def test_top_left_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "^")
+
+        def test_top_center_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "^")
+
+        def test_top_right_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "^")
+
+        def test_middle_left_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "-")
+
+        def test_middle_center_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "-")
+
+        def test_middle_right_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "-")
+
+        def test_bottom_left_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "_")
+
+        def test_bottom_center_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "_")
+
+        def test_bottom_right_aligned_Text(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "_")
+
+        def test_top_left_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "^", graphics=True)
+
+        def test_top_center_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "^", graphics=True)
+
+        def test_top_right_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "^", graphics=True)
+
+        def test_middle_left_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "-", graphics=True)
+
+        def test_middle_center_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "-", graphics=True)
+
+        def test_middle_right_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "-", graphics=True)
+
+        def test_bottom_left_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "_", graphics=True)
+
+        def test_bottom_center_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "_", graphics=True)
+
+        def test_bottom_right_aligned_Graphics(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "_", graphics=True)
+
+    class TestHorizontalText:
+        def _test(self, ImageClass, h_align, v_align):
+            (
+                render,
+                canv,
+                pad_top,
+                pad_bottom,
+                pad_left,
+                pad_right,
+            ) = get_trim_render_canv(
+                ImageClass, (_size[0] - 10, _size[1] - 10), h_align, v_align
+            )
+
+            for trim_left, cols in get_hori_trim_args():
+                # print(trim_left, cols)
+                trim_right = _size[0] - trim_left - cols
+                render_text = [
+                    b"".join(line[trim_left : trim_left + cols]) for line in render
+                ]
+                canv_text = content_to_text(canv.content(trim_left, 0, cols))
+                prefix = COLOR_RESET_b * (pad_left < trim_left < _size[0] - pad_right)
+                suffix = COLOR_RESET_b * (_size[0] - pad_left > trim_right > pad_right)
+
+                assert len(render_text) == len(canv_text)
+
+                row = 0
+                for render_line, canv_line in zip(render_text, canv_text):
+                    # Exclude padding lines
+                    if pad_top <= row < _size[1] - pad_bottom:
+                        render_line = prefix + render_line + suffix
+                    render_line += b"\0\0"
+                    row += 1
+
+                    assert len(render_line) == len(canv_line)
+                    assert render_line == canv_line
+
+        def test_top_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "^")
+
+        def test_top_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "^")
+
+        def test_top_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "^")
+
+        def test_middle_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "-")
+
+        def test_middle_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "-")
+
+        def test_middle_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "-")
+
+        def test_bottom_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "_")
+
+        def test_bottom_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "_")
+
+        def test_bottom_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "_")
+
+    class TestHorizontalGraphics:
+        def _test(self, ImageClass, h_align, v_align):
+            render, canv = get_trim_render_canv(
+                ImageClass, (_size[0] - 10, _size[1] - 10), h_align, v_align
+            )
+
+            for trim_left, cols in get_hori_trim_args():
+                # print(trim_left, cols)
+                render_text = [b" " * cols] * _size[1]
+                canv_text = content_to_text(canv.content(trim_left, 0, cols))
+
+                assert len(render_text) == len(canv_text)
+                for render_line, canv_line in zip(render_text, canv_text):
+                    assert len(render_line) == len(canv_line)
+                    assert render_line == canv_line
+
+        def test_top_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "^")
+
+        def test_top_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "^")
+
+        def test_top_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "^")
+
+        def test_middle_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "-")
+
+        def test_middle_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "-")
+
+        def test_middle_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "-")
+
+        def test_bottom_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "_")
+
+        def test_bottom_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "_")
+
+        def test_bottom_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "_")
+
+    class TestBothText:
+        def _test(self, ImageClass, h_align, v_align):
+            (
+                render,
+                canv,
+                pad_top,
+                pad_bottom,
+                pad_left,
+                pad_right,
+            ) = get_trim_render_canv(
+                ImageClass, (_size[0] - 10, _size[1] - 10), h_align, v_align
+            )
+
+            for trim_left, trim_top, cols, rows in get_all_trim_args():
+                # print(trim_left, trim_top, cols, rows)
+                trim_right = _size[0] - trim_left - cols
+                render_text = [
+                    b"".join(line[trim_left : trim_left + cols])
+                    for line in render[trim_top : trim_top + rows]
+                ]
+                canv_text = content_to_text(
+                    canv.content(trim_left, trim_top, cols, rows)
+                )
+                prefix = COLOR_RESET_b * (pad_left < trim_left < _size[0] - pad_right)
+                suffix = COLOR_RESET_b * (_size[0] - pad_left > trim_right > pad_right)
+
+                assert len(render_text) == len(canv_text)
+
+                row = trim_top
+                for render_line, canv_line in zip(render_text, canv_text):
+                    # Exclude padding lines
+                    if pad_top <= row < _size[1] - pad_bottom:
+                        render_line = prefix + render_line + suffix
+                    render_line += b"\0\0"
+                    row += 1
+
+                    assert len(render_line) == len(canv_line)
+                    assert render_line == canv_line
+
+        def test_top_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "^")
+
+        def test_top_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "^")
+
+        def test_top_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "^")
+
+        def test_middle_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "-")
+
+        def test_middle_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "-")
+
+        def test_middle_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "-")
+
+        def test_bottom_left_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "<", "_")
+
+        def test_bottom_center_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, "|", "_")
+
+        def test_bottom_right_aligned(self):
+            for cls in TextImage.__subclasses__():
+                self._test(cls, ">", "_")
+
+    class TestBothGraphics:
+        def _test(self, ImageClass, h_align, v_align):
+            render, canv = get_trim_render_canv(
+                ImageClass, (_size[0] - 10, _size[1] - 10), h_align, v_align
+            )
+
+            for trim_left, trim_top, cols, rows in get_all_trim_args():
+                # print(trim_left, trim_top, cols, rows)
+                render_text = [b" " * cols] * rows
+                canv_text = content_to_text(
+                    canv.content(trim_left, trim_top, cols, rows)
+                )
+
+                assert len(render_text) == len(canv_text)
+                for render_line, canv_line in zip(render_text, canv_text):
+                    assert len(render_line) == len(canv_line)
+                    assert render_line == canv_line
+
+        def test_top_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "^")
+
+        def test_top_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "^")
+
+        def test_top_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "^")
+
+        def test_middle_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "-")
+
+        def test_middle_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "-")
+
+        def test_middle_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "-")
+
+        def test_bottom_left_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "<", "_")
+
+        def test_bottom_center_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, "|", "_")
+
+        def test_bottom_right_aligned(self):
+            for cls in GraphicsImage.__subclasses__():
+                self._test(cls, ">", "_")
+
+    def test_horizontal_trim_first_color_ColoredText(self):
+        for ImageClass in TextImage.__subclasses__():
+            image = ImageClass.from_file("tests/images/trans.png")
+            image._size = _size
+            render = image._renderer(image._render_image, "#102030", split_cells=True)
+            image_w = UrwidImage(image, "#102030")
+            canv = UrwidImageCanvas(render, _size, _size)
+            canv._widget_info = (image_w, _size, False)
+
+            for trim_left in range(1, _size[0]):
+                text = content_to_text(
+                    canv.content(trim_left, cols=_size[0] - trim_left)
+                )
+                for line in text:
+                    assert line.startswith(BG_FMT_b % (16, 32, 48) + b" ")
