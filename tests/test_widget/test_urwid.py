@@ -271,3 +271,97 @@ class TestCanvas:
                 line = line.decode()
                 assert line.endswith("\0\0" + "\b " * disguise_state)
             UrwidImageCanvas._ti_change_disguise()
+
+
+class TestCanvasTrim:
+    class TestCalcTrim:
+        # Layout of a formatted render:
+        #
+        #      A   B      C   D
+        #    ->|   |      |   |<-
+        #
+        # '->' - side1 trim direction
+        # A-B  - side1 padding
+        # B-C  - image
+        # C-D  - side2 padding
+        # '<-' - side2 trim direction
+
+        # A=B=0, C=10, D=20
+        def test_side1_aligned(self):
+            for args, result in (
+                # side1 trim at A/B
+                ((20, 10, 0, 0, 0, 10), (0, 0, 0, 10)),  # side2 trim at D
+                ((20, 10, 0, 0, 2, 10), (0, 0, 0, 8)),  # side2 trim between C and D
+                ((20, 10, 0, 0, 10, 10), (0, 0, 0, 0)),  # side2 trim at C
+                ((20, 10, 0, 0, 12, 10), (0, 0, 2, 0)),  # side2 trim between B and C
+                # side1 trim between B and C
+                ((20, 10, 2, 0, 0, 10), (0, 2, 0, 10)),  # side2 trim at D
+                ((20, 10, 2, 0, 2, 10), (0, 2, 0, 8)),  # side2 trim between C and D
+                ((20, 10, 2, 0, 10, 10), (0, 2, 0, 0)),  # side2 trim at C
+                ((20, 10, 2, 0, 12, 10), (0, 2, 2, 0)),  # side2 trim between B and C
+                # side1 trim at C
+                ((20, 10, 10, 0, 0, 10), (0, 10, 0, 10)),  # side2 trim at D
+                ((20, 10, 10, 0, 2, 10), (0, 10, 0, 8)),  # side2 trim between C and D
+                # side1 trim between C and D
+                ((20, 10, 12, 0, 0, 10), (0, 10, 0, 8)),  # side2 trim at D
+                ((20, 10, 12, 0, 2, 10), (0, 10, 0, 6)),  # side2 trim between C and D
+            ):
+                assert UrwidImageCanvas._ti_calc_trim(*args) == result
+
+        # A=0, B=5, C=15, D=20
+        def test_center_aligned(self):
+            for args, result in (
+                # side1 trim at A
+                ((20, 10, 0, 5, 0, 5), (5, 0, 0, 5)),  # side2 trim at D
+                ((20, 10, 0, 5, 2, 5), (5, 0, 0, 3)),  # side2 trim between C and D
+                ((20, 10, 0, 5, 5, 5), (5, 0, 0, 0)),  # side2 trim at C
+                ((20, 10, 0, 5, 7, 5), (5, 0, 2, 0)),  # side2 trim between B and C
+                ((20, 10, 0, 5, 15, 5), (5, 0, 10, 0)),  # side2 trim at B
+                ((20, 10, 0, 5, 17, 5), (3, 0, 10, 0)),  # side2 trim between A and B
+                # side1 trim between A and B
+                ((20, 10, 2, 5, 0, 5), (3, 0, 0, 5)),  # side2 trim at D
+                ((20, 10, 2, 5, 2, 5), (3, 0, 0, 3)),  # side2 trim between C and D
+                ((20, 10, 2, 5, 5, 5), (3, 0, 0, 0)),  # side2 trim at C
+                ((20, 10, 2, 5, 7, 5), (3, 0, 2, 0)),  # side2 trim between B and C
+                ((20, 10, 2, 5, 15, 5), (3, 0, 10, 0)),  # side2 trim at B
+                ((20, 10, 2, 5, 17, 5), (1, 0, 10, 0)),  # side2 trim between A and B
+                # side1 trim at B
+                ((20, 10, 5, 5, 0, 5), (0, 0, 0, 5)),  # side2 trim at D
+                ((20, 10, 5, 5, 2, 5), (0, 0, 0, 3)),  # side2 trim between C and D
+                ((20, 10, 5, 5, 5, 5), (0, 0, 0, 0)),  # side2 trim at C
+                ((20, 10, 5, 5, 7, 5), (0, 0, 2, 0)),  # side2 trim between B and C
+                # side1 trim between B and C
+                ((20, 10, 7, 5, 0, 5), (0, 2, 0, 5)),  # side2 trim at D
+                ((20, 10, 7, 5, 2, 5), (0, 2, 0, 3)),  # side2 trim between C and D
+                ((20, 10, 7, 5, 5, 5), (0, 2, 0, 0)),  # side2 trim at C
+                ((20, 10, 7, 5, 7, 5), (0, 2, 2, 0)),  # side2 trim between B and C
+                # side1 trim at C
+                ((20, 10, 15, 5, 0, 5), (0, 10, 0, 5)),  # side2 trim at D
+                ((20, 10, 15, 5, 2, 5), (0, 10, 0, 3)),  # side2 trim between C and D
+                # side1 trim between C and D
+                ((20, 10, 17, 5, 0, 5), (0, 10, 0, 3)),  # side2 trim at D
+                ((20, 10, 17, 5, 2, 5), (0, 10, 0, 1)),  # side2 trim between C and D
+            ):
+                assert UrwidImageCanvas._ti_calc_trim(*args) == result
+
+        # A=0, B=10, C=D=20
+        def test_side2_aligned(self):
+            for args, result in (
+                # side1 trim at A
+                ((20, 10, 0, 10, 0, 0), (10, 0, 0, 0)),  # side2 trim at C/D
+                ((20, 10, 0, 10, 2, 0), (10, 0, 2, 0)),  # side2 trim between B and C
+                ((20, 10, 0, 10, 10, 0), (10, 0, 10, 0)),  # side2 trim at B
+                ((20, 10, 0, 10, 12, 0), (8, 0, 10, 0)),  # side2 trim between A and B
+                # side1 trim between A and B
+                ((20, 10, 2, 10, 0, 0), (8, 0, 0, 0)),  # side2 trim at C/D
+                ((20, 10, 2, 10, 2, 0), (8, 0, 2, 0)),  # side2 trim between B and C
+                ((20, 10, 2, 10, 10, 0), (8, 0, 10, 0)),  # side2 trim at B
+                ((20, 10, 2, 10, 12, 0), (6, 0, 10, 0)),  # side2 trim between A and B
+                # side1 trim at B
+                ((20, 10, 10, 10, 0, 0), (0, 0, 0, 0)),  # side2 trim at C/D
+                ((20, 10, 10, 10, 2, 0), (0, 0, 2, 0)),  # side2 trim between B and C
+                # side1 trim between B and C
+                ((20, 10, 12, 10, 0, 0), (0, 2, 0, 0)),  # side2 trim at C/D
+                ((20, 10, 12, 10, 2, 0), (0, 2, 2, 0)),  # side2 trim between B and C
+            ):
+                assert UrwidImageCanvas._ti_calc_trim(*args) == result
