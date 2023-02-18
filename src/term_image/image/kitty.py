@@ -12,7 +12,7 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..utils import CSI, ESC, ST, get_terminal_name_version, query_terminal
+from ..utils import CSI, ESC, ST, get_terminal_name_version, query_terminal, write_tty
 from .common import GraphicsImage
 
 # Constants for render methods
@@ -167,15 +167,58 @@ class KittyImage(GraphicsImage):
     _KITTY_VERSION: Tuple[int, int, int] = ()
 
     @classmethod
-    def clear(cls, *, all: bool = True) -> None:
-        """Clears images on-screen.
+    def clear(
+        cls, *, cursor: bool = False, z_index: Optional[int] = None, now: bool = False
+    ) -> None:
+        """Clears images.
 
         Args:
-            all: If ``False``, clears only the images intersecting with the cursor.
-              Otherwise, clears all images currently on the screen.
+            cursor: If ``True``, all images intersecting with the current cursor
+              position are cleared.
+            z_index: If given, all images on the given z-index are cleared.
+            now: If ``True`` the images are cleared immediately. Otherwise they're
+              cleared when next Python's standard output buffer is flushed.
+
+        Aside *now*, **only one** other argument may be given. If no argument is given
+        (aside *now*) or default values are given, all images visible on the screen are
+        cleared.
+
+        NOTE:
+            This method does nothing if the render style is not supported.
         """
-        if cls.is_supported():
-            _stdout_write(DELETE_ALL_IMAGES if all else DELETE_CURSOR_IMAGES)
+        if not (cls._forced_support or cls.is_supported()):
+            return
+
+        if not isinstance(cursor, bool):
+            raise TypeError(f"Invalid type for 'cursor' (got: {type(cursor).__name__})")
+
+        _, (type_check, _), (value_check, value_msg) = cls._style_args["z_index"]
+        if not type_check(z_index):
+            raise TypeError(
+                f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
+            )
+        if not value_check(z_index):
+            raise ValueError(value_msg)
+
+        if not isinstance(now, bool):
+            raise TypeError(f"Invalid type for 'now' (got: {type(now).__name__})")
+
+        default_args = __class__.clear.__func__.__kwdefaults__
+        nonlocals = locals()
+        args = {name: nonlocals[name] for name in default_args}
+        given_args = args.items() - (default_args.items() | {("now", True)})
+
+        if len(given_args) > 1:
+            raise ValueError("Only one argument may be given")
+        elif given_args:
+            arg, _ = given_args.pop()
+            (write_tty if now else _stdout_write)(
+                DELETE_CURSOR_IMAGES
+                if arg == "cursor"
+                else DELETE_Z_INDEX_IMAGES % z_index
+            )
+        else:
+            (write_tty if now else _stdout_write)(DELETE_ALL_IMAGES)
 
     # Only defined for the purpose of proper self-documentation
     def draw(
@@ -578,6 +621,7 @@ class _ControlData:  # Currently Unused
 
 START = f"{ESC}_G"
 FMT = f"{START}%(control)s;%(payload)s{ST}"
-DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
+DELETE_ALL_IMAGES = f"{ESC}_Ga=d,d=A;{ST}".encode()
 DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}".encode()
+DELETE_Z_INDEX_IMAGES = f"{ESC}_Ga=d,d=Z,z=%d;{ST}".encode()
 _stdout_write = sys.stdout.buffer.write
