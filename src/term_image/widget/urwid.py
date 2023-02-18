@@ -398,20 +398,21 @@ class UrwidImageCanvas(urwid.Canvas):
             size: Canvas size.
             image_size: Size with which the image was rendered (excluding padding).
             trim_side1: Size to trim off the canvas (image with padding) from one size.
-            pad-side1: Padding size on one side of the image.
-            trim_side1: Size to trim off the canvas (image with padding) from the
+            pad_side1: Padding size on one side of the image.
+            trim_side2: Size to trim off the canvas (image with padding) from the
               opposite size.
-            pad-side1: Padding size on the opposite side of the image.
+            pad_side2: Padding size on the opposite side of the image.
 
         Returns:
-            A 4-tuple containing the following dimensions:
+            A 4-tuple containing the following dimensions, in the given order:
 
-            - The trimmed padding size on one side
-            - The size to be trimmed off the rendered image on one side
-            - The trimmed padding size on the opposite side
-            - The size to be trimmed off the rendered image on the opposite side
+            - new_pad_side1: The trimmed padding size on one side.
+            - trim_image_side1: The size to be trimmed off the image on one side.
+            - trim_image_side2: The size to be trimmed off the image on the opposite
+              side.
+            - new_pad_side2: The trimmed padding size on the opposite side.
 
-        The dimension given as arguments must be along the **same axis** (vertical or
+        The dimensions given as arguments must be along the **same axis** (vertical or
         horizontal).
         """
         image_end = size - pad_side2
