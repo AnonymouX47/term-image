@@ -256,7 +256,9 @@ class UrwidImageCanvas(urwid.Canvas):
             )
             image_is_empty = image_size[1] in (trim_image_top, trim_image_bottom)
             image_is_partial = trim_image_top != image_size[1] != trim_image_bottom
-            padding_line = b" " * visible_cols
+
+            # Adding "\0\0" for consistency with output without horizontal trim
+            padding_line = b" " * visible_cols + b"\0\0"
 
             if not image_is_empty:
                 pad = size[0] - image_size[0]
@@ -290,12 +292,12 @@ class UrwidImageCanvas(urwid.Canvas):
                 right_padding = (
                     ((None, "U", b" " * new_pad_right),) if new_pad_right else ()
                 )
-                color_reset = ((None, "U", COLOR_RESET_b),) if not new_pad_right else ()
-                last_row_workaround = (
-                    ((None, "U", b"\0\0"),)
-                    if image_line_is_full or image_line_is_partial
+                color_reset = (
+                    ((None, "U", COLOR_RESET_b),)
+                    if image_size[0] > trim_image_right > 0
                     else ()
                 )
+                last_row_workaround = ((None, "U", b"\0\0"),)
 
             if image_is_empty:
                 image_lines = []
@@ -314,7 +316,7 @@ class UrwidImageCanvas(urwid.Canvas):
             for line in image_lines:
                 first_color = ()
                 if image_line_is_full:
-                    image_line = line[pad_left:-pad_right]
+                    image_line = line[pad_left:-pad_right].replace(b"\0", b"")
                 elif image_line_is_partial:
                     line = line[pad_left:-pad_right].split(b"\0")
                     image_line = b"".join(
