@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 
 import urwid
 
+from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
 from ..utils import COLOR_RESET_b, ESC_b
 
@@ -49,6 +50,15 @@ class UrwidImage(urwid.Widget):
 
     _ti_error_placeholder = None
 
+    # For kitty images
+    _ti_disguise_state = 0
+    _ti_free_z_indexes = set()
+
+    # Progresses thus: 1, -1, 2, -2, 3, ..., 2**31 - 1, -(2**31 - 1)
+    # This sequence results in shorter image escape sequences compared to starting
+    # from -(2**31)
+    _ti_next_z_index = 1
+
     def __init__(
         self, image: BaseImage, format: str = "", *, upscale: bool = False
     ) -> None:
@@ -73,6 +83,12 @@ class UrwidImage(urwid.Widget):
 
         if isinstance(image, TextImage):
             style_args["split_cells"] = True
+        elif isinstance(image, KittyImage):
+            style_args["z_index"] = self._ti_z_index = self._ti_get_z_index()
+
+    def __del__(self) -> None:
+        if isinstance(self._ti_image, KittyImage):
+            type(self)._ti_free_z_indexes.add(self._ti_z_index)
 
     image = property(
         lambda self: self._ti_image,
@@ -83,13 +99,20 @@ class UrwidImage(urwid.Widget):
         """,
     )
 
+    def clear(self) -> None:
+        """Clears all images drawn by the widget, if the image rendered by the widget
+        is of the :py:class:`kitty <term_image.image.KittyImage>` render style.
+        """
+        if isinstance(self._ti_image, KittyImage):
+            KittyImage.clear(z_index=self._ti_z_index)
+            self._ti_disguise_state = (self._ti_disguise_state + 1) % 3
+
     @staticmethod
-    def clear():
+    def clear_all() -> None:
         """Clears all on-screen images of :ref:`graphics-based <graphics-based>` styles
         that support such operation.
         """
-        for cls in (KittyImage, ITerm2Image):
-            cls.clear()
+        KittyImage.clear()  # Also takes care of iterm2 images on Konsole
         UrwidImageCanvas._ti_change_disguise()
 
     def keypress(self, size: Tuple[int, int], key: str) -> str:
@@ -162,6 +185,18 @@ class UrwidImage(urwid.Widget):
             raise TypeError("Invalid type for 'widget' (got: {type(widget).__name__})")
 
         cls._ti_error_placeholder = widget
+
+    @classmethod
+    def _ti_get_z_index(cls) -> int:
+        if cls._ti_free_z_indexes:
+            return cls._ti_free_z_indexes.pop()
+
+        z_index = cls._ti_next_z_index
+        if z_index == 2**31:
+            raise UrwidImageError("Too many image widgets with the kitty render style")
+        cls._ti_next_z_index = -z_index if z_index > 0 else -z_index + 1
+
+        return z_index
 
 
 class UrwidImageCanvas(urwid.Canvas):
@@ -354,7 +389,7 @@ class UrwidImageCanvas(urwid.Canvas):
         else:
             disguise = (
                 b"\b "
-                * self._ti_disguise_state
+                * (self._ti_disguise_state + widget._ti_disguise_state)
                 * (
                     isinstance(image, KittyImage)
                     or isinstance(image, ITerm2Image)
