@@ -59,7 +59,7 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [method] [ z [index] ] [ m {0 | 1} ] [ c {0-9} ]
+        [method] [ z {index} ] [ m {0 | 1} ] [ c {0-9} ]
 
     * ``method``: Render method override.
 
@@ -72,17 +72,17 @@ class KittyImage(GraphicsImage):
 
     * ``z``: Image/Text stacking order.
 
-      * ``index``: Image z-index. An integer in the **signed 32-bit range**.
+      * ``index``: Image z-index. An integer in the **signed 32-bit range**
+        (excluding ``-(2**31)``).
 
-        Images drawn in the same location with different z-index values will be
-        blended if they are semi-transparent. If ``index`` is:
+        Overlapping images with different z-indexes values will be blended if they are
+        semi-transparent. If ``index`` is:
 
         * ``>= 0``, the image will be drawn above text.
         * ``< 0``, the image will be drawn below text.
         * ``< -(2**31)/2``, the image will be drawn below cells with non-default
           background color.
 
-      * ``z`` without ``index`` is currently only used internally.
       * If *absent*, defaults to ``z0`` i.e z-index zero.
       * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
 
@@ -113,7 +113,7 @@ class KittyImage(GraphicsImage):
     """
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
-        map(re.compile, r"[LW] z(-?\d+)? m[01] c[0-9]".split(" "))
+        map(re.compile, r"[LW] z-?\d+ m[01] c[0-9]".split(" "))
     )
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
@@ -133,12 +133,14 @@ class KittyImage(GraphicsImage):
         "z_index": (
             0,
             (
-                lambda x: x is None or isinstance(x, int),
-                "z-index must be `None` or an integer",
+                lambda x: isinstance(x, int),
+                "z-index must be an integer",
             ),
             (
-                lambda x: x is None or -(2**31) <= x < 2**31,
-                "z-index must be within the 32-bit signed integer range",
+                # INT32_MIN is reserved for non-native animations
+                lambda x: -(2**31) < x < 2**31,
+                "z-index must be within the 32-bit signed integer range "
+                "(excluding ``-(2**31)``)",
             ),
         ),
         "mix": (
@@ -192,13 +194,14 @@ class KittyImage(GraphicsImage):
         if not isinstance(cursor, bool):
             raise TypeError(f"Invalid type for 'cursor' (got: {type(cursor).__name__})")
 
-        _, (type_check, _), (value_check, value_msg) = cls._style_args["z_index"]
-        if not type_check(z_index):
-            raise TypeError(
-                f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
-            )
-        if not value_check(z_index):
-            raise ValueError(value_msg)
+        if z_index is not None:
+            _, (type_check, _), (value_check, value_msg) = cls._style_args["z_index"]
+            if not type_check(z_index):
+                raise TypeError(
+                    f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
+                )
+            if not value_check(z_index):
+                raise ValueError(value_msg)
 
         if not isinstance(now, bool):
             raise TypeError(f"Invalid type for 'now' (got: {type(now).__name__})")
@@ -225,7 +228,7 @@ class KittyImage(GraphicsImage):
         self,
         *args,
         method: Optional[str] = None,
-        z_index: Optional[int] = 0,
+        z_index: int = 0,
         mix: bool = False,
         compress: int = 4,
         **kwargs,
@@ -240,14 +243,13 @@ class KittyImage(GraphicsImage):
               effective render method of the instance is used.
             z_index: The stacking order of images and text **for non-animations**.
 
-              Images drawn in the same location with different z-index values will be
-              blended if they are semi-transparent. If *z_index* is:
+              Overlapping images with different z-indexes values will be blended if
+              they are semi-transparent. If *z_index* is:
 
               * ``>= 0``, the image will be drawn above text.
               * ``< 0``, the image will be drawn below text.
               * ``< -(2**31)/2``, the image will be drawn below cells with
                 non-default background color.
-              * ``None``, internal use only, mentioned for the sake of completeness.
 
               To inter-mixing text with an image, see the *mix* parameter.
 
@@ -322,7 +324,7 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, (method, (z, index), mix, compress) = cls._get_style_format_spec(
+        parent, (method, z_index, mix, compress) = cls._get_style_format_spec(
             spec, original
         )
         args = {}
@@ -330,8 +332,8 @@ class KittyImage(GraphicsImage):
             args.update(super()._check_style_format_spec(parent, original))
         if method:
             args["method"] = LINES if method == "L" else WHOLE
-        if z:
-            args["z_index"] = index and int(index)
+        if z_index:
+            args["z_index"] = int(z_index[1:])
         if mix:
             args["mix"] = bool(int(mix[-1]))
         if compress:
@@ -387,7 +389,7 @@ class KittyImage(GraphicsImage):
         *,
         frame: bool = False,
         method: Optional[str] = None,
-        z_index: Optional[int] = 0,
+        z_index: int = 0,
         mix: bool = False,
         compress: int = 4,
         blend: bool = True,
