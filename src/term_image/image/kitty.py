@@ -353,11 +353,12 @@ class KittyImage(GraphicsImage):
         See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
         """
         if cls._KITTY_VERSION and cls._KITTY_VERSION <= (0, 25, 0):
-            cls.clear()
+            cls.clear(z_index=-(1 << 31))
             return True
         return False
 
     def _display_animated(self, *args, **kwargs) -> None:
+        kwargs["z_index"] = -(1 << 31)
         if self._KITTY_VERSION > (0, 25, 0):
             kwargs["blend"] = False
 
