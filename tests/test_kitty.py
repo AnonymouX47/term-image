@@ -239,9 +239,9 @@ class TestRenderLines:
     trans.height = _size
     trans.set_render_method(LINES)
 
-    def render_image(self, alpha=0.0, *, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, *, z=0, m=False, c=4, b=True):
         return self.trans._renderer(
-            self.trans._render_image, alpha, z_index=z, mix=m, compress=c
+            self.trans._render_image, alpha, z_index=z, mix=m, compress=c, blend=b
         )
 
     def _test_image_size(self, image):
@@ -436,6 +436,13 @@ class TestRenderLines:
             > len(self.render_image(c=9))
         )
 
+    def test_blend_false(self):
+        self.trans.scale = 1.0
+
+        render = self.render_image(None, b=False)
+        for line in render.splitlines():
+            assert line.startswith(delete)
+
     def test_scaled(self):
         # At varying scales
         for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
@@ -459,9 +466,9 @@ class TestRenderWhole:
     trans.height = _size
     trans.set_render_method(WHOLE)
 
-    def render_image(self, alpha=0.0, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, z=0, m=False, c=4, b=True):
         return self.trans._renderer(
-            self.trans._render_image, alpha, z_index=z, mix=m, compress=c
+            self.trans._render_image, alpha, z_index=z, mix=m, compress=c, blend=b
         )
 
     def _test_image_size(self, image):
@@ -634,6 +641,12 @@ class TestRenderWhole:
             render = self.render_image(None, c=value)
             assert render == f"{self.trans:1.1#+c{value}}"
             assert ("o", "z") in decode_image(render)[0]
+
+    def test_blend_false(self):
+        self.trans.scale = 1.0
+
+        render = self.render_image(None, b=False)
+        assert render.startswith(delete)
 
     def test_scaled(self):
         # At varying scales
