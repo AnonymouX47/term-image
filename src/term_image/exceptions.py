@@ -31,7 +31,7 @@ class StyleError(TermImageError):
     Never raised for errors pertaining to image classes defined in this package.
     Instead, the exception subclass specific to each image class is raised.
 
-    Only raised for subclasses of :py:class:`BaseImage <term_image.image.BaseImage>`
+    Only raised for subclasses of :py:class:`~term_image.image.BaseImage`
     defined outside this package (which are not subclasses of any other image class
     defined in this package).
 
@@ -41,32 +41,32 @@ class StyleError(TermImageError):
 
 
 class GraphicsImageError(StyleError):
-    """Raised for errors specific to :py:class:`GraphicsImage
-    <term_image.image.GraphicsImage>` and its subclasses defined outside this package.
+    """Raised for errors specific to :py:class:`~term_image.image.GraphicsImage`
+    and its subclasses defined outside this package.
     """
 
 
 class TextImageError(StyleError):
-    """Raised for errors specific to :py:class:`TextImage
-    <term_image.image.TextImage>` and its subclasses defined outside this package.
+    """Raised for errors specific to :py:class:`~term_image.image.TextImage`
+    and its subclasses defined outside this package.
     """
 
 
 class BlockImageError(TextImageError):
-    """Raised for errors specific to :py:class:`BlockImage
-    <term_image.image.BlockImage>` and its subclasses defined outside this package.
+    """Raised for errors specific to :py:class:`~term_image.image.BlockImage`
+    and its subclasses defined outside this package.
     """
 
 
 class ITerm2ImageError(GraphicsImageError):
-    """Raised for errors specific to :py:class:`ITerm2Image
-    <term_image.image.ITerm2Image>` and its subclasses defined outside this package.
+    """Raised for errors specific to :py:class:`~term_image.image.ITerm2Image`
+    and its subclasses defined outside this package.
     """
 
 
 class KittyImageError(GraphicsImageError):
-    """Raised for errors specific to :py:class:`KittyImage
-    <term_image.image.KittyImage>` and its subclasses defined outside this package.
+    """Raised for errors specific to :py:class:`~term_image.image.KittyImage`
+    and its subclasses defined outside this package.
     """
 
 
