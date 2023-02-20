@@ -29,14 +29,20 @@ class UrwidImage(urwid.Widget):
 
     For animated images, the current frame (at render-time) is rendered.
 
-    NOTE:
+    HINT:
         If *image* is of a :ref:`graphics-based <graphics-based>` render style and the
         widget is being used as or within a **flow** widget, with overlays or in any
         other case where the canvas will require vertical trimming, make sure to use a
         render method that splits images across lines such as the **LINES** render
         method for *kitty* and *iterm2* render styles.
 
-        If *image* is of *iterm2* render style, prevent the widget from reaching the
+    NOTE:
+        The `z_index` style-specific parameter for the
+        :py:class:`kitty <term_image.image.KittyImage>` render style is ignored as this
+        is used internally.
+
+    WARNING:
+        If *image* is of the *iterm2* render style, prevent the widget from reaching the
         **last line** of the screen as **Wezterm** doesn't work properly in this case
         (it scrolls the screen).
 
@@ -126,7 +132,7 @@ class UrwidImage(urwid.Widget):
     def keypress(self, size: Tuple[int, int], key: str) -> str:
         return key
 
-    def render(self, size: Tuple[int, int], focus: bool = False) -> UrwidImageCanvas:
+    def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         image = self._ti_image
 
         if len(size) == 2:
