@@ -343,7 +343,7 @@ class KittyImage(GraphicsImage):
     def _clear_frame(cls) -> bool:
         """Clears an animation frame on-screen.
 
-        | Only used on Kitty <= 0.25.0 because ``z_index=None`` is buggy on these
+        | Only used on Kitty <= 0.25.0 because ``blend=False`` is buggy on these
           versions. Does nothing on any other version or terminal.
         | Note that this implementation might do more than required since it clears
           all images on screen.
@@ -357,12 +357,7 @@ class KittyImage(GraphicsImage):
 
     def _display_animated(self, *args, **kwargs) -> None:
         if self._KITTY_VERSION > (0, 25, 0):
-            kwargs["z_index"] = None
-        else:
-            try:
-                del kwargs["z_index"]
-            except KeyError:
-                pass
+            kwargs["blend"] = False
 
         super()._display_animated(*args, **kwargs)
 
@@ -395,7 +390,16 @@ class KittyImage(GraphicsImage):
         z_index: Optional[int] = 0,
         mix: bool = False,
         compress: int = 4,
+        blend: bool = True,
     ) -> str:
+        """See :py:meth:`BaseImage._render_image` for the description of the method and
+        :py:meth:`draw` for parameters not described here.
+
+        Args:
+            blend: If ``False``, the rendered image deletes overlapping/intersecting
+              images when drawn. Otherwise, the behaviour is dependent on the z-index
+              and/or the terminal emulator (for images with the same z-index).
+        """
         # NOTE: It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
@@ -422,7 +426,7 @@ class KittyImage(GraphicsImage):
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
         erase = "" if mix else f"{CSI}{r_width}X"
         jump_right = f"{CSI}{r_width}C"
-        if z_index is None:
+        if not blend:
             delete = f"{START}a=d,d=C;{ST}"
 
         if render_method == LINES:
@@ -434,7 +438,7 @@ class KittyImage(GraphicsImage):
                 trans = Transmission(
                     control_data, raw_image.read(bytes_per_line), compress
                 )
-                z_index is None and buffer.write(delete)
+                blend or buffer.write(delete)
                 for chunk in trans.get_chunks():
                     buffer.write(chunk)
                 # Writing spaces clears any text under transparent areas of an image
@@ -445,7 +449,7 @@ class KittyImage(GraphicsImage):
                     trans = Transmission(
                         control_data, raw_image.read(bytes_per_line), compress
                     )
-                    z_index is None and buffer.write(delete)
+                    blend or buffer.write(delete)
                     for chunk in trans.get_chunks():
                         buffer.write(chunk)
                 buffer.write(erase)
@@ -456,7 +460,7 @@ class KittyImage(GraphicsImage):
         vars(control_data).update(v=height, r=r_height)
         return "".join(
             (
-                z_index is None and delete or "",
+                ("" if blend else delete),
                 Transmission(control_data, raw_image, compress).get_chunked(),
                 f"{erase}{jump_right}\n" * (r_height - 1),
                 f"{erase}{jump_right}",
