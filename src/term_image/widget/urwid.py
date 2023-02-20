@@ -86,6 +86,14 @@ class UrwidImage(urwid.Widget):
         elif isinstance(image, KittyImage):
             style_args["z_index"] = self._ti_z_index = self._ti_get_z_index()
 
+            # Since Konsole doesn't blend images placed at the same location and
+            # z-index, unlike Kitty (and potentially others), `blend=True` is
+            # better on Konsole as it reduces/eliminates flicker.
+            if KittyImage._TERM != "konsole":
+                # To clear directly overlapped images when urwid redraws a line without
+                # a change in image position
+                style_args["blend"] = False
+
     def __del__(self) -> None:
         if isinstance(self._ti_image, KittyImage):
             type(self)._ti_free_z_indexes.add(self._ti_z_index)
