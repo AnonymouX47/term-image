@@ -691,7 +691,7 @@ class TestClear:
             with pytest.raises(TypeError, match="'z_index'"):
                 KittyImage.clear(z_index=value)
 
-        for value in (-(2**31) - 1, 2**31):
+        for value in (-(2**31 + 1), 2**31):
             with pytest.raises(ValueError, match="z-index .* range"):
                 KittyImage.clear(z_index=value)
 
@@ -725,7 +725,7 @@ class TestClear:
             assert tty_buf.getvalue() == b""
 
     def test_z_index(self):
-        for value in range(-10, 11):
+        for value in (-(2**31), *range(-10, 11), 2**31 - 1):
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value, now=True)
                 assert buf.getvalue() == b""

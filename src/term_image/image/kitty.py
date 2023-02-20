@@ -177,7 +177,8 @@ class KittyImage(GraphicsImage):
         Args:
             cursor: If ``True``, all images intersecting with the current cursor
               position are cleared.
-            z_index: If given, all images on the given z-index are cleared.
+            z_index: An integer in the **signed 32-bit range**. If given, all images
+              on the given z-index are cleared.
             now: If ``True`` the images are cleared immediately. Otherwise they're
               cleared when next Python's standard output buffer is flushed.
 
@@ -195,13 +196,15 @@ class KittyImage(GraphicsImage):
             raise TypeError(f"Invalid type for 'cursor' (got: {type(cursor).__name__})")
 
         if z_index is not None:
-            _, (type_check, _), (value_check, value_msg) = cls._style_args["z_index"]
-            if not type_check(z_index):
+            if not isinstance(z_index, int):
                 raise TypeError(
                     f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
                 )
-            if not value_check(z_index):
-                raise ValueError(value_msg)
+            if not -(1 << 31) <= z_index < (1 << 31):
+                raise ValueError(
+                    "z-index must be within the 32-bit signed integer range "
+                    f"(got: {z_index})"
+                )
 
         if not isinstance(now, bool):
             raise TypeError(f"Invalid type for 'now' (got: {type(now).__name__})")
