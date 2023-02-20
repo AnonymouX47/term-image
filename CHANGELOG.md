@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
+- **(BREAKING!)** Changed the valid values for the `z_index` style-specific parameter of the *kitty* render style ([#74]).
+  - `None` is no longer a valid value.
+  - The lower bound of the valid value range is now `-(2**31 - 1)`.
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -31,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#70]: https://github.com/AnonymouX47/term-image/pull/70
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
+[#74]: https://github.com/AnonymouX47/term-image/pull/74
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 
