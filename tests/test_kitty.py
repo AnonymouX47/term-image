@@ -81,6 +81,7 @@ def test_style_format_spec():
         "c-1",
         "c10",
         "c4m1",
+        "z",
         " z1",
         "m0 ",
         "  z1c1  ",
@@ -96,8 +97,7 @@ def test_style_format_spec():
         ("z1", {"z_index": 1}),
         ("z-1", {"z_index": -1}),
         (f"z{2**31 - 1}", {"z_index": 2**31 - 1}),
-        (f"z{-2**31}", {"z_index": -(2**31)}),
-        ("z", {"z_index": None}),
+        (f"z{-(2**31 - 1)}", {"z_index": -(2**31 - 1)}),
         ("m0", {}),
         ("m1", {"mix": True}),
         ("c4", {}),
@@ -126,15 +126,15 @@ class TestStyleArgs:
             assert KittyImage._check_style_args({"method": value}) == {"method": value}
 
     def test_z_index(self):
-        for value in (1.0, (), [], "2"):
+        for value in (None, 1.0, (), [], "2"):
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"z_index": value})
-        for value in (-(2**31) - 1, 2**31):
+        for value in (-(2**31), 2**31):
             with pytest.raises(ValueError):
                 KittyImage._check_style_args({"z_index": value})
 
         assert KittyImage._check_style_args({"z_index": 0}) == {}
-        for value in (None, 1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             assert (
                 KittyImage._check_style_args({"z_index": value})
                 == {"z_index": value}  # fmt: skip
@@ -239,9 +239,9 @@ class TestRenderLines:
     trans.height = _size
     trans.set_render_method(LINES)
 
-    def render_image(self, alpha=0.0, *, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, *, z=0, m=False, c=4, b=True):
         return self.trans._renderer(
-            self.trans._render_image, alpha, z_index=z, mix=m, compress=c
+            self.trans._render_image, alpha, z_index=z, mix=m, compress=c, blend=b
         )
 
     def _test_image_size(self, image):
@@ -384,19 +384,11 @@ class TestRenderLines:
             assert ("z", "0") in decode_image(line)[0]
 
         # z_index = <int32_t>
-        for value in (1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             render = self.render_image(None, z=value)
             assert render == f"{self.trans:1.1#+z{value}}"
             for line in render.splitlines():
                 assert ("z", f"{value}") in decode_image(line)[0]
-
-        # z_index = None
-        render = self.render_image(None, z=None)
-        assert render == f"{self.trans:1.1#+z}"
-        for line in render.splitlines():
-            assert line.startswith(delete)
-            control_codes = decode_image(line.partition(delete)[2])[0]
-            assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
@@ -444,6 +436,13 @@ class TestRenderLines:
             > len(self.render_image(c=9))
         )
 
+    def test_blend_false(self):
+        self.trans.scale = 1.0
+
+        render = self.render_image(None, b=False)
+        for line in render.splitlines():
+            assert line.startswith(delete)
+
     def test_scaled(self):
         # At varying scales
         for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
@@ -467,9 +466,9 @@ class TestRenderWhole:
     trans.height = _size
     trans.set_render_method(WHOLE)
 
-    def render_image(self, alpha=0.0, z=0, m=False, c=4):
+    def render_image(self, alpha=0.0, z=0, m=False, c=4, b=True):
         return self.trans._renderer(
-            self.trans._render_image, alpha, z_index=z, mix=m, compress=c
+            self.trans._render_image, alpha, z_index=z, mix=m, compress=c, blend=b
         )
 
     def _test_image_size(self, image):
@@ -599,18 +598,11 @@ class TestRenderWhole:
         assert ("z", "0") in decode_image(render)[0]
 
         # z_index = <int32_t>
-        for value in (1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             render = self.render_image(None, z=value)
             assert render == f"{self.trans:1.1#+z{value}}"
             control_codes = decode_image(render)[0]
             assert ("z", f"{value}") in control_codes
-
-        # z_index = None
-        render = self.render_image(None, z=None)
-        assert render == f"{self.trans:1.1#+z}"
-        assert render.startswith(delete)
-        control_codes = decode_image(render.partition(delete)[2])[0]
-        assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
@@ -649,6 +641,12 @@ class TestRenderWhole:
             render = self.render_image(None, c=value)
             assert render == f"{self.trans:1.1#+c{value}}"
             assert ("o", "z") in decode_image(render)[0]
+
+    def test_blend_false(self):
+        self.trans.scale = 1.0
+
+        render = self.render_image(None, b=False)
+        assert render.startswith(delete)
 
     def test_scaled(self):
         # At varying scales
@@ -693,7 +691,7 @@ class TestClear:
             with pytest.raises(TypeError, match="'z_index'"):
                 KittyImage.clear(z_index=value)
 
-        for value in (-(2**31) - 1, 2**31):
+        for value in (-(2**31 + 1), 2**31):
             with pytest.raises(ValueError, match="z-index .* range"):
                 KittyImage.clear(z_index=value)
 
@@ -727,7 +725,7 @@ class TestClear:
             assert tty_buf.getvalue() == b""
 
     def test_z_index(self):
-        for value in range(-10, 11):
+        for value in (-(2**31), *range(-10, 11), 2**31 - 1):
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value, now=True)
                 assert buf.getvalue() == b""

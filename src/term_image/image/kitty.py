@@ -59,7 +59,7 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [method] [ z [index] ] [ m {0 | 1} ] [ c {0-9} ]
+        [method] [ z {index} ] [ m {0 | 1} ] [ c {0-9} ]
 
     * ``method``: Render method override.
 
@@ -72,17 +72,17 @@ class KittyImage(GraphicsImage):
 
     * ``z``: Image/Text stacking order.
 
-      * ``index``: Image z-index. An integer in the **signed 32-bit range**.
+      * ``index``: Image z-index. An integer in the **signed 32-bit range**
+        (excluding ``-(2**31)``).
 
-        Images drawn in the same location with different z-index values will be
-        blended if they are semi-transparent. If ``index`` is:
+        Overlapping images with different z-indexes values will be blended if they are
+        semi-transparent. If ``index`` is:
 
         * ``>= 0``, the image will be drawn above text.
         * ``< 0``, the image will be drawn below text.
         * ``< -(2**31)/2``, the image will be drawn below cells with non-default
           background color.
 
-      * ``z`` without ``index`` is currently only used internally.
       * If *absent*, defaults to ``z0`` i.e z-index zero.
       * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
 
@@ -113,7 +113,7 @@ class KittyImage(GraphicsImage):
     """
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
-        map(re.compile, r"[LW] z(-?\d+)? m[01] c[0-9]".split(" "))
+        map(re.compile, r"[LW] z-?\d+ m[01] c[0-9]".split(" "))
     )
     _render_methods: Set[str] = {LINES, WHOLE}
     _default_render_method: str = LINES
@@ -133,12 +133,14 @@ class KittyImage(GraphicsImage):
         "z_index": (
             0,
             (
-                lambda x: x is None or isinstance(x, int),
-                "z-index must be `None` or an integer",
+                lambda x: isinstance(x, int),
+                "z-index must be an integer",
             ),
             (
-                lambda x: x is None or -(2**31) <= x < 2**31,
-                "z-index must be within the 32-bit signed integer range",
+                # INT32_MIN is reserved for non-native animations
+                lambda x: -(2**31) < x < 2**31,
+                "z-index must be within the 32-bit signed integer range "
+                "(excluding ``-(2**31)``)",
             ),
         ),
         "mix": (
@@ -175,7 +177,8 @@ class KittyImage(GraphicsImage):
         Args:
             cursor: If ``True``, all images intersecting with the current cursor
               position are cleared.
-            z_index: If given, all images on the given z-index are cleared.
+            z_index: An integer in the **signed 32-bit range**. If given, all images
+              on the given z-index are cleared.
             now: If ``True`` the images are cleared immediately. Otherwise they're
               cleared when next Python's standard output buffer is flushed.
 
@@ -192,13 +195,16 @@ class KittyImage(GraphicsImage):
         if not isinstance(cursor, bool):
             raise TypeError(f"Invalid type for 'cursor' (got: {type(cursor).__name__})")
 
-        _, (type_check, _), (value_check, value_msg) = cls._style_args["z_index"]
-        if not type_check(z_index):
-            raise TypeError(
-                f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
-            )
-        if not value_check(z_index):
-            raise ValueError(value_msg)
+        if z_index is not None:
+            if not isinstance(z_index, int):
+                raise TypeError(
+                    f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
+                )
+            if not -(1 << 31) <= z_index < (1 << 31):
+                raise ValueError(
+                    "z-index must be within the 32-bit signed integer range "
+                    f"(got: {z_index})"
+                )
 
         if not isinstance(now, bool):
             raise TypeError(f"Invalid type for 'now' (got: {type(now).__name__})")
@@ -225,7 +231,7 @@ class KittyImage(GraphicsImage):
         self,
         *args,
         method: Optional[str] = None,
-        z_index: Optional[int] = 0,
+        z_index: int = 0,
         mix: bool = False,
         compress: int = 4,
         **kwargs,
@@ -240,14 +246,13 @@ class KittyImage(GraphicsImage):
               effective render method of the instance is used.
             z_index: The stacking order of images and text **for non-animations**.
 
-              Images drawn in the same location with different z-index values will be
-              blended if they are semi-transparent. If *z_index* is:
+              Overlapping images with different z-indexes values will be blended if
+              they are semi-transparent. If *z_index* is:
 
               * ``>= 0``, the image will be drawn above text.
               * ``< 0``, the image will be drawn below text.
               * ``< -(2**31)/2``, the image will be drawn below cells with
                 non-default background color.
-              * ``None``, internal use only, mentioned for the sake of completeness.
 
               To inter-mixing text with an image, see the *mix* parameter.
 
@@ -322,7 +327,7 @@ class KittyImage(GraphicsImage):
 
     @classmethod
     def _check_style_format_spec(cls, spec: str, original: str) -> Dict[str, Any]:
-        parent, (method, (z, index), mix, compress) = cls._get_style_format_spec(
+        parent, (method, z_index, mix, compress) = cls._get_style_format_spec(
             spec, original
         )
         args = {}
@@ -330,8 +335,8 @@ class KittyImage(GraphicsImage):
             args.update(super()._check_style_format_spec(parent, original))
         if method:
             args["method"] = LINES if method == "L" else WHOLE
-        if z:
-            args["z_index"] = index and int(index)
+        if z_index:
+            args["z_index"] = int(z_index[1:])
         if mix:
             args["mix"] = bool(int(mix[-1]))
         if compress:
@@ -343,7 +348,7 @@ class KittyImage(GraphicsImage):
     def _clear_frame(cls) -> bool:
         """Clears an animation frame on-screen.
 
-        | Only used on Kitty <= 0.25.0 because ``z_index=None`` is buggy on these
+        | Only used on Kitty <= 0.25.0 because ``blend=False`` is buggy on these
           versions. Does nothing on any other version or terminal.
         | Note that this implementation might do more than required since it clears
           all images on screen.
@@ -351,18 +356,14 @@ class KittyImage(GraphicsImage):
         See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
         """
         if cls._KITTY_VERSION and cls._KITTY_VERSION <= (0, 25, 0):
-            cls.clear()
+            cls.clear(z_index=-(1 << 31))
             return True
         return False
 
     def _display_animated(self, *args, **kwargs) -> None:
+        kwargs["z_index"] = -(1 << 31)
         if self._KITTY_VERSION > (0, 25, 0):
-            kwargs["z_index"] = None
-        else:
-            try:
-                del kwargs["z_index"]
-            except KeyError:
-                pass
+            kwargs["blend"] = False
 
         super()._display_animated(*args, **kwargs)
 
@@ -392,10 +393,19 @@ class KittyImage(GraphicsImage):
         *,
         frame: bool = False,
         method: Optional[str] = None,
-        z_index: Optional[int] = 0,
+        z_index: int = 0,
         mix: bool = False,
         compress: int = 4,
+        blend: bool = True,
     ) -> str:
+        """See :py:meth:`BaseImage._render_image` for the description of the method and
+        :py:meth:`draw` for parameters not described here.
+
+        Args:
+            blend: If ``False``, the rendered image deletes overlapping/intersecting
+              images when drawn. Otherwise, the behaviour is dependent on the z-index
+              and/or the terminal emulator (for images with the same z-index).
+        """
         # NOTE: It's more efficient to write separate strings to the buffer separately
         # than concatenate and write together.
 
@@ -422,7 +432,7 @@ class KittyImage(GraphicsImage):
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
         erase = "" if mix else f"{CSI}{r_width}X"
         jump_right = f"{CSI}{r_width}C"
-        if z_index is None:
+        if not blend:
             delete = f"{START}a=d,d=C;{ST}"
 
         if render_method == LINES:
@@ -434,7 +444,7 @@ class KittyImage(GraphicsImage):
                 trans = Transmission(
                     control_data, raw_image.read(bytes_per_line), compress
                 )
-                z_index is None and buffer.write(delete)
+                blend or buffer.write(delete)
                 for chunk in trans.get_chunks():
                     buffer.write(chunk)
                 # Writing spaces clears any text under transparent areas of an image
@@ -445,7 +455,7 @@ class KittyImage(GraphicsImage):
                     trans = Transmission(
                         control_data, raw_image.read(bytes_per_line), compress
                     )
-                    z_index is None and buffer.write(delete)
+                    blend or buffer.write(delete)
                     for chunk in trans.get_chunks():
                         buffer.write(chunk)
                 buffer.write(erase)
@@ -456,7 +466,7 @@ class KittyImage(GraphicsImage):
         vars(control_data).update(v=height, r=r_height)
         return "".join(
             (
-                z_index is None and delete or "",
+                ("" if blend else delete),
                 Transmission(control_data, raw_image, compress).get_chunked(),
                 f"{erase}{jump_right}\n" * (r_height - 1),
                 f"{erase}{jump_right}",
