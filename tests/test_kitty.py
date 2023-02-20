@@ -81,6 +81,7 @@ def test_style_format_spec():
         "c-1",
         "c10",
         "c4m1",
+        "z",
         " z1",
         "m0 ",
         "  z1c1  ",
@@ -96,8 +97,7 @@ def test_style_format_spec():
         ("z1", {"z_index": 1}),
         ("z-1", {"z_index": -1}),
         (f"z{2**31 - 1}", {"z_index": 2**31 - 1}),
-        (f"z{-2**31}", {"z_index": -(2**31)}),
-        ("z", {"z_index": None}),
+        (f"z{-(2**31 - 1)}", {"z_index": -(2**31 - 1)}),
         ("m0", {}),
         ("m1", {"mix": True}),
         ("c4", {}),
@@ -126,15 +126,15 @@ class TestStyleArgs:
             assert KittyImage._check_style_args({"method": value}) == {"method": value}
 
     def test_z_index(self):
-        for value in (1.0, (), [], "2"):
+        for value in (None, 1.0, (), [], "2"):
             with pytest.raises(TypeError):
                 KittyImage._check_style_args({"z_index": value})
-        for value in (-(2**31) - 1, 2**31):
+        for value in (-(2**31), 2**31):
             with pytest.raises(ValueError):
                 KittyImage._check_style_args({"z_index": value})
 
         assert KittyImage._check_style_args({"z_index": 0}) == {}
-        for value in (None, 1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             assert (
                 KittyImage._check_style_args({"z_index": value})
                 == {"z_index": value}  # fmt: skip
@@ -384,19 +384,11 @@ class TestRenderLines:
             assert ("z", "0") in decode_image(line)[0]
 
         # z_index = <int32_t>
-        for value in (1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             render = self.render_image(None, z=value)
             assert render == f"{self.trans:1.1#+z{value}}"
             for line in render.splitlines():
                 assert ("z", f"{value}") in decode_image(line)[0]
-
-        # z_index = None
-        render = self.render_image(None, z=None)
-        assert render == f"{self.trans:1.1#+z}"
-        for line in render.splitlines():
-            assert line.startswith(delete)
-            control_codes = decode_image(line.partition(delete)[2])[0]
-            assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
@@ -599,18 +591,11 @@ class TestRenderWhole:
         assert ("z", "0") in decode_image(render)[0]
 
         # z_index = <int32_t>
-        for value in (1, -1, -(2**31), 2**31 - 1):
+        for value in (1, -1, -(2**31 - 1), 2**31 - 1):
             render = self.render_image(None, z=value)
             assert render == f"{self.trans:1.1#+z{value}}"
             control_codes = decode_image(render)[0]
             assert ("z", f"{value}") in control_codes
-
-        # z_index = None
-        render = self.render_image(None, z=None)
-        assert render == f"{self.trans:1.1#+z}"
-        assert render.startswith(delete)
-        control_codes = decode_image(render.partition(delete)[2])[0]
-        assert all(key != "z" for key, value in control_codes)
 
     def test_mix(self):
         self.trans.scale = 1.0
