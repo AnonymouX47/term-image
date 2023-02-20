@@ -101,8 +101,11 @@ class UrwidImage(urwid.Widget):
                 style_args["blend"] = False
 
     def __del__(self) -> None:
-        if isinstance(self._ti_image, KittyImage):
-            type(self)._ti_free_z_indexes.add(self._ti_z_index)
+        try:
+            if isinstance(self._ti_image, KittyImage):
+                type(self)._ti_free_z_indexes.add(self._ti_z_index)
+        except AttributeError:  # Object initialization most likely failed
+            pass
 
     image = property(
         lambda self: self._ti_image,
