@@ -681,6 +681,7 @@ class TestClear:
             kitty._stdout_write = stdout_write
             kitty.write_tty = write_tty
             buf.close()
+            tty_buf.close()
 
     def test_args(self):
         for value in (1, 1.1, "1", []):
