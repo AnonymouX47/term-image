@@ -516,7 +516,7 @@ class UrwidImageJanitor(urwid.WidgetWrap):
             raise TypeError(f"Invalid type for 'widget' (got: {type(widget).__name__})")
 
         super().__init__(widget)
-        self._ti_images = frozenset()
+        self._ti_image_cviews = frozenset()
 
     widget = property(lambda self: self._w, doc="The wrapped widget")
 
@@ -532,9 +532,9 @@ class UrwidImageJanitor(urwid.WidgetWrap):
             return main_canv
 
         if not isinstance(main_canv, urwid.CompositeCanvas):
-            if self._ti_images:
+            if self._ti_image_cviews:
                 UrwidImage.clear_all()
-                self._ti_images.clear()
+                self._ti_image_cviews.clear()
             return main_canv
 
         def process_shard_tails():
@@ -576,7 +576,7 @@ class UrwidImageJanitor(urwid.WidgetWrap):
             process_shard_tails()
             row += n_rows
 
-        for canv, *_ in self._ti_images - images:
+        for canv, *_ in self._ti_image_cviews - images:
             widget = canv.widget_info[0]
             if isinstance(widget._ti_image, KittyImage):
                 widget.clear()
@@ -585,6 +585,6 @@ class UrwidImageJanitor(urwid.WidgetWrap):
                 # Multiple `clear_all()`s messes up the canvas disguise
                 # Also, a single `clear_all()` takes care of all images
                 break
-        self._ti_images = frozenset(images)
+        self._ti_image_cviews = frozenset(images)
 
         return main_canv
