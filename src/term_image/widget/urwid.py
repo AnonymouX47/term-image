@@ -521,6 +521,22 @@ class UrwidImageJanitor(urwid.WidgetWrap):
     widget = property(lambda self: self._w, doc="The wrapped widget")
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
+        main_canv = super().render(size, focus)
+
+        if not (
+            KittyImage._forced_support
+            or KittyImage.is_supported()
+            or ITerm2Image.is_supported()
+            and ITerm2Image._TERM == "konsole"
+        ):
+            return main_canv
+
+        if not isinstance(main_canv, urwid.CompositeCanvas):
+            if self._ti_images:
+                UrwidImage.clear_all()
+                self._ti_images.clear()
+            return main_canv
+
         def process_shard_tails():
             nonlocal col
 
@@ -531,14 +547,6 @@ class UrwidImageJanitor(urwid.WidgetWrap):
                 else:
                     del shard_tails[col]
                 col += cols
-
-        main_canv = super().render(size, focus)
-
-        if not isinstance(main_canv, urwid.CompositeCanvas):
-            if self._ti_images:
-                UrwidImage.clear_all()
-                self._ti_images.clear()
-            return main_canv
 
         images = set()
         shard_tails = {}
