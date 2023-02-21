@@ -512,6 +512,9 @@ class UrwidImageJanitor(urwid.WidgetWrap):
     no_cache = ["render"]
 
     def __init__(self, widget: urwid.Widget) -> None:
+        if not isinstance(widget, urwid.Widget):
+            raise TypeError(f"Invalid type for 'widget' (got: {type(widget).__name__})")
+
         super().__init__(widget)
         self._ti_images = frozenset()
 
