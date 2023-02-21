@@ -287,9 +287,13 @@ class KittyImage(GraphicsImage):
         )
 
     @classmethod
-    def is_supported(cls):
+    def is_supported(cls) -> bool:
         if cls._supported is None:
             cls._supported = False
+
+            # The graphics query for support detection messes up iTerm2's window title
+            if get_terminal_name_version()[0] == "iterm2":
+                return False
 
             # Kitty graphics query + terminal attribute query
             # The second query is to speed up the query since most (if not all)

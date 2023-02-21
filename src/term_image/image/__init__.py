@@ -99,7 +99,5 @@ def from_url(
     return auto_style().from_url(url, **kwargs)
 
 
-# In order of preference, based on image quality and style performance/functionality.
-# NOTE: 'iterm2' comes before 'kitty' because the query for 'kitty' support detection
-# messes up iTerm2's window title.
-_styles = (ITerm2Image, KittyImage, BlockImage)
+# In order of preference, based on image quality and style performance/functionality
+_styles = (KittyImage, ITerm2Image, BlockImage)
