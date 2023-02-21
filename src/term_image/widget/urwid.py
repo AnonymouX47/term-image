@@ -518,6 +518,8 @@ class UrwidImageJanitor(urwid.WidgetWrap):
         super().__init__(widget)
         self._ti_images = frozenset()
 
+    widget = property(lambda self: self._w, doc="The wrapped widget")
+
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         def process_shard_tails():
             nonlocal col
