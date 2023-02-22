@@ -906,7 +906,7 @@ def test_native_anim():
 class TestClear:
     @contextmanager
     def setup_buffer(self):
-        buf = io.BytesIO()
+        buf = io.StringIO()
         tty_buf = io.BytesIO()
 
         stdout_write = iterm2._stdout_write
@@ -928,8 +928,8 @@ class TestClear:
         try:
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(now=True)
-                assert buf.getvalue() == b""
-                assert tty_buf.getvalue() == iterm2.DELETE_ALL_IMAGES
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == iterm2.DELETE_ALL_IMAGES_b
 
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear()
@@ -944,8 +944,8 @@ class TestClear:
         try:
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(cursor=True, now=True)
-                assert buf.getvalue() == b""
-                assert tty_buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES_b
 
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(cursor=True)
@@ -959,11 +959,11 @@ class TestClear:
         try:
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear()
-                assert buf.getvalue() == b""
+                assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
 
                 ITerm2Image.clear(cursor=True)
-                assert buf.getvalue() == b""
+                assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
         finally:
             ITerm2Image._supported = True
@@ -974,11 +974,11 @@ class TestClear:
             for ITerm2Image._TERM in supported_terminals - {"konsole"}:
                 with self.setup_buffer() as (buf, tty_buf):
                     ITerm2Image.clear()
-                    assert buf.getvalue() == b""
+                    assert buf.getvalue() == ""
                     assert tty_buf.getvalue() == b""
 
                     ITerm2Image.clear(cursor=True)
-                    assert buf.getvalue() == b""
+                    assert buf.getvalue() == ""
                     assert tty_buf.getvalue() == b""
         finally:
             ITerm2Image._TERM = _TERM
