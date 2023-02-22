@@ -1,10 +1,20 @@
+import io
+import sys
+
 import pytest
 from PIL import Image
 
-from term_image.image import BlockImage, GraphicsImage, KittyImage, Size, TextImage
+from term_image.image import (
+    BlockImage,
+    GraphicsImage,
+    KittyImage,
+    Size,
+    TextImage,
+    kitty,
+)
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import COLOR_RESET, BG_FMT_b, COLOR_RESET_b
-from term_image.widget import UrwidImage, UrwidImageCanvas
+from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 
 _size = (30, 15)
 
@@ -821,3 +831,39 @@ class TestCanvasTrim:
                 )
                 for line in text:
                     assert line.startswith(BG_FMT_b % (16, 32, 48) + b" ")
+
+
+class TestScreen:
+    def test_start(self):
+        screen = UrwidImageScreen(input=sys.__stdin__)
+        buf = io.StringIO()
+        screen.write = buf.write
+
+        screen.start()
+        start_output = buf.getvalue()
+        buf.seek(0)
+        buf.truncate()
+        screen.stop()
+        stop_output = buf.getvalue()
+
+        assert start_output.endswith(kitty.DELETE_ALL_IMAGES)
+        assert stop_output.startswith(kitty.DELETE_ALL_IMAGES)
+
+    def test_not_supported(self):
+        screen = UrwidImageScreen(input=sys.__stdin__)
+        buf = io.StringIO()
+        screen.write = buf.write
+
+        KittyImage._supported = False
+        try:
+            screen.start()
+            start_output = buf.getvalue()
+            buf.seek(0)
+            buf.truncate()
+            screen.stop()
+            stop_output = buf.getvalue()
+
+            assert kitty.DELETE_ALL_IMAGES not in start_output
+            assert kitty.DELETE_ALL_IMAGES not in stop_output
+        finally:
+            KittyImage._supported = True
