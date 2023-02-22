@@ -507,16 +507,19 @@ class UrwidImageCanvas(urwid.Canvas):
 
 
 class UrwidImageJanitor(urwid.WidgetWrap):
-    """A widget wrapper that monitors images of some graphics-based render styles and
-    clears them off the screen when necessary.
+    """A widget wrapper that monitors images of some :ref:`graphics-based
+    <graphics-based>` render styles and clears them off the screen when necessary.
 
     Args:
         widget: A widget containing image widgets (possibly recursively).
 
-    For this widget to function properly, ensure that its position **relative to the
-    screen** can never change. It's most advisable to use this widget to wrap the base
-    widget but it may be used to wrap any other widget and will function properly as
-    long as the condition mentioned earlier is met.
+    NOTE:
+        For this widget to function properly, ensure that the position of its top-left
+        corner, **relative to the screen** can **never** change.
+
+        It's most advisable to use this widget to wrap the topmost widget but it may
+        be used to wrap any other widget and will function properly as long as the
+        condition mentioned earlier is met.
     """
 
     no_cache = ["render"]
