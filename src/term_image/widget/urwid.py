@@ -116,20 +116,30 @@ class UrwidImage(urwid.Widget):
         """,
     )
 
-    def clear(self) -> None:
+    def clear(self, *, now: bool = False) -> None:
         """Clears all images drawn by the widget, if the image rendered by the widget
         is of the :py:class:`kitty <term_image.image.KittyImage>` render style.
+
+        Args:
+            now: If ``True`` the images are cleared immediately, without affecting
+              any standard I/O stream.
+              Otherwise they're cleared when next ``sys.stdout`` is flushed.
         """
         if isinstance(self._ti_image, KittyImage):
-            KittyImage.clear(z_index=self._ti_z_index)
+            KittyImage.clear(z_index=self._ti_z_index, now=now)
             self._ti_disguise_state = (self._ti_disguise_state + 1) % 3
 
     @staticmethod
-    def clear_all() -> None:
+    def clear_all(*, now: bool = False) -> None:
         """Clears all on-screen images of :ref:`graphics-based <graphics-based>` styles
         that support such operation.
+
+        Args:
+            now: If ``True`` the images are cleared immediately, without affecting
+              any standard I/O stream.
+              Otherwise they're cleared when next ``sys.stdout`` is flushed.
         """
-        KittyImage.clear()  # Also takes care of iterm2 images on Konsole
+        KittyImage.clear(now=now)  # Also takes care of iterm2 images on Konsole
         UrwidImageCanvas._ti_change_disguise()
 
     def keypress(self, size: Tuple[int, int], key: str) -> str:
