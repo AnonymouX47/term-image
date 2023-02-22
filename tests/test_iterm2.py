@@ -3,6 +3,7 @@
 import io
 import sys
 from base64 import standard_b64decode
+from contextlib import contextmanager
 from random import random
 
 import pytest
@@ -11,6 +12,7 @@ from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
 
 from term_image.exceptions import ITerm2ImageError, TermImageWarning
+from term_image.image import iterm2
 from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
 from term_image.utils import CSI, ST
 
@@ -899,6 +901,87 @@ def test_native_anim():
     with pytest.warns(TermImageWarning, match="maximum for native animation"):
         render_native(apng_image)
     render_native(gif_image)
+
+
+class TestClear:
+    @contextmanager
+    def setup_buffer(self):
+        buf = io.StringIO()
+        tty_buf = io.BytesIO()
+
+        stdout_write = iterm2._stdout_write
+        write_tty = iterm2.write_tty
+        iterm2._stdout_write = buf.write
+        iterm2.write_tty = tty_buf.write
+
+        try:
+            yield buf, tty_buf
+        finally:
+            iterm2._stdout_write = stdout_write
+            iterm2.write_tty = write_tty
+            buf.close()
+            tty_buf.close()
+
+    def test_all(self):
+        _TERM = ITerm2Image._TERM
+        ITerm2Image._TERM = "konsole"
+        try:
+            with self.setup_buffer() as (buf, tty_buf):
+                ITerm2Image.clear(now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == iterm2.DELETE_ALL_IMAGES_b
+
+            with self.setup_buffer() as (buf, tty_buf):
+                ITerm2Image.clear()
+                assert buf.getvalue() == iterm2.DELETE_ALL_IMAGES
+                assert tty_buf.getvalue() == b""
+        finally:
+            ITerm2Image._TERM = _TERM
+
+    def test_cursor(self):
+        _TERM = ITerm2Image._TERM
+        ITerm2Image._TERM = "konsole"
+        try:
+            with self.setup_buffer() as (buf, tty_buf):
+                ITerm2Image.clear(cursor=True, now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES_b
+
+            with self.setup_buffer() as (buf, tty_buf):
+                ITerm2Image.clear(cursor=True)
+                assert buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES
+                assert tty_buf.getvalue() == b""
+        finally:
+            ITerm2Image._TERM = _TERM
+
+    def test_not_supported(self):
+        ITerm2Image._supported = False
+        try:
+            with self.setup_buffer() as (buf, tty_buf):
+                ITerm2Image.clear()
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
+                ITerm2Image.clear(cursor=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+        finally:
+            ITerm2Image._supported = True
+
+    def test_not_on_konsole(self):
+        _TERM = ITerm2Image._TERM
+        try:
+            for ITerm2Image._TERM in supported_terminals - {"konsole"}:
+                with self.setup_buffer() as (buf, tty_buf):
+                    ITerm2Image.clear()
+                    assert buf.getvalue() == ""
+                    assert tty_buf.getvalue() == b""
+
+                    ITerm2Image.clear(cursor=True)
+                    assert buf.getvalue() == ""
+                    assert tty_buf.getvalue() == b""
+        finally:
+            ITerm2Image._TERM = _TERM
 
 
 supported_terminals = {"iterm2", "wezterm", "konsole"}

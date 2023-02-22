@@ -14,8 +14,21 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 import PIL
 
 from ..exceptions import TermImageWarning, _style_error
-from ..utils import CSI, ESC, OSC, ST, get_terminal_name_version, get_terminal_size
+from ..utils import (
+    CSI,
+    OSC,
+    ST,
+    get_terminal_name_version,
+    get_terminal_size,
+    write_tty,
+)
 from .common import GraphicsImage, ImageSource
+from .kitty import (
+    DELETE_ALL_IMAGES,
+    DELETE_CURSOR_IMAGES,
+    DELETE_ALL_IMAGES_b,
+    DELETE_CURSOR_IMAGES_b,
+)
 
 # Constants for render methods
 LINES = "lines"
@@ -217,16 +230,29 @@ class ITerm2Image(GraphicsImage):
     _TERM_VERSION: str = ""
 
     @classmethod
-    def clear(cls) -> None:
-        """Clears all images on-screen.
+    def clear(cls, cursor: bool = False, now: bool = False) -> None:
+        """Clears images.
+
+        Args:
+            cursor: If ``True``, all images intersecting with the current cursor
+              position are cleared. Otherwise, all visible images are cleared.
+            now: If ``True`` the images are cleared immediately, without affecting
+              any standard I/O stream.
+              Otherwise they're cleared when next ``sys.stdout`` is flushed.
 
         Required and works only on Konsole, as text doesn't overwrite images.
         """
-        # `is_supported()` is called first in case it has never been called
+        # There's no point checking for forced support since this is only required on
+        # konsole which supports the protocol.
+        # `is_supported()` is first called to ensure `_TERM` has been set.
         if cls.is_supported() and cls._TERM == "konsole":
-            # Seems Konsole utilizes the same image rendering implementation as it
+            # Konsole utilizes the same image rendering implementation as it
             # uses for the kiity graphics protocol.
-            _stdout_write(DELETE_ALL_IMAGES)
+            (write_tty if now else _stdout_write)(
+                (DELETE_CURSOR_IMAGES_b if now else DELETE_CURSOR_IMAGES)
+                if cursor
+                else (DELETE_ALL_IMAGES_b if now else DELETE_ALL_IMAGES)
+            )
 
     def draw(
         self,
@@ -592,6 +618,5 @@ class ITerm2Image(GraphicsImage):
 
 
 START = f"{OSC}1337;File="
-DELETE_ALL_IMAGES = f"{ESC}_Ga=d;{ST}".encode()
 native_anim = Event()
-_stdout_write = sys.stdout.buffer.write
+_stdout_write = sys.stdout.write

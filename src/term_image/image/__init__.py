@@ -25,8 +25,8 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from .block import BlockImage  # noqa:F401
-from .common import (  # noqa:F401
+from .block import BlockImage
+from .common import (
     BaseImage,
     GraphicsImage,
     ImageIterator,
@@ -35,8 +35,8 @@ from .common import (  # noqa:F401
     Size,
     TextImage,
 )
-from .iterm2 import ITerm2Image  # noqa:F401
-from .kitty import KittyImage  # noqa:F401
+from .iterm2 import ITerm2Image
+from .kitty import KittyImage
 
 
 def auto_style() -> ImageMeta:
@@ -99,7 +99,5 @@ def from_url(
     return auto_style().from_url(url, **kwargs)
 
 
-# In order of preference, based on image quality and style performance/functionality.
-# NOTE: 'iterm2' comes before 'kitty' because the query for 'kitty' support detection
-# messes up iTerm2's window title.
-_styles = (ITerm2Image, KittyImage, BlockImage)
+# In order of preference, based on image quality and style performance/functionality
+_styles = (KittyImage, ITerm2Image, BlockImage)

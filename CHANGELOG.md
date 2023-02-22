@@ -20,12 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `read_tty_all()`
   - `write_tty()`
 - Support for clearing *kitty* images by z-index ([97eceab]).
+- Support for clearing *iterm2* images on konsole by intersection with cursor position ([807a9ec]).
 
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
 - **(BREAKING!)** Changed the valid values for the `z_index` style-specific parameter of the *kitty* render style ([#74]).
   - `None` is no longer a valid value.
   - The lower bound of the valid value range is now `-(2**31 - 1)`.
+- Extended `ITerm2Image.clear()` ([807a9ec]).
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -36,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
 [#74]: https://github.com/AnonymouX47/term-image/pull/74
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
-[97eceab]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
+[97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
+[807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
 
 
 ## [0.5.0] - 2023-01-09

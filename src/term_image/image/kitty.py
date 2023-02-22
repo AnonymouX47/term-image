@@ -179,8 +179,9 @@ class KittyImage(GraphicsImage):
               position are cleared.
             z_index: An integer in the **signed 32-bit range**. If given, all images
               on the given z-index are cleared.
-            now: If ``True`` the images are cleared immediately. Otherwise they're
-              cleared when next Python's standard output buffer is flushed.
+            now: If ``True`` the images are cleared immediately, without affecting
+              any standard I/O stream.
+              Otherwise they're cleared when next ``sys.stdout`` is flushed.
 
         Aside *now*, **only one** other argument may be given. If no argument is given
         (aside *now*) or default values are given, all images visible on the screen are
@@ -219,12 +220,17 @@ class KittyImage(GraphicsImage):
         elif given_args:
             arg, _ = given_args.pop()
             (write_tty if now else _stdout_write)(
-                DELETE_CURSOR_IMAGES
+                (DELETE_CURSOR_IMAGES_b if now else DELETE_CURSOR_IMAGES)
                 if arg == "cursor"
-                else DELETE_Z_INDEX_IMAGES % z_index
+                else (
+                    (DELETE_Z_INDEX_IMAGES_b if now else DELETE_Z_INDEX_IMAGES)
+                    % z_index
+                )
             )
+        elif now:
+            write_tty(DELETE_ALL_IMAGES_b)
         else:
-            (write_tty if now else _stdout_write)(DELETE_ALL_IMAGES)
+            _stdout_write(DELETE_ALL_IMAGES)
 
     # Only defined for the purpose of proper self-documentation
     def draw(
@@ -287,9 +293,13 @@ class KittyImage(GraphicsImage):
         )
 
     @classmethod
-    def is_supported(cls):
+    def is_supported(cls) -> bool:
         if cls._supported is None:
             cls._supported = False
+
+            # The graphics query for support detection messes up iTerm2's window title
+            if get_terminal_name_version()[0] == "iterm2":
+                return False
 
             # Kitty graphics query + terminal attribute query
             # The second query is to speed up the query since most (if not all)
@@ -631,7 +641,10 @@ class _ControlData:  # Currently Unused
 
 START = f"{ESC}_G"
 FMT = f"{START}%(control)s;%(payload)s{ST}"
-DELETE_ALL_IMAGES = f"{ESC}_Ga=d,d=A;{ST}".encode()
-DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}".encode()
-DELETE_Z_INDEX_IMAGES = f"{ESC}_Ga=d,d=Z,z=%d;{ST}".encode()
-_stdout_write = sys.stdout.buffer.write
+DELETE_ALL_IMAGES = f"{ESC}_Ga=d,d=A;{ST}"
+DELETE_ALL_IMAGES_b = DELETE_ALL_IMAGES.encode()
+DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}"
+DELETE_CURSOR_IMAGES_b = DELETE_CURSOR_IMAGES.encode()
+DELETE_Z_INDEX_IMAGES = f"{ESC}_Ga=d,d=Z,z=%d;{ST}"
+DELETE_Z_INDEX_IMAGES_b = DELETE_Z_INDEX_IMAGES.encode()
+_stdout_write = sys.stdout.write

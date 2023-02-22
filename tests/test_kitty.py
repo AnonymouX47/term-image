@@ -667,7 +667,7 @@ class TestRenderWhole:
 class TestClear:
     @contextmanager
     def setup_buffer(self):
-        buf = io.BytesIO()
+        buf = io.StringIO()
         tty_buf = io.BytesIO()
 
         stdout_write = kitty._stdout_write
@@ -681,6 +681,7 @@ class TestClear:
             kitty._stdout_write = stdout_write
             kitty.write_tty = write_tty
             buf.close()
+            tty_buf.close()
 
     def test_args(self):
         for value in (1, 1.1, "1", []):
@@ -705,8 +706,8 @@ class TestClear:
     def test_all(self):
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(now=True)
-            assert buf.getvalue() == b""
-            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert buf.getvalue() == ""
+            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
 
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear()
@@ -716,8 +717,8 @@ class TestClear:
     def test_cursor(self):
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(cursor=True, now=True)
-            assert buf.getvalue() == b""
-            assert tty_buf.getvalue() == kitty.DELETE_CURSOR_IMAGES
+            assert buf.getvalue() == ""
+            assert tty_buf.getvalue() == kitty.DELETE_CURSOR_IMAGES_b
 
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(cursor=True)
@@ -728,8 +729,8 @@ class TestClear:
         for value in (-(2**31), *range(-10, 11), 2**31 - 1):
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value, now=True)
-                assert buf.getvalue() == b""
-                assert tty_buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % value
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES_b % value
 
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value)
@@ -741,15 +742,15 @@ class TestClear:
         try:
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear()
-                assert buf.getvalue() == b""
+                assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
 
                 KittyImage.clear(cursor=True)
-                assert buf.getvalue() == b""
+                assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
 
                 KittyImage.clear(z_index=0)
-                assert buf.getvalue() == b""
+                assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
         finally:
             KittyImage._supported = True
