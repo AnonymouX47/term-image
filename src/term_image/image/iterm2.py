@@ -16,7 +16,6 @@ import PIL
 from ..exceptions import TermImageWarning, _style_error
 from ..utils import (
     CSI,
-    ESC,
     OSC,
     ST,
     get_terminal_name_version,
@@ -24,6 +23,12 @@ from ..utils import (
     write_tty,
 )
 from .common import GraphicsImage, ImageSource
+from .kitty import (
+    DELETE_ALL_IMAGES,
+    DELETE_CURSOR_IMAGES,
+    DELETE_ALL_IMAGES_b,
+    DELETE_CURSOR_IMAGES_b,
+)
 
 # Constants for render methods
 LINES = "lines"
@@ -231,8 +236,9 @@ class ITerm2Image(GraphicsImage):
         Args:
             cursor: If ``True``, all images intersecting with the current cursor
               position are cleared. Otherwise, all visible images are cleared.
-            now: If ``True`` the images are cleared immediately. Otherwise they're
-              cleared when next Python's standard output buffer is flushed.
+            now: If ``True`` the images are cleared immediately, without affecting
+              any standard I/O stream.
+              Otherwise they're cleared when next ``sys.stdout`` is flushed.
 
         Required and works only on Konsole, as text doesn't overwrite images.
         """
@@ -243,7 +249,9 @@ class ITerm2Image(GraphicsImage):
             # Konsole utilizes the same image rendering implementation as it
             # uses for the kiity graphics protocol.
             (write_tty if now else _stdout_write)(
-                DELETE_CURSOR_IMAGES if cursor else DELETE_ALL_IMAGES
+                (DELETE_CURSOR_IMAGES_b if now else DELETE_CURSOR_IMAGES)
+                if cursor
+                else (DELETE_ALL_IMAGES_b if now else DELETE_ALL_IMAGES)
             )
 
     def draw(
@@ -610,7 +618,5 @@ class ITerm2Image(GraphicsImage):
 
 
 START = f"{OSC}1337;File="
-DELETE_ALL_IMAGES = f"{ESC}_Ga=d,d=A;{ST}".encode()
-DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}".encode()
 native_anim = Event()
-_stdout_write = sys.stdout.buffer.write
+_stdout_write = sys.stdout.write
