@@ -121,9 +121,8 @@ class UrwidImage(urwid.Widget):
         is of the :py:class:`kitty <term_image.image.KittyImage>` render style.
 
         Args:
-            now: If ``True`` the images are cleared immediately, without affecting
-              any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+            now: If ``True`` the images are cleared immediately. Otherwise they're
+              cleared just before the next screen redraw.
         """
         if isinstance(self._ti_image, KittyImage):
             KittyImage.clear(z_index=self._ti_z_index, now=now)
@@ -132,12 +131,11 @@ class UrwidImage(urwid.Widget):
     @staticmethod
     def clear_all(*, now: bool = False) -> None:
         """Clears all on-screen images of :ref:`graphics-based <graphics-based>` styles
-        that support such operation.
+        that support/require such an operation.
 
         Args:
-            now: If ``True`` the images are cleared immediately, without affecting
-              any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+            now: If ``True`` the images are cleared immediately. Otherwise they're
+              cleared just before the next screen redraw.
         """
         KittyImage.clear(now=now)  # Also takes care of iterm2 images on Konsole
         UrwidImageCanvas._ti_change_disguise()
