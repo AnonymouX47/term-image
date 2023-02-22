@@ -9,7 +9,12 @@ try:
 except ImportError:
     pass
 else:
-    from .urwid import UrwidImage, UrwidImageCanvas, UrwidImageJanitor
+    from .urwid import UrwidImage, UrwidImageCanvas, UrwidImageJanitor, UrwidImageScreen
 
     del urwid
-    __all__ += ["UrwidImage", "UrwidImageCanvas", "UrwidImageJanitor"]
+    __all__ += [
+        "UrwidImage",
+        "UrwidImageCanvas",
+        "UrwidImageJanitor",
+        "UrwidImageScreen",
+    ]

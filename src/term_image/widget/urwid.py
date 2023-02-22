@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 import urwid
 
 from ..exceptions import UrwidImageError
-from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
+from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage, kitty
 from ..utils import COLOR_RESET_b, ESC_b
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
@@ -601,3 +601,27 @@ class UrwidImageJanitor(urwid.WidgetWrap):
         self._ti_image_cviews = frozenset(images)
 
         return main_canv
+
+
+class UrwidImageScreen(urwid.raw_display.Screen):
+    """A screen that clears all visible images of the
+    :py:class:`kitty <term_image.image.KittyImage>` render style immediately after
+    it starts and immediately before it stops.
+
+    See the `baseclass
+    <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
+    for futher description.
+    """
+
+    def _start(self, *args, **kwargs):
+        ret = super()._start(*args, **kwargs)
+        if KittyImage._forced_support or KittyImage.is_supported():
+            self.write(kitty.DELETE_ALL_IMAGES)
+
+        return ret
+
+    def _stop(self):
+        if KittyImage._forced_support or KittyImage.is_supported():
+            self.write(kitty.DELETE_ALL_IMAGES)
+
+        return super()._stop()
