@@ -1,10 +1,13 @@
+import gc
 import io
 import sys
+from contextlib import contextmanager
 
 import pytest
 import urwid
 from PIL import Image
 
+from term_image.exceptions import UrwidImageError
 from term_image.image import (
     BlockImage,
     GraphicsImage,
@@ -28,6 +31,7 @@ _size = (30, 15)
 python_file = "tests/images/python.png"
 python_img = Image.open(python_file)
 python_image = BlockImage(python_img)
+kitty_image = KittyImage(python_img)
 trans = BlockImage.from_file("tests/images/trans.png")
 
 
@@ -257,6 +261,209 @@ def test_ignore_padding():
 
 # There's no need to test formatting separately since it uses the functionality of the
 # underlying image
+
+
+@contextmanager
+def setup_kitty_clear_buffers():
+    buf = io.StringIO()
+    tty_buf = io.BytesIO()
+
+    stdout_write = kitty._stdout_write
+    write_tty = kitty.write_tty
+    kitty._stdout_write = buf.write
+    kitty.write_tty = tty_buf.write
+
+    try:
+        yield buf, tty_buf
+    finally:
+        kitty._stdout_write = stdout_write
+        kitty.write_tty = write_tty
+        buf.close()
+        tty_buf.close()
+
+
+class TestClearAll:
+    def test_now_false(self):
+        with setup_kitty_clear_buffers() as (buf, tty_buf):
+            UrwidImage.clear_all()
+            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert tty_buf.getvalue() == b""
+
+    def test_now_true(self):
+        with setup_kitty_clear_buffers() as (buf, tty_buf):
+            UrwidImage.clear_all(now=True)
+            assert buf.getvalue() == ""
+            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
+
+    def test_not_supported(self):
+        KittyImage._supported = False
+        try:
+            with setup_kitty_clear_buffers() as (buf, tty_buf):
+                UrwidImage.clear_all()
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
+                UrwidImage.clear_all(now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+        finally:
+            KittyImage._supported = True
+
+    def test_disguise(self):
+        UrwidImageCanvas._ti_disguise_state = 0
+        try:
+            with setup_kitty_clear_buffers():
+                for value in (1, 2, 0, 1, 2, 0, 1):
+                    UrwidImage.clear_all()
+                    assert UrwidImageCanvas._ti_disguise_state == value
+        finally:
+            UrwidImageCanvas._ti_disguise_state = 0
+
+
+class TestClear:
+    def test_now_false(self):
+        for image_w in [UrwidImage(kitty_image) for _ in range(4)]:
+            with setup_kitty_clear_buffers() as (buf, tty_buf):
+                image_w.clear()
+                assert (
+                    buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % image_w._ti_z_index
+                )
+                assert tty_buf.getvalue() == b""
+
+    def test_now_true(self):
+        for image_w in [UrwidImage(kitty_image) for _ in range(4)]:
+            with setup_kitty_clear_buffers() as (buf, tty_buf):
+                image_w.clear(now=True)
+                assert buf.getvalue() == ""
+                assert (
+                    tty_buf.getvalue()
+                    == kitty.DELETE_Z_INDEX_IMAGES_b % image_w._ti_z_index
+                )
+
+    def test_not_supported(self):
+        image_w = UrwidImage(kitty_image)
+        KittyImage._supported = False
+        try:
+            with setup_kitty_clear_buffers() as (buf, tty_buf):
+                image_w.clear()
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
+                image_w.clear(now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+        finally:
+            KittyImage._supported = True
+
+    def test_disguise_state(self):
+        image_w = UrwidImage(kitty_image)
+        assert image_w._ti_disguise_state == 0
+
+        with setup_kitty_clear_buffers():
+            for value in (1, 2, 0, 1, 2, 0, 1):
+                image_w.clear()
+                assert image_w._ti_disguise_state == value
+
+
+class TestKittyWidget:
+    def test_disguise(self):
+        image_w = UrwidImage(kitty_image)
+        canv = image_w.render(_size)
+        UrwidImageCanvas._ti_disguise_state = 0
+        with setup_kitty_clear_buffers():
+            for disguise_state in (0, 1, 2, 0, 1, 2, 0):
+                content = canv.text
+                for line in content:
+                    line = line.decode()
+                    assert line.endswith("\0\0" + "\b " * disguise_state)
+                image_w.clear()
+
+    def test_disguise_combined(self):
+        image_w = UrwidImage(kitty_image)
+        canv = image_w.render(_size)
+        UrwidImageCanvas._ti_disguise_state = 2
+        try:
+            with setup_kitty_clear_buffers():
+                for disguise_states in ((2, 0), (0, 1), (1, 2), (2, 0)):
+                    content = canv.text
+                    for line in content:
+                        line = line.decode()
+                        assert line.endswith("\0\0" + "\b " * sum(disguise_states))
+                    image_w.clear()
+                    UrwidImageCanvas._ti_change_disguise()
+        finally:
+            UrwidImageCanvas._ti_disguise_state = 0
+
+    class TestZIndex:
+        def test_alloc(self):
+            gc.collect()
+            UrwidImage._ti_next_z_index = 1
+            UrwidImage._ti_free_z_indexes.clear()
+            images = []
+
+            for index in (1, -1, 2, -2, 3, -3, 4, -4):
+                images.append(UrwidImage(kitty_image))
+                assert images[-1]._ti_z_index == index
+            assert UrwidImage._ti_next_z_index == 5
+
+        def test_free(self):
+            gc.collect()
+            UrwidImage._ti_next_z_index = 1
+            UrwidImage._ti_free_z_indexes.clear()
+
+            [UrwidImage(kitty_image) for _ in range(10)]
+            gc.collect()
+
+            assert len(UrwidImage._ti_free_z_indexes) == 10
+            assert UrwidImage._ti_next_z_index == 6
+
+        def test_use_freed(self):
+            gc.collect()
+            UrwidImage._ti_next_z_index = 1
+            UrwidImage._ti_free_z_indexes.clear()
+
+            images = [UrwidImage(kitty_image) for _ in range(100)]
+            z_indexes = {image_w._ti_z_index for image_w in images}
+            next_z_index = UrwidImage._ti_next_z_index
+            del images
+            gc.collect()
+            images = [UrwidImage(kitty_image) for _ in range(100)]
+
+            assert {image_w._ti_z_index for image_w in images} == z_indexes
+            assert len(UrwidImage._ti_free_z_indexes) == 0
+            assert next_z_index == UrwidImage._ti_next_z_index
+
+        def test_limit(self):
+            gc.collect()
+            UrwidImage._ti_next_z_index = 2**31 - 2
+            UrwidImage._ti_free_z_indexes.clear()
+            images = []
+
+            for index in (2**31 - 2, -(2**31 - 2), 2**31 - 1, -(2**31 - 1)):
+                images.append(UrwidImage(kitty_image))
+                assert images[-1]._ti_z_index == index
+
+            with pytest.raises(UrwidImageError, match="many .* kitty"):
+                UrwidImage(kitty_image)
+            assert UrwidImage._ti_next_z_index == 2**31
+
+            # Does not recover until after a widget is freed
+            with pytest.raises(UrwidImageError, match="many .* kitty"):
+                UrwidImage(kitty_image)
+            assert UrwidImage._ti_next_z_index == 2**31
+
+            del images[0]
+            gc.collect()
+
+            # Recovers after a widget is freed
+            images.append(UrwidImage(kitty_image))
+            assert images[-1]._ti_z_index == 2**31 - 2
+            assert UrwidImage._ti_next_z_index == 2**31
+
+            # Fails again after freed index is used
+            with pytest.raises(UrwidImageError, match="many .* kitty"):
+                UrwidImage(kitty_image)
+            assert UrwidImage._ti_next_z_index == 2**31
 
 
 class TestCanvas:
