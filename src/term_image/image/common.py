@@ -87,6 +87,24 @@ class Hidden:
     __ascii__ = __str__ = __repr__
 
 
+class SourceAttr(Hidden, str):
+    """A string that only compares equal to itself but returns the original hash of
+    the string.
+
+    Used to store the attribute that holds the value for ``image.source`` as the
+    value of enum members, because some would normally compare equal.
+    """
+
+    def __init__(self, *_):
+        self._str = super(Hidden).__str__()
+
+    def __eq__(self, _):
+        return NotImplemented
+
+    __ne__ = __eq__
+    __hash__ = str.__hash__
+
+
 class ImageSource(Enum):
     """Image source type.
 
@@ -96,33 +114,14 @@ class ImageSource(Enum):
         Any comparison should be by identity of the members themselves.
     """
 
-    _ignore_ = ["_SourceAttr"]
-
-    class _SourceAttr(Hidden, str):
-        """A string that only compares equal to itself but returns the original hash of
-        the string.
-
-        Used to store the attribute that holds the value for ``image.source`` as the
-        value of enum members, because some would normally compare equal.
-        """
-
-        def __init__(self, *_):
-            self._str = super(Hidden).__str__()
-
-        def __eq__(self, _):
-            return NotImplemented
-
-        __ne__ = __eq__
-        __hash__ = str.__hash__
-
     #: The instance was derived from a path to a local image file.
-    FILE_PATH = _SourceAttr("_source")
+    FILE_PATH = SourceAttr("_source")
 
     #: The instance was derived from a PIL image instance.
-    PIL_IMAGE = _SourceAttr("_source")
+    PIL_IMAGE = SourceAttr("_source")
 
     #: The instance was derived from an image URL.
-    URL = _SourceAttr("_url")
+    URL = SourceAttr("_url")
 
 
 class Size(Enum):
