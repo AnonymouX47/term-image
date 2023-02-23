@@ -486,18 +486,43 @@ class TestCanvas:
         for content_line, line in zip(content, canv._ti_lines):
             assert content_line == line.replace(b"\0", b"") + b"\0\0"
 
-    def test_disguise(self):
-        image_w = UrwidImage(KittyImage(python_img), upscale=True)
-        canv = image_w.render(_size)
+    def test_disguise_supported(self):
+        _TERM = ITerm2Image._TERM
+        ITerm2Image._TERM = "konsole"
         try:
-            for disguise_state in (0, 1, 2, 0, 1, 2, 0):
-                content = canv.text
-                for line in content:
-                    line = line.decode()
-                    assert line.endswith("\0\0" + "\b " * disguise_state)
-                UrwidImageCanvas._ti_change_disguise()
+            for ImageClass in (KittyImage, ITerm2Image):
+                image_w = UrwidImage(ImageClass(python_img))
+                canv = image_w.render(_size)
+
+                UrwidImageCanvas._ti_disguise_state = 0
+                for disguise_state in (0, 1, 2, 0, 1, 2, 0):
+                    content = canv.text
+                    for line in content:
+                        line = line.decode()
+                        assert line.endswith("\0\0" + "\b " * disguise_state)
+                    UrwidImageCanvas._ti_change_disguise()
         finally:
             UrwidImageCanvas._ti_disguise_state = 0
+            ITerm2Image._TERM = _TERM
+
+    def test_disguise_not_supported(self):
+        _TERM = ITerm2Image._TERM
+        ITerm2Image._TERM = "wezterm"
+        try:
+            for ImageClass in (BlockImage, ITerm2Image):
+                image_w = UrwidImage(ImageClass(python_img))
+                canv = image_w.render(_size)
+
+                UrwidImageCanvas._ti_disguise_state = 0
+                for disguise_state in (0, 1, 2, 0, 1, 2, 0):
+                    content = canv.text
+                    for line in content:
+                        line = line.decode()
+                        assert line.endswith("\0\0")
+                    UrwidImageCanvas._ti_change_disguise()
+        finally:
+            UrwidImageCanvas._ti_disguise_state = 0
+            ITerm2Image._TERM = _TERM
 
 
 def get_trim_render_canv(ImageClass, image_size, h_align, v_align):
