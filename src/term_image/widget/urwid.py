@@ -51,7 +51,6 @@ class UrwidImage(urwid.Widget):
     """
 
     _sizing = frozenset((urwid.BOX, urwid.FLOW))
-    _selectable = True
     ignore_focus = True
 
     _ti_error_placeholder = None
@@ -139,9 +138,6 @@ class UrwidImage(urwid.Widget):
         """
         KittyImage.clear(now=now)  # Also takes care of iterm2 images on Konsole
         UrwidImageCanvas._ti_change_disguise()
-
-    def keypress(self, size: Tuple[int, int], key: str) -> str:
-        return key
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         image = self._ti_image
