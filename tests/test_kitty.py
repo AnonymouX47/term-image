@@ -745,11 +745,23 @@ class TestClear:
                 assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
 
+                KittyImage.clear(now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
                 KittyImage.clear(cursor=True)
                 assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
 
+                KittyImage.clear(cursor=True, now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
                 KittyImage.clear(z_index=0)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
+                KittyImage.clear(z_index=0, now=True)
                 assert buf.getvalue() == ""
                 assert tty_buf.getvalue() == b""
         finally:
