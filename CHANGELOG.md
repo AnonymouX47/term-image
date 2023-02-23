@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `write_tty()`
 - Support for clearing *kitty* images by z-index ([97eceab]).
 - Support for clearing *iterm2* images on konsole by intersection with cursor position ([807a9ec]).
+- Widgets and related classes to display images with [urwid](https://urwid.org) ([#73]).
+  - `term_image.widget` subpackage
+  - `term_image.widget.UrwidImage`
+  - `term_image.widget.UrwidImageCanvas`
+  - `term_image.widget.UrwidImageJanitor`
+  - `term_image.widget.UrwidImageScreen`
 
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
@@ -36,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#70]: https://github.com/AnonymouX47/term-image/pull/70
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
+[#73]: https://github.com/AnonymouX47/term-image/pull/73
 [#74]: https://github.com/AnonymouX47/term-image/pull/74
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
