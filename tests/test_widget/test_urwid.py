@@ -1114,14 +1114,16 @@ class TestJanitor:
         canv = janitor.render(_size)
         assert canv.text == widget_canv.text
 
-    def test_render(self):
+
+class TestJanitorRender:
+    def test_image_cviews(self):
         janitor = UrwidImageJanitor(widget)
         assert janitor._ti_image_cviews == frozenset()
 
         janitor.render(_size)
         assert isinstance(janitor._ti_image_cviews, frozenset)
 
-    def test_render_move_top_widget(self):
+    def test_move_top_widget(self):
         _TERM = ITerm2Image._TERM
         ITerm2Image._TERM = "konsole"
         try:
@@ -1210,7 +1212,7 @@ class TestJanitor:
 
     # FIXME: Figure out why the listbox insets are not scrolling the listbox by the
     # expected number of rows
-    def test_render_scroll_listboxes(self):
+    def test_scroll_listboxes(self):
         _TERM = ITerm2Image._TERM
         ITerm2Image._TERM = "konsole"
         try:
@@ -1284,7 +1286,7 @@ class TestJanitor:
         finally:
             ITerm2Image._TERM = _TERM
 
-    def test_render_change_top_widget(self):
+    def test_change_top_widget(self):
         _TERM = ITerm2Image._TERM
         ITerm2Image._TERM = "konsole"
         try:
@@ -1335,7 +1337,7 @@ class TestJanitor:
         finally:
             ITerm2Image._TERM = _TERM
 
-    def test_render_iterm2_not_on_konsole(self):
+    def test_iterm2_not_on_konsole(self):
         _TERM = ITerm2Image._TERM
         ITerm2Image._TERM = "wezterm"
         try:
