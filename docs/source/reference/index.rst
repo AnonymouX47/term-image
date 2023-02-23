@@ -16,6 +16,7 @@ Reference
    :caption: Sub-sections:
 
    image
+   widget
    exceptions
    utils
 
