@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ("ITerm2Image",)
 
 import io
+import os
 import re
 import sys
 import warnings
@@ -375,10 +376,14 @@ class ITerm2Image(GraphicsImage):
     ):
         if native:
             if self._TERM == "konsole":
+                if img is not self._source:
+                    img.close()
                 raise _style_error(type(self))(
                     "Native animation is not supported in the active terminal"
                 )
             if img.format == "WEBP":
+                if img is not self._source:
+                    img.close()
                 raise _style_error(type(self))("Native WEBP animation is not supported")
             try:
                 print(
@@ -451,7 +456,7 @@ class ITerm2Image(GraphicsImage):
         file_is_readable = True
         if self._source_type is ImageSource.PIL_IMAGE:
             try:
-                open(img.filename)
+                file_is_readable = os.access(img.filename, os.R_OK)
             except (AttributeError, OSError):
                 file_is_readable = False
 
@@ -460,10 +465,12 @@ class ITerm2Image(GraphicsImage):
                 if file_is_readable:
                     compressed_image = open(img.filename, "rb")
                 else:
+                    compressed_image = io.BytesIO()
                     try:
-                        compressed_image = io.BytesIO()
                         img.save(compressed_image, img.format, save_all=True)
                     except ValueError:
+                        if img is not self._source:
+                            img.close()
                         raise _style_error(type(self))(
                             "Native animation not supported: This image was sourced "
                             "from a PIL image of an unknown format"

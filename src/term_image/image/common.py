@@ -404,7 +404,12 @@ class BaseImage(metaclass=ImageMeta):
             return 1
 
         if not self._n_frames:
-            self._n_frames = self._get_image().n_frames
+            img = self._get_image()
+            try:
+                self._n_frames = img.n_frames
+            finally:
+                if img is not self._source:
+                    img.close()
 
         return self._n_frames
 
@@ -872,13 +877,15 @@ class BaseImage(metaclass=ImageMeta):
 
         # Intentionally propagates `IsADirectoryError` since the message is OK
         try:
-            new = cls(Image.open(filepath), **kwargs)
+            img = Image.open(filepath)
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filepath!r}") from None
         except UnidentifiedImageError as e:
             e.args = (f"Could not identify {filepath!r} as an image",)
             raise
 
+        with img:
+            new = cls(img, **kwargs)
         # Absolute paths work better with symlinks, as opposed to real paths:
         # less confusing, Filename is as expected, helps in path comparisons
         new._source = os.path.abspath(filepath)

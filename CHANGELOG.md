@@ -6,11 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+- Resource leaks via unclosed PIL image instances ([cdc6650]).
 - [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5])
 - [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
 
 ### Added
-- `auto_style()` to `term_image.image` ([#70]).
+- `auto_image_class()` to `term_image.image` ([#70]).
 - Render style forced support ([#70]).
   - `enable_forced_support()` and `disable_forced_support()` to `BaseImage`.
 - New utilities in `term_image.utils` ([#70]):
@@ -47,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
+[cdc6650]: https://github.com/AnonymouX47/term-image/commit/cdc665021cc293b0fb5c0519177287752ef64dc4
 
 
 ## [0.5.0] - 2023-01-09

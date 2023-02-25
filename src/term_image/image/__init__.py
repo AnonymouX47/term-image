@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 __all__ = (
-    "auto_style",
+    "auto_image_class",
     "AutoImage",
     "from_file",
     "from_url",
@@ -39,8 +39,8 @@ from .iterm2 import ITerm2Image
 from .kitty import KittyImage
 
 
-def auto_style() -> ImageMeta:
-    """Selects the render style that best suits the current terminal emulator.
+def auto_image_class() -> ImageMeta:
+    """Selects the image render style that best suits the current terminal emulator.
 
     Returns:
         An image class (a subclass of :py:class:`BaseImage`).
@@ -61,12 +61,12 @@ def AutoImage(
     """Creates an image instance from a PIL image instance.
 
     Returns:
-        An instance of the automatically selected render style (as returned by
-        :py:func:`auto_style`).
+        An instance of the automatically selected image render style (as returned by
+        :py:func:`auto_image_class`).
 
     Same arguments and raised exceptions as the :py:class:`BaseImage` class constructor.
     """
-    return auto_style()(image, width=width, height=height, scale=scale)
+    return auto_image_class()(image, width=width, height=height, scale=scale)
 
 
 def from_file(
@@ -76,12 +76,12 @@ def from_file(
     """Creates an image instance from an image file.
 
     Returns:
-        An instance of the automatically selected render style (as returned by
-        :py:func:`auto_style`).
+        An instance of the automatically selected image render style (as returned by
+        :py:func:`auto_image_class`).
 
     Same arguments and raised exceptions as :py:meth:`BaseImage.from_file`.
     """
-    return auto_style().from_file(filepath, **kwargs)
+    return auto_image_class().from_file(filepath, **kwargs)
 
 
 def from_url(
@@ -91,12 +91,12 @@ def from_url(
     """Creates an image instance from an image URL.
 
     Returns:
-        An instance of the automatically selected render style (as returned by
-        :py:func:`auto_style`).
+        An instance of the automatically selected image render style (as returned by
+        :py:func:`auto_image_class`).
 
     Same arguments and raised exceptions as :py:meth:`BaseImage.from_url`.
     """
-    return auto_style().from_url(url, **kwargs)
+    return auto_image_class().from_url(url, **kwargs)
 
 
 # In order of preference, based on image quality and style performance/functionality
