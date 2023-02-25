@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import term_image
 
 
@@ -10,6 +12,17 @@ def set_cell_size(size):
 
     cell_size = size
     term_image.AutoCellRatio.is_supported = None
+
+
+@contextmanager
+def reset_cell_size_ratio():
+    cell_ratio = term_image._cell_ratio
+    cell_size = get_cell_size()
+    try:
+        yield
+    finally:
+        term_image._cell_ratio = cell_ratio
+        set_cell_size(cell_size)
 
 
 def get_terminal_size():
