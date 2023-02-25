@@ -23,14 +23,14 @@ from .test_base import clear_stdout, stdout
 
 ITerm2Image.READ_FROM_FILE = False
 
+
+def test_setup_common():
+    setup_common(ITerm2Image)
+
+
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Graphics")):
         globals()[name] = obj
-
-
-@pytest.mark.order("first")
-def test_setup_common():
-    setup_common(ITerm2Image)
 
 
 def test_set_render_method():
