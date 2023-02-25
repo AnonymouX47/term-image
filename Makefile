@@ -1,4 +1,4 @@
-py_files = *.py src/* docs/source/conf.py tests/
+py_files := *.py src/* docs/source/conf.py tests/
 
 _: check test
 
@@ -61,38 +61,29 @@ uninstall:
 
 # Tests
 
-test-all: test test-url
-test: test-top test-image test-iterator test-widget
-test-image: test-base test-text test-graphics test-others
-test-graphics: test-kitty test-iterm2
-test-text: test-block
-test-widget: test-urwid
+pytest := pytest -v
 
-# Executing using `python -m` adds CWD to `sys.path`.
+## Filepath variables
 
-test-top:
-	python -m pytest -v tests/test_top_level.py
+test-top := tests/test_top_level.py
+test-base := tests/test_image/test_base.py
+test-block := tests/test_image/test_block.py
+test-kitty := tests/test_image/test_kitty.py
+test-iterm2 := tests/test_image/test_iterm2.py
+test-url := tests/test_image/test_url.py
+test-others := tests/test_image/test_others.py
+test-iterator := tests/test_iterator.py
+test-urwid := tests/test_widget/test_urwid.py
 
-test-base:
-	python -m pytest -v tests/test_image/test_base.py
+test-text := $(test-block)
+test-graphics := $(test-kitty) $(test-iterm2)
+test-image := $(test-base) $(test-text) $(test-graphics) $(test-others)
+test-widget := $(test-urwid)
+test := $(test-top) $(test-image) $(test-iterator) $(test-widget)
+test-all := $(test) $(test-url)
 
-test-others:
-	python -m pytest -v tests/test_image/test_others.py
+## Targets
 
-test-iterm2:
-	python -m pytest -v tests/test_image/test_iterm2.py
-
-test-kitty:
-	python -m pytest -v tests/test_image/test_kitty.py
-
-test-block:
-	python -m pytest -v tests/test_image/test_block.py
-
-test-url:
-	python -m pytest -v tests/test_image/test_url.py
-
-test-iterator:
-	python -m pytest -v tests/test_iterator.py
-
-test-urwid:
-	python -m pytest -v tests/test_widget/test_urwid.py
+test-all test test-image test-text test-graphics test-widget \
+test-top test-base test-block test-kitty test-iterm2 test-url test-others test-iterator test-urwid:
+	$(pytest) $($@)
