@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
 
 ### Added
-- `auto_style()` to `term_image.image` ([#70]).
+- `auto_image_class()` to `term_image.image` ([#70]).
 - Render style forced support ([#70]).
   - `enable_forced_support()` and `disable_forced_support()` to `BaseImage`.
 - New utilities in `term_image.utils` ([#70]):

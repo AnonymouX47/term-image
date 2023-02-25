@@ -15,7 +15,7 @@ Core Library Definitions
    Since all classes define a common interface, any operation supported by one image
    class can be performed on any other image class, except stated otherwise.
 
-   .. autofunction:: auto_style
+   .. autofunction:: auto_image_class
 
    .. autofunction:: AutoImage
 
