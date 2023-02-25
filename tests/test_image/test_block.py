@@ -8,7 +8,8 @@ from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import BG_FMT, COLOR_RESET, CSI
 
-from . import common, set_fg_bg_colors
+from .. import set_fg_bg_colors
+from . import common
 from .common import _size, setup_common
 
 for name, obj in vars(common).items():

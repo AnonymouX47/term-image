@@ -13,7 +13,8 @@ from term_image.image import kitty
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
 from term_image.utils import CSI, ST
 
-from . import common, set_fg_bg_colors
+from .. import set_fg_bg_colors
+from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
 
 for name, obj in vars(common).items():

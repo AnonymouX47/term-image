@@ -62,33 +62,37 @@ uninstall:
 # Tests
 
 test-all: test test-url
-test: test-base test-iterator test-others test-graphics test-text test-widget
+test: test-top test-image test-iterator test-widget
+test-image: test-base test-text test-graphics test-others
 test-graphics: test-kitty test-iterm2
 test-text: test-block
 test-widget: test-urwid
 
 # Executing using `python -m` adds CWD to `sys.path`.
 
-test-base:
-	python -m pytest -v tests/test_base.py
+test-top:
+	python -m pytest -v tests/test_top_level.py
 
-test-iterator:
-	python -m pytest -v tests/test_image_iterator.py
+test-base:
+	python -m pytest -v tests/test_image/test_base.py
 
 test-others:
-	python -m pytest -v tests/test_others.py
+	python -m pytest -v tests/test_image/test_others.py
 
 test-iterm2:
-	python -m pytest -v tests/test_iterm2.py
+	python -m pytest -v tests/test_image/test_iterm2.py
 
 test-kitty:
-	python -m pytest -v tests/test_kitty.py
+	python -m pytest -v tests/test_image/test_kitty.py
 
 test-block:
-	python -m pytest -v tests/test_block.py
+	python -m pytest -v tests/test_image/test_block.py
 
 test-url:
-	python -m pytest -v tests/test_url.py
+	python -m pytest -v tests/test_image/test_url.py
+
+test-iterator:
+	python -m pytest -v tests/test_iterator.py
 
 test-urwid:
 	python -m pytest -v tests/test_widget/test_urwid.py

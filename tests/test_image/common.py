@@ -10,7 +10,7 @@ from term_image import exceptions, set_cell_ratio
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 from term_image.utils import BG_FMT, COLOR_RESET, get_fg_bg_colors, get_terminal_size
 
-from . import set_cell_size, set_fg_bg_colors, toggle_is_on_kitty
+from .. import set_cell_size, set_fg_bg_colors, toggle_is_on_kitty
 
 columns, lines = get_terminal_size()
 

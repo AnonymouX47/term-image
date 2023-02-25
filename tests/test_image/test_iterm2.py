@@ -16,7 +16,8 @@ from term_image.image import iterm2
 from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
 from term_image.utils import CSI, ST
 
-from . import common, set_fg_bg_colors
+from .. import set_fg_bg_colors
+from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
 from .test_base import clear_stdout, stdout
 
