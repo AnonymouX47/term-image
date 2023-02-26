@@ -1,5 +1,6 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
+import atexit
 from operator import gt, lt, mul
 from types import SimpleNamespace
 
@@ -27,6 +28,11 @@ _width = _height = _width_px = _height_px = None  # Set by `setup_common()`
 _size = 20
 ImageClass = None  # Set by `setup_common()`
 python_img = Image.open("tests/images/python.png")
+
+
+@atexit.register
+def close_imgs():
+    python_img.close()
 
 
 def setup_common(ImageClass):

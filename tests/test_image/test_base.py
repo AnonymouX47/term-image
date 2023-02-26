@@ -1,5 +1,6 @@
 """Render-style-independent tests"""
 
+import atexit
 import io
 import os
 import sys
@@ -24,6 +25,11 @@ stdout = io.StringIO()
 
 setup_common(BlockImage)
 from .common import _height, _width  # noqa:E402
+
+
+@atexit.register
+def close_imgs():
+    anim_img.close()
 
 
 def clear_stdout():

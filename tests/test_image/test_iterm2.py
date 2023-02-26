@@ -766,14 +766,19 @@ class TestRenderWhole:
 
 def test_read_from_file():
     test_image_size = TestRenderWhole._test_image_size
-    png_file = open("tests/images/trans.png", "rb").read()
+
+    with open("tests/images/trans.png", "rb") as f:
+        png_file = f.read()
     png_image = ITerm2Image.from_file("tests/images/trans.png")
-    jpeg_file = open("tests/images/vert.jpg", "rb").read()
-    jpeg_image = ITerm2Image.from_file("tests/images/vert.jpg")
     png_image.set_render_method(WHOLE)
+
+    with open("tests/images/vert.jpg", "rb") as f:
+        jpeg_file = f.read()
+    jpeg_image = ITerm2Image.from_file("tests/images/vert.jpg")
     jpeg_image.set_render_method(WHOLE)
+
+    ITerm2Image.READ_FROM_FILE = True
     try:
-        ITerm2Image.READ_FROM_FILE = True
         ITerm2Image._TERM = ""
 
         # manipulation is required since the mode is RGBA
@@ -825,14 +830,22 @@ def test_native_anim():
         return image._renderer(image._render_image, 0.0, native=True)
 
     test_image_size = TestRenderWhole._test_image_size
-    apng_file = open("tests/images/elephant.png", "rb").read()
+
+    with open("tests/images/elephant.png", "rb") as f:
+        apng_file = f.read()
     apng_image = ITerm2Image.from_file("tests/images/elephant.png", height=_size)
-    gif_file = open("tests/images/lion.gif", "rb").read()
+
+    with open("tests/images/lion.gif", "rb") as f:
+        gif_file = f.read()
     gif_image = ITerm2Image.from_file("tests/images/lion.gif", height=_size)
-    webp_file = open("tests/images/anim.webp", "rb").read()
+
+    with open("tests/images/anim.webp", "rb") as f:
+        webp_file = f.read()
     webp_image = ITerm2Image.from_file("tests/images/anim.webp", height=_size)
+
     img = Image.open("tests/images/lion.gif")
     img_image = ITerm2Image(img, height=_size)
+
     no_file_img = Image.open(open("tests/images/lion.gif", "rb"))
     no_file_image = ITerm2Image(no_file_img, height=_size)
 
@@ -889,19 +902,22 @@ def test_native_anim():
             webp_file
             != decode_image(render_native(webp_image), term=ITerm2Image._TERM)[3]
         )
-        with pytest.raises(ITerm2ImageError, match="Native WEBP animation"):
-            try:
-                sys.stdout = stdout
+        sys.stdout = stdout
+        try:
+            with pytest.raises(ITerm2ImageError, match="Native WEBP animation"):
                 webp_image.draw(native=True, stall_native=False)
-            finally:
-                clear_stdout()
-                sys.stdout = sys.__stdout__
+        finally:
+            clear_stdout()
+            sys.stdout = sys.__stdout__
 
     # Image data size limit
     ITerm2Image.NATIVE_ANIM_MAXSIZE = 300000
     with pytest.warns(TermImageWarning, match="maximum for native animation"):
         render_native(apng_image)
     render_native(gif_image)
+
+    img.close()
+    no_file_img.close()
 
 
 class TestClear:
