@@ -740,8 +740,7 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: Unable to convert image.
-            ValueError: Image size or :term:`scale` too small.
+            ValueError: Unable to convert or resize image.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
@@ -1582,6 +1581,7 @@ class BaseImage(metaclass=ImageMeta):
                 prev_img = img
                 try:
                     img = img.convert(mode)
+                # Possible for images in some modes e.g "La"
                 except Exception as e:
                     raise ValueError("Unable to convert image") from e
                 finally:
@@ -1592,8 +1592,9 @@ class BaseImage(metaclass=ImageMeta):
                 prev_img = img
                 try:
                     img = img.resize(size, Image.Resampling.BOX)
-                except ValueError as e:
-                    raise ValueError("Image size or scale too small") from e
+                # Highly unlikely since render size can never be zero
+                except Exception as e:
+                    raise ValueError("Unable to resize image") from e
                 finally:
                     if frame_img is not prev_img is not self._source:
                         prev_img.close()
