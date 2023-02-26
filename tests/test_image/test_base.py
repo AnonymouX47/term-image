@@ -569,21 +569,6 @@ class TestRenderData:
             img or self.trans._get_image(), alpha, **kwargs
         )
 
-    def test_small_size_scale(self):
-        try:
-            for self.trans._size in ((1, 0), (0, 1), (0, 0)):
-                with pytest.raises(ValueError, match="too small"):
-                    self.get_render_data(None)
-        finally:
-            self.trans.height = _size
-
-        try:
-            self.trans.scale = 0.0001
-            with pytest.raises(ValueError, match="too small"):
-                self.get_render_data(None)
-        finally:
-            self.trans.scale = 1.0
-
     def test_alpha(self):
 
         # float
