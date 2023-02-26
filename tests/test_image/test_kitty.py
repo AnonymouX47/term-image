@@ -455,8 +455,8 @@ class TestRenderLines:
             if scale == 0.0:
                 continue
             self.trans.scale = scale
-            if 0 in self.trans.rendered_size:
-                continue
+
+            assert 0 not in self.trans.rendered_size
             self._test_image_size(self.trans)
 
 
@@ -660,8 +660,8 @@ class TestRenderWhole:
             if scale == 0.0:
                 continue
             self.trans.scale = scale
-            if 0 in self.trans.rendered_size:
-                continue
+
+            assert 0 not in self.trans.rendered_size
             self._test_image_size(self.trans)
 
 

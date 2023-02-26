@@ -256,8 +256,8 @@ class TestProperties:
         for value in range(1, 101):
             scale = value / 100
             image.scale = scale
-            assert image.rendered_width == round(_width * scale)
-            assert image.rendered_height == round(_height * scale)
+            assert 0 != image.rendered_width == (round(_width * scale) or 1)
+            assert 0 != image.rendered_height == (round(_height * scale) or 1)
 
         # Random scales
         for _ in range(100):
@@ -265,8 +265,8 @@ class TestProperties:
             if scale == 0:
                 continue
             image.scale = scale
-            assert image.rendered_width == round(_width * scale)
-            assert image.rendered_height == round(_height * scale)
+            assert 0 != image.rendered_width == (round(_width * scale) or 1)
+            assert 0 != image.rendered_height == (round(_height * scale) or 1)
 
         image.scale = 1.0
 
