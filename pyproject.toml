@@ -8,6 +8,6 @@ combine_as_imports = true
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "error",
     "ignore::term_image.exceptions.TermImageWarning:term_image.utils",
+    "error",
 ]
