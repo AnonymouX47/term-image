@@ -1,5 +1,6 @@
 """Render-style-dependent (though shared, not specific) tests"""
 
+import atexit
 from operator import gt, lt, mul
 from types import SimpleNamespace
 
@@ -10,7 +11,12 @@ from term_image import exceptions, set_cell_ratio
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 from term_image.utils import BG_FMT, COLOR_RESET, get_fg_bg_colors, get_terminal_size
 
-from . import set_cell_size, set_fg_bg_colors, toggle_is_on_kitty
+from .. import (
+    reset_cell_size_ratio,
+    set_cell_size,
+    set_fg_bg_colors,
+    toggle_is_on_kitty,
+)
 
 columns, lines = get_terminal_size()
 
@@ -22,6 +28,11 @@ _width = _height = _width_px = _height_px = None  # Set by `setup_common()`
 _size = 20
 ImageClass = None  # Set by `setup_common()`
 python_img = Image.open("tests/images/python.png")
+
+
+@atexit.register
+def close_imgs():
+    python_img.close()
 
 
 def setup_common(ImageClass):
@@ -449,50 +460,42 @@ class TestCellRatio_Text:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
 
+    @reset_cell_size_ratio()
     def test_fixed_width_cell_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_cell_ratio(ratio)
-                self.image.set_size(width=_size)
-                assert self.image.width == _size
-                assert proportional(self.image)
-        finally:
-            set_cell_ratio(0.5)
+        for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+            set_cell_ratio(ratio)
+            self.image.set_size(width=_size)
+            assert self.image.width == _size
+            assert proportional(self.image)
 
+    @reset_cell_size_ratio()
     def test_fixed_height_cell_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_cell_ratio(ratio)
-                self.image.set_size(height=_size)
-                assert self.image.height == _size
-                assert proportional(self.image)
-        finally:
-            set_cell_ratio(0.5)
+        for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+            set_cell_ratio(ratio)
+            self.image.set_size(height=_size)
+            assert self.image.height == _size
+            assert proportional(self.image)
 
+    @reset_cell_size_ratio()
     def test_auto_size_cell_ratio_adjustment(self):
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_cell_ratio(ratio)
-                self.image.set_size()
-                assert proportional(self.image)
-        finally:
-            set_cell_ratio(0.5)
+        for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+            set_cell_ratio(ratio)
+            self.image.set_size()
+            assert proportional(self.image)
 
 
 class TestCellRatio_Graphics:
     def test_setup(self):
         type(self).image = ImageClass(python_img)  # Square
 
+    @reset_cell_size_ratio()
     def test_cell_ratio_adjustment(self):
         self.image.set_size()
         size = self.image.size
-        try:
-            for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
-                set_cell_ratio(ratio)
-                self.image.set_size()
-                assert self.image.size == size
-        finally:
-            set_cell_ratio(0.5)
+        for ratio in (0.01, 0.1, 0.25, 0.4, 0.45, 0.55, 0.6, 0.75, 0.9, 0.99, 1.0):
+            set_cell_ratio(ratio)
+            self.image.set_size()
+            assert self.image.size == size
 
 
 class TestRender_Text:

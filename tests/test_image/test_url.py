@@ -1,3 +1,4 @@
+import atexit
 import os
 
 import pytest
@@ -12,6 +13,11 @@ python_url = (
     "images/python.png"
 )
 python_img = Image.open(python_image)
+
+
+@atexit.register
+def close_imgs():
+    python_img.close()
 
 
 def test_from_url():

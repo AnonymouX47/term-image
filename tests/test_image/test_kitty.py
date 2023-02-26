@@ -13,17 +13,18 @@ from term_image.image import kitty
 from term_image.image.kitty import LINES, START, WHOLE, KittyImage
 from term_image.utils import CSI, ST
 
-from . import common, set_fg_bg_colors
+from .. import set_fg_bg_colors
+from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
+
+
+def test_setup_common():
+    setup_common(KittyImage)
+
 
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Graphics")):
         globals()[name] = obj
-
-
-@pytest.mark.order("first")
-def test_setup_common():
-    setup_common(KittyImage)
 
 
 def test_set_render_method():

@@ -2,23 +2,22 @@
 
 from random import random
 
-import pytest
-
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import BG_FMT, COLOR_RESET, CSI
 
-from . import common, set_fg_bg_colors
+from .. import set_fg_bg_colors
+from . import common
 from .common import _size, setup_common
+
+
+def test_setup_common():
+    setup_common(BlockImage)
+
 
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Text")):
         globals()[name] = obj
-
-
-@pytest.mark.order("first")
-def test_setup_common():
-    setup_common(BlockImage)
 
 
 class TestRender:
