@@ -1893,18 +1893,20 @@ class BaseImage(metaclass=ImageMeta):
                 )
             elif Size.FIT_TO_WIDTH in (width, height):
                 return (
-                    self._pixels_cols(pixels=max_width),
+                    self._pixels_cols(pixels=max_width) or 1,
                     self._pixels_lines(
                         pixels=round(
                             self._width_height_px(w=max_width) * self._pixel_ratio
                         )
-                    ),
+                    )
+                    or 1,
                 )
 
             if Size.ORIGINAL in (width, height):
                 return (
-                    self._pixels_cols(pixels=ori_width),
-                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio)),
+                    self._pixels_cols(pixels=ori_width) or 1,
+                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio))
+                    or 1,
                 )
 
             # The smaller fraction will fit on both axis.
@@ -1936,8 +1938,8 @@ class BaseImage(metaclass=ImageMeta):
                 # Round the width
                 width_px = round(width_px)
             return (
-                self._pixels_cols(pixels=width_px),
-                self._pixels_lines(pixels=height_px),
+                self._pixels_cols(pixels=width_px) or 1,
+                self._pixels_lines(pixels=height_px) or 1,
             )
         elif width is None:
             width_px = round(
@@ -1958,7 +1960,7 @@ class BaseImage(metaclass=ImageMeta):
                 f"'maxsize' {maxsize}"
             )
 
-        return (width, height)
+        return (width or 1, height or 1)
 
     def _width_height_px(
         self, *, w: Optional[int] = None, h: Optional[int] = None
