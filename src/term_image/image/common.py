@@ -26,7 +26,7 @@ from math import ceil
 from operator import gt, mul, sub
 from random import randint
 from types import FunctionType, TracebackType
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import PIL
@@ -2168,10 +2168,10 @@ class ImageIterator:
     def __del__(self) -> None:
         self.close()
 
-    def __iter__(self) -> None:
+    def __iter__(self) -> ImageIterator:
         return self
 
-    def __next__(self) -> None:
+    def __next__(self) -> str:
         try:
             return next(self._animator)
         except StopIteration:
@@ -2189,7 +2189,7 @@ class ImageIterator:
             self.close()
             raise
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         return "{}(image={!r}, repeat={}, format={!r}, cached={}, loop_no={})".format(
             type(self).__name__,
             *self.__dict__.values(),
@@ -2259,7 +2259,7 @@ class ImageIterator:
         alpha: Union[None, float, str],
         fmt: Tuple[Union[None, str, int]],
         style_args: Dict[str, Any],
-    ) -> None:
+    ) -> Generator[str, int, None]:
         """Returns a generator that yields rendered and formatted frames of the
         underlying image.
         """
