@@ -421,7 +421,8 @@ class BaseImage(metaclass=ImageMeta):
                 else self._size
             )[1]
             * self._scale[1]
-        ),
+        )
+        or 1,
         doc="""
         The **scaled** height of the image.
 
@@ -434,15 +435,18 @@ class BaseImage(metaclass=ImageMeta):
     rendered_size = property(
         lambda self: tuple(
             map(
-                round,
+                lambda x: x or 1,
                 map(
-                    mul,
-                    (
-                        self._valid_size(self._size, None)
-                        if isinstance(self._size, Size)
-                        else self._size
+                    round,
+                    map(
+                        mul,
+                        (
+                            self._valid_size(self._size, None)
+                            if isinstance(self._size, Size)
+                            else self._size
+                        ),
+                        self._scale,
                     ),
-                    self._scale,
                 ),
             )
         ),
@@ -464,7 +468,8 @@ class BaseImage(metaclass=ImageMeta):
                 else self._size
             )[0]
             * self._scale[0]
-        ),
+        )
+        or 1,
         doc="""
         The **scaled** width of the image.
 
