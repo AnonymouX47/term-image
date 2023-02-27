@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Resource leaks via unclosed PIL image instances ([cdc6650]).
-- [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5])
+- Unhandled initialization of images with null-sized PIL image instances ([43e40f4]).
+- [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5]).
 - [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
 
 ### Added
@@ -52,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
 [cdc6650]: https://github.com/AnonymouX47/term-image/commit/cdc665021cc293b0fb5c0519177287752ef64dc4
+[43e40f4]: https://github.com/AnonymouX47/term-image/commit/43e40f4b345d2295d3cdb9e82c7127ce57edc177
 
 
 ## [0.5.0] - 2023-01-09
