@@ -236,6 +236,11 @@ class TestRender:
                     assert left == ""
                     assert right == ""
 
+    def test_fixed(self):
+        image_w = UrwidImage(trans)
+        with pytest.raises(ValueError, match="fixed"):
+            image_w.render(())
+
 
 def test_ignore_padding():
     canvases_lines = [

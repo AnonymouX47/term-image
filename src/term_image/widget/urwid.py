@@ -142,9 +142,9 @@ class UrwidImage(urwid.Widget):
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         image = self._ti_image
 
-        if len(size) == 2:
+        if len(size) == 2:  # box
             image.set_size(self._ti_sizing, maxsize=size)
-        elif len(size) == 1:
+        elif len(size) == 1:  # flow
             if self._ti_sizing is Size.FIT:
                 image.set_size(size[0])
             else:
@@ -156,8 +156,8 @@ class UrwidImage(urwid.Widget):
                     else fit_size
                 )
             size = (size[0], image._size[1])
-        else:
-            raise ValueError("Not a packed widget")
+        else:  # fixed
+            raise ValueError("Not a fixed widget")
 
         try:
             render = image._format_render(
