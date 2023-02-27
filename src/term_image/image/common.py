@@ -262,6 +262,8 @@ class BaseImage(metaclass=ImageMeta):
                 "Expected a 'PIL.Image.Image' instance for 'image' "
                 f"(got: {type(image).__name__!r})."
             )
+        if 0 in image.size:
+            raise ValueError("'image' is null-sized")
 
         self._closed = False
         self._source = image

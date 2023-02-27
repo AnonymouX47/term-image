@@ -42,6 +42,10 @@ class TestConstructor:
         with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
             BlockImage(python_image)
 
+        for size in ((0, 1), (1, 0), (0, 0)):
+            with pytest.raises(ValueError, match=r"'image'"):
+                BlockImage(Image.new("RGB", size))
+
         # Ensure size arguments get through to `set_size()`
         with pytest.raises(ValueError, match=r".* both width and height"):
             BlockImage(python_img, width=1, height=1)
