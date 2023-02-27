@@ -113,8 +113,8 @@ class TestRender:
             if scale == 0.0:
                 continue
             self.trans.scale = scale
-            if 0 in self.trans.rendered_size:
-                continue
+            assert 0 not in self.trans.rendered_size
+
             render = self.render_image(_ALPHA_THRESHOLD)
             assert render.count("\n") + 1 == self.trans.rendered_height
             assert all(

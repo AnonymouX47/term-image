@@ -421,7 +421,8 @@ class BaseImage(metaclass=ImageMeta):
                 else self._size
             )[1]
             * self._scale[1]
-        ),
+        )
+        or 1,
         doc="""
         The **scaled** height of the image.
 
@@ -434,15 +435,18 @@ class BaseImage(metaclass=ImageMeta):
     rendered_size = property(
         lambda self: tuple(
             map(
-                round,
+                lambda x: x or 1,
                 map(
-                    mul,
-                    (
-                        self._valid_size(self._size, None)
-                        if isinstance(self._size, Size)
-                        else self._size
+                    round,
+                    map(
+                        mul,
+                        (
+                            self._valid_size(self._size, None)
+                            if isinstance(self._size, Size)
+                            else self._size
+                        ),
+                        self._scale,
                     ),
-                    self._scale,
                 ),
             )
         ),
@@ -464,7 +468,8 @@ class BaseImage(metaclass=ImageMeta):
                 else self._size
             )[0]
             * self._scale[0]
-        ),
+        )
+        or 1,
         doc="""
         The **scaled** width of the image.
 
@@ -735,8 +740,7 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: Unable to convert image.
-            ValueError: Image size or :term:`scale` too small.
+            ValueError: Unable to convert or resize image.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`available terminal size <available size>`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
@@ -1577,6 +1581,7 @@ class BaseImage(metaclass=ImageMeta):
                 prev_img = img
                 try:
                     img = img.convert(mode)
+                # Possible for images in some modes e.g "La"
                 except Exception as e:
                     raise ValueError("Unable to convert image") from e
                 finally:
@@ -1587,8 +1592,9 @@ class BaseImage(metaclass=ImageMeta):
                 prev_img = img
                 try:
                     img = img.resize(size, Image.Resampling.BOX)
-                except ValueError as e:
-                    raise ValueError("Image size or scale too small") from e
+                # Highly unlikely since render size can never be zero
+                except Exception as e:
+                    raise ValueError("Unable to resize image") from e
                 finally:
                     if frame_img is not prev_img is not self._source:
                         prev_img.close()
@@ -1893,18 +1899,20 @@ class BaseImage(metaclass=ImageMeta):
                 )
             elif Size.FIT_TO_WIDTH in (width, height):
                 return (
-                    self._pixels_cols(pixels=max_width),
+                    self._pixels_cols(pixels=max_width) or 1,
                     self._pixels_lines(
                         pixels=round(
                             self._width_height_px(w=max_width) * self._pixel_ratio
                         )
-                    ),
+                    )
+                    or 1,
                 )
 
             if Size.ORIGINAL in (width, height):
                 return (
-                    self._pixels_cols(pixels=ori_width),
-                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio)),
+                    self._pixels_cols(pixels=ori_width) or 1,
+                    self._pixels_lines(pixels=round(ori_height * self._pixel_ratio))
+                    or 1,
                 )
 
             # The smaller fraction will fit on both axis.
@@ -1936,8 +1944,8 @@ class BaseImage(metaclass=ImageMeta):
                 # Round the width
                 width_px = round(width_px)
             return (
-                self._pixels_cols(pixels=width_px),
-                self._pixels_lines(pixels=height_px),
+                self._pixels_cols(pixels=width_px) or 1,
+                self._pixels_lines(pixels=height_px) or 1,
             )
         elif width is None:
             width_px = round(
@@ -1958,7 +1966,7 @@ class BaseImage(metaclass=ImageMeta):
                 f"'maxsize' {maxsize}"
             )
 
-        return (width, height)
+        return (width or 1, height or 1)
 
     def _width_height_px(
         self, *, w: Optional[int] = None, h: Optional[int] = None

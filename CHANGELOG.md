@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `None` is no longer a valid value.
   - The lower bound of the valid value range is now `-(2**31 - 1)`.
 - Extended `ITerm2Image.clear()` ([807a9ec]).
+- Computed image size and `image.rendered_size` (regardless of the value of `image.scale`) can no longer be null (contain `0`) ([#78]).
+  - No more "Image size or scale too small" error at render time.
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -45,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
 [#73]: https://github.com/AnonymouX47/term-image/pull/73
 [#74]: https://github.com/AnonymouX47/term-image/pull/74
+[#78]: https://github.com/AnonymouX47/term-image/pull/78
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b

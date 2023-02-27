@@ -256,8 +256,8 @@ class TestProperties:
         for value in range(1, 101):
             scale = value / 100
             image.scale = scale
-            assert image.rendered_width == round(_width * scale)
-            assert image.rendered_height == round(_height * scale)
+            assert 0 != image.rendered_width == (round(_width * scale) or 1)
+            assert 0 != image.rendered_height == (round(_height * scale) or 1)
 
         # Random scales
         for _ in range(100):
@@ -265,8 +265,8 @@ class TestProperties:
             if scale == 0:
                 continue
             image.scale = scale
-            assert image.rendered_width == round(_width * scale)
-            assert image.rendered_height == round(_height * scale)
+            assert 0 != image.rendered_width == (round(_width * scale) or 1)
+            assert 0 != image.rendered_height == (round(_height * scale) or 1)
 
         image.scale = 1.0
 
@@ -568,21 +568,6 @@ class TestRenderData:
         return self.trans._get_render_data(
             img or self.trans._get_image(), alpha, **kwargs
         )
-
-    def test_small_size_scale(self):
-        try:
-            for self.trans._size in ((1, 0), (0, 1), (0, 0)):
-                with pytest.raises(ValueError, match="too small"):
-                    self.get_render_data(None)
-        finally:
-            self.trans.height = _size
-
-        try:
-            self.trans.scale = 0.0001
-            with pytest.raises(ValueError, match="too small"):
-                self.get_render_data(None)
-        finally:
-            self.trans.scale = 1.0
 
     def test_alpha(self):
 
