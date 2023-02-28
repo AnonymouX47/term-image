@@ -451,6 +451,7 @@ class ITerm2Image(GraphicsImage):
         is_on_konsole = self._TERM == "konsole"
         is_on_wezterm = self._TERM == "wezterm"
         jump_right = f"{CSI}{r_width}C"
+        jump_up = f"{CSI}{r_height - 1}A" if r_height > 1 else ""
         erase = f"{CSI}{r_width}X" if not mix and is_on_wezterm else ""
 
         file_is_readable = True
@@ -500,7 +501,7 @@ class ITerm2Image(GraphicsImage):
                     (
                         f"{erase}{jump_right}\n" * (r_height - 1),
                         erase,
-                        f"{CSI}{r_height - 1}A",
+                        jump_up,
                         START,
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
@@ -613,7 +614,7 @@ class ITerm2Image(GraphicsImage):
                 (
                     "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
                     erase,
-                    "" if is_on_konsole else f"{CSI}{r_height - 1}A",
+                    "" if is_on_konsole else jump_up,
                     START,
                     control_data,
                     standard_b64encode(compressed_image.read()).decode(),
