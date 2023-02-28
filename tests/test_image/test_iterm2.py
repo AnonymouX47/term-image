@@ -509,7 +509,7 @@ class TestRenderWhole:
         if not (read_from_file or native):
             assert len(raw_image) == w * h * len(mode)
         assert fill.count("\n") + 1 == lines
-        *fills, last_fill = fill.splitlines()
+        *fills, last_fill = fill.split("\n")
         assert all(
             line
             == (
@@ -521,7 +521,10 @@ class TestRenderWhole:
         assert last_fill == (
             jump_right.format(cols=cols)
             if term == "konsole"
-            else erase.format(cols=cols) * (term == "wezterm") + f"{CSI}{lines - 1}A"
+            else (
+                erase.format(cols=cols) * (term == "wezterm")
+                + f"{CSI}{lines - 1}A" * (lines > 1)
+            )
         )
 
     def test_minimal_render_size(self):
