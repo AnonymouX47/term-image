@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Resource leaks via unclosed PIL image instances ([cdc6650]).
 - Unhandled initialization of images with null-sized PIL image instances ([43e40f4]).
+- 'iterm2' render output on non-Konsole terminal emulators when rendered height is `1`, for WHOLE render method and native animations ([f82aef0]).
 - [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5]).
 - [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
 
@@ -54,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
 [cdc6650]: https://github.com/AnonymouX47/term-image/commit/cdc665021cc293b0fb5c0519177287752ef64dc4
 [43e40f4]: https://github.com/AnonymouX47/term-image/commit/43e40f4b345d2295d3cdb9e82c7127ce57edc177
+[f82aef0]: https://github.com/AnonymouX47/term-image/commit/f82aef0c0fc59832a2979a26b70e575a01c08910
 
 
 ## [0.5.0] - 2023-01-09
