@@ -436,8 +436,8 @@ class KittyImage(GraphicsImage):
         raw_image = img.tobytes()
 
         # clean up (ImageIterator uses one PIL image throughout)
-        if frame_img is not img is not self._source:
-            img.close()
+        if frame_img is not img:
+            self._close_image(img)
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
         erase = "" if mix else f"{CSI}{r_width}X"

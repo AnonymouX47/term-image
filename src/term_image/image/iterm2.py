@@ -376,14 +376,12 @@ class ITerm2Image(GraphicsImage):
     ):
         if native:
             if self._TERM == "konsole":
-                if img is not self._source:
-                    img.close()
+                self._close_image(img)
                 raise _style_error(type(self))(
                     "Native animation is not supported in the active terminal"
                 )
             if img.format == "WEBP":
-                if img is not self._source:
-                    img.close()
+                self._close_image(img)
                 raise _style_error(type(self))("Native WEBP animation is not supported")
             try:
                 print(
@@ -470,8 +468,7 @@ class ITerm2Image(GraphicsImage):
                     try:
                         img.save(compressed_image, img.format, save_all=True)
                     except ValueError:
-                        if img is not self._source:
-                            img.close()
+                        self._close_image(img)
                         raise _style_error(type(self))(
                             "Native animation not supported: This image was sourced "
                             "from a PIL image of an unknown format"
@@ -479,8 +476,7 @@ class ITerm2Image(GraphicsImage):
             else:
                 compressed_image = open(self._source, "rb")
 
-            if img is not self._source:
-                img.close()
+            self._close_image(img)
 
             with compressed_image:
                 compressed_image.seek(0, 2)
@@ -559,8 +555,8 @@ class ITerm2Image(GraphicsImage):
                 )
 
         # clean up (ImageIterator uses one PIL image throughout)
-        if frame_img is not img is not self._source:
-            img.close()
+        if frame_img is not img:
+            self._close_image(img)
 
         if render_method == LINES:
             # NOTE: It's more efficient to write separate strings to the buffer

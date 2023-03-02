@@ -114,8 +114,8 @@ class BlockImage(TextImage):
         alpha = img.mode == "RGBA"
 
         # clean up (ImageIterator uses one PIL image throughout)
-        if frame_img is not img is not self._source:
-            img.close()
+        if frame_img is not img:
+            self._close_image(img)
 
         rgb_pairs = (
             (

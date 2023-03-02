@@ -410,8 +410,7 @@ class BaseImage(metaclass=ImageMeta):
             try:
                 self._n_frames = img.n_frames
             finally:
-                if img is not self._source:
-                    img.close()
+                self._close_image(img)
 
         return self._n_frames
 
@@ -1425,6 +1424,11 @@ class BaseImage(metaclass=ImageMeta):
         """
         return False
 
+    def _close_image(self, img: PIL.Image.Image) -> None:
+        """Closes the given PIL image instance if it isn't the instance' source."""
+        if img is not self._source:
+            img.close()
+
     def _display_animated(
         self,
         img: PIL.Image.Image,
@@ -1470,9 +1474,8 @@ class BaseImage(metaclass=ImageMeta):
             self._handle_interrupted_draw()
             raise
         finally:
-            if img is not self._source:
-                img.close()
             image_it.close()
+            self._close_image(img)
             self._seek_position = prev_seek_pos
             # Move the cursor to the last line of the image to prevent "overlayed"
             # output in the terminal
@@ -1587,8 +1590,8 @@ class BaseImage(metaclass=ImageMeta):
                 except Exception as e:
                     raise ValueError("Unable to convert image") from e
                 finally:
-                    if frame_img is not prev_img is not self._source:
-                        prev_img.close()
+                    if frame_img is not prev_img:
+                        self._close_image(prev_img)
 
             if img.size != size:
                 prev_img = img
@@ -1598,8 +1601,8 @@ class BaseImage(metaclass=ImageMeta):
                 except Exception as e:
                     raise ValueError("Unable to resize image") from e
                 finally:
-                    if frame_img is not prev_img is not self._source:
-                        prev_img.close()
+                    if frame_img is not prev_img:
+                        self._close_image(prev_img)
 
         frame_img = img if frame else None
         if self._is_animated:
@@ -1619,8 +1622,8 @@ class BaseImage(metaclass=ImageMeta):
                     alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
-                if frame_img is not img is not self._source:
-                    img.close()
+                if frame_img is not img:
+                    self._close_image(img)
                 img = bg.convert("RGB")
                 if pixel_data:
                     a = [255] * mul(*size)
@@ -1636,8 +1639,8 @@ class BaseImage(metaclass=ImageMeta):
                     )
                     bg.alpha_composite(img)
                     bg.putalpha(img.getchannel("A"))
-                    if frame_img is not img is not self._source:
-                        img.close()
+                    if frame_img is not img:
+                        self._close_image(img)
                     img = bg
 
             if pixel_data:
@@ -2226,8 +2229,7 @@ class ImageIterator:
         try:
             self._animator.close()
             del self._animator
-            if self._img is not self._image._source:
-                self._img.close()
+            self._image._close_image(self._img)
             del self._img
         except AttributeError:
             pass
