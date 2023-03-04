@@ -10,7 +10,7 @@ import urwid
 
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage, kitty
-from ..utils import COLOR_RESET_b, ESC_b
+from ..utils import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, COLOR_RESET_b, ESC_b
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -613,10 +613,15 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         self._ti_image_cviews = frozenset()
 
     def draw_screen(self, maxres, canvas):
-        if canvas is not self._ti_screen_canv:
-            self._ti_screen_canv = canvas
-            self._ti_clear_images()
-        ret = super().draw_screen(maxres, canvas)
+        self.write(BEGIN_SYNCED_UPDATE)
+        try:
+            if canvas is not self._ti_screen_canv:
+                self._ti_screen_canv = canvas
+                self._ti_clear_images()
+            ret = super().draw_screen(maxres, canvas)
+        finally:
+            self.write(END_SYNCED_UPDATE)
+            self.flush()
 
         return ret
 
