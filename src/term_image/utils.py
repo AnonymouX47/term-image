@@ -692,6 +692,17 @@ FG_FMT = f"{CSI}38;2;%d;%d;%dm"
 FG_FMT_b = FG_FMT.encode()
 COLOR_RESET = f"{CSI}m"
 COLOR_RESET_b = COLOR_RESET.encode()
+DECSET = f"{CSI}?%dh"
+DECSET_b = DECSET.encode()
+DECRST = f"{CSI}?%dl"
+DECRST_b = DECRST.encode()
+
+# Terminal Synchronized Output
+# See https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
+BEGIN_SYNCED_UPDATE = DECSET % 2026
+BEGIN_SYNCED_UPDATE_b = BEGIN_SYNCED_UPDATE.encode()
+END_SYNCED_UPDATE = DECRST % 2026
+END_SYNCED_UPDATE_b = END_SYNCED_UPDATE.encode()
 
 # Private internal variables
 _query_timeout = DEFAULT_QUERY_TIMEOUT
