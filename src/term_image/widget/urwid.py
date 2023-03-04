@@ -598,9 +598,11 @@ class UrwidImageJanitor(urwid.WidgetWrap):
 
 
 class UrwidImageScreen(urwid.raw_display.Screen):
-    """A screen that clears all visible images of the
-    :py:class:`kitty <term_image.image.KittyImage>` render style immediately after
-    it starts and immediately before it stops.
+    """A screen that supports drawing images.
+
+    It monitors images of some :ref:`graphics-based <graphics-based>` render styles
+    and clears them off the screen when necessary (e.g at startup, when scrolling,
+    upon terminal resize and at exit).
 
     See the `baseclass
     <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
