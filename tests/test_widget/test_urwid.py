@@ -19,12 +19,7 @@ from term_image.image import (
 )
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import COLOR_RESET, BG_FMT_b, COLOR_RESET_b
-from term_image.widget import (
-    UrwidImage,
-    UrwidImageCanvas,
-    UrwidImageJanitor,
-    UrwidImageScreen,
-)
+from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 
 _size = (30, 15)
 
@@ -1101,50 +1096,36 @@ widget = urwid.Overlay(
     5,
 )
 
-
-class TestJanitor:
-    def test_args(self):
-        for value in (None, python_file, python_img, python_image):
-            with pytest.raises(TypeError, match="'widget'"):
-                UrwidImageJanitor(value)
-
-    def test_widget_property(self):
-        janitor = UrwidImageJanitor(widget)
-        assert janitor.widget is widget is janitor._w
-
-    def test_same_canvas_as_widget(self):
-        janitor = UrwidImageJanitor(widget)
-        widget_canv = widget.render(_size)
-        widget._invalidate()
-        canv = janitor.render(_size)
-        assert canv.text == widget_canv.text
+buf = io.StringIO()
+screen = UrwidImageScreen(sys.__stdin__, buf)
+screen.start()
 
 
-class TestJanitorRender:
+class TestScreenClearImages:
     def test_image_cviews(self):
-        janitor = UrwidImageJanitor(widget)
-        assert janitor._ti_image_cviews == frozenset()
-
-        janitor.render(_size)
-        assert isinstance(janitor._ti_image_cviews, frozenset)
+        assert screen._ti_image_cviews == frozenset()
+        screen.draw_screen(_size, widget.render(_size))
+        assert isinstance(screen._ti_image_cviews, frozenset)
 
     def test_move_top_widget(self):
         _TERM = ITerm2Image._TERM
         ITerm2Image._TERM = "konsole"
         try:
             # Setup
-            janitor = UrwidImageJanitor(widget)
+            buf.seek(0)
+            buf.truncate()
             widget.top_w = top_w
             kitty_list_box.shift_focus(_size, 0)
             iterm2_list_box.shift_focus(_size, 0)
 
             widget.top = 2
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 6
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(screen._ti_image_cviews) == 6
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (3, 2),
@@ -1153,17 +1134,18 @@ class TestJanitorRender:
                 (9, 17),
             }
 
-            prev_image_cviews = janitor._ti_image_cviews
+            prev_image_cviews = screen._ti_image_cviews
             widget.top += 1
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 6
-            assert prev_image_cviews != janitor._ti_image_cviews
+            assert len(screen._ti_image_cviews) == 6
+            assert prev_image_cviews != screen._ti_image_cviews
             # The two lower cviews should be unchanged
-            assert len(prev_image_cviews & janitor._ti_image_cviews) == 2
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(prev_image_cviews & screen._ti_image_cviews) == 2
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (4, 2),
@@ -1172,17 +1154,18 @@ class TestJanitorRender:
                 (9, 17),
             }
 
-            prev_image_cviews = janitor._ti_image_cviews
+            prev_image_cviews = screen._ti_image_cviews
             widget.top = 5
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 8
-            assert prev_image_cviews != janitor._ti_image_cviews
+            assert len(screen._ti_image_cviews) == 8
+            assert prev_image_cviews != screen._ti_image_cviews
             # All cviews should be changed
-            assert len(prev_image_cviews & janitor._ti_image_cviews) == 0
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(prev_image_cviews & screen._ti_image_cviews) == 0
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (6, 2),
@@ -1193,17 +1176,18 @@ class TestJanitorRender:
                 (11, 17),
             }
 
-            prev_image_cviews = janitor._ti_image_cviews
+            prev_image_cviews = screen._ti_image_cviews
             widget.top = 8
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 6
-            assert prev_image_cviews != janitor._ti_image_cviews
+            assert len(screen._ti_image_cviews) == 6
+            assert prev_image_cviews != screen._ti_image_cviews
             # All cviews should be changed
-            assert len(prev_image_cviews & janitor._ti_image_cviews) == 0
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(prev_image_cviews & screen._ti_image_cviews) == 0
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (9, 2),
@@ -1222,24 +1206,26 @@ class TestJanitorRender:
         ITerm2Image._TERM = "konsole"
         try:
             # Setup
-            janitor = UrwidImageJanitor(widget)
+            buf.seek(0)
+            buf.truncate()
             widget.top_w = top_w
             widget.top = 5
             kitty_list_box.shift_focus(_size, 0)
             iterm2_list_box.shift_focus(_size, 0)
             widget._invalidate()
-            janitor.render(_size)
+            screen.draw_screen(_size, widget.render(_size))
 
-            prev_image_cviews = janitor._ti_image_cviews
+            prev_image_cviews = screen._ti_image_cviews
             kitty_list_box.shift_focus(_size, -3)
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 8
-            assert prev_image_cviews != janitor._ti_image_cviews
+            assert len(screen._ti_image_cviews) == 8
+            assert prev_image_cviews != screen._ti_image_cviews
             # All images (4 cviews) on the right should remain unchanged
-            assert len(prev_image_cviews & janitor._ti_image_cviews) == 4
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(prev_image_cviews & screen._ti_image_cviews) == 4
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (6, 2),
@@ -1251,7 +1237,7 @@ class TestJanitorRender:
             }
             assert {
                 (row, col)
-                for _, row, col, *_ in prev_image_cviews & janitor._ti_image_cviews
+                for _, row, col, *_ in prev_image_cviews & screen._ti_image_cviews
             } == {
                 (2, 17),
                 (6, 21),
@@ -1259,16 +1245,17 @@ class TestJanitorRender:
                 (11, 17),
             }
 
-            prev_image_cviews = janitor._ti_image_cviews
+            prev_image_cviews = screen._ti_image_cviews
             iterm2_list_box.shift_focus(_size, -9)
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 8
-            assert prev_image_cviews != janitor._ti_image_cviews
+            assert len(screen._ti_image_cviews) == 8
+            assert prev_image_cviews != screen._ti_image_cviews
             # All images (4 cviews) on the left should remain unchanged
-            assert len(prev_image_cviews & janitor._ti_image_cviews) == 4
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(prev_image_cviews & screen._ti_image_cviews) == 4
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (2, 17),
                 (6, 2),
@@ -1280,7 +1267,7 @@ class TestJanitorRender:
             }
             assert {
                 (row, col)
-                for _, row, col, *_ in prev_image_cviews & janitor._ti_image_cviews
+                for _, row, col, *_ in prev_image_cviews & screen._ti_image_cviews
             } == {
                 (2, 2),
                 (6, 2),
@@ -1296,48 +1283,52 @@ class TestJanitorRender:
         ITerm2Image._TERM = "konsole"
         try:
             # Setup
-            janitor = UrwidImageJanitor(widget)
+            buf.seek(0)
+            buf.truncate()
             widget.top_w = top_w
             widget.top = 5
             kitty_list_box.shift_focus(_size, 0)
             iterm2_list_box.shift_focus(_size, 0)
-            janitor.render(_size)
+            screen.draw_screen(_size, widget.render(_size))
 
-            prev_image_cviews = janitor._ti_image_cviews
+            # kitty image in the top widget
+            prev_image_cviews = screen._ti_image_cviews
             widget.top_w = kitty_image_w
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 9
-            assert prev_image_cviews != janitor._ti_image_cviews
-            # One new kitty image in the top widget
-            assert len(janitor._ti_image_cviews - prev_image_cviews) == 1
-            assert (*(janitor._ti_image_cviews - prev_image_cviews),)[0][1:3] == (6, 11)
+            assert len(screen._ti_image_cviews) == 9
+            assert prev_image_cviews != screen._ti_image_cviews
+            assert len(screen._ti_image_cviews - prev_image_cviews) == 1
+            assert (*(screen._ti_image_cviews - prev_image_cviews),)[0][1:3] == (6, 11)
 
-            prev_image_cviews = janitor._ti_image_cviews
+            # block image in the top widget
+            prev_image_cviews = screen._ti_image_cviews
             widget.top_w = block_image_w
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 8
-            assert prev_image_cviews != janitor._ti_image_cviews
-            # The image in the top widget is now of block style
-            assert len(prev_image_cviews - janitor._ti_image_cviews) == 1
-            assert (*(prev_image_cviews - janitor._ti_image_cviews),)[0][1:3] == (6, 11)
+            assert len(screen._ti_image_cviews) == 8
+            assert prev_image_cviews != screen._ti_image_cviews
+            assert len(prev_image_cviews - screen._ti_image_cviews) == 1
+            assert (*(prev_image_cviews - screen._ti_image_cviews),)[0][1:3] == (6, 11)
 
-            prev_image_cviews = janitor._ti_image_cviews
+            # iterm2 image in the top widget
+            prev_image_cviews = screen._ti_image_cviews
             widget.top_w = iterm2_image_w
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
-            assert len(janitor._ti_image_cviews) == 9
-            assert prev_image_cviews != janitor._ti_image_cviews
-            # The image in the top widget is now of iterm2 style
-            assert len(janitor._ti_image_cviews - prev_image_cviews) == 1
-            assert (*(janitor._ti_image_cviews - prev_image_cviews),)[0][1:3] == (6, 11)
+            assert len(screen._ti_image_cviews) == 9
+            assert prev_image_cviews != screen._ti_image_cviews
+            assert len(screen._ti_image_cviews - prev_image_cviews) == 1
+            assert (*(screen._ti_image_cviews - prev_image_cviews),)[0][1:3] == (6, 11)
 
         finally:
             ITerm2Image._TERM = _TERM
@@ -1347,19 +1338,21 @@ class TestJanitorRender:
         ITerm2Image._TERM = "wezterm"
         try:
             # Setup
-            janitor = UrwidImageJanitor(widget)
+            buf.seek(0)
+            buf.truncate()
             widget.top_w = top_w
             widget.top = 5
             kitty_list_box.shift_focus(_size, 0)
             iterm2_list_box.shift_focus(_size, 0)
 
             widget._invalidate()
-            canv = janitor.render(_size)  # noqa: F841
+            canv = widget.render(_size)  # noqa: F841
             # print(b"\n".join(canv.text).decode())
+            screen.draw_screen(_size, canv)
 
             # The images on the right are of iterm2 style but not on konsole
-            assert len(janitor._ti_image_cviews) == 4
-            assert {(row, col) for _, row, col, *_ in janitor._ti_image_cviews} == {
+            assert len(screen._ti_image_cviews) == 4
+            assert {(row, col) for _, row, col, *_ in screen._ti_image_cviews} == {
                 (2, 2),
                 (6, 2),
                 (9, 2),
