@@ -199,16 +199,12 @@ See the [tutorial](https://term-image.readthedocs.io/en/latest/tutorial.html) fo
 
 ## Contribution
 
-If you've found any bug or want to suggest a new feature, please open a new [issue](https://github.com/AnonymouX47/term-image/issues) with proper description, after browsing/searching through the existing issues and making sure you won't create a duplicate.
+Please read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
 
-For code contributions, please read through the [guidelines](https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md).
+For code contributions, you should also check out the [Planned Features](#planned-features).
+If you wish to work on any of the listed features/improvements, please click on the linked issue or go through the [issues](https://github.com/AnonymouX47/term-image/issues) section and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
 
-Also, check out the [Planned Features](#planned-features) section below.
-If you wish to work on any of the listed tasks, please click on the linked issue or go through the [issues](https://github.com/AnonymouX47/term-image/issues) section and join in on an ongoing discussion about the task or create a new issue if one hasn't been created yet, so that the implementation can be discussed.
-
-Hint: You can filter issues by *label* or simply *search* using the task's name or description.
-
-For anything other than the above (such as questions or anything that would fit the term "discussion"), please open a new [discussion](https://github.com/AnonymouX47/term-image/discussions) instead.
+Hint: You can filter issues by *label* or simply *search* using the features's description.
 
 Thanks! :heart:
 
