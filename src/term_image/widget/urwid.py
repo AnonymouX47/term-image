@@ -523,12 +523,10 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             if canvas is not self._ti_screen_canv:
                 self._ti_screen_canv = canvas
                 self._ti_clear_images()
-            ret = super().draw_screen(maxres, canvas)
+            return super().draw_screen(maxres, canvas)
         finally:
             self.write(END_SYNCED_UPDATE)
             self.flush()
-
-        return ret
 
     def _start(self, *args, **kwargs):
         ret = super()._start(*args, **kwargs)
@@ -581,17 +579,18 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                 process_shard_tails()
                 *trim, cols, rows, _, canv = cview
 
-                try:
-                    widget = canv.widget_info[0]
-                except TypeError:
-                    pass
-                else:
-                    if isinstance(canv, UrwidImageCanvas) and (
-                        isinstance(widget._ti_image, KittyImage)
-                        or isinstance(widget._ti_image, ITerm2Image)
-                        and ITerm2Image._TERM == "konsole"
-                    ):
-                        image_cviews.add((canv, row, col, *trim, cols, rows))
+                if isinstance(canv, UrwidImageCanvas):
+                    try:
+                        widget = canv.widget_info[0]
+                    except TypeError:
+                        pass
+                    else:
+                        if (
+                            isinstance(widget._ti_image, KittyImage)
+                            or isinstance(widget._ti_image, ITerm2Image)
+                            and ITerm2Image._TERM == "konsole"
+                        ):
+                            image_cviews.add((canv, row, col, *trim, cols, rows))
 
                 if rows > n_rows:
                     shard_tails[col] = (*trim, cols, rows - n_rows, canv)
@@ -599,14 +598,18 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             process_shard_tails()
             row += n_rows
 
+        kitty_widgets = []
         for canv, *_ in self._ti_image_cviews - image_cviews:
             widget = canv.widget_info[0]
             if isinstance(widget._ti_image, KittyImage):
-                widget.clear()
+                kitty_widgets.append(widget)
             else:
                 UrwidImage.clear_all()
                 # Multiple `clear_all()`s messes up the canvas disguise
                 # Also, a single `clear_all()` takes care of all images
                 break
+        else:
+            for widget in kitty_widgets:
+                widget.clear()
 
         self._ti_image_cviews = frozenset(image_cviews)
