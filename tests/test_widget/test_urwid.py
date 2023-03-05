@@ -18,7 +18,13 @@ from term_image.image import (
     kitty,
 )
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import COLOR_RESET, BG_FMT_b, COLOR_RESET_b
+from term_image.utils import (
+    BEGIN_SYNCED_UPDATE,
+    COLOR_RESET,
+    END_SYNCED_UPDATE,
+    BG_FMT_b,
+    COLOR_RESET_b,
+)
 from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 
 _size = (30, 15)
@@ -1072,6 +1078,55 @@ class TestCanvasTrim:
                     assert line.startswith(BG_FMT_b % (16, 32, 48) + b" ")
 
 
+class TestScreen:
+    class TestStartStop:
+        def test_supported(self):
+            buf = io.StringIO()
+            screen = UrwidImageScreen(sys.__stdin__, buf)
+
+            screen.start()
+            start_output = buf.getvalue()
+            buf.seek(0)
+            buf.truncate()
+            screen.stop()
+            stop_output = buf.getvalue()
+
+            assert start_output.endswith(kitty.DELETE_ALL_IMAGES)
+            assert stop_output.startswith(kitty.DELETE_ALL_IMAGES)
+
+        def test_not_supported(self):
+            buf = io.StringIO()
+            screen = UrwidImageScreen(sys.__stdin__, buf)
+
+            KittyImage._supported = False
+            try:
+                screen.start()
+                start_output = buf.getvalue()
+                buf.seek(0)
+                buf.truncate()
+                screen.stop()
+                stop_output = buf.getvalue()
+
+                assert kitty.DELETE_ALL_IMAGES not in start_output
+                assert kitty.DELETE_ALL_IMAGES not in stop_output
+            finally:
+                KittyImage._supported = True
+
+    def test_synced_output(self):
+        widget = urwid.SolidFill("x")
+        buf = io.StringIO()
+        screen = UrwidImageScreen(sys.__stdin__, buf)
+        screen.start()
+
+        buf.seek(0)
+        buf.truncate()
+        screen.draw_screen(_size, widget.render(_size))
+        output = buf.getvalue()
+
+        assert output.startswith(BEGIN_SYNCED_UPDATE)
+        assert output.endswith(END_SYNCED_UPDATE)
+
+
 block_image_w = UrwidImage(BlockImage(python_img))
 kitty_image_w = UrwidImage(KittyImage(python_img))
 iterm2_image_w = UrwidImage(ITerm2Image(python_img))
@@ -1361,39 +1416,3 @@ class TestScreenClearImages:
 
         finally:
             ITerm2Image._TERM = _TERM
-
-
-class TestScreen:
-    def test_start(self):
-        screen = UrwidImageScreen(input=sys.__stdin__)
-        buf = io.StringIO()
-        screen.write = buf.write
-
-        screen.start()
-        start_output = buf.getvalue()
-        buf.seek(0)
-        buf.truncate()
-        screen.stop()
-        stop_output = buf.getvalue()
-
-        assert start_output.endswith(kitty.DELETE_ALL_IMAGES)
-        assert stop_output.startswith(kitty.DELETE_ALL_IMAGES)
-
-    def test_not_supported(self):
-        screen = UrwidImageScreen(input=sys.__stdin__)
-        buf = io.StringIO()
-        screen.write = buf.write
-
-        KittyImage._supported = False
-        try:
-            screen.start()
-            start_output = buf.getvalue()
-            buf.seek(0)
-            buf.truncate()
-            screen.stop()
-            stop_output = buf.getvalue()
-
-            assert kitty.DELETE_ALL_IMAGES not in start_output
-            assert kitty.DELETE_ALL_IMAGES not in stop_output
-        finally:
-            KittyImage._supported = True
