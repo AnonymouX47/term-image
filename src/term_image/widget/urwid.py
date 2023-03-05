@@ -507,6 +507,9 @@ class UrwidImageScreen(urwid.raw_display.Screen):
     and clears them off the screen when necessary (e.g at startup, when scrolling,
     upon terminal resize and at exit).
 
+    It also synchronizes output on terminal emulators that support the feature to
+    reduce/eliminate image flickering/tearing.
+
     See the `baseclass
     <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
     for futher description.
