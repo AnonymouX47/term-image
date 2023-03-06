@@ -14,8 +14,8 @@
 # -- Project information -----------------------------------------------------
 
 project = "term-image"
-copyright = "2022, AnonymouX47"
-author = "AnonymouX47"
+copyright = "2022, Toluwaleke Ogundipe"
+author = "Toluwaleke Ogundipe"
 
 
 # -- General configuration ---------------------------------------------------

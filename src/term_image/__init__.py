@@ -3,14 +3,13 @@ term-image
 
 Display images in the terminal
 
-AUTHOR: AnonymouX47 <anonymoux47@gmail.com>
-Copyright (c) 2022
+Copyright (c) 2022, Toluwaleke Ogundipe <anonymoux47@gmail.com>
 """
 
 from __future__ import annotations
 
 __all__ = ("set_cell_ratio", "get_cell_ratio", "AutoCellRatio")
-__author__ = "AnonymouX47"
+__author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
 from operator import truediv
