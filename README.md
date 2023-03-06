@@ -211,11 +211,11 @@ Thanks! :heart:
 
 ## Planned Features
 
-See [here](https://term-image.readthedocs.io/en/latest/index.html#planned-features).
+See [here](https://term-image.readthedocs.io/en/latest/planned.html).
 
 ## Known Issues
 
-See [here](https://term-image.readthedocs.io/en/latest/index.html#known-issues).
+See [here](https://term-image.readthedocs.io/en/latest/issues.html).
 
 ## FAQs
 
