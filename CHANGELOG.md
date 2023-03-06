@@ -28,8 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `term_image.widget` subpackage
   - `term_image.widget.UrwidImage`
   - `term_image.widget.UrwidImageCanvas`
-  - `term_image.widget.UrwidImageJanitor`
   - `term_image.widget.UrwidImageScreen`
+    - Support for terminal-synchronized output ([#80]).
 
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#73]: https://github.com/AnonymouX47/term-image/pull/73
 [#74]: https://github.com/AnonymouX47/term-image/pull/74
 [#78]: https://github.com/AnonymouX47/term-image/pull/78
+[#80]: https://github.com/AnonymouX47/term-image/pull/80
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ("UrwidImage", "UrwidImageCanvas", "UrwidImageJanitor")
+__all__ = ("UrwidImage", "UrwidImageCanvas", "UrwidImageScreen")
 
 from typing import Optional, Tuple
 
@@ -10,7 +10,7 @@ import urwid
 
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage, kitty
-from ..utils import COLOR_RESET_b, ESC_b
+from ..utils import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, COLOR_RESET_b, ESC_b
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -500,112 +500,36 @@ class UrwidImageCanvas(urwid.Canvas):
         return new_pad_side1, trim_image_side1, trim_image_side2, new_pad_side2
 
 
-class UrwidImageJanitor(urwid.WidgetWrap):
-    """A widget wrapper that monitors images of some :ref:`graphics-based
-    <graphics-based>` render styles and clears them off the screen when necessary.
-
-    Args:
-        widget: A widget containing image widgets (possibly recursively).
-
-    NOTE:
-        For this widget to function properly, ensure that the position of its top-left
-        corner, **relative to the screen** can **never** change.
-
-        It's most advisable to use this widget to wrap the topmost widget but it may
-        be used to wrap any other widget and will function properly as long as the
-        condition mentioned earlier is met.
-    """
-
-    no_cache = ["render"]
-
-    def __init__(self, widget: urwid.Widget) -> None:
-        if not isinstance(widget, urwid.Widget):
-            raise TypeError(f"Invalid type for 'widget' (got: {type(widget).__name__})")
-
-        super().__init__(widget)
-        self._ti_image_cviews = frozenset()
-
-    widget = property(lambda self: self._w, doc="The wrapped widget")
-
-    def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
-        main_canv = super().render(size, focus)
-
-        if not (
-            KittyImage._forced_support
-            or KittyImage.is_supported()
-            or ITerm2Image.is_supported()
-            and ITerm2Image._TERM == "konsole"
-        ):
-            return main_canv
-
-        if not isinstance(main_canv, urwid.CompositeCanvas):
-            if self._ti_image_cviews:
-                UrwidImage.clear_all()
-                self._ti_image_cviews.clear()
-            return main_canv
-
-        def process_shard_tails():
-            nonlocal col
-
-            while col in shard_tails:
-                *trim, cols, rows, canv = shard_tails[col]
-                if rows > n_rows:
-                    shard_tails[col] = (*trim, cols, rows - n_rows, canv)
-                else:
-                    del shard_tails[col]
-                col += cols
-
-        images = set()
-        shard_tails = {}
-        row = 1
-
-        for n_rows, cviews in main_canv.shards:
-            col = 1
-            for cview in cviews:
-                process_shard_tails()
-                *trim, cols, rows, _, canv = cview
-
-                try:
-                    widget = canv.widget_info[0]
-                except TypeError:
-                    pass
-                else:
-                    if isinstance(canv, UrwidImageCanvas) and (
-                        isinstance(widget._ti_image, KittyImage)
-                        or isinstance(widget._ti_image, ITerm2Image)
-                        and ITerm2Image._TERM == "konsole"
-                    ):
-                        images.add((canv, row, col, *trim, cols, rows))
-
-                if rows > n_rows:
-                    shard_tails[col] = (*trim, cols, rows - n_rows, canv)
-                col += cols
-            process_shard_tails()
-            row += n_rows
-
-        for canv, *_ in self._ti_image_cviews - images:
-            widget = canv.widget_info[0]
-            if isinstance(widget._ti_image, KittyImage):
-                widget.clear()
-            else:
-                UrwidImage.clear_all()
-                # Multiple `clear_all()`s messes up the canvas disguise
-                # Also, a single `clear_all()` takes care of all images
-                break
-        self._ti_image_cviews = frozenset(images)
-
-        return main_canv
-
-
 class UrwidImageScreen(urwid.raw_display.Screen):
-    """A screen that clears all visible images of the
-    :py:class:`kitty <term_image.image.KittyImage>` render style immediately after
-    it starts and immediately before it stops.
+    """A screen that supports drawing images.
+
+    It monitors images of some :ref:`graphics-based <graphics-based>` render styles
+    and clears them off the screen when necessary (e.g at startup, when scrolling,
+    upon terminal resize and at exit).
+
+    It also synchronizes output on terminal emulators that support the feature to
+    reduce/eliminate image flickering/tearing.
 
     See the `baseclass
     <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
     for futher description.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._ti_screen_canv = None
+        self._ti_image_cviews = frozenset()
+
+    def draw_screen(self, maxres, canvas):
+        self.write(BEGIN_SYNCED_UPDATE)
+        try:
+            if canvas is not self._ti_screen_canv:
+                self._ti_screen_canv = canvas
+                self._ti_clear_images()
+            return super().draw_screen(maxres, canvas)
+        finally:
+            self.write(END_SYNCED_UPDATE)
+            self.flush()
 
     def _start(self, *args, **kwargs):
         ret = super()._start(*args, **kwargs)
@@ -619,3 +543,76 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             self.write(kitty.DELETE_ALL_IMAGES)
 
         return super()._stop()
+
+    def _ti_clear_images(self):
+        if not (
+            KittyImage._forced_support
+            or KittyImage.is_supported()
+            or ITerm2Image.is_supported()
+            and ITerm2Image._TERM == "konsole"
+        ):
+            return
+
+        screen_canv = self._ti_screen_canv
+
+        if not isinstance(screen_canv, urwid.CompositeCanvas):
+            if self._ti_image_cviews:
+                UrwidImage.clear_all()
+                self._ti_image_cviews.clear()
+            return
+
+        def process_shard_tails():
+            nonlocal col
+
+            while col in shard_tails:
+                *trim, cols, rows, canv = shard_tails[col]
+                if rows > n_rows:
+                    shard_tails[col] = (*trim, cols, rows - n_rows, canv)
+                else:
+                    del shard_tails[col]
+                col += cols
+
+        image_cviews = set()
+        shard_tails = {}
+        row = 1
+
+        for n_rows, cviews in screen_canv.shards:
+            col = 1
+            for cview in cviews:
+                process_shard_tails()
+                *trim, cols, rows, _, canv = cview
+
+                if isinstance(canv, UrwidImageCanvas):
+                    try:
+                        widget = canv.widget_info[0]
+                    except TypeError:
+                        pass
+                    else:
+                        if (
+                            isinstance(widget._ti_image, KittyImage)
+                            or isinstance(widget._ti_image, ITerm2Image)
+                            and ITerm2Image._TERM == "konsole"
+                        ):
+                            image_cviews.add((canv, row, col, *trim, cols, rows))
+
+                if rows > n_rows:
+                    shard_tails[col] = (*trim, cols, rows - n_rows, canv)
+                col += cols
+            process_shard_tails()
+            row += n_rows
+
+        kitty_widgets = []
+        for canv, *_ in self._ti_image_cviews - image_cviews:
+            widget = canv.widget_info[0]
+            if isinstance(widget._ti_image, KittyImage):
+                kitty_widgets.append(widget)
+            else:
+                UrwidImage.clear_all()
+                # Multiple `clear_all()`s messes up the canvas disguise
+                # Also, a single `clear_all()` takes care of all images
+                break
+        else:
+            for widget in kitty_widgets:
+                widget.clear()
+
+        self._ti_image_cviews = frozenset(image_cviews)
