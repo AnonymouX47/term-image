@@ -6,7 +6,6 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
-    "DEFAULT_QUERY_TIMEOUT",
     "DISABLE_QUERIES",
     "SWAP_WIN_SIZE",
     "get_terminal_name_version",
@@ -44,11 +43,6 @@ except ImportError:
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True
-
-#: Default timeout for :ref:`terminal-queries`
-#:
-#: See also: :py:func:`set_query_timeout`
-DEFAULT_QUERY_TIMEOUT: float = 0.1  # Final[float]
 
 #: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
 #: :ref:`dependent features <queried-features>`.
@@ -684,7 +678,7 @@ END_SYNCED_UPDATE = DECRST % 2026
 END_SYNCED_UPDATE_b = END_SYNCED_UPDATE.encode()
 
 # Private internal variables
-_query_timeout = DEFAULT_QUERY_TIMEOUT
+_query_timeout = 0.1
 _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4

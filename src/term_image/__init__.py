@@ -8,7 +8,13 @@ Copyright (c) 2022, Toluwaleke Ogundipe <anonymoux47@gmail.com>
 
 from __future__ import annotations
 
-__all__ = ("AutoCellRatio", "get_cell_ratio", "set_cell_ratio", "set_query_timeout")
+__all__ = (
+    "DEFAULT_QUERY_TIMEOUT",
+    "AutoCellRatio",
+    "get_cell_ratio",
+    "set_cell_ratio",
+    "set_query_timeout",
+)
 __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
@@ -21,6 +27,11 @@ from .utils import get_cell_size
 
 version_info = (0, 6, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
+
+#: Default timeout for :ref:`terminal-queries`
+#:
+#: See also: :py:func:`set_query_timeout`
+DEFAULT_QUERY_TIMEOUT: float = utils._query_timeout  # Final[float]
 
 
 class AutoCellRatio(Enum):
