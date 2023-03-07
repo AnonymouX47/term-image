@@ -13,7 +13,6 @@ __all__ = (
     "get_terminal_size",
     "lock_tty",
     "read_tty_all",
-    "set_query_timeout",
     "write_tty",
 )
 
@@ -575,26 +574,6 @@ def read_tty_all() -> bytes:
         Synchronized with :py:func:`lock_tty`.
     """
     return read_tty()
-
-
-def set_query_timeout(timeout: float) -> None:
-    """Sets the timeout for :ref:`terminal-queries`.
-
-    Args:
-        timeout: Time limit for awaiting a response from the terminal, in seconds.
-
-    Raises:
-        TypeError: *timeout* is not a float.
-        ValueError: *timeout* is less than or equal to zero.
-    """
-    global _query_timeout
-
-    if not isinstance(timeout, float):
-        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
-    if timeout <= 0.0:
-        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
-
-    _query_timeout = timeout
 
 
 @unix_tty_only

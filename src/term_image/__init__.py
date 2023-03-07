@@ -8,13 +8,14 @@ Copyright (c) 2022, Toluwaleke Ogundipe <anonymoux47@gmail.com>
 
 from __future__ import annotations
 
-__all__ = ("AutoCellRatio", "get_cell_ratio", "set_cell_ratio")
+__all__ = ("AutoCellRatio", "get_cell_ratio", "set_cell_ratio", "set_query_timeout")
 __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
 from operator import truediv
 from typing import Optional, Union
 
+from . import utils
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
@@ -98,6 +99,24 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
             "'ratio' must be a float or AutoCellRatio enum member "
             f"(got: {type(ratio).__name__})"
         )
+
+
+def set_query_timeout(timeout: float) -> None:
+    """Sets the timeout for :ref:`terminal-queries`.
+
+    Args:
+        timeout: Time limit for awaiting a response from the terminal, in seconds.
+
+    Raises:
+        TypeError: *timeout* is not a float.
+        ValueError: *timeout* is less than or equal to zero.
+    """
+    if not isinstance(timeout, float):
+        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
+    if timeout <= 0.0:
+        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
+
+    utils._query_timeout = timeout
 
 
 _cell_ratio = 0.5
