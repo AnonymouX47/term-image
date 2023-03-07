@@ -8,7 +8,7 @@ Copyright (c) 2022, Toluwaleke Ogundipe <anonymoux47@gmail.com>
 
 from __future__ import annotations
 
-__all__ = ("set_cell_ratio", "get_cell_ratio", "AutoCellRatio")
+__all__ = ("AutoCellRatio", "get_cell_ratio", "set_cell_ratio")
 __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
@@ -20,6 +20,15 @@ from .utils import get_cell_size
 
 version_info = (0, 6, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
+
+
+class AutoCellRatio(Enum):
+    """Values for setting :ref:`auto-cell-ratio`."""
+
+    is_supported: Optional[bool]
+
+    FIXED = auto()
+    DYNAMIC = auto()
 
 
 def get_cell_ratio() -> float:
@@ -89,15 +98,6 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
             "'ratio' must be a float or AutoCellRatio enum member "
             f"(got: {type(ratio).__name__})"
         )
-
-
-class AutoCellRatio(Enum):
-    """Values for setting :ref:`auto-cell-ratio`."""
-
-    is_supported: Optional[bool]
-
-    FIXED = auto()
-    DYNAMIC = auto()
 
 
 _cell_ratio = 0.5

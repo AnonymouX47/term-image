@@ -24,10 +24,6 @@ Reference
 Top-Level Definitions
 ---------------------
 
-.. autofunction:: term_image.set_cell_ratio
-
-.. autofunction:: term_image.get_cell_ratio
-
 .. autoclass:: term_image.AutoCellRatio
    :show-inheritance:
 
@@ -55,6 +51,10 @@ Top-Level Definitions
       :annotation:
 
    See :py:func:`~term_image.set_cell_ratio`.
+
+.. autofunction:: term_image.get_cell_ratio
+
+.. autofunction:: term_image.set_cell_ratio
 
 |
 
