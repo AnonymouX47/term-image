@@ -6,27 +6,31 @@ Concepts
 Render Styles
 -------------
 
-A render style is a specific implementation of representing or drawing images in a terminal emulator and each is implemented as a class.
+A render style is a specific implementation of representing or drawing images in a
+terminal emulator and each is implemented as a class.
 
-All render styles are designed to share a common interface (with some styles having extensions), making the usage of one class directly compatibile with another, except when using style-specific features.
+All render styles are designed to share a common interface (with some styles having
+extensions), making the usage of one class directly compatibile with another, except
+when using style-specific features.
 
-| Hence, the covenience functions :py:class:`AutoImage <term_image.image.AutoImage>`, :py:class:`from_file() <term_image.image.from_file>` and :py:class:`from_url() <term_image.image.from_url>` provide a means of render-style-independent usage of the library.
-| These functions automatically detect the best render style supported by the :term:`active terminal`.
+Hence, the covenience functions :py:class:`~term_image.image.AutoImage`,
+:py:class:`~term_image.image.from_file` and :py:class:`~term_image.image.from_url`
+provide a means of render-style-agnostic usage of the library.
+These functions automatically detect the best render style supported by the :term:`active terminal`.
 
-There a two categories of render styles:
+There are two main categories of render styles:
 
 .. _text-based:
 
 Text-based Render Styles
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Represent images using ASCII or Unicode symbols, and in some cases, with ANSI colour
-escape codes.
+Represent images using ASCII or Unicode symbols, and in some cases, with escape sequences to reproduce color.
 
 Classes for render styles in this category are subclasses of
-:py:class:`TextImage <term_image.image.TextImage>`. These include:
+:py:class:`~term_image.image.TextImage`. These include:
 
-* :py:class:`BlockImage <term_image.image.BlockImage>`
+* :py:class:`~term_image.image.BlockImage`
 
 .. _graphics-based:
 
@@ -36,10 +40,10 @@ Graphics-based Render Styles
 Represent images with actual pixels, using terminal graphics protocols.
 
 Classes for render styles in this category are subclasses of
-:py:class:`GraphicsImage <term_image.image.GraphicsImage>`. These include:
+:py:class:`~term_image.image.GraphicsImage`. These include:
 
-* :py:class:`KittyImage <term_image.image.KittyImage>`
-* :py:class:`ITerm2Image <term_image.image.ITerm2Image>`
+* :py:class:`~term_image.image.KittyImage`
+* :py:class:`~term_image.image.ITerm2Image`
 
 
 .. _auto-cell-ratio:
@@ -47,22 +51,27 @@ Classes for render styles in this category are subclasses of
 Auto Cell Ratio
 ---------------
 
-When using **auto cell ratio** (in either mode), it's important to note that some
-(not all) terminal emulators (e.g VTE-based ones) might have to be queried.
-**See** :ref:`terminal-queries`.
+.. note:: This concerns :ref:`text-based` only.
 
-If the program will never expect any useful input, **particularly while an image's
-size is being set/calculated** (for an image with :term:`dynamic size`, while it's
-being rendered or its :py:attr:`~term_image.image.BaseImage.rendered_size`,
+The is a feature which when supported, can be used to determine the :term:`cell ratio`
+directly from the terminal emulator itself. With this feature, it is possible to always
+produce images of text-based render styles with correct **aspect ratio**.
+
+When using either mode of :py:class:`~term_image.AutoCellRatio`, it's important to
+note that some terminal emulators (most non-graphics-capable ones) might have queried.
+See :ref:`terminal-queries`.
+
+If the program will never expect any useful input, particularly **while an image's
+size is being set/calculated**, then using :py:attr:`~term_image.AutoCellRatio.DYNAMIC`
+mode is OK. For an image with :term:`dynamic size`, this includes when it's being
+rendered and when its :py:attr:`~term_image.image.BaseImage.rendered_size`,
 :py:attr:`~term_image.image.BaseImage.rendered_width` or
-:py:attr:`~term_image.image.BaseImage.rendered_height` property is invoked),
-then using ``DYNAMIC`` mode is OK.
+:py:attr:`~term_image.image.BaseImage.rendered_height` property is invoked.
 
-Otherwise i.e if the program will be expecting input, use ``FIXED`` mode and use
-:py:func:`utils.read_tty() <term_image.utils.read_tty>` to read all currently unread
-input just before calling :py:func:`set_cell_ratio() <term_image.set_cell_ratio>`.
-
-.. note:: This concerns **text-based** render styles only (see the sub-section above).
+Otherwise i.e if the program will be expecting input, use
+:py:attr:`~term_image.AutoCellRatio.FIXED` mode and use
+:py:func:`~term_image.utils.read_tty_all` to read all currently unread input just
+before calling :py:func:`~term_image.set_cell_ratio`.
 
 
 .. _format-spec:
@@ -132,7 +141,7 @@ Image Format Specification
   spec defined by a class and ``parent`` is the spec defined by a parent of that class.
   ``parent`` can in turn be **recursively** broken down as such.
 
-See :ref:`Formatted rendering <formatted-render>` for examples.
+.. seealso:: :ref:`Formatted rendering <formatted-render>` tutorial.
 
 
 .. _active-terminal:
@@ -140,11 +149,10 @@ See :ref:`Formatted rendering <formatted-render>` for examples.
 The Active Terminal
 -------------------
 
-Every mention of *active terminal* in this module refers to the first terminal
-device discovered.
+This refers to the first terminal device discovered upon loading the ``term_image`` package.
 
-The following streams/files are checked in the following order of priority
-(along with the rationale behind the ordering):
+The following streams/files are checked in the following order (along with the
+rationale behind the ordering):
 
 * ``STDOUT``: Since it's where images will most likely be drawn.
 * ``STDIN``: If output is redirected to a file or pipe and the input is a terminal,
@@ -155,12 +163,13 @@ The following streams/files are checked in the following order of priority
 * ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
   terminal, if any.
 
-The first one that is ascertained to be a terminal device is used for
-all terminal queries and terminal size computations.
+The first one that is ascertained to be a terminal device is used for all
+:ref:`terminal-queries` and to retrieve the terminal (and window) size on some terminal
+emulators.
 
 .. note::
    If none of the streams/files is a terminal device, then a warning is issued
-   and affected functionality disabled.
+   and dependent functionality is disabled.
 
 
 .. _terminal-queries:
@@ -168,7 +177,7 @@ all terminal queries and terminal size computations.
 Terminal Queries
 ----------------
 
-Some functionalities of this library require the aquisition of certain information from
+Some features of this library require the aquisition of certain information from
 the :term:`active terminal`. A single iteration of this aquisition procedure is called a
 **query**.
 
@@ -181,39 +190,41 @@ A query involves three major steps:
 For this procedure to be successful, it must not be interrupted.
 
 About #1
-   If the program is expecting input, use :py:func:`read_tty` (simply calling it
-   without any argument is enough) to read all currently unread input
-   (**without blocking**) just before any operation involving a query.
+   If the program is expecting input, use :py:func:`~term_image.utils.read_tty_all`
+   to read all currently unread input (**without blocking**) just before any operation
+   involving a query.
 
 About #2 and #3
    After sending a request to the terminal, its response is awaited. The default wait
-   time is :py:data:`~term_image.utils.DEFAULT_QUERY_TIMEOUT` but can be changed
-   using :py:func:`~term_image.utils.set_query_timeout`.
+   time is :py:data:`~term_image.DEFAULT_QUERY_TIMEOUT` but can be changed
+   using :py:func:`~term_image.set_query_timeout`. If the terminal emulator
+   responds after the set timeout, this can result in the application program recieving
+   what would seem to be garbage or ghost input (see this :ref:`FAQ <query-timeout-faq>`).
 
    If the program includes any other function that could write to the terminal OR
    especially, read from the terminal or modify it's attributes, while a query is in
-   progress, decorate it with :py:func:`lock_tty` to ensure it doesn't interfere.
+   progress (as a result of asynchronous execution e.g multithreading or multiprocessing),
+   decorate it with :py:func:`~term_image.utils.lock_tty` to ensure it doesn't interfere.
 
-   For example, the TUI frontend for this project
-   (`term-image-viewer <https://github.com/AnonymouX47/term-image-viewer>`_) uses
-   `urwid <https://urwid.org>`_ which reads from the terminal using
-   ``urwid.raw_display.Screen.get_available_raw_input()``.
+   For example, an `image viewer <https://github.com/AnonymouX47/term-image-viewer>`_
+   based on this project uses `urwid <https://urwid.org>`_ which reads from the
+   terminal using ``urwid.raw_display.Screen.get_available_raw_input()``.
    To prevent this method from interfering with terminal queries, it is wrapped thus::
 
        urwid.raw_display.Screen.get_available_raw_input = lock_tty(
            urwid.raw_display.Screen.get_available_raw_input
        )
 
-   | Also, if the :term:`active terminal` is not the controlling terminal of the process
-     using this library (e.g output is redirected to another terminal), ensure no
-     process that can interfere with a query (e.g a shell) is currently running in the
-     active terminal.
-   | For instance, such a process can be temporarily put to sleep.
+   Also, if the :term:`active terminal` is not the controlling terminal of the process
+   using this library (e.g output is redirected to another terminal), ensure no
+   process that can interfere with a query (e.g a shell) is currently running in the
+   active terminal. For instance, such a process can be temporarily put to sleep.
+
 
 .. _queried-features:
 
-List of features that use terminal queries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Features that require terminal queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In parentheses are the outcomes when the terminal doesn't support queries or when queries
 are disabled.
