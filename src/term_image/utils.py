@@ -434,12 +434,14 @@ def query_terminal(
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
 
-          If not given or ``None``, the value set by :py:func:`set_query_timeout`
-          (or :py:data:`DEFAULT_QUERY_TIMEOUT` if never set) is used.
+          If not given or ``None``, the value set by
+          :py:func:`~term_image.set_query_timeout`
+          (or :py:data:`~term_image.DEFAULT_QUERY_TIMEOUT` if never set) is used.
 
     Returns:
-        `None` if queries are disabled (via :py:func:`disable_queries`), else the
-        terminal's response (empty, if no response is recieved after *timeout* is up).
+        `None` if queries are disabled (via :py:func:`~term_image.disable_queries`),
+        else the terminal's response (empty, if no response is recieved after
+        *timeout* is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
