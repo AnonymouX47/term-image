@@ -24,6 +24,8 @@ Reference
 Top-Level Definitions
 ---------------------
 
+.. autodata:: term_image.DEFAULT_QUERY_TIMEOUT
+
 .. autoclass:: term_image.AutoCellRatio
    :show-inheritance:
 
@@ -52,9 +54,19 @@ Top-Level Definitions
 
    See :py:func:`~term_image.set_cell_ratio`.
 
+.. autofunction:: term_image.disable_queries
+
+.. autofunction:: term_image.disable_win_size_swap
+
+.. autofunction:: term_image.enable_queries
+
+.. autofunction:: term_image.enable_win_size_swap
+
 .. autofunction:: term_image.get_cell_ratio
 
 .. autofunction:: term_image.set_cell_ratio
+
+.. autofunction:: term_image.set_query_timeout
 
 |
 
