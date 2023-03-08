@@ -6,7 +6,6 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
-    "SWAP_WIN_SIZE",
     "get_terminal_name_version",
     "get_terminal_size",
     "lock_tty",
@@ -45,13 +44,6 @@ else:
 
 # NOTE: Any cached feature using a query should have it's cache invalidated in
 # `term_image.enable_queries()`.
-
-#: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
-#: report window dimensions swapped.
-#:
-#: | If ``True``, the dimensions reported by the terminal emulator are swapped.
-#: | This setting affects :ref:`auto-cell-ratio` computation.
-SWAP_WIN_SIZE: bool = False
 
 # Decorator Classes
 
@@ -420,7 +412,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
                 if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
                     size = (size[0], size[1] * 2)
 
-        size = size[:: -SWAP_WIN_SIZE or 1] if size else (0, 0)
+        size = size[:: -_swap_win_size or 1] if size else (0, 0)
         _win_size_cache[:] = ts + size
         return None if 0 in size else size
 
@@ -678,6 +670,7 @@ END_SYNCED_UPDATE_b = END_SYNCED_UPDATE.encode()
 # Private internal variables
 _query_timeout = 0.1
 _queries_enabled: bool = True
+_swap_win_size: bool = False
 _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4

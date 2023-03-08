@@ -12,7 +12,9 @@ __all__ = (
     "DEFAULT_QUERY_TIMEOUT",
     "AutoCellRatio",
     "disable_queries",
+    "disable_win_size_swap",
     "enable_queries",
+    "enable_win_size_swap",
     "get_cell_ratio",
     "set_cell_ratio",
     "set_query_timeout",
@@ -56,6 +58,24 @@ def disable_queries() -> None:
     utils._queries_enabled = False
 
 
+def disable_win_size_swap():
+    """Disables a workaround for terminal emulators that wrongly report window
+    dimensions swapped.
+
+    This workaround is disabled by default. While disabled, the window dimensions
+    reported by the :term:`active terminal` are used as-is.
+
+    NOTE:
+       This affects :ref:`auto-cell-ratio` computation and size computations for
+       :ref:`graphics-based`.
+    """
+    if utils._swap_win_size:
+        utils._swap_win_size = False
+        utils.get_cell_size._invalidate_terminal_size_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
+
+
 def enable_queries() -> None:
     """Re-Enables :ref:`terminal-queries`.
 
@@ -69,6 +89,24 @@ def enable_queries() -> None:
         utils.get_cell_size._invalidate_terminal_size_cache()
         utils.get_fg_bg_colors._invalidate_cache()
         utils.get_terminal_name_version._invalidate_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
+
+
+def enable_win_size_swap():
+    """Enables a workaround for terminal emulators that wrongly report window
+    dimensions swapped.
+
+    While enabled, the window dimensions reported by the :term:`active terminal` are
+    swapped. This workaround is required on some older VTE-based terminal emulators.
+
+    NOTE:
+       This affects :ref:`auto-cell-ratio` computation and size computations for
+       :ref:`graphics-based`.
+    """
+    if not utils._swap_win_size:
+        utils._swap_win_size = True
+        utils.get_cell_size._invalidate_terminal_size_cache()
         with utils._win_size_lock:
             utils._win_size_cache[:] = (0,) * 4
 
