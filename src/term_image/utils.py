@@ -6,7 +6,6 @@ Utilities
 from __future__ import annotations
 
 __all__ = (
-    "DISABLE_QUERIES",
     "SWAP_WIN_SIZE",
     "get_terminal_name_version",
     "get_terminal_size",
@@ -44,9 +43,8 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-#: If ``True``, :ref:`terminal-queries` are disabled, thereby affecting all
-#: :ref:`dependent features <queried-features>`.
-DISABLE_QUERIES: bool = False
+# NOTE: Any cached feature using a query should have it's cache invalidated in
+# `term_image.enable_queries()`.
 
 #: A workaround for some terminal emulators (e.g older VTE-based ones) that wrongly
 #: report window dimensions swapped.
@@ -301,7 +299,7 @@ def get_fg_bg_colors(
             # The response might contain a "c"; can't stop reading at "c"
             lambda s: not s.endswith(CSI_b),
         )
-        if not DISABLE_QUERIES:
+        if _queries_enabled:
             read_tty()  # The rest of the response to `CSI c`
 
     fg = bg = None
@@ -334,7 +332,7 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
             # The response might contain a "c"; can't stop reading at "c"
             lambda s: not s.endswith(CSI_b),
         )
-        if not DISABLE_QUERIES:
+        if _queries_enabled:
             read_tty()  # The rest of the response to `CSI c`
 
     match = response and NAME_VERSION.fullmatch(response.decode().rpartition(ESC)[0])
@@ -448,14 +446,14 @@ def query_terminal(
           (or :py:data:`DEFAULT_QUERY_TIMEOUT` if never set) is used.
 
     Returns:
-        `None` if :py:data:`DISABLE_QUERIES` is true, else the terminal's response
-        (empty, if no response is recieved after *timeout* is up).
+        `None` if queries are disabled (via :py:func:`disable_queries`), else the
+        terminal's response (empty, if no response is recieved after *timeout* is up).
 
     ATTENTION:
         Any unread input is discared before the query. If the input might be needed,
         it can be read using :py:func:`read_tty()` before calling this fucntion.
     """
-    if DISABLE_QUERIES:
+    if not _queries_enabled:
         return None
 
     old_attr = termios.tcgetattr(_tty)
@@ -611,8 +609,8 @@ def _process_start_wrapper(self, *args, **kwargs):
                     "terminal queries.\n"
                     "See https://term-image.readthedocs.io/en/stable/library/reference"
                     "/utils.html#terminal-queries\n"
-                    "If any related issues occur, it's advisable to set "
-                    "`term_image.utils.DISABLE_QUERIES = True`.\n"
+                    "If any related issues occur, it's advisable to disable queries "
+                    "using `term_image.disable_queries()`.\n"
                     "Simply set an 'ignore' filter for this warning (before starting "
                     "any subprocess) if not using any of the affected features.",
                     TermImageWarning,
@@ -679,6 +677,7 @@ END_SYNCED_UPDATE_b = END_SYNCED_UPDATE.encode()
 
 # Private internal variables
 _query_timeout = 0.1
+_queries_enabled: bool = True
 _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4

@@ -11,6 +11,8 @@ from __future__ import annotations
 __all__ = (
     "DEFAULT_QUERY_TIMEOUT",
     "AutoCellRatio",
+    "disable_queries",
+    "enable_queries",
     "get_cell_ratio",
     "set_cell_ratio",
     "set_query_timeout",
@@ -41,6 +43,34 @@ class AutoCellRatio(Enum):
 
     FIXED = auto()
     DYNAMIC = auto()
+
+
+def disable_queries() -> None:
+    """Disables :ref:`terminal-queries`.
+
+    To re-enable queries, call :py:func:`enable_queries`.
+
+    NOTE:
+       This affects all :ref:`dependent features <queried-features>`.
+    """
+    utils._queries_enabled = False
+
+
+def enable_queries() -> None:
+    """Re-Enables :ref:`terminal-queries`.
+
+    Queries are enabled by default. To disable, call :py:func:`disable_queries`.
+
+    NOTE:
+       This affects all :ref:`dependent features <queried-features>`.
+    """
+    if not utils._queries_enabled:
+        utils._queries_enabled = True
+        utils.get_cell_size._invalidate_terminal_size_cache()
+        utils.get_fg_bg_colors._invalidate_cache()
+        utils.get_terminal_name_version._invalidate_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
 
 
 def get_cell_ratio() -> float:
