@@ -8,18 +8,107 @@ Copyright (c) 2022, Toluwaleke Ogundipe <anonymoux47@gmail.com>
 
 from __future__ import annotations
 
-__all__ = ("set_cell_ratio", "get_cell_ratio", "AutoCellRatio")
+__all__ = (
+    "DEFAULT_QUERY_TIMEOUT",
+    "AutoCellRatio",
+    "disable_queries",
+    "disable_win_size_swap",
+    "enable_queries",
+    "enable_win_size_swap",
+    "get_cell_ratio",
+    "set_cell_ratio",
+    "set_query_timeout",
+)
 __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
 from operator import truediv
 from typing import Optional, Union
 
+from . import utils
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
 version_info = (0, 6, 0, "dev0")
 __version__ = ".".join(map(str, version_info))
+
+#: Default timeout for :ref:`terminal-queries`
+#:
+#: See also: :py:func:`set_query_timeout`
+DEFAULT_QUERY_TIMEOUT: float = utils._query_timeout  # Final[float]
+
+
+class AutoCellRatio(Enum):
+    """Values for setting :ref:`auto-cell-ratio`."""
+
+    is_supported: Optional[bool]
+
+    FIXED = auto()
+    DYNAMIC = auto()
+
+
+def disable_queries() -> None:
+    """Disables :ref:`terminal-queries`.
+
+    To re-enable queries, call :py:func:`enable_queries`.
+
+    NOTE:
+       This affects all :ref:`dependent features <queried-features>`.
+    """
+    utils._queries_enabled = False
+
+
+def disable_win_size_swap():
+    """Disables a workaround for terminal emulators that wrongly report window
+    dimensions swapped.
+
+    This workaround is disabled by default. While disabled, the window dimensions
+    reported by the :term:`active terminal` are used as-is.
+
+    NOTE:
+       This affects :ref:`auto-cell-ratio` computation and size computations for
+       :ref:`graphics-based`.
+    """
+    if utils._swap_win_size:
+        utils._swap_win_size = False
+        utils.get_cell_size._invalidate_terminal_size_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
+
+
+def enable_queries() -> None:
+    """Re-Enables :ref:`terminal-queries`.
+
+    Queries are enabled by default. To disable, call :py:func:`disable_queries`.
+
+    NOTE:
+       This affects all :ref:`dependent features <queried-features>`.
+    """
+    if not utils._queries_enabled:
+        utils._queries_enabled = True
+        utils.get_cell_size._invalidate_terminal_size_cache()
+        utils.get_fg_bg_colors._invalidate_cache()
+        utils.get_terminal_name_version._invalidate_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
+
+
+def enable_win_size_swap():
+    """Enables a workaround for terminal emulators that wrongly report window
+    dimensions swapped.
+
+    While enabled, the window dimensions reported by the :term:`active terminal` are
+    swapped. This workaround is required on some older VTE-based terminal emulators.
+
+    NOTE:
+       This affects :ref:`auto-cell-ratio` computation and size computations for
+       :ref:`graphics-based`.
+    """
+    if not utils._swap_win_size:
+        utils._swap_win_size = True
+        utils.get_cell_size._invalidate_terminal_size_cache()
+        with utils._win_size_lock:
+            utils._win_size_cache[:] = (0,) * 4
 
 
 def get_cell_ratio() -> float:
@@ -91,13 +180,22 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
         )
 
 
-class AutoCellRatio(Enum):
-    """Values for setting :ref:`auto-cell-ratio`."""
+def set_query_timeout(timeout: float) -> None:
+    """Sets the timeout for :ref:`terminal-queries`.
 
-    is_supported: Optional[bool]
+    Args:
+        timeout: Time limit for awaiting a response from the terminal, in seconds.
 
-    FIXED = auto()
-    DYNAMIC = auto()
+    Raises:
+        TypeError: *timeout* is not a float.
+        ValueError: *timeout* is less than or equal to zero.
+    """
+    if not isinstance(timeout, float):
+        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
+    if timeout <= 0.0:
+        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
+
+    utils._query_timeout = timeout
 
 
 _cell_ratio = 0.5

@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extended `ITerm2Image.clear()` ([807a9ec]).
 - Computed image size and `image.rendered_size` (regardless of the value of `image.scale`) can no longer be null (contain `0`) ([#78]).
   - No more "Image size or scale too small" error at render time.
+- **(BREAKING!)** Redefined gloabl settings and moved all to package top-level ([#82]).
+  - `term_image.utils.DEFAULT_QUERY_TIMEOUT` -> `term_image.DEFAULT_QUERY_TIMEOUT`
+  - `term_image.utils.set_query_timeout()` -> `term_image.set_query_timeout()`
+  - `term_image.utils.DISABLE_QUERIES` -> `term_image.disable_queries()` and `term_image.enable_queries()`
+  - `term_image.utils.SWAP_WIN_SIZE` -> `term_image.enable_win_size_swap()` and `term_image.disable_win_size_swap()`
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -51,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#74]: https://github.com/AnonymouX47/term-image/pull/74
 [#78]: https://github.com/AnonymouX47/term-image/pull/78
 [#80]: https://github.com/AnonymouX47/term-image/pull/80
+[#82]: https://github.com/AnonymouX47/term-image/pull/82
 [b4533d5]: https://github.com/AnonymouX47/term-image/commit/b4533d5697d41fe0742c2ac895077da3b8d889dc
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
