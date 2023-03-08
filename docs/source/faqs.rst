@@ -17,7 +17,7 @@ Why are colours not properly reproduced?
 Why are images out of scale?
    - If :ref:`auto-cell-ratio` is supported and enabled,
 
-     - set :py:data:`~term_image.utils.SWAP_WIN_SIZE` to ``True``.
+     - call :py:func:`~term_image.enable_win_size_swap`.
        If this doesn't work, then open an issue `here
        <https://github.com/AnonymouX47/term-image/issues>`_ with adequate details.
 
