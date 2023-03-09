@@ -1109,7 +1109,7 @@ class BaseImage(metaclass=ImageMeta):
 
         :term:`Allowances <allowance>` are ignored when *maxsize* is given.
 
-        Image formatting and size validation operations recognize and respect the
+        Render formatting and size validation operations recognize and respect the
         horizontal and vertical allowances, until the image size is re-set.
 
         NOTE:

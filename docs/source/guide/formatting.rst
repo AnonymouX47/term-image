@@ -1,10 +1,10 @@
-Image Formatting
+Render Formatting
 =================
 
 .. _format-spec:
 
-Image Format Specification
---------------------------
+Render Format Specification
+---------------------------
 
 .. code-block:: none
 
