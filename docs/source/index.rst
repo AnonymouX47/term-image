@@ -21,8 +21,7 @@ Welcome to term-image's documentation!
 
    installation
    gallery
-   tutorial
-   concepts
+   guide/index
    reference/index
    planned
    issues

@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-This is a basic introduction to using the library. Please refer to the :doc:`reference/index` for detailed description of the features and functionality provided by the library.
+This is a basic introduction to using the library. Please refer to the :doc:`/reference/index` for detailed description of the features and functionality provided by the library.
 
 For this tutorial we'll be using the image below:
 
@@ -358,4 +358,4 @@ The drawn image (using ``image.draw()``) should look like:
 >>> image.scale
 (0.75, 1.0)
 
-Finally, to explore more of the library's features and functionality, check out the :doc:`reference/index` section.
+Finally, to explore more of the library's features and functionality, check out the :doc:`/reference/index` section.
