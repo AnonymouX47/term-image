@@ -7,3 +7,4 @@ User Guide
 
    tutorial
    concepts
+   formatting
