@@ -1,6 +1,92 @@
 Render Formatting
 =================
 
+Render formatting is simply the modification of a primary :term:`render` output.
+This is provided via:
+
+* Python's string formatting protocol by using :py:func:`format`, :py:meth:`str.format` or
+  `formatted string literals
+  <https://docs.python.org/3/reference/lexical_analysis.html#formatted-string-literals>`_
+  with the :ref:`format-spec`
+* Parameters of :py:meth:`~term_image.image.BaseImage.draw`
+
+The following constitute render formatting:
+
+
+.. _padding:
+
+Padding
+-------
+
+This adds whitespace around a primary :term:`render` output.
+The amount of whitespace added is determined by two values (with respect to the rendered size):
+
+* :term:`padding width`, determines horizontal padding
+
+  * uses the ``width`` field of the :ref:`format-spec`
+  * uses the *pad_width* parameter of :py:meth:`~term_image.image.BaseImage.draw`
+
+* :term:`padding height`, determines vertical padding
+
+  * uses the ``height`` field of the :ref:`format-spec`
+  * uses the *pad_height* parameter of :py:meth:`~term_image.image.BaseImage.draw`
+
+If the padding width or height is less than or equal to the width or height of the primary
+render output, then the padding has no effect on the corresponding axis.
+
+
+.. _alignment:
+
+Alignment
+---------
+
+This determines the position of a primary :term:`render` output within it's :ref:`padding`.
+The position is determined by two values:
+
+* :term:`horizontal alignment`, determines the horizontal position
+
+  * uses the ``h_align`` field of the :ref:`format-spec`
+  * uses the *h_align* parameter of :py:meth:`~term_image.image.BaseImage.draw`
+
+* :term:`vertical alignment`, determines the vertical position
+
+  * uses the ``v_align`` field of the :ref:`format-spec`
+  * uses the *v_align* parameter of :py:meth:`~term_image.image.BaseImage.draw`
+
+
+.. _transparency:
+
+Transparency
+------------
+
+This determines how transparent pixels are rendered.
+Transparent pixels can be rendered in one of the following ways:
+
+* Transparency disabled
+
+  Alpha channel is ignored.
+
+  * uses the ``#`` field of the :ref:`format-spec`, without ``threshold`` or ``bgcolor``
+  * uses the *alpha* parameter of :py:meth:`~term_image.image.BaseImage.draw`, set to ``None``
+
+* Transparency enabled with an :term:`alpha threshold`
+
+  For :ref:`text-based`, any pixel with an alpha value above the given threshold is
+  taken as **opaque**.
+  For :ref:`graphics-based`, the alpha value of each pixel is used as-is.
+
+  * uses the ``threshold`` field of the :ref:`format-spec`
+  * uses the *alpha* parameter of :py:meth:`~term_image.image.BaseImage.draw`, set to a :py:class:`float` value
+
+* Transparent pixels overlaid on a color
+
+  May be specified to be a specific color or the default background color of the
+  terminal emulator (if it can't be determined, black is used).
+
+  * uses the ``bgcolor`` field of the :ref:`format-spec`
+  * uses the *alpha* parameter of :py:meth:`~term_image.image.BaseImage.draw`, set to a string value
+
+
 .. _format-spec:
 
 Render Format Specification
