@@ -92,37 +92,39 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [method] [ m {0 | 1} ] [ c {0-9} ]
+        [ <method> ]  [ m <mix> ]  [ c <compress> ]
 
-    * ``method``: Render method override.
+    * ``method`` → render method override
 
-      Can be one of:
+      * ``L`` → **LINES** render method (current frame only, for animated images)
+      * ``W`` → **WHOLE** render method (current frame only, for animated images)
+      * ``N`` → Native animation (ignored when used with non-animated images, WEBP
+        animated images or :py:class:`~term_image.image.ImageIterator`)
+      * *default* → current effective render method of the instance
 
-        * ``L``: **LINES** render method (current frame only, for animated images).
-        * ``W``: **WHOLE** render method (current frame only, for animated images).
-        * ``N``: Native animation. Ignored when used with non-animated images, WEBP
-          images or ``ImageIterator``.
+    * ``m`` → cell content inter-mix policy (**Only supported in WezTerm**, ignored
+      otherwise)
 
-      Default: Current effective render method of the image.
+      * ``mix`` → inter-mix policy
 
-    * ``m``: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
-      otherwise).
+        * ``0`` → existing contents of cells in the region covered by the drawn
+          render output will be erased
+        * ``1`` → existing cell contents show under transparent areas of the drawn
+          render output
 
-      * If the character after ``m`` is:
+      * *default* → ``m0``
+      * e.g ``m0``, ``m1``
 
-        * ``0``, contents of cells in the region covered by the image will be erased.
-        * ``1``, the opposite, thereby allowing existing cell contents to show under
-          transparent areas of the image.
+    * ``c`` → ZLIB compression level, for renders re-encoded in PNG format
 
-      * If *absent*, defaults to ``m0``.
-      * e.g ``m0``, ``m1``.
+      * ``compress`` → compression level
 
-    * ``c``: ZLIB compression level, for images re-encoded in PNG format.
+        * An integer in the range ``0`` <= ``x`` <= ``9``
+        * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
 
-      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
-      * This results in a trade-off between render time and data size/draw speed.
-      * If *absent*, defaults to ``c4``.
-      * e.g ``c0``, ``c9``.
+      * *default* → ``c4``
+      * e.g ``c0``, ``c9``
+      * Results in a trade-off between render time and data size/draw speed
 
 
     ATTENTION:
