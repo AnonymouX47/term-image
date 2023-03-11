@@ -41,7 +41,9 @@ class ITerm2Image(GraphicsImage):
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
-    **Render Methods:**
+    |
+
+    **Render Methods**
 
     :py:class:`ITerm2Image` provides two methods of :term:`rendering` images, namely:
 
@@ -51,13 +53,13 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-         * Good for use cases where it might be required to trim some lines of the
-           image.
+       * Good for use cases where it might be required to trim some lines of the
+         image.
 
        Cons:
 
-         * Image drawing is very slow on iTerm2 due to the terminal emulator's
-           performance.
+       * Image drawing is very slow on iTerm2 due to the terminal emulator's
+         performance.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
@@ -66,15 +68,15 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-         * Render results are more compact (i.e less in character count) than with
-           the ``lines`` method since the entire image is encoded at once.
-         * Image drawing is faster than with ``lines`` on most terminals.
-         * Smoother animations.
+       * Render results are more compact (i.e less in character count) than with
+         the ``lines`` method since the entire image is encoded at once.
+       * Image drawing is faster than with ``lines`` on most terminals.
+       * Smoother animations.
 
        Cons:
 
-          * This method currently doesn't work well on iTerm2 and WezTerm when the image
-            height is greater than the terminal height.
+       * This method currently doesn't work well on iTerm2 and WezTerm when the image
+         height is greater than the terminal height.
 
     NOTE:
         The **LINES** method is the default only because it works properly in all cases,
@@ -85,6 +87,7 @@ class ITerm2Image(GraphicsImage):
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
 
+    |
 
     **Format Specification**
 
@@ -126,13 +129,14 @@ class ITerm2Image(GraphicsImage):
       * e.g ``c0``, ``c9``
       * Results in a trade-off between render time and data size/draw speed
 
+    |
 
-    ATTENTION:
-        Currently supported terminal emulators include:
+    IMPORTANT:
+        Currently supported terminal emulators are:
 
-          * `iTerm2 <https://iterm2.com>`_
-          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
-          * `WezTerm <https://wezfurlong.org/wezterm/>`_
+        * `iTerm2 <https://iterm2.com>`_
+        * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
+        * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
     #: * ``x < 0``, JPEG encoding is disabled.
@@ -278,16 +282,16 @@ class ITerm2Image(GraphicsImage):
             mix: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
               otherwise). If:
 
-              * ``False``, contents of cells within the region covered by the image are
-                erased.
-              * ``True``, the opposite, thereby allowing existing text or image pixels
-                to show under transparent areas of the image.
+              * ``False``, existing contents of cells within the region covered by
+                the drawn render output are erased.
+              * ``True``, existing cell contents show under transparent areas of the
+                drawn render output.
 
-            compress: ZLIB compression level, for images re-encoded in PNG format.
+            compress: ZLIB compression level, for renders re-encoded in PNG format.
 
-              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
-              no compression. This results in a trade-off between render time and data
-              size/draw speed.
+              * An integer in the range ``0`` <= ``x`` <= ``9``.
+              * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression.
+              * Results in a trade-off between render time and data size/draw speed.
 
             native: If ``True``, use native animation (if supported).
 
