@@ -25,6 +25,8 @@ class KittyImage(GraphicsImage):
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
+    |
+
     **Render Methods**
 
     :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
@@ -35,8 +37,8 @@ class KittyImage(GraphicsImage):
 
        Pros:
 
-         * Good for use cases where it might be required to trim some lines of the
-           image.
+       * Good for use cases where it might be required to trim some lines of the
+         image.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
@@ -45,13 +47,14 @@ class KittyImage(GraphicsImage):
 
        Pros:
 
-         * Render results are more compact (i.e less in character count) than with
-           the **LINES** method since the entire image is encoded at once.
+       * Render results are more compact (i.e less in character count) than with
+         the **LINES** method since the entire image is encoded at once.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
 
+    |
 
     **Format Specification**
 
@@ -105,12 +108,13 @@ class KittyImage(GraphicsImage):
       * e.g ``c0``, ``c9``
       * results in a trade-off between render time and data size/draw speed
 
+    |
 
-    ATTENTION:
-        Currently supported terminal emulators include:
+    IMPORTANT:
+        Currently supported terminal emulators are:
 
-          * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
-          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
+        * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
+        * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
     """
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
@@ -148,7 +152,7 @@ class KittyImage(GraphicsImage):
             False,
             (
                 lambda x: isinstance(x, bool),
-                "Inter-mixing policy must be a boolean",
+                "Inter-mix policy must be a boolean",
             ),
             (lambda _: True, ""),
         ),
@@ -251,31 +255,30 @@ class KittyImage(GraphicsImage):
             args: Positional arguments passed up the inheritance chain.
             method: Render method override. If ``None`` or not given, the current
               effective render method of the instance is used.
-            z_index: The stacking order of images and text **for non-animations**.
-
-              Overlapping images with different z-indexes values will be blended if
-              they are semi-transparent. If *z_index* is:
+            z_index: The stacking order of graphics and text **for non-animations**. If:
 
               * ``>= 0``, the image will be drawn above text.
               * ``< 0``, the image will be drawn below text.
               * ``< -(2**31)/2``, the image will be drawn below cells with
                 non-default background color.
 
-              To inter-mixing text with an image, see the *mix* parameter.
+              Overlapping graphics on different z-indexes will be blended
+              (by the terminal emulator) if they are semi-transparent.
+              To inter-mix text with graphics, see the *mix* parameter.
 
-            mix: Image/Text inter-mixing policy **for non-animations**. If:
+            mix: Graphics/Text inter-mix policy. If:
 
-              * ``True``, text within the region covered by the image will NOT be
-                erased.
-              * ``False``, text within the region covered by the image will be
-                erased, though text can be inter-mixed with the image after it's
-                been drawn.
+              * ``False``, text within the region covered by the drawn render output
+                will be erased, though text can be inter-mixed with graphics after
+                drawing.
+              * ``True``, text within the region covered by the drawn render output
+                will NOT be erased.
 
             compress: ZLIB compression level.
 
-              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
-              no compression. This results in a trade-off between render time and data
-              size/draw speed.
+              * ``0`` <= *compress* <= ``9``.
+              * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression.
+              * Results in a trade-off between render time and data size/draw speed.
 
             kwargs: Keyword arguments passed up the inheritance chain.
 
@@ -361,8 +364,8 @@ class KittyImage(GraphicsImage):
 
         | Only used on Kitty <= 0.25.0 because ``blend=False`` is buggy on these
           versions. Does nothing on any other version or terminal.
-        | Note that this implementation might do more than required since it clears
-          all images on screen.
+        | Also clears any frame of any previously drawn animation, since they all use
+          the same z-index.
 
         See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
         """
