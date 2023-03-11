@@ -59,50 +59,51 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [method] [ z {index} ] [ m {0 | 1} ] [ c {0-9} ]
+        [ <method> ]  [ z <z-index> ]  [ m <mix> ]  [ c <compress> ]
 
-    * ``method``: Render method override.
+    * ``method`` → render method override
 
-      Can be one of:
+      * ``L`` → **LINES** render method (current frame only, for animated images)
+      * ``W`` → **WHOLE** render method (current frame only, for animated images)
+      * *default* → Current effective render method of the image
 
-        * ``L``: **LINES** render method (current frame only, for animated images).
-        * ``W``: **WHOLE** render method (current frame only, for animated images).
+    * ``z`` → graphics/text stacking order
 
-      Default: Current effective render method of the image.
+      * ``z-index`` → z-index
 
-    * ``z``: Image/Text stacking order.
+        * An integer in the **signed 32-bit** range (excluding ``-(2**31)``)
+        * ``>= 0`` → the render output will be drawn above text
+        * ``< 0`` → the render output will be drawn below text
+        * ``< -(2**31)/2`` → the render output will be drawn below cells with
+          non-default background color
 
-      * ``index``: Image z-index. An integer in the **signed 32-bit range**
-        (excluding ``-(2**31)``).
+      * *default* → ``z0`` (z-index zero)
+      * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``
+      * overlapping graphics on different z-indexes will be blended
+        (by the terminal emulator) if they are semi-transparent
 
-        Overlapping images with different z-indexes values will be blended if they are
-        semi-transparent. If ``index`` is:
+    * ``m`` → graphics/text inter-mix policy
 
-        * ``>= 0``, the image will be drawn above text.
-        * ``< 0``, the image will be drawn below text.
-        * ``< -(2**31)/2``, the image will be drawn below cells with non-default
-          background color.
+      * ``mix`` → inter-mix policy
 
-      * If *absent*, defaults to ``z0`` i.e z-index zero.
-      * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
+        * ``0`` → text within the region covered by the drawn render output will be
+          erased, though text can be inter-mixed with graphics after drawing
+        * ``1`` → text within the region covered by the drawn render output will NOT
+          be erased
 
-    * ``m``: Image/Text inter-mixing policy.
+      * *default* → ``m0``
+      * e.g ``m0``, ``m1``
 
-      * If the character after ``m`` is:
+    * ``c`` → ZLIB compression level
 
-        * ``0``, text within the region covered by the image will be erased,
-          though text can be inter-mixed with the image after it's been drawn.
-        * ``1``, text within the region covered by the image will NOT be erased.
+      * ``compress`` → compression level
 
-      * If *absent*, defaults to ``m0``.
-      * e.g ``m0``, ``m1``.
+        * An integer in the range ``0`` <= ``compress`` <= ``9``
+        * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
 
-    * ``c``: ZLIB compression level.
-
-      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
-      * This results in a trade-off between render time and data size/draw speed.
-      * If *absent*, defaults to ``c4``.
-      * e.g ``c0``, ``c9``.
+      * *default* → ``c4``
+      * e.g ``c0``, ``c9``
+      * results in a trade-off between render time and data size/draw speed
 
 
     ATTENTION:
