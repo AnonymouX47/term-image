@@ -15,6 +15,8 @@ Welcome to term-image's documentation!
    On this note, you probably also want to switch to the specific documentation for the
    version you're using (somewhere at the lower left corner of this page).
 
+|
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents
@@ -28,11 +30,10 @@ Welcome to term-image's documentation!
    faqs
    glossary
 
+|
 
-Indices and tables
-==================
+.. toctree::
+   :caption: Indices and tables
 
-* :doc:`glossary`
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   genindex
+   modindex
