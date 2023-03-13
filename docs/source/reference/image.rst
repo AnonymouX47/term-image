@@ -1,103 +1,103 @@
 Core Library Definitions
 ========================
 
-.. automodule:: term_image.image
+.. currentmodule:: term_image.image
 
-   The ``term_image.image`` subpackage defines the following:
-
-
-   Convenience Functions
-   ---------------------
-
-   These functions automatically detect the best supported render style for the
-   current terminal.
-
-   Since all classes define a common interface, any operation supported by one image
-   class can be performed on any other image class, except stated otherwise.
-
-   .. autofunction:: auto_image_class
-
-   .. autofunction:: AutoImage
-
-   .. autofunction:: from_file
-
-   .. autofunction:: from_url
+The ``term_image.image`` subpackage defines the following:
 
 
-   .. _image-classes:
+Convenience Functions
+---------------------
 
-   Image Classes
-   -------------
+These functions automatically detect the best supported render style for the
+current terminal.
 
-   **Class Hierachy:**
+Since all classes define a common interface, any operation supported by one image
+class can be performed on any other image class, except stated otherwise.
 
-   * :py:class:`ImageSource`
-   * :py:class:`Size`
-   * :py:class:`ImageMeta`
-   * :py:class:`BaseImage`
+.. autofunction:: auto_image_class
 
-     * :py:class:`GraphicsImage`
+.. autofunction:: AutoImage
 
-       * :py:class:`ITerm2Image`
-       * :py:class:`KittyImage`
+.. autofunction:: from_file
 
-     * :py:class:`TextImage`
+.. autofunction:: from_url
 
-       * :py:class:`BlockImage`
 
-   .. autoclass:: ImageSource
-      :members:
-      :show-inheritance:
+.. _image-classes:
 
-   .. autoclass:: Size
-      :members:
-      :show-inheritance:
+Image Classes
+-------------
 
-   .. autoclass:: ImageMeta
-      :members:
-      :show-inheritance:
+**Class Hierachy:**
 
-   |
+* :py:class:`ImageSource`
+* :py:class:`Size`
+* :py:class:`ImageMeta`
+* :py:class:`BaseImage`
 
-   .. autoclass:: BaseImage
-      :members:
-      :show-inheritance:
+  * :py:class:`GraphicsImage`
 
-   |
+    * :py:class:`ITerm2Image`
+    * :py:class:`KittyImage`
 
-   .. autoclass:: GraphicsImage
-      :members:
-      :show-inheritance:
+  * :py:class:`TextImage`
 
-   |
+    * :py:class:`BlockImage`
 
-   .. autoclass:: TextImage
-      :members:
-      :show-inheritance:
+.. autoclass:: ImageSource
+   :members:
+   :show-inheritance:
 
-   |
+.. autoclass:: Size
+   :members:
+   :show-inheritance:
 
-   .. autoclass:: BlockImage
-      :members:
-      :show-inheritance:
+.. autoclass:: ImageMeta
+   :members:
+   :show-inheritance:
 
-   |
+|
 
-   .. autoclass:: ITerm2Image
-      :members:
-      :show-inheritance:
+.. autoclass:: BaseImage
+   :members:
+   :show-inheritance:
 
-   |
+|
 
-   .. autoclass:: KittyImage
-      :members:
-      :show-inheritance:
+.. autoclass:: GraphicsImage
+   :members:
+   :show-inheritance:
 
-   |
+|
 
-   .. autoclass:: ImageIterator
-      :members:
-      :show-inheritance:
+.. autoclass:: TextImage
+   :members:
+   :show-inheritance:
+
+|
+
+.. autoclass:: BlockImage
+   :members:
+   :show-inheritance:
+
+|
+
+.. autoclass:: ITerm2Image
+   :members:
+   :show-inheritance:
+
+|
+
+.. autoclass:: KittyImage
+   :members:
+   :show-inheritance:
+
+|
+
+.. autoclass:: ImageIterator
+   :members:
+   :show-inheritance:
 
 |
 
