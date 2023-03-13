@@ -106,13 +106,7 @@ class SourceAttr(Hidden, str):
 
 
 class ImageSource(Enum):
-    """Image source type.
-
-    NOTE:
-        The values of the enumeration members are implementation details and might
-        change at anytime.
-        Any comparison should be by identity of the members themselves.
-    """
+    """Image source type."""
 
     #: The instance was derived from a path to a local image file.
     FILE_PATH = SourceAttr("_source")
@@ -125,7 +119,7 @@ class ImageSource(Enum):
 
 
 class Size(Enum):
-    """Enumeration for :term:`automatic sizing`"""
+    """Enumeration for :term:`automatic sizing`."""
 
     #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
     #: :term:`available size`, else :py:attr:`FIT`.
@@ -148,7 +142,7 @@ class ImageMeta(ABCMeta):
 
     NOTE:
         | For all render style classes (instances of this class) defined **within** this
-          package, ``str(cls)`` yeilds the same value as :py:attr:`cls.style <style>`.
+          package, ``str(cls)`` yields the same value as :py:attr:`cls.style <style>`.
         | For render style classes defined **outside** this package (subclasses of those
           defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
     """
@@ -172,7 +166,7 @@ class ImageMeta(ABCMeta):
             * ``None``, if the invoking class is defined **outside** this package
               (``term_image``)
 
-        :rtype: Optional[str]
+        :type: Optional[str]
 
         **Examples**
 
@@ -334,17 +328,21 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._closed,
         doc="""Instance finalization status
 
-        :rtype: bool
+        :type: bool
         """,
     )
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
-        doc="""Duration (in seconds) of a single frame for :term:`animated` images
+        doc="""Duration of a single frame for :term:`animated` images
 
-        Setting this on non-animated images is simply ignored, no exception is raised.
+        Returns:
+            * A duration (in seconds), if the image is animated.
+            * ``None``, if the image is not animated.
 
-        :rtype: float
+        :type: Optional[float]
+
+        Setting this on non-animated images is simply ignored.
         """,
     )
 
@@ -361,16 +359,15 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
-        The **unscaled** height of the image.
+        The **unscaled** height of the image
 
         Returns:
+            * The image height (in lines), if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member; if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image height (in lines), if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member; if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, int]
+        :type: Union[Size, int]
 
         SETTABLE VALUES:
 
@@ -393,14 +390,18 @@ class BaseImage(metaclass=ImageMeta):
     )
 
     original_size = property(
-        lambda self: self._original_size, doc="Size of the source image (in pixels)"
+        lambda self: self._original_size,
+        doc="""Size of the source image (in pixels)
+
+        :type: Tuple[int, int]
+        """,
     )
 
     @property
     def n_frames(self) -> int:
         """The number of frames in the image
 
-        :rtype: int
+        :type: int
         """
         if not self._is_animated:
             return 1
@@ -425,11 +426,11 @@ class BaseImage(metaclass=ImageMeta):
         )
         or 1,
         doc="""
-        The **scaled** height of the image.
+        The **scaled** height of the image
 
         Also the exact number of lines that the drawn image will occupy in a terminal.
 
-        :rtype: int
+        :type: int
         """,
     )
 
@@ -452,12 +453,12 @@ class BaseImage(metaclass=ImageMeta):
             )
         ),
         doc="""
-        The **scaled** size of the image.
+        The **scaled** size of the image
 
         Also the exact number of columns and lines (respectively) that the drawn image
         will occupy in a terminal.
 
-        :rtype: Tuple[int, int]
+        :type: Tuple[int, int]
         """,
     )
 
@@ -472,11 +473,11 @@ class BaseImage(metaclass=ImageMeta):
         )
         or 1,
         doc="""
-        The **scaled** width of the image.
+        The **scaled** width of the image
 
         Also the exact number of columns that the drawn image will occupy in a terminal.
 
-        :rtype: int
+        :type: int
         """,
     )
 
@@ -487,12 +488,12 @@ class BaseImage(metaclass=ImageMeta):
 
         SETTABLE VALUES:
 
-          * A *scale value*; sets both axes.
-          * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+        * A *scale value*; sets both axes.
+        * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
 
         A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
 
-        :rtype: Tuple[float, float]
+        :type: Tuple[float, float]
         """,
     )
 
@@ -514,7 +515,7 @@ class BaseImage(metaclass=ImageMeta):
 
         A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
 
-        :rtype: float
+        :type: float
         """,
     )
 
@@ -529,7 +530,7 @@ class BaseImage(metaclass=ImageMeta):
 
         A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
 
-        :rtype: float
+        :type: float
         """,
     )
 
@@ -540,16 +541,15 @@ class BaseImage(metaclass=ImageMeta):
     size = property(
         lambda self: self._size,
         doc="""
-        The **unscaled** size of the image.
+        The **unscaled** size of the image
 
         Returns:
+            * The image size, ``(columns, lines)``, if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member, if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image size, ``(columns, lines)``, if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member, if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, Tuple[int, int]]
+        :type: Union[Size, Tuple[int, int]]
 
         SETTABLE VALUES:
 
@@ -579,18 +579,18 @@ class BaseImage(metaclass=ImageMeta):
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
         doc="""
-        The :term:`source` from which the instance was initialized.
+        The :term:`source` from which the instance was initialized
 
-        :rtype: Union[PIL.Image.Image, str]
+        :type: Union[PIL.Image.Image, str]
         """,
     )
 
     source_type = property(
         lambda self: self._source_type,
         doc="""
-        The kind of :term:`source` from which the instance was initialized.
+        The kind of :term:`source` from which the instance was initialized
 
-        :rtype: ImageSource
+        :type: ImageSource
         """,
     )
 
@@ -598,16 +598,15 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
-        The **unscaled** width of the image.
+        The **unscaled** width of the image
 
         Returns:
+            * The image width (in columns), if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member; if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image width (in columns), if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member; if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, int]
+        :type: Union[Size, int]
 
         SETTABLE VALUES:
 
@@ -751,7 +750,7 @@ class BaseImage(metaclass=ImageMeta):
           consideration during size validation. If the size was set via another means or
           the size is :term:`dynamic <dynamic size>`, the default allowances apply.
         * For **non-animations**, if the image size was set with
-          :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
+          :py:attr:`~term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
           validated and setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
@@ -1166,7 +1165,10 @@ class BaseImage(metaclass=ImageMeta):
         self._v_allow = v_allow * (not fit_to_width)
 
     def tell(self) -> int:
-        """Returns the current image frame number."""
+        """Returns the current image frame number.
+
+        :rtype: int
+        """
         return self._seek_position if self._is_animated else 0
 
     # Private Methods
@@ -1988,7 +1990,7 @@ class BaseImage(metaclass=ImageMeta):
 
 
 class GraphicsImage(BaseImage):
-    """Base of all render styles using terminal graphics protocols.
+    """Base of all :ref:`graphics-based`.
 
     Raises:
         term_image.exceptions.StyleError: The :term:`active terminal` doesn't support
@@ -2004,7 +2006,14 @@ class GraphicsImage(BaseImage):
     # Size unit conversion already involves cell size calculation
     _pixel_ratio: float = 1.0
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(
+        cls,
+        image: PIL.Image.Image,
+        *,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
+        scale: Tuple[float, float] = (1.0, 1.0),
+    ) -> None:
         # calls `is_supported()` first to set required class attributes, in case
         # support is forced for a style that is actually supported
         if not (cls.is_supported() or cls._forced_support):
@@ -2058,7 +2067,7 @@ class GraphicsImage(BaseImage):
 
 
 class TextImage(BaseImage):
-    """Base of all render styles using ASCII/Unicode symbols [with ANSI color codes].
+    """Base of all :ref:`text-based`.
 
     See :py:class:`BaseImage` for the description of the constructor.
 
@@ -2099,7 +2108,7 @@ class TextImage(BaseImage):
 
         Args:
             split_cells: If ``True``, the cells of the image are separated by ``NULL``
-              ("\0").
+              ("\\0").
 
               - must be defined and implemented by every text-based style
                 (i.e sublcasses of this class).
@@ -2211,6 +2220,8 @@ class ImageIterator:
     loop_no = property(
         lambda self: self._loop_no,
         doc="""Iteration repeat countdown
+
+        :type: int
 
         Changes on the first iteration of each loop, except for infinite iteration
         where it's always ``-1``.
