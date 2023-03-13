@@ -1,7 +1,7 @@
 Top-Level Definitions
 =====================
 
-.. currentmodule:: term_image
+.. module:: term_image
 
 Constants
 ---------

@@ -1,10 +1,7 @@
-Core Library Definitions
-========================
+``image`` Module
+================
 
-.. currentmodule:: term_image.image
-
-The ``term_image.image`` subpackage defines the following:
-
+.. module:: term_image.image
 
 Functions
 ---------

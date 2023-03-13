@@ -1,5 +1,5 @@
-Reference
-=========
+API Reference
+=============
 
 .. attention::
    🚧 Under Construction - There might be incompatible interface changes between minor
@@ -10,6 +10,10 @@ Reference
 
    On this note, you probably also want to switch to the specific documentation for the
    version you're using (somewhere at the lower left corner of this page).
+
+.. attention::
+   Any module or definition not documented here should be considered part of the
+   private interface and can be changed or removed at any time without notice.
 
 .. toctree::
    :maxdepth: 2
