@@ -734,7 +734,8 @@ class BaseImage(metaclass=ImageMeta):
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
-            style: Style-specific parameters. See each subclass for it's own usage.
+            style: Style-specific render parameters. See each subclass for it's own
+              usage.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -1400,8 +1401,8 @@ class BaseImage(metaclass=ImageMeta):
         successful check ends up at `BaseImage._check_style_args()` or when *parent* is
         empty.
 
-        :py:meth:`_get_style_format_spec` can (optionally) be used to parse the format
-        spec at each level of the call chain.
+        :py:meth:`_get_style_format_spec` may be used to parse the format spec at each
+        level of the call chain.
         """
         if spec:
             raise _style_error(cls)(
@@ -1658,10 +1659,6 @@ class BaseImage(metaclass=ImageMeta):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _handle_interrupted_draw():
-        """Performs any neccessary actions when image drawing is interrupted."""
-
     @classmethod
     def _get_style_format_spec(
         cls, spec: str, original: str
@@ -1729,6 +1726,10 @@ class BaseImage(metaclass=ImageMeta):
             )
 
         return parent, fields
+
+    @staticmethod
+    def _handle_interrupted_draw():
+        """Performs any neccessary actions when image drawing is interrupted."""
 
     @staticmethod
     @abstractmethod

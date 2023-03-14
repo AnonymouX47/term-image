@@ -522,6 +522,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         self._ti_image_cviews = frozenset()
 
     def draw_screen(self, maxres, canvas):
+        """:meta private:"""
         self.write(BEGIN_SYNCED_UPDATE)
         try:
             if canvas is not self._ti_screen_canv:

@@ -21,13 +21,14 @@ UPPER_PIXEL = "\u2580"  # upper-half block element
 
 
 class BlockImage(TextImage):
-    """A render style using unicode half blocks and ANSI 24-bit colour escape codes.
+    """A render style using unicode half blocks and 24-bit colour escape codes.
 
     See :py:class:`TextImage` for the description of the constructor.
     """
 
     @classmethod
     def is_supported(cls):
+        """:meta private:"""
         if cls._supported is None:
             COLORTERM = os.environ.get("COLORTERM") or ""
             TERM = os.environ.get("TERM") or ""

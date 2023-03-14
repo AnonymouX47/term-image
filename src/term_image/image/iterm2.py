@@ -294,7 +294,8 @@ class ITerm2Image(GraphicsImage):
               any standard I/O stream.
               Otherwise they're cleared when next ``sys.stdout`` is flushed.
 
-        Required and works only on Konsole, as text doesn't overwrite images.
+        NOTE:
+            Required and works only on Konsole, as text doesn't overwrite images.
         """
         # There's no point checking for forced support since this is only required on
         # konsole which supports the protocol.
@@ -328,6 +329,7 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def is_supported(cls):
+        """:meta private:"""
         if cls._supported is None:
             cls._supported = False
 
