@@ -56,6 +56,45 @@ class KittyImage(GraphicsImage):
 
     |
 
+    **Style-Specific Render Parameters**
+
+    See :py:meth:`BaseImage.draw` (particularly the *style* parameter).
+
+    * **method** (*None | str*) → Render method override.
+
+      * ``None`` → the current effective render method of the instance is used.
+      * *default* → ``None``
+
+    * **z_index** (*int*) → The stacking order of graphics and text for
+      **non-animations**.
+
+      * An integer in the **signed 32-bit** range (excluding ``-(2**31)``)
+      * ``>= 0`` → the image will be drawn above text
+      * ``< 0`` → the image will be drawn below text
+      * ``< -(2**31)/2`` → the image will be drawn below cells with non-default
+        background color
+      * *default* → ``0``
+      * Overlapping graphics on different z-indexes will be blended (by the terminal
+        emulator) if they are semi-transparent.
+      * To inter-mix text with graphics, see the *mix* parameter.
+
+    * **mix** (*bool*) → Graphics/Text inter-mix policy.
+
+      * ``False`` → text within the region covered by the drawn render output will be
+        erased, though text can be inter-mixed with graphics after drawing
+      * ``True`` → text within the region covered by the drawn render output will NOT
+        be erased
+      * *default* → ``False``
+
+    * **compress** (*int*) → ZLIB compression level.
+
+      * ``0`` <= *compress* <= ``9``
+      * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
+      * *default* → ``4``
+      * Results in a trade-off between render time and data size/draw speed
+
+    |
+
     **Format Specification**
 
     See :ref:`format-spec`.
@@ -236,65 +275,6 @@ class KittyImage(GraphicsImage):
             write_tty(DELETE_ALL_IMAGES_b)
         else:
             _stdout_write(DELETE_ALL_IMAGES)
-
-    # Only defined for the purpose of proper self-documentation
-    def draw(
-        self,
-        *args,
-        method: Optional[str] = None,
-        z_index: int = 0,
-        mix: bool = False,
-        compress: int = 4,
-        **kwargs,
-    ) -> None:
-        """Draws an image to standard output.
-
-        Extends the common interface with style-specific parameters.
-
-        Args:
-            args: Positional arguments passed up the inheritance chain.
-            method: Render method override. If ``None`` or not given, the current
-              effective render method of the instance is used.
-            z_index: The stacking order of graphics and text **for non-animations**. If:
-
-              * ``>= 0``, the image will be drawn above text.
-              * ``< 0``, the image will be drawn below text.
-              * ``< -(2**31)/2``, the image will be drawn below cells with
-                non-default background color.
-
-              Overlapping graphics on different z-indexes will be blended
-              (by the terminal emulator) if they are semi-transparent.
-              To inter-mix text with graphics, see the *mix* parameter.
-
-            mix: Graphics/Text inter-mix policy. If:
-
-              * ``False``, text within the region covered by the drawn render output
-                will be erased, though text can be inter-mixed with graphics after
-                drawing.
-              * ``True``, text within the region covered by the drawn render output
-                will NOT be erased.
-
-            compress: ZLIB compression level.
-
-              * ``0`` <= *compress* <= ``9``.
-              * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression.
-              * Results in a trade-off between render time and data size/draw speed.
-
-            kwargs: Keyword arguments passed up the inheritance chain.
-
-        See the ``draw()`` method of the parent classes for full details, including the
-        description of other parameters.
-        """
-        arguments = locals()
-        super().draw(
-            *args,
-            **kwargs,
-            **{
-                var: arguments[var]
-                for var, default in __class__.draw.__kwdefaults__.items()
-                if arguments[var] is not default
-            },
-        )
 
     @classmethod
     def is_supported(cls) -> bool:
