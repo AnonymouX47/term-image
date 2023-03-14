@@ -61,7 +61,7 @@ class ClassInstanceMethod(classmethod):
 # Decorator Functions
 
 
-def no_redecorate(decor: Callable) -> FunctionType:
+def no_redecorate(decor: FunctionType) -> FunctionType:
     """Prevents a decorator from re-decorating objects.
 
     Args:
@@ -82,7 +82,7 @@ def no_redecorate(decor: Callable) -> FunctionType:
 
 
 @no_redecorate
-def cached(func: Callable) -> FunctionType:
+def cached(func: FunctionType) -> FunctionType:
     """Enables return value caching.
 
     Args:
@@ -120,22 +120,22 @@ def cached(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def lock_tty(func: Callable) -> FunctionType:
+def lock_tty(func: FunctionType) -> FunctionType:
     """Synchronizes access to the :term:`active terminal`.
 
     Args:
         func: The function to be wrapped.
 
-    When any decorated function is called, a re-entrant lock is acquired by the current
+    When a decorated function is called, a re-entrant lock is acquired by the current
     process or thread and released after the call, such that any other decorated
     function called within another thread or subprocess has to wait till the lock is
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
     NOTE:
-        | It automatically works across parent-/sub-processes, started directly or
-          indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
-          threads.
+        It automatically works across parent-/sub-processes, started directly or
+        indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
+        threads.
 
     IMPORTANT:
         It only works if ``multiprocessing.synchronize`` is supported on the host
@@ -157,7 +157,7 @@ def lock_tty(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def terminal_size_cached(func: Callable) -> FunctionType:
+def terminal_size_cached(func: FunctionType) -> FunctionType:
     """Enables return value caching based on the size of the :term:`active terminal`.
 
     Args:
@@ -196,7 +196,7 @@ def terminal_size_cached(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def unix_tty_only(func: Callable) -> FunctionType:
+def unix_tty_only(func: FunctionType) -> FunctionType:
     """Disable invokation of a function on a non-unix-like platform or when there is no
     :term:`active terminal`.
 
