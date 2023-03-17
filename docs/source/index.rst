@@ -21,7 +21,7 @@ Welcome to term-image's documentation!
    :maxdepth: 2
    :caption: Contents
 
-   installation
+   quickstart/index
    gallery
    guide/index
    reference/index

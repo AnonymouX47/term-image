@@ -5,6 +5,5 @@ User Guide
    :maxdepth: 2
    :caption: Sub-sections
 
-   tutorial
    concepts
    formatting

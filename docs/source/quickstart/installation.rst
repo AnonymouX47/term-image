@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 
-* Operating System: Unix / Linux / MacOS X / Windows (limited support, see the :doc:`faqs`)
+* Operating System: Unix / Linux / MacOS X / Windows (limited support, see the :doc:`/faqs`)
 * `Python <https://www.python.org/>`_ >= 3.7
 * A terminal emulator with **any** of the following:
   
@@ -12,7 +12,7 @@ Requirements
   * support for the `iTerm2 inline image protocol <https://iterm2.com/documentation-images.html>`_.
   * full Unicode support and ANSI 24-bit color support
 
-  **Plans to support a wider variety of terminal emulators are in motion** (see :doc:`planned`).
+  **Plans to support a wider variety of terminal emulators are in motion** (see :doc:`/planned`).
 
 
 Steps
