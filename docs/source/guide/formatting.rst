@@ -141,7 +141,7 @@ Render Format Specification
     * **applies to only** :ref:`text-based`
     * e.g ``.0``, ``.325043``, ``.999``
 
-  * ``bgcolor`` → background overlay color
+  * ``bgcolor`` → background underlay color
 
     * ``#`` → the terminal emulator's default background color (or black, if undetermined), OR
     * a hex color e.g ``ffffff``, ``7faa52``
