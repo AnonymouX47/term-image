@@ -79,7 +79,7 @@ before calling :py:func:`~term_image.set_cell_ratio`.
 The Active Terminal
 -------------------
 
-This refers to the first terminal device discovered upon loading the ``term_image`` package.
+See :term:`active terminal`.
 
 The following streams/files are checked in the following order (along with the
 rationale behind the ordering):
@@ -146,9 +146,9 @@ About #2 and #3
        )
 
    Also, if the :term:`active terminal` is not the controlling terminal of the process
-   using this library (e.g output is redirected to another terminal), ensure no
-   process that can interfere with a query (e.g a shell) is currently running in the
-   active terminal. For instance, such a process can be temporarily put to sleep.
+   using this library (e.g output is redirected to another TTY device), ensure no
+   process that can interfere with a query (e.g a shell or REPL) is currently running
+   in the active terminal. For instance, such a process can be temporarily put to sleep.
 
 
 .. _queried-features:
