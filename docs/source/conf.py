@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx_toolbox.github",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,11 +64,19 @@ html_static_path = ["resources"]
 # pixels large.
 html_favicon = "resources/logo.ico"
 
-# -- Options for sphinx-autodoc ----------------------------------------------
+
+# -- Options for extensions ----------------------------------------------
+
+# # -- sphinx-autodoc -----------------------------------------------------
 autodoc_typehints = "description"
 autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
 autodoc_member_order = "bysource"
+
+# # -- sphinx_toolbox-github ----------------------------------------------
+github_username = "AnonymouX47"
+github_repository = "term-image"
+
 
 # -- Others options ----------------------------------------------------------
 toc_object_entries = False

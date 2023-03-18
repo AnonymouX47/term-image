@@ -37,4 +37,4 @@ Known Issues
 
    * **Solution:** Plans are in motion to implement support for native animations i.e
      utilizing the animation features provided by the protocol
-     (See `#40 <https://github.com/AnonymouX47/term-image/issues/40>`_).
+     (See :github:issue:`40`).

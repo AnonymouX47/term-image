@@ -3,20 +3,20 @@ Planned Features
 In no particular order:
 
 * Support for more terminal graphics protocols
-  (See `#23 <https://github.com/AnonymouX47/term-image/issues/23>`_)
+  (See :github:issue:`23`)
 * More text-based render styles
-  (See `#57 <https://github.com/AnonymouX47/term-image/issues/57>`_)
+  (See :github:issue:`57`)
 * Support for terminal emulators with less colors
-  (See `#61 <https://github.com/AnonymouX47/term-image/issues/61>`_)
+  (See :github:issue:`61`)
 * Support for terminal emulators without Unicode support
-  (See `#58 <https://github.com/AnonymouX47/term-image/issues/58>`_,
-  `#60 <https://github.com/AnonymouX47/term-image/issues/60>`_)
+  (See :github:issue:`58`,
+  :github:issue:`60`)
 * Support for `fbTerm <https://code.google.com/archive/p/fbterm/>`_
 * Support for open file objects and the ``Pathlike`` interface
 * Determination of frame duration per frame during animations and image iteration
 * Asynchronous animation rendering
-* Kitty image ID (See `#40 <https://github.com/AnonymouX47/term-image/issues/40>`_)
-* Kitty native animation (See `#40 <https://github.com/AnonymouX47/term-image/issues/40>`_)
+* Kitty image ID (See :github:issue:`40`)
+* Kitty native animation (See :github:issue:`40`)
 * Image zoom and pan functionalities
 * Image trimming
 * Specify key to end animation
