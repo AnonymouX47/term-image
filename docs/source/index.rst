@@ -37,3 +37,13 @@ Welcome to term-image's documentation!
 
    genindex
    modindex
+
+
+.. sidebar-links::
+   :caption: External Links
+   :github:
+   :pypi: term-image
+
+   Changelog <https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md>
+   Contribution Guide <https://github.com/AnonymouX47/term-image/blob/main/CONTRIBUTING.md>
+   License <https://github.com/AnonymouX47/term-image/blob/main/LICENSE>
