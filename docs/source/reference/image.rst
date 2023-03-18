@@ -13,6 +13,11 @@ Since all classes share a common interface (as defined by :py:class:`BaseImage`)
 any operation supported by one image class can be performed on any other image class,
 except style-specific operations.
 
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Functions
+   :autosummary-no-titles:
+
+
 .. autofunction:: auto_image_class
 
 .. autofunction:: AutoImage
@@ -25,15 +30,22 @@ except style-specific operations.
 Enumerations
 ------------
 
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Enumerations
+   :autosummary-no-titles:
+
+
 .. autoclass:: ImageSource
    :members:
    :show-inheritance:
+   :autosummary-sections: None
 
 |
 
 .. autoclass:: Size
    :members:
    :show-inheritance:
+   :autosummary-sections: None
 
 
 .. _image-classes:

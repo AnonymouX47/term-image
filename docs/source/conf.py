@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
+    "sphinx_toolbox.more_autosummary",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -69,6 +70,11 @@ html_favicon = "resources/logo.ico"
 # -- Options for extensions ----------------------------------------------
 
 # # -- sphinx-autodoc -----------------------------------------------------
+autodoc_default_options = {
+    "member-order": "bysource",
+    "autosummary": True,
+    "autosummary-nosignatures": True,
+}
 autodoc_typehints = "description"
 autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
@@ -78,6 +84,40 @@ autodoc_member_order = "bysource"
 github_username = "AnonymouX47"
 github_repository = "term-image"
 
+# # -- sphinx_toolbox-more_autosummary ----------------------------------------------
+autodocsumm_member_order = "bysource"
+
 
 # -- Others options ----------------------------------------------------------
 toc_object_entries = False
+
+
+# -- Event handlers -------------------------------------------------------------
+
+
+def autodocssumm_grouper(app, what, name, obj, section, parent):
+    from enum import EnumMeta
+    from types import FunctionType
+
+    from term_image.utils import ClassInstanceMethod
+
+    if isinstance(obj, EnumMeta):
+        return "Enumerations"
+    elif isinstance(obj, type) and issubclass(obj, Warning):
+        return "Warnings"
+    elif isinstance(parent, type):
+        obj = vars(parent)[name.rpartition(".")[2]]
+        if isinstance(obj, property):
+            return "Properties"
+        elif isinstance(obj, FunctionType):
+            return "Instance Methods"
+        elif isinstance(obj, ClassInstanceMethod):
+            return "Class-Instance Methods"
+        elif isinstance(obj, classmethod):
+            return "Class Methods"
+        elif isinstance(obj, staticmethod):
+            return "Static Methods"
+
+
+def setup(app):
+    app.connect("autodocsumm-grouper", autodocssumm_grouper)

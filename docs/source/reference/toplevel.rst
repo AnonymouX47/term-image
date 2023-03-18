@@ -44,6 +44,10 @@ Enumerations
 Functions
 ---------
 
+.. automodulesumm:: term_image
+   :autosummary-sections: Functions
+   :autosummary-no-titles:
+
 .. autofunction:: disable_queries
 
 .. autofunction:: disable_win_size_swap
