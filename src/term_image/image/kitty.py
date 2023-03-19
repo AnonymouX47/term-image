@@ -225,7 +225,7 @@ class KittyImage(GraphicsImage):
               on the given z-index are cleared.
             now: If ``True`` the images are cleared immediately, without affecting
               any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+              Otherwise they're cleared when next :py:data:`sys.stdout` is flushed.
 
         Aside *now*, **only one** other argument may be given. If no argument is given
         (aside *now*) or default values are given, all images visible on the screen are

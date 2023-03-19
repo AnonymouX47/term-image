@@ -292,7 +292,7 @@ class ITerm2Image(GraphicsImage):
               position are cleared. Otherwise, all visible images are cleared.
             now: If ``True`` the images are cleared immediately, without affecting
               any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+              Otherwise they're cleared when next :py:data:`sys.stdout` is flushed.
 
         NOTE:
             Required and works only on Konsole, as text doesn't overwrite images.

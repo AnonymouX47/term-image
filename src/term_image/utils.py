@@ -134,11 +134,11 @@ def lock_tty(func: FunctionType) -> FunctionType:
 
     NOTE:
         It automatically works across parent-/sub-processes, started directly or
-        indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
-        threads.
+        indirectly via :py:class:`multiprocessing.Process` (or a subclass of it) and
+        their threads.
 
     IMPORTANT:
-        It only works if ``multiprocessing.synchronize`` is supported on the host
+        It only works if :py:mod:`multiprocessing.synchronize` is supported on the host
         platform.  If not supported, a warning is issued when starting a subprocess.
     """
 
@@ -343,8 +343,8 @@ def get_terminal_size() -> os.terminal_size:
         The terminal size in columns and lines.
 
     NOTE:
-        This implementation is quite different from ``shutil.get_terminal_size()`` and
-        ``os.get_terminal_size()`` in that it:
+        This implementation is quite different from :py:func:`shutil.get_terminal_size`
+        and :py:func:`os.get_terminal_size` in that it:
 
         - gives the correct size of the :term:`active terminal` even when output is
           redirected, in most cases

@@ -146,7 +146,7 @@ About #2 and #3
 
    For example, an :github:repo:`image viewer <AnonymouX47/term-image-viewer>`
    based on this project uses `urwid <https://urwid.org>`_ which reads from the
-   terminal using ``urwid.raw_display.Screen.get_available_raw_input()``.
+   terminal using :py:meth:`urwid.raw_display.Screen.get_available_raw_input`.
    To prevent this method from interfering with terminal queries, it is wrapped thus::
 
        urwid.raw_display.Screen.get_available_raw_input = lock_tty(

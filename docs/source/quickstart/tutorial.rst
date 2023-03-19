@@ -35,7 +35,7 @@ You can also use a URL if you don't have the file stored locally::
 
    image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tutorial/python.png")
 
-The library can also be used with PIL image instances::
+The library can also be used with :py:class:`PIL.Image.Image` instances::
 
    from PIL import Image
    from term_image.image import AutoImage
@@ -51,7 +51,7 @@ Rendering an image is the process of converting it (per-frame for :term:`animate
 images) into text (a string) which reproduces a representation or approximation of
 the image when written to the terminal.
 
-.. hint:: To display the rendered image in the following steps, pass the string as an argument to ``print()``.
+.. hint:: To display the rendered image in the following steps, pass the string as an argument to :py:func:`print`.
 
 There are two ways to render an image:
 
@@ -63,7 +63,7 @@ This is done using::
 
 The image is rendered without *padding*/*alignment* and with transparency enabled.
 
-The output (using ``print()``) should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/str.png
 
@@ -99,7 +99,7 @@ Renders the image with:
    You might have to reduce the padding width (200) and/or height (70) to something that'll
    fit into your terminal window, or increase the size of the terminlal window
 
-The output (using ``print()``) should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/white_bg.png
 
@@ -117,7 +117,7 @@ Renders the image with:
 * **automatic** :term:`padding height` (the current :term:`terminal height` minus :term:`vertical allowance`)
 * transparent background with **0.5** :term:`alpha threshold`
 
-The output (using ``print()``) should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/alpha_0_5.png
 
@@ -135,7 +135,7 @@ Renders the image with:
 * **no** vertical :term:`padding`, since ``1`` is less than or equal to the image height
 * transparency is **disabled** (alpha channel is ignored)
 
-The output (using ``print()``) should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/no_alpha_no_align.png
 
@@ -154,7 +154,7 @@ There are two ways to draw an image to the terminal screen:
    **NOTE:** :py:meth:`~term_image.image.BaseImage.draw` has various parameters for
    :term:`alignment`/:term:`padding`, transparency, animation control, etc.
 
-2. Using ``print()`` with an image render output (i.e printing the rendered string):
+2. Using :py:func:`print` with an image render output (i.e printing the rendered string):
 
    ::
 
@@ -319,8 +319,8 @@ Image scale
 -----------
 
 | The scale of an image is the **ratio** of its size with which it will actually be rendered.
-| A valid scale value is a ``float`` in the range ``0.0`` < ``x`` <= ``1.0`` i.e greater than zero
-  and less than or equal to one.
+| A valid scale value is a :py:class:`float` in the range ``0.0`` < ``x`` <= ``1.0``
+  i.e greater than zero and less than or equal to one.
 
 The image scale can be retrieved via the properties :py:attr:`~term_image.image.BaseImage.scale`,
 :py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y`.

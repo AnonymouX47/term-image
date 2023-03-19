@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
     "sphinx_toolbox.more_autosummary",
@@ -79,6 +80,14 @@ autodoc_typehints = "description"
 autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
 autodoc_member_order = "bysource"
+
+# # -- sphinx-intersphinx ----------------------------------------------
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
+    "requests": ("https://requests.readthedocs.io/en/stable/", None),
+    "urwid": ("https://urwid.org", None),
+}
 
 # # -- sphinx_toolbox-github ----------------------------------------------
 github_username = "AnonymouX47"

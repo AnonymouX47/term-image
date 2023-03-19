@@ -91,8 +91,9 @@ class SourceAttr(Hidden, str):
     """A string that only compares equal to itself but returns the original hash of
     the string.
 
-    Used to store the attribute that holds the value for ``image.source`` as the
-    value of enum members, because some would normally compare equal.
+    Used to store the name of the attribute that holds the value for
+    :py:attr:`BaseImage.source`` as the value of enum members, because some would
+    normally compare equal.
     """
 
     def __init__(self, *_):
@@ -197,12 +198,12 @@ class BaseImage(metaclass=ImageMeta):
         image: Source image.
         width: Can be
 
-          * an ``int``; horizontal dimension of the image, in columns.
+          * an integer; horizontal dimension of the image, in columns.
           * a :py:class:`~term_image.image.Size` enum member.
 
         height: Can be
 
-          * an ``int``; vertical dimension of the image, in lines.
+          * an integer; vertical dimension of the image, in lines.
           * a :py:class:`~term_image.image.Size` enum member.
 
         scale: The fraction of the size (on respective axes) to render the image with.
@@ -371,8 +372,8 @@ class BaseImage(metaclass=ImageMeta):
 
         SETTABLE VALUES:
 
-        * a positive ``int``; the image height is set to the given value and the
-          width is set proportionally.
+        * a positive :py:class:`int`; the image height is set to the given value and
+          the width is set proportionally.
         * a :py:class:`~term_image.image.Size` enum member; the image size
           is set as prescibed by the enum member.
         * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
@@ -489,9 +490,9 @@ class BaseImage(metaclass=ImageMeta):
         SETTABLE VALUES:
 
         * A *scale value*; sets both axes.
-        * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+        * A :py:class:`tuple` of two *scale values*; sets ``(x, y)`` respectively.
 
-        A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < value <= 1.0**.
 
         :type: Tuple[float, float]
         """,
@@ -513,7 +514,7 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Horizontal :term:`scale`
 
-        A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < x <= 1.0**.
 
         :type: float
         """,
@@ -528,7 +529,7 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Vertical :term:`scale`
 
-        A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < y <= 1.0**.
 
         :type: float
         """,
@@ -610,8 +611,8 @@ class BaseImage(metaclass=ImageMeta):
 
         SETTABLE VALUES:
 
-        * a positive ``int``; the image width is set to the given value and the
-          height is set proportionally.
+        * a positive :py:class:`int`; the image width is set to the given value and
+          the height is set proportionally.
         * a :py:class:`~term_image.image.Size` enum member; the image size
           is set as prescibed by the enum member.
         * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
@@ -730,9 +731,10 @@ class BaseImage(metaclass=ImageMeta):
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
 
-              * If ``bool``, it directly sets if the frames will be cached or not.
-              * If ``int``, caching is enabled only if the framecount of the image
-                is less than or equal to the given number.
+              * If :py:class:`bool`, it directly sets if the frames will be cached or
+                not.
+              * If :py:class:`int`, caching is enabled only if the framecount of the
+                image is less than or equal to the given number.
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
@@ -764,7 +766,8 @@ class BaseImage(metaclass=ImageMeta):
           * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
-          with **Ctrl+C** (``SIGINT``), raising ``KeyboardInterrupt``.
+          with :py:data:`~signal.SIGINT` (``CTRL + C``), raising
+          :py:class:`KeyboardInterrupt`.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -873,8 +876,8 @@ class BaseImage(metaclass=ImageMeta):
         Raises:
             TypeError: *filepath* is not a string.
             FileNotFoundError: The given path does not exist.
-            IsADirectoryError: Propagated from from ``PIL.Image.open()``.
-            PIL.UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
+            IsADirectoryError: Propagated from from :py:func:`PIL.Image.open`.
+            PIL.UnidentifiedImageError: Propagated from from :py:func:`PIL.Image.open`.
 
         Also Propagates exceptions raised or propagated by the class constructor.
         """
@@ -919,9 +922,9 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: *url* is not a string.
             ValueError: The URL is invalid.
             term_image.exceptions.URLNotFoundError: The URL does not exist.
-            PIL.UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
+            PIL.UnidentifiedImageError: Propagated from :py:func:`PIL.Image.open`.
 
-        Also propagates connection-related exceptions from ``requests.get()``
+        Also propagates connection-related exceptions from :py:func:`requests.get`
         and exceptions raised or propagated by the class constructor.
 
         NOTE:
@@ -1081,12 +1084,12 @@ class BaseImage(metaclass=ImageMeta):
         Args:
             width: Can be
 
-              * an ``int``; horizontal dimension of the image, in columns.
+              * an integer; horizontal dimension of the image, in columns.
               * a :py:class:`~term_image.image.Size` enum member.
 
             height: Can be
 
-              * an ``int``; vertical dimension of the image, in lines.
+              * an integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
@@ -1449,12 +1452,7 @@ class BaseImage(metaclass=ImageMeta):
         cached: Union[bool, int],
         **style_args: Any,
     ) -> None:
-        """Displays an animated GIF image in the terminal.
-
-        NOTE:
-            This is done indefinitely but can be terminated with ``Ctrl-C``
-            (``SIGINT``), raising ``KeyboardInterrupt``.
-        """
+        """Displays an animated GIF image in the terminal."""
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
             self.rendered_height,
@@ -1576,7 +1574,7 @@ class BaseImage(metaclass=ImageMeta):
               Also, the image is blended with the active terminal's BG color (or black,
               if undetermined) while leaving the alpha intact.
 
-            frame: If ``True``, implies *img* is being used by ``ImageIterator``,
+            frame: If ``True``, implies *img* is being used by :py:class`ImageIterator`,
               hence, *img* is not closed.
 
         The returned image is appropriately converted, resized and composited
@@ -1790,12 +1788,14 @@ class BaseImage(metaclass=ImageMeta):
         Args:
             renderer: The function to perform the specific rendering operation for the
               caller of this method, ``_renderer()``.
+
               This function must accept at least one positional argument, the
-              ``PIL.Image.Image`` instance corresponding to the source.
+              :py:class:`PIL.Image.Image` instance corresponding to the source.
+
             args: Positional arguments to pass on to *renderer*, after the
-              ``PIL.Image.Image`` instance.
-            scroll: See *scroll* in ``draw()``.
-            check_size: See *check_size* in ``draw()``.
+              :py:class:`PIL.Image.Image` instance.
+            scroll: See *scroll* in :py:meth:`draw`.
+            check_size: See *check_size* in :py:meth:`draw`.
             animated: If ``True``, *scroll* and *check_size* are ignored and the size
               is validated.
             kwargs: Keyword arguments to pass on to *renderer*.
@@ -1874,7 +1874,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
-        See the description of ``set_size()`` for the parameters.
+        See the description of :py:meth:`set_size` for the parameters.
         """
         ori_width, ori_height = self._original_size
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
@@ -2116,8 +2116,8 @@ class TextImage(BaseImage):
         all other parameters not described here.
 
         Args:
-            split_cells: If ``True``, the cells of the image are separated by ``NULL``
-              ("\\0").
+            split_cells: If ``True``, the cells of the image are separated by a
+              ``NULL`` ("\\0").
 
               - must be defined and implemented by every text-based style
                 (i.e sublcasses of this class).
@@ -2137,10 +2137,10 @@ class ImageIterator:
         format: The :ref:`format specifier <format-spec>` to be used to format the
           rendered frames (default: auto).
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
-          of subsequent renders) or not.
+          of subsequent renders) or not. If it is
 
-          * If ``bool``, it directly sets if the frames will be cached or not.
-          * If ``int``, caching is enabled only if the framecount of the image
+          * a boolean, it directly sets if the frames will be cached or not.
+          * an integer, caching is enabled only if the framecount of the image
             is less than or equal to the given number.
 
     Raises:

@@ -511,9 +511,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
     It also synchronizes output on terminal emulators that support the feature to
     reduce/eliminate image flickering/tearing.
 
-    See the `baseclass
-    <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
-    for futher description.
+    See the baseclass for further description.
     """
 
     def __init__(self, *args, **kwargs):
