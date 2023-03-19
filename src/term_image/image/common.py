@@ -969,9 +969,12 @@ class BaseImage(metaclass=ImageMeta):
     @classmethod
     @abstractmethod
     def is_supported(cls) -> bool:
-        """Returns ``True`` if the render style or graphics protocol implemented by
-        the invoking class is supported by the :term:`active terminal`.
-        Otherwise, ``False``.
+        """Checks if the implemented :term:`render style` is supported by the
+        :term:`active terminal`.
+
+        Returns:
+            ``True`` if the render style implemented by the invoking class is supported
+            by the :term:`active terminal`. Otherwise, ``False``.
 
         ATTENTION:
             Support checks for most (if not all) render styles require :ref:`querying

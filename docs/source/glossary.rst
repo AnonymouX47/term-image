@@ -117,6 +117,18 @@ Below are definitions of terms used across the API, exception messages and the d
       since there are technically two times more pixels along the vertical axis than
       along the horizontal axis in one character cell.
 
+   render style
+   render styles
+   style
+   styles
+      A specific technique for rendering or displaying pixel data (including images)
+      in a terminal emulator. 
+
+      A render style (or simply *style*) is implemented by a class, often refered to
+      as a *render style class* (or simply *style class*).
+
+      .. seealso:: :ref:`render-styles`
+
    scale
       The fraction/ratio of an image's size that'll actually be used to :term:`render` it.
       

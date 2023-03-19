@@ -6,10 +6,9 @@ Concepts
 Render Styles
 -------------
 
-A render style is a specific implementation of representing or drawing images in a
-terminal emulator and each is implemented as a class.
+See :term:`render style`.
 
-All render styles are designed to share a common interface (with some styles having
+All render style classes are designed to share a common interface (with some having
 extensions), making the usage of one class directly compatibile with another, except
 when using style-specific features.
 
@@ -27,7 +26,7 @@ Text-based Render Styles
 
 Represent images using ASCII or Unicode symbols, and in some cases, with escape sequences to reproduce color.
 
-Classes for render styles in this category are subclasses of
+Render style classes in this category are subclasses of
 :py:class:`~term_image.image.TextImage`. These include:
 
 * :py:class:`~term_image.image.BlockImage`
@@ -39,7 +38,7 @@ Graphics-based Render Styles
 
 Represent images with actual pixels, using terminal graphics protocols.
 
-Classes for render styles in this category are subclasses of
+Render style classes in this category are subclasses of
 :py:class:`~term_image.image.GraphicsImage`. These include:
 
 * :py:class:`~term_image.image.KittyImage`
