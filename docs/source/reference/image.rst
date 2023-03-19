@@ -72,6 +72,12 @@ Class Hierachy
 The Classes
 ^^^^^^^^^^^
 
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Classes
+   :autosummary-no-titles:
+   :autosummary-exclude-members: ImageIterator
+
+
 .. autoclass:: ImageMeta
    :members:
    :show-inheritance:
