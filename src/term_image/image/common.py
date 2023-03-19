@@ -663,8 +663,10 @@ class BaseImage(metaclass=ImageMeta):
         Causes the return value of :py:meth:`is_supported` determines if the render
         style is supported or not, which is the default behaviour.
 
-        This affects only the class on which it is set and all its subclasses **for
-        which forced support is not enabled** (via :py:meth:`enable_forced_support`).
+        NOTE:
+            This setting is :term:`descendant` i.e it affects the class on which it
+            is disabled and all its subclasses **for which it is not enabled**
+            (via :py:meth:`enable_forced_support`).
         """
         cls._forced_support = False
 
@@ -844,11 +846,12 @@ class BaseImage(metaclass=ImageMeta):
         Causes a render style to be treated as if it were supported, regardless of the
         return value of :py:meth:`is_supported`.
 
-        This affects only the class on which it is set and all its subclasses **for
-        which forced support is not disabled** (via :py:meth:`disable_forced_support`).
-
         NOTE:
-           This doesn't affect the return value of :py:meth:`is_supported`.
+            This setting is :term:`descendant` i.e it affects the class on which it
+            is enabled and all its subclasses **for which it is not disabled**
+            (via :py:meth:`disable_forced_support`).
+
+            This doesn't influence the return value of :py:meth:`is_supported`.
         """
         cls._forced_support = True
 
@@ -1037,6 +1040,8 @@ class BaseImage(metaclass=ImageMeta):
         NOTE:
             *method* = ``None`` is always allowed, even if the render style doesn't
             implement multiple render methods.
+
+            The **class-wide** render method is :term:`descendant`.
         """
         if method is not None and not isinstance(method, str):
             raise TypeError(

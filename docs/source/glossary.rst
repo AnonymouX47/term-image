@@ -181,3 +181,8 @@ Below are definitions of terms used across the API, exception messages and the d
 
    terminal height
       The amount of lines on a terminal screen at a time i.e without scrolling.
+
+   descendant
+      Refers to an attribute, property or setting set on a class which applies to that
+      class and all its subclasses for which the attribute, property or setting is not
+      explicitly set or unset.
