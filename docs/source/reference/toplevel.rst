@@ -13,7 +13,6 @@ Enumerations
 ------------
 
 .. autoclass:: AutoCellRatio
-   :show-inheritance:
 
    .. autoattribute:: is_supported
 

@@ -72,6 +72,8 @@ html_favicon = "resources/logo.ico"
 
 # # -- sphinx-autodoc -----------------------------------------------------
 autodoc_default_options = {
+    "members": True,
+    "show-inheritance": True,
     "member-order": "bysource",
     "autosummary": True,
     "autosummary-nosignatures": True,

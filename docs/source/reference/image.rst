@@ -36,15 +36,11 @@ Enumerations
 
 
 .. autoclass:: ImageSource
-   :members:
-   :show-inheritance:
    :autosummary-sections: None
 
 |
 
 .. autoclass:: Size
-   :members:
-   :show-inheritance:
    :autosummary-sections: None
 
 
@@ -79,46 +75,32 @@ The Classes
 
 
 .. autoclass:: ImageMeta
-   :members:
-   :show-inheritance:
 
 |
 
 .. autoclass:: BaseImage
-   :members:
-   :show-inheritance:
 
 |
 
 .. autoclass:: TextImage
-   :members:
-   :show-inheritance:
 
 |
 
 .. autoclass:: BlockImage
-   :members:
-   :show-inheritance:
    :exclude-members: is_supported
 
 |
 
 .. autoclass:: GraphicsImage
-   :members:
-   :show-inheritance:
 
 |
 
 .. autoclass:: ITerm2Image
-   :members:
-   :show-inheritance:
    :exclude-members: is_supported
 
 |
 
 .. autoclass:: KittyImage
-   :members:
-   :show-inheritance:
    :exclude-members: is_supported
 
 |
@@ -158,5 +140,3 @@ Other Classes
 -------------
 
 .. autoclass:: ImageIterator
-   :members:
-   :show-inheritance:
