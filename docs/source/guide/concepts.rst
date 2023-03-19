@@ -44,6 +44,15 @@ Render style classes in this category are subclasses of
 * :py:class:`~term_image.image.KittyImage`
 * :py:class:`~term_image.image.ITerm2Image`
 
+.. _render-methods:
+
+Render Methods
+^^^^^^^^^^^^^^
+
+A :term:`render style` may implement multiple :term:`render methods`. See the **Render
+Methods** section in the description of a render style class (that implements multiple
+render methods), for the description of its render methods.
+
 
 .. _auto-cell-ratio:
 

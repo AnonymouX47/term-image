@@ -1011,8 +1011,8 @@ class BaseImage(metaclass=ImageMeta):
 
     @ClassInstanceMethod
     def set_render_method(self_or_cls, method: Optional[str] = None) -> None:
-        """Sets the render method used by the instances of subclasses providing
-        multiple render methods.
+        """Sets the :term:`render method` used by instances of a :term:`render style`
+        class that implements multiple render methods.
 
         Args:
             method: The render method to be set or ``None`` for a reset
@@ -1023,22 +1023,22 @@ class BaseImage(metaclass=ImageMeta):
             ValueError: the given method is not implmented by the invoking class
               (or class of the invoking instance).
 
-        See the **Render Methods** section in the description of the subclasses that
+        See the **Render Methods** section in the description of subclasses that
         implement such for their specific usage.
 
-        If called via:
+        If *method* is not ``None`` and this method is called via:
 
-           - a class, sets the class-wide render method.
-           - an instance, sets the instance-specific render method.
+           - a class, the class-wide render method is set.
+           - an instance, the instance-specific render method is set.
 
         If *method* is ``None`` and this method is called via:
 
-           - a class, the class-wide render method is reset to the default.
-           - an instance, the instance-specific render method is removed, so that it
+           - a class, the class-wide render method is unset, so that it uses that of
+             its parent style class (if any) or the default.
+           - an instance, the instance-specific render method is unset, so that it
              uses the class-wide render method thenceforth.
 
-        Any instance without a specific render method set uses the class-wide render
-        method.
+        Any instance without a render method set uses the class-wide render method.
 
         NOTE:
             *method* = ``None`` is always allowed, even if the render style doesn't

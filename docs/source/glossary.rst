@@ -117,6 +117,12 @@ Below are definitions of terms used across the API, exception messages and the d
       since there are technically two times more pixels along the vertical axis than
       along the horizontal axis in one character cell.
 
+   render method
+   render methods
+      A unique implementation of a :term:`render style`.
+
+      .. seealso:: :ref:`render-methods`
+
    render style
    render styles
    style
