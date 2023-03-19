@@ -981,12 +981,14 @@ class BaseImage(metaclass=ImageMeta):
 
         ATTENTION:
             Support checks for most (if not all) render styles require :ref:`querying
-            <terminal-queries>` the :term:`active terminal`, though **only the first
-            time** they're executed.
+            <terminal-queries>` the :term:`active terminal` the **first time** they're
+            executed.
 
             Hence, it's advisable to perform all neccesary support checks (call
-            ``is_supported()`` on required subclasses) at an early stage of a program,
-            before user input is required.
+            this method on required style classes) at an early stage of a program,
+            before user input is expected. If using automatic style selection,
+            calling :py:func:`~term_image.image.auto_image_class` only should be
+            sufficient.
         """
         raise NotImplementedError
 

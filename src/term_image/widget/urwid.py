@@ -112,7 +112,7 @@ class UrwidImage(urwid.Widget):
         doc="""
         The image rendered by the widget.
 
-        :rtype: BaseImage
+        :type: BaseImage
         """,
     )
 
@@ -512,6 +512,9 @@ class UrwidImageScreen(urwid.raw_display.Screen):
     reduce/eliminate image flickering/tearing.
 
     See the baseclass for further description.
+
+    IMPORTANT:
+        This is defined if and only if the ``urwid`` package is available.
     """
 
     def __init__(self, *args, **kwargs):

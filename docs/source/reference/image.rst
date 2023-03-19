@@ -129,7 +129,7 @@ Using an instance as a context manager more surely guarantees **object finalizat
 |
 
 Iteration Support
------------------
+^^^^^^^^^^^^^^^^^
 
 :term:`Animated` images are iterable i.e they can be used with the ``for`` statement (and other means of iteration such as unpacking) as in::
 

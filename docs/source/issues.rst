@@ -1,7 +1,7 @@
 Known Issues
 ============
 
-1. Drawing of images and animations doesn't work completely well with Python for windows
+1. Drawing of images and animations doesn't work completely well with Python for Windows
    (tested in Windows Terminal and MinTTY).
 
    * **Description:** Some lines of the image seem to extend beyond the number of columns

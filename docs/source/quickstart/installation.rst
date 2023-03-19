@@ -67,10 +67,6 @@ Some terminals emulators that have been tested to meet the requirements for at l
 - MinTTY (on Windows)
 - Termux (on Android)
 
-For style-specific support, see the descriptions of the respective :ref:`image-classes`
-or the **Render Styles** section towards the bottom of the command-line help text
-(i.e the output of ``term-image --help``).
-
 .. note::
    If you've tested ``term-image`` on any other terminal emulator that meets all
    requirements, please mention the name in a new thread under `this discussion

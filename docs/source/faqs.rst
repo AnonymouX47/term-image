@@ -8,7 +8,7 @@ Why?
 
 What about Windows support?
    - Only the new `Windows Terminal <https://github.com/microsoft/terminal>`_ seems to have proper ANSI support and mordern terminal emulator features.
-   - Drawing images and animations doesn't work completely well in ``cmd`` and ``powershell``. See :doc:`issues`.
+   - Drawing images and animations doesn't work completely well with Python for Windows. See :doc:`issues`.
    - If stuck on Windows and want to use all features, you could use WSL + Windows Terminal.
 
 Why are colours not properly reproduced?

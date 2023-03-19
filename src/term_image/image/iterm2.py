@@ -69,8 +69,8 @@ class ITerm2Image(GraphicsImage):
        Pros:
 
        * Render results are more compact (i.e less in character count) than with
-         the ``lines`` method since the entire image is encoded at once.
-       * Image drawing is faster than with ``lines`` on most terminals.
+         the **LINES** method since the entire image is encoded at once.
+       * Image drawing is faster than with **LINES** on most terminals.
        * Smoother animations.
 
        Cons:
