@@ -93,6 +93,7 @@ The Classes
 .. autoclass:: BlockImage
    :members:
    :show-inheritance:
+   :exclude-members: is_supported
 
 |
 
@@ -105,12 +106,14 @@ The Classes
 .. autoclass:: ITerm2Image
    :members:
    :show-inheritance:
+   :exclude-members: is_supported
 
 |
 
 .. autoclass:: KittyImage
    :members:
    :show-inheritance:
+   :exclude-members: is_supported
 
 |
 

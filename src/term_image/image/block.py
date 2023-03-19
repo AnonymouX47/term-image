@@ -28,7 +28,6 @@ class BlockImage(TextImage):
 
     @classmethod
     def is_supported(cls):
-        """:meta private:"""
         if cls._supported is None:
             COLORTERM = os.environ.get("COLORTERM") or ""
             TERM = os.environ.get("TERM") or ""

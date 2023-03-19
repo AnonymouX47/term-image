@@ -329,7 +329,6 @@ class ITerm2Image(GraphicsImage):
 
     @classmethod
     def is_supported(cls):
-        """:meta private:"""
         if cls._supported is None:
             cls._supported = False
 
