@@ -110,12 +110,18 @@ class ImageSource(Enum):
     """Image source type."""
 
     #: The instance was derived from a path to a local image file.
+    #:
+    #: :meta hide-value:
     FILE_PATH = SourceAttr("_source")
 
     #: The instance was derived from a PIL image instance.
+    #:
+    #: :meta hide-value:
     PIL_IMAGE = SourceAttr("_source")
 
     #: The instance was derived from an image URL.
+    #:
+    #: :meta hide-value:
     URL = SourceAttr("_url")
 
 
@@ -124,17 +130,25 @@ class Size(Enum):
 
     #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
     #: :term:`available size`, else :py:attr:`FIT`.
+    #:
+    #: :meta hide-value:
     AUTO = Hidden()
 
     #: The image size is set to fit optimally **within** the :term:`available size`.
+    #:
+    #: :meta hide-value:
     FIT = Hidden()
 
     #: The size is set such that the width is exactly the :term:`available width`,
     #: regardless of the :term:`cell ratio`.
+    #:
+    #: :meta hide-value:
     FIT_TO_WIDTH = Hidden()
 
     #: The image size is set such that the image is rendered with as many pixels as the
     #: the original image consists of.
+    #:
+    #: :meta hide-value:
     ORIGINAL = Hidden()
 
 
