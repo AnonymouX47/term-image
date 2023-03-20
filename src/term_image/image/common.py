@@ -1047,15 +1047,15 @@ class BaseImage(metaclass=ImageMeta):
 
         If *method* is not ``None`` and this method is called via:
 
-           - a class, the class-wide render method is set.
-           - an instance, the instance-specific render method is set.
+        - a class, the class-wide render method is set.
+        - an instance, the instance-specific render method is set.
 
         If *method* is ``None`` and this method is called via:
 
-           - a class, the class-wide render method is unset, so that it uses that of
-             its parent style class (if any) or the default.
-           - an instance, the instance-specific render method is unset, so that it
-             uses the class-wide render method thenceforth.
+        - a class, the class-wide render method is unset, so that it uses that of
+          its parent style class (if any) or the default.
+        - an instance, the instance-specific render method is unset, so that it
+          uses the class-wide render method thenceforth.
 
         Any instance without a render method set uses the class-wide render method.
 
