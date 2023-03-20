@@ -82,7 +82,7 @@ class Hidden:
     """An object that hides it's original value representation."""
 
     def __repr__(_):
-        return "<hidden>"
+        return "<...>"
 
     __ascii__ = __str__ = __repr__
 
