@@ -310,13 +310,6 @@ class ITerm2Image(GraphicsImage):
             )
 
     def draw(self, *args, **kwargs):
-        """Draws an image to standard output.
-
-        Raises:
-            term_image.exceptions.ITerm2ImageError: Native animation is not supported.
-
-        See the :py:meth:`BaseImage.draw` for the full description.
-        """
         # Ignore (and omit) native animation arguments for non-animations
         if not (self._is_animated and kwargs.get("animate", True)):
             for arg_name in ("native", "stall_native"):
@@ -374,14 +367,6 @@ class ITerm2Image(GraphicsImage):
         **kwargs,
     ):
         if native:
-            if self._TERM == "konsole":
-                self._close_image(img)
-                raise _style_error(type(self))(
-                    "Native animation is not supported in the active terminal"
-                )
-            if img.format == "WEBP":
-                self._close_image(img)
-                raise _style_error(type(self))("Native WEBP animation is not supported")
             try:
                 print(
                     self._format_render(
@@ -458,7 +443,7 @@ class ITerm2Image(GraphicsImage):
             except (AttributeError, OSError):
                 file_is_readable = False
 
-        if native and self._is_animated and not frame and img.format != "WEBP":
+        if native and self._is_animated and not frame:
             if self._source_type is ImageSource.PIL_IMAGE:
                 if file_is_readable:
                     compressed_image = open(img.filename, "rb")
