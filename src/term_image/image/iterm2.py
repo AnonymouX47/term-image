@@ -41,7 +41,9 @@ class ITerm2Image(GraphicsImage):
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
-    **Render Methods:**
+    |
+
+    **Render Methods**
 
     :py:class:`ITerm2Image` provides two methods of :term:`rendering` images, namely:
 
@@ -51,13 +53,13 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-         * Good for use cases where it might be required to trim some lines of the
-           image.
+       * Good for use cases where it might be required to trim some lines of the
+         image.
 
        Cons:
 
-         * Image drawing is very slow on iTerm2 due to the terminal emulator's
-           performance.
+       * Image drawing is very slow on iTerm2 due to the terminal emulator's
+         performance.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
@@ -66,15 +68,15 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-         * Render results are more compact (i.e less in character count) than with
-           the ``lines`` method since the entire image is encoded at once.
-         * Image drawing is faster than with ``lines`` on most terminals.
-         * Smoother animations.
+       * Render results are more compact (i.e less in character count) than with
+         the **LINES** method since the entire image is encoded at once.
+       * Image drawing is faster than with **LINES** on most terminals.
+       * Smoother animations.
 
        Cons:
 
-          * This method currently doesn't work well on iTerm2 and WezTerm when the image
-            height is greater than the terminal height.
+       * This method currently doesn't work well on iTerm2 and WezTerm when the image
+         height is greater than the terminal height.
 
     NOTE:
         The **LINES** method is the default only because it works properly in all cases,
@@ -85,6 +87,54 @@ class ITerm2Image(GraphicsImage):
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
 
+    |
+
+    **Style-Specific Render Parameters**
+
+    See :py:meth:`BaseImage.draw` (particularly the *style* parameter).
+
+    * **method** (*None | str*) → Render method override.
+
+      * ``None`` → the current effective render method of the instance is used.
+      * *default* → ``None``
+
+    * **mix** (*bool*) → Cell content inter-mix policy (**Only supported on WezTerm**,
+      ignored otherwise).
+
+      * ``False`` → existing contents of cells within the region covered by
+        the drawn render output are erased
+      * ``True`` → existing cell contents show under transparent areas of the
+        drawn render output
+      * *default* → ``False``
+
+    * **compress** (*int*) → ZLIB compression level, for renders re-encoded in PNG
+      format.
+
+      * ``0`` <= *compress* <= ``9``
+      * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
+      * *default* → ``4``
+      * Results in a trade-off between render time and data size/draw speed
+
+    * **native** (*bool*) → Native animation policy.
+
+      * ``True`` → use the protocol's native animation feature
+      * ``False`` → use the normal animation
+      * *default* → ``False``
+      * Ignored if the image is not animated or *animate* is ``False``
+      * The terminal emulator completely controls the animation
+      * *alpha*, *repeat*, *cached* and *style* do not apply
+      * Uses the **WHOLE** render method
+      * Normal restrictions for sizing of animations do not apply
+      * Not all animated image formats are supported e.g WEBP
+      * Not all terminal emulators implement this feature of the protocol e.g Konsole
+
+    * **stall_native** (*bool*) → Native animation execution control.
+
+      * ``True`` → block until ``SIGINT`` (Ctrl+C) is recieved
+      * ``False`` → return as soon as the image is transmitted
+      * *default* → ``True``
+
+    |
 
     **Format Specification**
 
@@ -92,45 +142,48 @@ class ITerm2Image(GraphicsImage):
 
     ::
 
-        [method] [ m {0 | 1} ] [ c {0-9} ]
+        [ <method> ]  [ m <mix> ]  [ c <compress> ]
 
-    * ``method``: Render method override.
+    * ``method`` → render method override
 
-      Can be one of:
+      * ``L`` → **LINES** render method (current frame only, for animated images)
+      * ``W`` → **WHOLE** render method (current frame only, for animated images)
+      * ``N`` → Native animation (ignored when used with non-animated images, WEBP
+        animated images or :py:class:`~term_image.image.ImageIterator`)
+      * *default* → current effective render method of the instance
 
-        * ``L``: **LINES** render method (current frame only, for animated images).
-        * ``W``: **WHOLE** render method (current frame only, for animated images).
-        * ``N``: Native animation. Ignored when used with non-animated images, WEBP
-          images or ``ImageIterator``.
+    * ``m`` → cell content inter-mix policy (**Only supported in WezTerm**, ignored
+      otherwise)
 
-      Default: Current effective render method of the image.
+      * ``mix`` → inter-mix policy
 
-    * ``m``: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
-      otherwise).
+        * ``0`` → existing contents of cells in the region covered by the drawn
+          render output will be erased
+        * ``1`` → existing cell contents show under transparent areas of the drawn
+          render output
 
-      * If the character after ``m`` is:
+      * *default* → ``m0``
+      * e.g ``m0``, ``m1``
 
-        * ``0``, contents of cells in the region covered by the image will be erased.
-        * ``1``, the opposite, thereby allowing existing cell contents to show under
-          transparent areas of the image.
+    * ``c`` → ZLIB compression level, for renders re-encoded in PNG format
 
-      * If *absent*, defaults to ``m0``.
-      * e.g ``m0``, ``m1``.
+      * ``compress`` → compression level
 
-    * ``c``: ZLIB compression level, for images re-encoded in PNG format.
+        * An integer in the range ``0`` <= ``x`` <= ``9``
+        * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
 
-      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
-      * This results in a trade-off between render time and data size/draw speed.
-      * If *absent*, defaults to ``c4``.
-      * e.g ``c0``, ``c9``.
+      * *default* → ``c4``
+      * e.g ``c0``, ``c9``
+      * Results in a trade-off between render time and data size/draw speed
 
+    |
 
-    ATTENTION:
-        Currently supported terminal emulators include:
+    IMPORTANT:
+        Currently supported terminal emulators are:
 
-          * `iTerm2 <https://iterm2.com>`_
-          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
-          * `WezTerm <https://wezfurlong.org/wezterm/>`_
+        * `iTerm2 <https://iterm2.com>`_
+        * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
+        * `WezTerm <https://wezfurlong.org/wezterm/>`_
     """
 
     #: * ``x < 0``, JPEG encoding is disabled.
@@ -239,9 +292,10 @@ class ITerm2Image(GraphicsImage):
               position are cleared. Otherwise, all visible images are cleared.
             now: If ``True`` the images are cleared immediately, without affecting
               any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+              Otherwise they're cleared when next :py:data:`sys.stdout` is flushed.
 
-        Required and works only on Konsole, as text doesn't overwrite images.
+        NOTE:
+            Required and works only on Konsole, as text doesn't overwrite images.
         """
         # There's no point checking for forced support since this is only required on
         # konsole which supports the protocol.
@@ -255,78 +309,23 @@ class ITerm2Image(GraphicsImage):
                 else (DELETE_ALL_IMAGES_b if now else DELETE_ALL_IMAGES)
             )
 
-    def draw(
-        self,
-        *args,
-        method: Optional[str] = None,
-        mix: bool = False,
-        compress: int = 4,
-        native: bool = False,
-        stall_native: bool = True,
-        **kwargs,
-    ):
+    def draw(self, *args, **kwargs):
         """Draws an image to standard output.
-
-        Extends the common interface with style-specific parameters.
-
-        Args:
-            args: Positional arguments passed up the inheritance chain.
-            method: Render method override. If ``None`` or not given, the current
-              effective render method of the instance is used.
-            mix: Cell content inter-mix policy (**Only supported in WezTerm**, ignored
-              otherwise). If:
-
-              * ``False``, contents of cells within the region covered by the image are
-                erased.
-              * ``True``, the opposite, thereby allowing existing text or image pixels
-                to show under transparent areas of the image.
-
-            compress: ZLIB compression level, for images re-encoded in PNG format.
-
-              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
-              no compression. This results in a trade-off between render time and data
-              size/draw speed.
-
-            native: If ``True``, use native animation (if supported).
-
-              * Ignored for non-animations.
-              * *animate* must be ``True``.
-              * *alpha*, *repeat*, *cached* and *style* do not apply.
-              * Always loops infinitely.
-              * No control over frame duration.
-              * Not all animated image formats are supported e.g WEBP.
-              * The limitations of the **WHOLE** render method also apply.
-              * Normal restrictions for rendered/padding height of animations do not
-                apply.
-
-            stall_native: Native animation execution control. If:
-
-              * ``True``, block until ``SIGINT`` (Ctrl+C) is recieved.
-              * ``False``, return as soon as the image is transmitted.
-
-            kwargs: Keyword arguments passed up the inheritance chain.
 
         Raises:
             term_image.exceptions.ITerm2ImageError: Native animation is not supported.
 
-        See the ``draw()`` method of the parent classes for full details, including the
-        description of other parameters.
+        See the :py:meth:`BaseImage.draw` for the full description.
         """
+        # Ignore (and omit) native animation arguments for non-animations
         if not (self._is_animated and kwargs.get("animate", True)):
-            # Prevent the arguments from being passed on
-            native = False
-            stall_native = True
+            for arg_name in ("native", "stall_native"):
+                try:
+                    del kwargs[arg_name]
+                except KeyError:
+                    pass
 
-        arguments = locals()
-        super().draw(
-            *args,
-            **kwargs,
-            **{
-                var: arguments[var]
-                for var, default in __class__.draw.__kwdefaults__.items()
-                if arguments[var] is not default
-            },
-        )
+        super().draw(*args, **kwargs)
 
     @classmethod
     def is_supported(cls):

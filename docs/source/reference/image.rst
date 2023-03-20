@@ -1,123 +1,128 @@
-Core Library Definitions
-========================
+``image`` Module
+================
 
-.. automodule:: term_image.image
+.. module:: term_image.image
 
-   The ``term_image.image`` subpackage defines the following:
+Functions
+---------
 
+These functions automatically detect the best supported render style for the
+current terminal.
 
-   Convenience Functions
-   ---------------------
+Since all classes share a common interface (as defined by :py:class:`BaseImage`),
+any operation supported by one image class can be performed on any other image class,
+except style-specific operations.
 
-   These functions automatically detect the best supported render style for the
-   current terminal.
-
-   Since all classes define a common interface, any operation supported by one image
-   class can be performed on any other image class, except stated otherwise.
-
-   .. autofunction:: auto_image_class
-
-   .. autofunction:: AutoImage
-
-   .. autofunction:: from_file
-
-   .. autofunction:: from_url
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Functions
+   :autosummary-no-titles:
 
 
-   .. _image-classes:
+.. autofunction:: auto_image_class
 
-   Image Classes
-   -------------
+.. autofunction:: AutoImage
 
-   **Class Hierachy:**
+.. autofunction:: from_file
 
-   * :py:class:`ImageSource`
-   * :py:class:`Size`
-   * :py:class:`ImageMeta`
-   * :py:class:`BaseImage`
+.. autofunction:: from_url
 
-     * :py:class:`GraphicsImage`
 
-       * :py:class:`ITerm2Image`
-       * :py:class:`KittyImage`
+Enumerations
+------------
 
-     * :py:class:`TextImage`
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Enumerations
+   :autosummary-no-titles:
 
-       * :py:class:`BlockImage`
 
-   .. autoclass:: ImageSource
-      :members:
-      :show-inheritance:
+.. autoclass:: ImageSource
+   :autosummary-sections: None
 
-   .. autoclass:: Size
-      :members:
-      :show-inheritance:
+|
 
-   .. autoclass:: ImageMeta
-      :members:
-      :show-inheritance:
+.. autoclass:: Size
+   :autosummary-sections: None
 
-   |
 
-   .. autoclass:: BaseImage
-      :members:
-      :show-inheritance:
+.. _image-classes:
 
-   |
+Image Classes
+-------------
 
-   .. autoclass:: GraphicsImage
-      :members:
-      :show-inheritance:
+Class Hierachy
+^^^^^^^^^^^^^^
 
-   |
+* :py:class:`ImageMeta`
+* :py:class:`BaseImage`
 
-   .. autoclass:: TextImage
-      :members:
-      :show-inheritance:
+  * :py:class:`TextImage`
 
-   |
+    * :py:class:`BlockImage`
 
-   .. autoclass:: BlockImage
-      :members:
-      :show-inheritance:
+  * :py:class:`GraphicsImage`
 
-   |
+    * :py:class:`ITerm2Image`
+    * :py:class:`KittyImage`
 
-   .. autoclass:: ITerm2Image
-      :members:
-      :show-inheritance:
 
-   |
+The Classes
+^^^^^^^^^^^
 
-   .. autoclass:: KittyImage
-      :members:
-      :show-inheritance:
+.. automodulesumm:: term_image.image
+   :autosummary-sections: Classes
+   :autosummary-no-titles:
+   :autosummary-exclude-members: ImageIterator
 
-   |
 
-   .. autoclass:: ImageIterator
-      :members:
-      :show-inheritance:
+.. autoclass:: ImageMeta
+
+|
+
+.. autoclass:: BaseImage
+
+|
+
+.. autoclass:: TextImage
+
+|
+
+.. autoclass:: BlockImage
+   :exclude-members: is_supported
+
+|
+
+.. autoclass:: GraphicsImage
+
+|
+
+.. autoclass:: ITerm2Image
+   :exclude-members: is_supported
+
+|
+
+.. autoclass:: KittyImage
+   :exclude-members: is_supported
 
 |
 
 .. _context-manager:
 
 Context Management Protocol Support
------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``BaseImage`` instances are context managers i.e they can be used with the ``with`` statement as in::
+:py:class:`BaseImage` instances are context managers i.e they can be used with the ``with`` statement as in::
 
    with from_url(url) as image:
        ...
 
 Using an instance as a context manager more surely guarantees **object finalization** (i.e clean-up/release of resources), especially for instances with URL sources (see :py:meth:`BaseImage.from_url`).
 
+|
 
 Iteration Support
------------------
+^^^^^^^^^^^^^^^^^
 
-:term:`Animated` ``BaseImage`` instances are iterable i.e they can be used with the ``for`` statement (and other means of iteration such as unpacking) as in::
+:term:`Animated` images are iterable i.e they can be used with the ``for`` statement (and other means of iteration such as unpacking) as in::
 
    for frame in from_file("animated.gif"):
        ...
@@ -125,7 +130,13 @@ Iteration Support
 Subsequent frames of the image are yielded on subsequent iterations.
 
 .. note::
-   - ``iter(anim_image)`` returns an :py:class:`ImageIterator` instance with a repeat count of `1`, hence caching is disabled.
+   - ``iter(anim_image)`` returns an :py:class:`ImageIterator` instance with a repeat count of ``1``, hence caching is disabled.
    - The frames are unformatted and transparency is enabled i.e as returned by ``str(image)``.
 
-   For more extensive or custom iteration, use :py:class:`ImageIterator` directly.
+   For extensive or custom iteration, use :py:class:`ImageIterator` directly.
+
+
+Other Classes
+-------------
+
+.. autoclass:: ImageIterator

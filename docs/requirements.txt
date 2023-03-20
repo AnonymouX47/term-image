@@ -1,3 +1,4 @@
 sphinx==6.1.2
 furo==2022.12.7
+sphinx-toolbox==3.4.0
 urwid==2.1.2

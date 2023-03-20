@@ -1,6 +1,5 @@
 """
-Utilities
-=========
+.. Utilities
 """
 
 from __future__ import annotations
@@ -62,7 +61,7 @@ class ClassInstanceMethod(classmethod):
 # Decorator Functions
 
 
-def no_redecorate(decor: Callable) -> FunctionType:
+def no_redecorate(decor: FunctionType) -> FunctionType:
     """Prevents a decorator from re-decorating objects.
 
     Args:
@@ -83,7 +82,7 @@ def no_redecorate(decor: Callable) -> FunctionType:
 
 
 @no_redecorate
-def cached(func: Callable) -> FunctionType:
+def cached(func: FunctionType) -> FunctionType:
     """Enables return value caching.
 
     Args:
@@ -121,25 +120,25 @@ def cached(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def lock_tty(func: Callable) -> FunctionType:
+def lock_tty(func: FunctionType) -> FunctionType:
     """Synchronizes access to the :term:`active terminal`.
 
     Args:
         func: The function to be wrapped.
 
-    When any decorated function is called, a re-entrant lock is acquired by the current
+    When a decorated function is called, a re-entrant lock is acquired by the current
     process or thread and released after the call, such that any other decorated
     function called within another thread or subprocess has to wait till the lock is
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
     NOTE:
-        | It automatically works across parent-/sub-processes, started directly or
-          indirectly via ``multiprocessing.Process`` (or a subclass of it) and their
-          threads.
+        It automatically works across parent-/sub-processes, started directly or
+        indirectly via :py:class:`multiprocessing.Process` (or a subclass of it) and
+        their threads.
 
     IMPORTANT:
-        It only works if ``multiprocessing.synchronize`` is supported on the host
+        It only works if :py:mod:`multiprocessing.synchronize` is supported on the host
         platform.  If not supported, a warning is issued when starting a subprocess.
     """
 
@@ -158,7 +157,7 @@ def lock_tty(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def terminal_size_cached(func: Callable) -> FunctionType:
+def terminal_size_cached(func: FunctionType) -> FunctionType:
     """Enables return value caching based on the size of the :term:`active terminal`.
 
     Args:
@@ -197,7 +196,7 @@ def terminal_size_cached(func: Callable) -> FunctionType:
 
 
 @no_redecorate
-def unix_tty_only(func: Callable) -> FunctionType:
+def unix_tty_only(func: FunctionType) -> FunctionType:
     """Disable invokation of a function on a non-unix-like platform or when there is no
     :term:`active terminal`.
 
@@ -344,8 +343,8 @@ def get_terminal_size() -> os.terminal_size:
         The terminal size in columns and lines.
 
     NOTE:
-        This implementation is quite different from ``shutil.get_terminal_size()`` and
-        ``os.get_terminal_size()`` in that it:
+        This implementation is quite different from :py:func:`shutil.get_terminal_size`
+        and :py:func:`os.get_terminal_size` in that it:
 
         - gives the correct size of the :term:`active terminal` even when output is
           redirected, in most cases
@@ -601,8 +600,8 @@ def _process_start_wrapper(self, *args, **kwargs):
                     "Hence, if any subprocess will be writing/reading to/from the "
                     "active terminal, it may be unsafe to use any features requiring"
                     "terminal queries.\n"
-                    "See https://term-image.readthedocs.io/en/stable/library/reference"
-                    "/utils.html#terminal-queries\n"
+                    "See https://term-image.readthedocs.io/en/stable/guide/concepts"
+                    ".html#terminal-queries\n"
                     "If any related issues occur, it's advisable to disable queries "
                     "using `term_image.disable_queries()`.\n"
                     "Simply set an 'ignore' filter for this warning (before starting "
@@ -692,8 +691,8 @@ if OS_IS_UNIX:
             warnings.warn(
                 "It seems this process is not running within a terminal. "
                 "Hence, some features will behave differently or be disabled.\n"
-                "See https://term-image.readthedocs.io/en/stable/library/reference"
-                "/utils.html#terminal-queries\n"
+                "See https://term-image.readthedocs.io/en/stable/guide/concepts"
+                ".html#active-terminal\n"
                 "You can set an 'ignore' filter for this warning before loading "
                 "`term_image`, if not using any of the features affected.",
                 TermImageWarning,

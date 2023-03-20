@@ -53,7 +53,7 @@ def disable_queries() -> None:
     To re-enable queries, call :py:func:`enable_queries`.
 
     NOTE:
-       This affects all :ref:`dependent features <queried-features>`.
+        This affects all :ref:`dependent features <queried-features>`.
     """
     utils._queries_enabled = False
 
@@ -66,8 +66,8 @@ def disable_win_size_swap():
     reported by the :term:`active terminal` are used as-is.
 
     NOTE:
-       This affects :ref:`auto-cell-ratio` computation and size computations for
-       :ref:`graphics-based`.
+        This affects :ref:`auto-cell-ratio` computation and size computations for
+        :ref:`graphics-based`.
     """
     if utils._swap_win_size:
         utils._swap_win_size = False
@@ -82,7 +82,7 @@ def enable_queries() -> None:
     Queries are enabled by default. To disable, call :py:func:`disable_queries`.
 
     NOTE:
-       This affects all :ref:`dependent features <queried-features>`.
+        This affects all :ref:`dependent features <queried-features>`.
     """
     if not utils._queries_enabled:
         utils._queries_enabled = True
@@ -101,8 +101,8 @@ def enable_win_size_swap():
     swapped. This workaround is required on some older VTE-based terminal emulators.
 
     NOTE:
-       This affects :ref:`auto-cell-ratio` computation and size computations for
-       :ref:`graphics-based`.
+        This affects :ref:`auto-cell-ratio` computation and size computations for
+        :ref:`graphics-based`.
     """
     if not utils._swap_win_size:
         utils._swap_win_size = True

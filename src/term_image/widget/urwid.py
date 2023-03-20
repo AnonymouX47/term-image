@@ -23,13 +23,14 @@ class UrwidImage(urwid.Widget):
         image: The image to be rendered by the widget.
         format: Image :ref:`format specifier <format-spec>`. Padding width and height
           are ignored.
-        upscale: If ``True``, the image will be upscaled to fit the available size, if
-          neccessary. Otherwise, the image is never upscaled and any ample space is
-          padded up.
+        upscale: If ``True``, the image will be upscaled to fit maximally within the
+          available size, if neccessary, while still preserving the aspect ratio.
+          Otherwise, the image is never upscaled.
 
-    For animated images, the current frame (at render-time) is rendered.
+    | Any ample space in the widget's render size is filled with spaces.
+    | For animated images, the current frame (at render-time) is rendered.
 
-    HINT:
+    TIP:
         If *image* is of a :ref:`graphics-based <graphics-based>` render style and the
         widget is being used as or within a **flow** widget, with overlays or in any
         other case where the canvas will require vertical trimming, make sure to use a
@@ -111,7 +112,7 @@ class UrwidImage(urwid.Widget):
         doc="""
         The image rendered by the widget.
 
-        :rtype: BaseImage
+        :type: BaseImage
         """,
     )
 
@@ -510,9 +511,10 @@ class UrwidImageScreen(urwid.raw_display.Screen):
     It also synchronizes output on terminal emulators that support the feature to
     reduce/eliminate image flickering/tearing.
 
-    See the `baseclass
-    <http://urwid.org/reference/display_modules.html#urwid.raw_display.Screen>`_
-    for futher description.
+    See the baseclass for further description.
+
+    IMPORTANT:
+        This is defined if and only if the ``urwid`` package is available.
     """
 
     def __init__(self, *args, **kwargs):

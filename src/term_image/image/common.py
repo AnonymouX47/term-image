@@ -91,8 +91,9 @@ class SourceAttr(Hidden, str):
     """A string that only compares equal to itself but returns the original hash of
     the string.
 
-    Used to store the attribute that holds the value for ``image.source`` as the
-    value of enum members, because some would normally compare equal.
+    Used to store the name of the attribute that holds the value for
+    :py:attr:`BaseImage.source`` as the value of enum members, because some would
+    normally compare equal.
     """
 
     def __init__(self, *_):
@@ -106,40 +107,48 @@ class SourceAttr(Hidden, str):
 
 
 class ImageSource(Enum):
-    """Image source type.
-
-    NOTE:
-        The values of the enumeration members are implementation details and might
-        change at anytime.
-        Any comparison should be by identity of the members themselves.
-    """
+    """Image source type."""
 
     #: The instance was derived from a path to a local image file.
+    #:
+    #: :meta hide-value:
     FILE_PATH = SourceAttr("_source")
 
     #: The instance was derived from a PIL image instance.
+    #:
+    #: :meta hide-value:
     PIL_IMAGE = SourceAttr("_source")
 
     #: The instance was derived from an image URL.
+    #:
+    #: :meta hide-value:
     URL = SourceAttr("_url")
 
 
 class Size(Enum):
-    """Enumeration for :term:`automatic sizing`"""
+    """Enumeration for :term:`automatic sizing`."""
 
     #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
     #: :term:`available size`, else :py:attr:`FIT`.
+    #:
+    #: :meta hide-value:
     AUTO = Hidden()
 
     #: The image size is set to fit optimally **within** the :term:`available size`.
+    #:
+    #: :meta hide-value:
     FIT = Hidden()
 
     #: The size is set such that the width is exactly the :term:`available width`,
     #: regardless of the :term:`cell ratio`.
+    #:
+    #: :meta hide-value:
     FIT_TO_WIDTH = Hidden()
 
     #: The image size is set such that the image is rendered with as many pixels as the
     #: the original image consists of.
+    #:
+    #: :meta hide-value:
     ORIGINAL = Hidden()
 
 
@@ -148,7 +157,7 @@ class ImageMeta(ABCMeta):
 
     NOTE:
         | For all render style classes (instances of this class) defined **within** this
-          package, ``str(cls)`` yeilds the same value as :py:attr:`cls.style <style>`.
+          package, ``str(cls)`` yields the same value as :py:attr:`cls.style <style>`.
         | For render style classes defined **outside** this package (subclasses of those
           defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
     """
@@ -172,7 +181,7 @@ class ImageMeta(ABCMeta):
             * ``None``, if the invoking class is defined **outside** this package
               (``term_image``)
 
-        :rtype: Optional[str]
+        :type: Optional[str]
 
         **Examples**
 
@@ -203,12 +212,12 @@ class BaseImage(metaclass=ImageMeta):
         image: Source image.
         width: Can be
 
-          * an ``int``; horizontal dimension of the image, in columns.
+          * an integer; horizontal dimension of the image, in columns.
           * a :py:class:`~term_image.image.Size` enum member.
 
         height: Can be
 
-          * an ``int``; vertical dimension of the image, in lines.
+          * an integer; vertical dimension of the image, in lines.
           * a :py:class:`~term_image.image.Size` enum member.
 
         scale: The fraction of the size (on respective axes) to render the image with.
@@ -334,17 +343,21 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._closed,
         doc="""Instance finalization status
 
-        :rtype: bool
+        :type: bool
         """,
     )
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
-        doc="""Duration (in seconds) of a single frame for :term:`animated` images
+        doc="""Duration of a single frame for :term:`animated` images
 
-        Setting this on non-animated images is simply ignored, no exception is raised.
+        Returns:
+            * A duration (in seconds), if the image is animated.
+            * ``None``, if the image is not animated.
 
-        :rtype: float
+        :type: Optional[float]
+
+        Setting this on non-animated images is simply ignored.
         """,
     )
 
@@ -361,21 +374,20 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
-        The **unscaled** height of the image.
+        The **unscaled** height of the image
 
         Returns:
+            * The image height (in lines), if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member; if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image height (in lines), if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member; if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, int]
+        :type: Union[Size, int]
 
         SETTABLE VALUES:
 
-        * a positive ``int``; the image height is set to the given value and the
-          width is set proportionally.
+        * a positive :py:class:`int`; the image height is set to the given value and
+          the width is set proportionally.
         * a :py:class:`~term_image.image.Size` enum member; the image size
           is set as prescibed by the enum member.
         * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
@@ -393,14 +405,18 @@ class BaseImage(metaclass=ImageMeta):
     )
 
     original_size = property(
-        lambda self: self._original_size, doc="Size of the source image (in pixels)"
+        lambda self: self._original_size,
+        doc="""Size of the source image (in pixels)
+
+        :type: Tuple[int, int]
+        """,
     )
 
     @property
     def n_frames(self) -> int:
         """The number of frames in the image
 
-        :rtype: int
+        :type: int
         """
         if not self._is_animated:
             return 1
@@ -425,11 +441,11 @@ class BaseImage(metaclass=ImageMeta):
         )
         or 1,
         doc="""
-        The **scaled** height of the image.
+        The **scaled** height of the image
 
         Also the exact number of lines that the drawn image will occupy in a terminal.
 
-        :rtype: int
+        :type: int
         """,
     )
 
@@ -452,12 +468,12 @@ class BaseImage(metaclass=ImageMeta):
             )
         ),
         doc="""
-        The **scaled** size of the image.
+        The **scaled** size of the image
 
         Also the exact number of columns and lines (respectively) that the drawn image
         will occupy in a terminal.
 
-        :rtype: Tuple[int, int]
+        :type: Tuple[int, int]
         """,
     )
 
@@ -472,11 +488,11 @@ class BaseImage(metaclass=ImageMeta):
         )
         or 1,
         doc="""
-        The **scaled** width of the image.
+        The **scaled** width of the image
 
         Also the exact number of columns that the drawn image will occupy in a terminal.
 
-        :rtype: int
+        :type: int
         """,
     )
 
@@ -487,12 +503,12 @@ class BaseImage(metaclass=ImageMeta):
 
         SETTABLE VALUES:
 
-          * A *scale value*; sets both axes.
-          * A ``tuple`` of two *scale values*; sets ``(x, y)`` respectively.
+        * A *scale value*; sets both axes.
+        * A :py:class:`tuple` of two *scale values*; sets ``(x, y)`` respectively.
 
-        A scale value is a ``float`` in the range **0.0 < value <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < value <= 1.0**.
 
-        :rtype: Tuple[float, float]
+        :type: Tuple[float, float]
         """,
     )
 
@@ -512,9 +528,9 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Horizontal :term:`scale`
 
-        A scale value is a ``float`` in the range **0.0 < x <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < x <= 1.0**.
 
-        :rtype: float
+        :type: float
         """,
     )
 
@@ -527,9 +543,9 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Vertical :term:`scale`
 
-        A scale value is a ``float`` in the range **0.0 < y <= 1.0**.
+        A scale value is a :py:class:`float` in the range **0.0 < y <= 1.0**.
 
-        :rtype: float
+        :type: float
         """,
     )
 
@@ -540,16 +556,15 @@ class BaseImage(metaclass=ImageMeta):
     size = property(
         lambda self: self._size,
         doc="""
-        The **unscaled** size of the image.
+        The **unscaled** size of the image
 
         Returns:
+            * The image size, ``(columns, lines)``, if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member, if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image size, ``(columns, lines)``, if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member, if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, Tuple[int, int]]
+        :type: Union[Size, Tuple[int, int]]
 
         SETTABLE VALUES:
 
@@ -579,18 +594,18 @@ class BaseImage(metaclass=ImageMeta):
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
         doc="""
-        The :term:`source` from which the instance was initialized.
+        The :term:`source` from which the instance was initialized
 
-        :rtype: Union[PIL.Image.Image, str]
+        :type: Union[PIL.Image.Image, str]
         """,
     )
 
     source_type = property(
         lambda self: self._source_type,
         doc="""
-        The kind of :term:`source` from which the instance was initialized.
+        The kind of :term:`source` from which the instance was initialized
 
-        :rtype: ImageSource
+        :type: ImageSource
         """,
     )
 
@@ -598,21 +613,20 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
-        The **unscaled** width of the image.
+        The **unscaled** width of the image
 
         Returns:
+            * The image width (in columns), if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member; if the image size
+              is :term:`dynamic <dynamic size>`.
 
-          * The image width (in columns), if the image size is
-            :term:`fixed <fixed size>`.
-          * A :py:class:`~term_image.image.Size` enum member; if the image size
-            is :term:`dynamic <dynamic size>`.
-
-        :rtype: Union[Size, int]
+        :type: Union[Size, int]
 
         SETTABLE VALUES:
 
-        * a positive ``int``; the image width is set to the given value and the
-          height is set proportionally.
+        * a positive :py:class:`int`; the image width is set to the given value and
+          the height is set proportionally.
         * a :py:class:`~term_image.image.Size` enum member; the image size
           is set as prescibed by the enum member.
         * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
@@ -664,8 +678,10 @@ class BaseImage(metaclass=ImageMeta):
         Causes the return value of :py:meth:`is_supported` determines if the render
         style is supported or not, which is the default behaviour.
 
-        This affects only the class on which it is set and all its subclasses **for
-        which forced support is not enabled** (via :py:meth:`enable_forced_support`).
+        NOTE:
+            This setting is :term:`descendant` i.e it affects the class on which it
+            is disabled and all its subclasses **for which it is not enabled**
+            (via :py:meth:`enable_forced_support`).
         """
         cls._forced_support = False
 
@@ -729,13 +745,15 @@ class BaseImage(metaclass=ImageMeta):
             cached: Determines if :term:`rendered` frames of an animated image will be
               cached (for speed up of subsequent renders of the same frame) or not.
 
-              * If ``bool``, it directly sets if the frames will be cached or not.
-              * If ``int``, caching is enabled only if the framecount of the image
-                is less than or equal to the given number.
+              * If :py:class:`bool`, it directly sets if the frames will be cached or
+                not.
+              * If :py:class:`int`, caching is enabled only if the framecount of the
+                image is less than or equal to the given number.
 
             check_size: If ``False``, does not perform size validation for
               non-animations.
-            style: Style-specific parameters. See each subclass for it's own usage.
+            style: Style-specific render parameters. See each subclass for it's own
+              usage.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -751,7 +769,7 @@ class BaseImage(metaclass=ImageMeta):
           consideration during size validation. If the size was set via another means or
           the size is :term:`dynamic <dynamic size>`, the default allowances apply.
         * For **non-animations**, if the image size was set with
-          :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
+          :py:attr:`~term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
           validated and setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
@@ -762,7 +780,8 @@ class BaseImage(metaclass=ImageMeta):
           * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
-          with **Ctrl+C** (``SIGINT``), raising ``KeyboardInterrupt``.
+          with :py:data:`~signal.SIGINT` (``CTRL + C``), raising
+          :py:class:`KeyboardInterrupt`.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
 
@@ -844,11 +863,12 @@ class BaseImage(metaclass=ImageMeta):
         Causes a render style to be treated as if it were supported, regardless of the
         return value of :py:meth:`is_supported`.
 
-        This affects only the class on which it is set and all its subclasses **for
-        which forced support is not disabled** (via :py:meth:`disable_forced_support`).
-
         NOTE:
-           This doesn't affect the return value of :py:meth:`is_supported`.
+            This setting is :term:`descendant` i.e it affects the class on which it
+            is enabled and all its subclasses **for which it is not disabled**
+            (via :py:meth:`disable_forced_support`).
+
+            This doesn't influence the return value of :py:meth:`is_supported`.
         """
         cls._forced_support = True
 
@@ -870,8 +890,8 @@ class BaseImage(metaclass=ImageMeta):
         Raises:
             TypeError: *filepath* is not a string.
             FileNotFoundError: The given path does not exist.
-            IsADirectoryError: Propagated from from ``PIL.Image.open()``.
-            PIL.UnidentifiedImageError: Propagated from from ``PIL.Image.open()``.
+            IsADirectoryError: Propagated from from :py:func:`PIL.Image.open`.
+            PIL.UnidentifiedImageError: Propagated from from :py:func:`PIL.Image.open`.
 
         Also Propagates exceptions raised or propagated by the class constructor.
         """
@@ -916,9 +936,9 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: *url* is not a string.
             ValueError: The URL is invalid.
             term_image.exceptions.URLNotFoundError: The URL does not exist.
-            PIL.UnidentifiedImageError: Propagated from ``PIL.Image.open()``.
+            PIL.UnidentifiedImageError: Propagated from :py:func:`PIL.Image.open`.
 
-        Also propagates connection-related exceptions from ``requests.get()``
+        Also propagates connection-related exceptions from :py:func:`requests.get`
         and exceptions raised or propagated by the class constructor.
 
         NOTE:
@@ -966,18 +986,23 @@ class BaseImage(metaclass=ImageMeta):
     @classmethod
     @abstractmethod
     def is_supported(cls) -> bool:
-        """Returns ``True`` if the render style or graphics protocol implemented by
-        the invoking class is supported by the :term:`active terminal`.
-        Otherwise, ``False``.
+        """Checks if the implemented :term:`render style` is supported by the
+        :term:`active terminal`.
+
+        Returns:
+            ``True`` if the render style implemented by the invoking class is supported
+            by the :term:`active terminal`. Otherwise, ``False``.
 
         ATTENTION:
             Support checks for most (if not all) render styles require :ref:`querying
-            <terminal-queries>` the :term:`active terminal`, though **only the first
-            time** they're executed.
+            <terminal-queries>` the :term:`active terminal` the **first time** they're
+            executed.
 
             Hence, it's advisable to perform all neccesary support checks (call
-            ``is_supported()`` on required subclasses) at an early stage of a program,
-            before user input is required.
+            this method on required style classes) at an early stage of a program,
+            before user input is expected. If using automatic style selection,
+            calling :py:func:`~term_image.image.auto_image_class` only should be
+            sufficient.
         """
         raise NotImplementedError
 
@@ -1005,8 +1030,8 @@ class BaseImage(metaclass=ImageMeta):
 
     @ClassInstanceMethod
     def set_render_method(self_or_cls, method: Optional[str] = None) -> None:
-        """Sets the render method used by the instances of subclasses providing
-        multiple render methods.
+        """Sets the :term:`render method` used by instances of a :term:`render style`
+        class that implements multiple render methods.
 
         Args:
             method: The render method to be set or ``None`` for a reset
@@ -1017,26 +1042,28 @@ class BaseImage(metaclass=ImageMeta):
             ValueError: the given method is not implmented by the invoking class
               (or class of the invoking instance).
 
-        See the **Render Methods** section in the description of the subclasses that
+        See the **Render Methods** section in the description of subclasses that
         implement such for their specific usage.
 
-        If called via:
+        If *method* is not ``None`` and this method is called via:
 
-           - a class, sets the class-wide render method.
-           - an instance, sets the instance-specific render method.
+        - a class, the class-wide render method is set.
+        - an instance, the instance-specific render method is set.
 
         If *method* is ``None`` and this method is called via:
 
-           - a class, the class-wide render method is reset to the default.
-           - an instance, the instance-specific render method is removed, so that it
-             uses the class-wide render method thenceforth.
+        - a class, the class-wide render method is unset, so that it uses that of
+          its parent style class (if any) or the default.
+        - an instance, the instance-specific render method is unset, so that it
+          uses the class-wide render method thenceforth.
 
-        Any instance without a specific render method set uses the class-wide render
-        method.
+        Any instance without a render method set uses the class-wide render method.
 
         NOTE:
             *method* = ``None`` is always allowed, even if the render style doesn't
             implement multiple render methods.
+
+            The **class-wide** render method is :term:`descendant`.
         """
         if method is not None and not isinstance(method, str):
             raise TypeError(
@@ -1073,12 +1100,12 @@ class BaseImage(metaclass=ImageMeta):
         Args:
             width: Can be
 
-              * an ``int``; horizontal dimension of the image, in columns.
+              * an integer; horizontal dimension of the image, in columns.
               * a :py:class:`~term_image.image.Size` enum member.
 
             height: Can be
 
-              * an ``int``; vertical dimension of the image, in lines.
+              * an integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
             h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
@@ -1109,7 +1136,7 @@ class BaseImage(metaclass=ImageMeta):
 
         :term:`Allowances <allowance>` are ignored when *maxsize* is given.
 
-        Image formatting and size validation operations recognize and respect the
+        Render formatting and size validation operations recognize and respect the
         horizontal and vertical allowances, until the image size is re-set.
 
         NOTE:
@@ -1166,7 +1193,10 @@ class BaseImage(metaclass=ImageMeta):
         self._v_allow = v_allow * (not fit_to_width)
 
     def tell(self) -> int:
-        """Returns the current image frame number."""
+        """Returns the current image frame number.
+
+        :rtype: int
+        """
         return self._seek_position if self._is_animated else 0
 
     # Private Methods
@@ -1398,8 +1428,8 @@ class BaseImage(metaclass=ImageMeta):
         successful check ends up at `BaseImage._check_style_args()` or when *parent* is
         empty.
 
-        :py:meth:`_get_style_format_spec` can (optionally) be used to parse the format
-        spec at each level of the call chain.
+        :py:meth:`_get_style_format_spec` may be used to parse the format spec at each
+        level of the call chain.
         """
         if spec:
             raise _style_error(cls)(
@@ -1438,12 +1468,7 @@ class BaseImage(metaclass=ImageMeta):
         cached: Union[bool, int],
         **style_args: Any,
     ) -> None:
-        """Displays an animated GIF image in the terminal.
-
-        NOTE:
-            This is done indefinitely but can be terminated with ``Ctrl-C``
-            (``SIGINT``), raising ``KeyboardInterrupt``.
-        """
+        """Displays an animated GIF image in the terminal."""
         lines = max(
             (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
             self.rendered_height,
@@ -1565,7 +1590,7 @@ class BaseImage(metaclass=ImageMeta):
               Also, the image is blended with the active terminal's BG color (or black,
               if undetermined) while leaving the alpha intact.
 
-            frame: If ``True``, implies *img* is being used by ``ImageIterator``,
+            frame: If ``True``, implies *img* is being used by :py:class`ImageIterator`,
               hence, *img* is not closed.
 
         The returned image is appropriately converted, resized and composited
@@ -1656,10 +1681,6 @@ class BaseImage(metaclass=ImageMeta):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _handle_interrupted_draw():
-        """Performs any neccessary actions when image drawing is interrupted."""
-
     @classmethod
     def _get_style_format_spec(
         cls, spec: str, original: str
@@ -1729,6 +1750,10 @@ class BaseImage(metaclass=ImageMeta):
         return parent, fields
 
     @staticmethod
+    def _handle_interrupted_draw():
+        """Performs any neccessary actions when image drawing is interrupted."""
+
+    @staticmethod
     @abstractmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
@@ -1779,12 +1804,14 @@ class BaseImage(metaclass=ImageMeta):
         Args:
             renderer: The function to perform the specific rendering operation for the
               caller of this method, ``_renderer()``.
+
               This function must accept at least one positional argument, the
-              ``PIL.Image.Image`` instance corresponding to the source.
+              :py:class:`PIL.Image.Image` instance corresponding to the source.
+
             args: Positional arguments to pass on to *renderer*, after the
-              ``PIL.Image.Image`` instance.
-            scroll: See *scroll* in ``draw()``.
-            check_size: See *check_size* in ``draw()``.
+              :py:class:`PIL.Image.Image` instance.
+            scroll: See *scroll* in :py:meth:`draw`.
+            check_size: See *check_size* in :py:meth:`draw`.
             animated: If ``True``, *scroll* and *check_size* are ignored and the size
               is validated.
             kwargs: Keyword arguments to pass on to *renderer*.
@@ -1863,7 +1890,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
-        See the description of ``set_size()`` for the parameters.
+        See the description of :py:meth:`set_size` for the parameters.
         """
         ori_width, ori_height = self._original_size
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
@@ -1988,7 +2015,7 @@ class BaseImage(metaclass=ImageMeta):
 
 
 class GraphicsImage(BaseImage):
-    """Base of all render styles using terminal graphics protocols.
+    """Base of all :ref:`graphics-based`.
 
     Raises:
         term_image.exceptions.StyleError: The :term:`active terminal` doesn't support
@@ -2004,7 +2031,14 @@ class GraphicsImage(BaseImage):
     # Size unit conversion already involves cell size calculation
     _pixel_ratio: float = 1.0
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(
+        cls,
+        image: PIL.Image.Image,
+        *,
+        width: Union[int, Size, None] = None,
+        height: Union[int, Size, None] = None,
+        scale: Tuple[float, float] = (1.0, 1.0),
+    ) -> None:
         # calls `is_supported()` first to set required class attributes, in case
         # support is forced for a style that is actually supported
         if not (cls.is_supported() or cls._forced_support):
@@ -2058,7 +2092,7 @@ class GraphicsImage(BaseImage):
 
 
 class TextImage(BaseImage):
-    """Base of all render styles using ASCII/Unicode symbols [with ANSI color codes].
+    """Base of all :ref:`text-based`.
 
     See :py:class:`BaseImage` for the description of the constructor.
 
@@ -2098,8 +2132,8 @@ class TextImage(BaseImage):
         all other parameters not described here.
 
         Args:
-            split_cells: If ``True``, the cells of the image are separated by ``NULL``
-              ("\0").
+            split_cells: If ``True``, the cells of the image are separated by a
+              ``NULL`` ("\\0").
 
               - must be defined and implemented by every text-based style
                 (i.e sublcasses of this class).
@@ -2119,10 +2153,10 @@ class ImageIterator:
         format: The :ref:`format specifier <format-spec>` to be used to format the
           rendered frames (default: auto).
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
-          of subsequent renders) or not.
+          of subsequent renders) or not. If it is
 
-          * If ``bool``, it directly sets if the frames will be cached or not.
-          * If ``int``, caching is enabled only if the framecount of the image
+          * a boolean, it directly sets if the frames will be cached or not.
+          * an integer, caching is enabled only if the framecount of the image
             is less than or equal to the given number.
 
     Raises:
@@ -2211,6 +2245,8 @@ class ImageIterator:
     loop_no = property(
         lambda self: self._loop_no,
         doc="""Iteration repeat countdown
+
+        :type: int
 
         Changes on the first iteration of each loop, except for infinite iteration
         where it's always ``-1``.

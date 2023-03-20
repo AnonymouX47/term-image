@@ -1,8 +1,13 @@
-TUI Widgets
-===========
+``widget`` Module
+=================
 
-.. automodule:: term_image.widget
-   :members:
-   :show-inheritance:
+.. module:: term_image.widget
 
-   The ``term_image.widget`` module defines the following:
+.. automodulesumm:: term_image.widget
+
+.. autoclass:: UrwidImage
+
+.. autoclass:: UrwidImageCanvas
+
+.. autoclass:: UrwidImageScreen
+   :exclude-members: draw_screen

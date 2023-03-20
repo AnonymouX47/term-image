@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-This is a basic introduction to using the library. Please refer to the :doc:`reference/index` for detailed description of the features and functionality provided by the library.
+This is a basic introduction to using the library. Please refer to the :doc:`/reference/index` for detailed description of the features and functionality provided by the library.
 
 For this tutorial we'll be using the image below:
 
@@ -12,12 +12,12 @@ The image has a resolution of **288x288 pixels**.
 .. note:: All the samples in this tutorial occured in a terminal window of **255 columns by 70 lines**.
 
 
-Creating an instance
+Creating an Instance
 --------------------
 
 Image instances can be created using the convinience functions :py:func:`~term_image.image.AutoImage`,
-:py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_url`.
-These automatically detect the best style supported by the :term:`active terminal`.
+:py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_url`,
+which automatically detect the best style supported by the terminal emulator.
 
 Instances can also be created using the :ref:`image-classes` directly via their respective
 constructors or :py:meth:`~term_image.image.BaseImage.from_file` and
@@ -35,7 +35,7 @@ You can also use a URL if you don't have the file stored locally::
 
    image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tutorial/python.png")
 
-The library can also be used with PIL image instances::
+The library can also be used with :py:class:`PIL.Image.Image` instances::
 
    from PIL import Image
    from term_image.image import AutoImage
@@ -44,38 +44,41 @@ The library can also be used with PIL image instances::
    image = AutoImage(img)
 
 
-Rendering an image
+Rendering an Image
 ------------------
 
-Rendering an image is simply the process of converting it (per-frame for :term:`animated`
-images) into text (a string).
+Rendering an image is the process of converting it (per-frame for :term:`animated`
+images) into text (a string) which reproduces a representation or approximation of
+the image when written to the terminal.
 
-.. hint:: To display the rendered image in the following steps, just pass the string as an argument to ``print()``.
+.. hint:: To display the rendered image in the following steps, pass the string as an argument to :py:func:`print`.
 
 There are two ways to render an image:
 
-1. Unformatted
-^^^^^^^^^^^^^^
-::
+Unformatted Rendering
+^^^^^^^^^^^^^^^^^^^^^
+This is done using::
 
    str(image)
 
-Renders the image without *padding/alignment* and with transparency enabled
+The image is rendered without *padding*/*alignment* and with transparency enabled.
 
-The result should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/str.png
 
+|
+
 .. _formatted-render:
 
-2. Formatted
-^^^^^^^^^^^^
+Formatted Rendering
+^^^^^^^^^^^^^^^^^^^
 .. note::
-   To see the effect of *alignment* in the steps below, please scale the image down using::
+   To see the effect of :term:`alignment` in the steps below, please scale the image down using::
 
      image.scale = 0.75
 
-   This simply sets the x-axis and y-axis :term:`scales <scale>` of the image to ``0.75``.
+   This simply sets the x-axis and y-axis :term:`scale` of the image to ``0.75``.
    We'll see more about this :ref:`later <image-scale>`.
 
 Below are examples of formatted rendering:
@@ -90,13 +93,13 @@ Renders the image with:
 * a :term:`padding width` of **200** columns
 * **top** :term:`vertical alignment`
 * a :term:`padding height` of **70** lines
-* transparent background replaced with a **white** (``#ffffff``) background
+* **white** (``#ffffff``) background underlay
 
 .. note::
    You might have to reduce the padding width (200) and/or height (70) to something that'll
    fit into your terminal window, or increase the size of the terminlal window
 
-The result should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/white_bg.png
 
@@ -114,7 +117,7 @@ Renders the image with:
 * **automatic** :term:`padding height` (the current :term:`terminal height` minus :term:`vertical allowance`)
 * transparent background with **0.5** :term:`alpha threshold`
 
-The result should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/alpha_0_5.png
 
@@ -127,32 +130,31 @@ The result should look like:
 Renders the image with:
 
 * **center** :term:`horizontal alignment` (default)
-* **no** horizontal :term:`padding`, since ``1`` must be less than or equal to the image width
+* **no** horizontal :term:`padding`, since ``1`` is less than or equal to the image width
 * **middle** :term:`vertical alignment` (default)
 * **no** vertical :term:`padding`, since ``1`` is less than or equal to the image height
-* transparency **disabled** (alpha channel is removed)
+* transparency is **disabled** (alpha channel is ignored)
 
-The result should look like:
+The output (using :py:func:`print`) should look like:
 
 .. image:: /resources/tutorial/no_alpha_no_align.png
 
-You should also have a look at the complete :ref:`format-spec`.
+.. seealso:: :doc:`/guide/formatting` and :ref:`format-spec`
 
 
-Drawing/Displaying an image to/in the terminal
-----------------------------------------------
+Drawing/Displaying an Image
+---------------------------
 
 There are two ways to draw an image to the terminal screen:
 
-1. The :py:meth:`~term_image.image.BaseImage.draw` method
-   ::
+1. Using the :py:meth:`~term_image.image.BaseImage.draw` method::
 
       image.draw()
 
    **NOTE:** :py:meth:`~term_image.image.BaseImage.draw` has various parameters for
    :term:`alignment`/:term:`padding`, transparency, animation control, etc.
 
-2. Using ``print()`` with an image render output (i.e printing the rendered string)
+2. Using :py:func:`print` with an image render output (i.e printing the rendered string):
 
    ::
 
@@ -172,10 +174,11 @@ There are two ways to draw an image to the terminal screen:
      terminal, while the latter doesn't.
 
 
-.. important:: All the examples above use automatic sizing and default :term:`scale`.
+.. important:: All the examples above use :term:`dynamic <dynamic size>`,
+   :term:`automatic <automatic size>` sizing and default :term:`scale`.
 
 
-Image size
+Image Size
 ----------
 
 | The size of an image is the **unscaled** dimension with which an image is rendered.
@@ -186,23 +189,27 @@ The size of an image can be in either of two states:
 
 1. Fixed
 
-   In this state, the ``size`` property is a 2-tuple of integers, the ``width`` and
-   ``height`` properties are integers.
+   In this state,
+   
+   * the ``size`` property evaluates to a 2-tuple of integers, while the ``width`` and
+     ``height`` properties evaluate to integers,
+   * the image is rendered with the set size.
 
 2. Dynamic
 
    In this state,
 
+   * the ``size``, ``width`` and ``height`` properties evaluate to a
+     :py:class:`~term_image.image.Size` enum member,
    * the size with which the image is rendered is automatically calculated
      (based on the current :term:`terminal size` or the image's original size) whenever the
      image is to be rendered.
-   * the ``size``, ``width`` and ``height`` properties evaluate to a
-     :py:class:`~term_image.image.Size` enum member.
 
-| The size of an image can be set when creating an instance by passing an integer or a
-  :py:class:`~term_image.image.Size` enum member to **either** the *width* **or** the
-  *height* **keyword-only** parameter.
-| For whichever axis is given, the other axis is calculated **proportionally**.
+The size of an image can be set at instantiation by passing an integer or a
+:py:class:`~term_image.image.Size` enum member to **either** the *width* **or** the
+*height* **keyword-only** parameter.
+For whichever axis a dimension is given, the dimension on the other axis is calculated
+**proportionally**.
 
 .. note::
    1. The arguments can only be given **by keyword**.
@@ -238,10 +245,10 @@ True
 
 No size validation is performed i.e the resulting size might not fit into the terminal window
 
->>> image = from_file("python.png", height=68)  # Will fit, OK
+>>> image = from_file("python.png", height=68)  # Will fit in, OK
 >>> image.size
 (136, 68)
->>> image = from_file("python.png", height=500)  # Will not fit, also OK
+>>> image = from_file("python.png", height=500)  # Will not fit in, also OK
 >>> image.size
 (1000, 500)
 
@@ -255,7 +262,7 @@ Traceback (most recent call last):
 ValueError: Cannot specify both width and height
 
 The :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height`
-properties are used to set the size of an image after instantiation.
+properties can be used to set the size of an image after instantiation, resulting in :term:`fixed size`.
 
 >>> image = from_file("python.png")
 >>> image.width = 56
@@ -268,7 +275,8 @@ properties are used to set the size of an image after instantiation.
 (136, 68)
 >>> image.width
 136
->>> image.width = 200  # Even though the terminal can't contain the resulting height, the size is still set
+>>> # Even though the terminal can't contain the resulting height, the size is still set
+>>> image.width = 200
 >>> image.size
 (200, 100)
 >>> image.width = Size.FIT
@@ -281,10 +289,8 @@ properties are used to set the size of an image after instantiation.
 >>> image.size
 (288, 144)
 
-.. note:: An exception is raised if the terminal size is too small to calculate a size.
-
 The :py:attr:`~term_image.image.BaseImage.size` property can only be set to a
-:py:class:`~term_image.image.Size` enum member, which results in a **dynamic** size.
+:py:class:`~term_image.image.Size` enum member, resulting in :term:`dynamic size`.
 
 >>> image = from_file("python.png")
 >>> image.size = Size.FIT
@@ -299,10 +305,10 @@ True
 
 .. important::
 
-   1. The currently set :term:`cell ratio` is also taken into consideration when calculating sizes.
+   1. The currently set :term:`cell ratio` is also taken into consideration when calculating sizes for images of :ref:`text-based`.
    2. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
 
-.. hint::
+.. tip::
 
    See :py:meth:`~term_image.image.BaseImage.set_size` for extended sizing control.
 
@@ -312,9 +318,9 @@ True
 Image scale
 -----------
 
-| The scale of an image is the **fraction** of the size that'll actually be used to render the image.
-| A valid scale value is a ``float`` in the range ``0 < x <= 1`` i.e greater than zero
-  and less than or equal to one.
+| The scale of an image is the **ratio** of its size with which it will actually be rendered.
+| A valid scale value is a :py:class:`float` in the range ``0.0`` < ``x`` <= ``1.0``
+  i.e greater than zero and less than or equal to one.
 
 The image scale can be retrieved via the properties :py:attr:`~term_image.image.BaseImage.scale`,
 :py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y`.
@@ -358,4 +364,6 @@ The drawn image (using ``image.draw()``) should look like:
 >>> image.scale
 (0.75, 1.0)
 
-Finally, to explore more of the library's features and functionality, check out the :doc:`reference/index` section.
+|
+
+Finally, to explore more of the library's features and functionality, check out the :doc:`/guide/index` and the :doc:`/reference/index`.

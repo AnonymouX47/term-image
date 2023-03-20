@@ -25,6 +25,8 @@ class KittyImage(GraphicsImage):
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
 
+    |
+
     **Render Methods**
 
     :py:class:`KittyImage` provides two methods of :term:`rendering` images, namely:
@@ -35,8 +37,8 @@ class KittyImage(GraphicsImage):
 
        Pros:
 
-         * Good for use cases where it might be required to trim some lines of the
-           image.
+       * Good for use cases where it might be required to trim some lines of the
+         image.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
@@ -45,13 +47,53 @@ class KittyImage(GraphicsImage):
 
        Pros:
 
-         * Render results are more compact (i.e less in character count) than with
-           the **LINES** method since the entire image is encoded at once.
+       * Render results are more compact (i.e less in character count) than with
+         the **LINES** method since the entire image is encoded at once.
 
     The render method can be set with
     :py:meth:`set_render_method() <BaseImage.set_render_method>` using the names
     specified above.
 
+    |
+
+    **Style-Specific Render Parameters**
+
+    See :py:meth:`BaseImage.draw` (particularly the *style* parameter).
+
+    * **method** (*None | str*) → Render method override.
+
+      * ``None`` → the current effective render method of the instance is used.
+      * *default* → ``None``
+
+    * **z_index** (*int*) → The stacking order of graphics and text for
+      **non-animations**.
+
+      * An integer in the **signed 32-bit** range (excluding ``-(2**31)``)
+      * ``>= 0`` → the image will be drawn above text
+      * ``< 0`` → the image will be drawn below text
+      * ``< -(2**31)/2`` → the image will be drawn below cells with non-default
+        background color
+      * *default* → ``0``
+      * Overlapping graphics on different z-indexes will be blended (by the terminal
+        emulator) if they are semi-transparent.
+      * To inter-mix text with graphics, see the *mix* parameter.
+
+    * **mix** (*bool*) → Graphics/Text inter-mix policy.
+
+      * ``False`` → text within the region covered by the drawn render output will be
+        erased, though text can be inter-mixed with graphics after drawing
+      * ``True`` → text within the region covered by the drawn render output will NOT
+        be erased
+      * *default* → ``False``
+
+    * **compress** (*int*) → ZLIB compression level.
+
+      * ``0`` <= *compress* <= ``9``
+      * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
+      * *default* → ``4``
+      * Results in a trade-off between render time and data size/draw speed
+
+    |
 
     **Format Specification**
 
@@ -59,57 +101,59 @@ class KittyImage(GraphicsImage):
 
     ::
 
-        [method] [ z {index} ] [ m {0 | 1} ] [ c {0-9} ]
+        [ <method> ]  [ z <z-index> ]  [ m <mix> ]  [ c <compress> ]
 
-    * ``method``: Render method override.
+    * ``method`` → render method override
 
-      Can be one of:
+      * ``L`` → **LINES** render method (current frame only, for animated images)
+      * ``W`` → **WHOLE** render method (current frame only, for animated images)
+      * *default* → Current effective render method of the image
 
-        * ``L``: **LINES** render method (current frame only, for animated images).
-        * ``W``: **WHOLE** render method (current frame only, for animated images).
+    * ``z`` → graphics/text stacking order
 
-      Default: Current effective render method of the image.
+      * ``z-index`` → z-index
 
-    * ``z``: Image/Text stacking order.
+        * An integer in the **signed 32-bit** range (excluding ``-(2**31)``)
+        * ``>= 0`` → the render output will be drawn above text
+        * ``< 0`` → the render output will be drawn below text
+        * ``< -(2**31)/2`` → the render output will be drawn below cells with
+          non-default background color
 
-      * ``index``: Image z-index. An integer in the **signed 32-bit range**
-        (excluding ``-(2**31)``).
+      * *default* → ``z0`` (z-index zero)
+      * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``
+      * overlapping graphics on different z-indexes will be blended
+        (by the terminal emulator) if they are semi-transparent
 
-        Overlapping images with different z-indexes values will be blended if they are
-        semi-transparent. If ``index`` is:
+    * ``m`` → graphics/text inter-mix policy
 
-        * ``>= 0``, the image will be drawn above text.
-        * ``< 0``, the image will be drawn below text.
-        * ``< -(2**31)/2``, the image will be drawn below cells with non-default
-          background color.
+      * ``mix`` → inter-mix policy
 
-      * If *absent*, defaults to ``z0`` i.e z-index zero.
-      * e.g ``z0``, ``z1``, ``z-1``, ``z2147483647``, ``z-2147483648``.
+        * ``0`` → text within the region covered by the drawn render output will be
+          erased, though text can be inter-mixed with graphics after drawing
+        * ``1`` → text within the region covered by the drawn render output will NOT
+          be erased
 
-    * ``m``: Image/Text inter-mixing policy.
+      * *default* → ``m0``
+      * e.g ``m0``, ``m1``
 
-      * If the character after ``m`` is:
+    * ``c`` → ZLIB compression level
 
-        * ``0``, text within the region covered by the image will be erased,
-          though text can be inter-mixed with the image after it's been drawn.
-        * ``1``, text within the region covered by the image will NOT be erased.
+      * ``compress`` → compression level
 
-      * If *absent*, defaults to ``m0``.
-      * e.g ``m0``, ``m1``.
+        * An integer in the range ``0`` <= ``compress`` <= ``9``
+        * ``1`` → best speed, ``9`` → best compression, ``0`` → no compression
 
-    * ``c``: ZLIB compression level.
+      * *default* → ``c4``
+      * e.g ``c0``, ``c9``
+      * results in a trade-off between render time and data size/draw speed
 
-      * 1 -> best speed, 9 -> best compression, 0 -> no compression.
-      * This results in a trade-off between render time and data size/draw speed.
-      * If *absent*, defaults to ``c4``.
-      * e.g ``c0``, ``c9``.
+    |
 
+    IMPORTANT:
+        Currently supported terminal emulators are:
 
-    ATTENTION:
-        Currently supported terminal emulators include:
-
-          * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
-          * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
+        * `Kitty <https://sw.kovidgoyal.net/kitty/>`_ >= 0.20.0.
+        * `Konsole <https://konsole.kde.org>`_ >= 22.04.0.
     """
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
@@ -147,7 +191,7 @@ class KittyImage(GraphicsImage):
             False,
             (
                 lambda x: isinstance(x, bool),
-                "Inter-mixing policy must be a boolean",
+                "Inter-mix policy must be a boolean",
             ),
             (lambda _: True, ""),
         ),
@@ -181,7 +225,7 @@ class KittyImage(GraphicsImage):
               on the given z-index are cleared.
             now: If ``True`` the images are cleared immediately, without affecting
               any standard I/O stream.
-              Otherwise they're cleared when next ``sys.stdout`` is flushed.
+              Otherwise they're cleared when next :py:data:`sys.stdout` is flushed.
 
         Aside *now*, **only one** other argument may be given. If no argument is given
         (aside *now*) or default values are given, all images visible on the screen are
@@ -231,66 +275,6 @@ class KittyImage(GraphicsImage):
             write_tty(DELETE_ALL_IMAGES_b)
         else:
             _stdout_write(DELETE_ALL_IMAGES)
-
-    # Only defined for the purpose of proper self-documentation
-    def draw(
-        self,
-        *args,
-        method: Optional[str] = None,
-        z_index: int = 0,
-        mix: bool = False,
-        compress: int = 4,
-        **kwargs,
-    ) -> None:
-        """Draws an image to standard output.
-
-        Extends the common interface with style-specific parameters.
-
-        Args:
-            args: Positional arguments passed up the inheritance chain.
-            method: Render method override. If ``None`` or not given, the current
-              effective render method of the instance is used.
-            z_index: The stacking order of images and text **for non-animations**.
-
-              Overlapping images with different z-indexes values will be blended if
-              they are semi-transparent. If *z_index* is:
-
-              * ``>= 0``, the image will be drawn above text.
-              * ``< 0``, the image will be drawn below text.
-              * ``< -(2**31)/2``, the image will be drawn below cells with
-                non-default background color.
-
-              To inter-mixing text with an image, see the *mix* parameter.
-
-            mix: Image/Text inter-mixing policy **for non-animations**. If:
-
-              * ``True``, text within the region covered by the image will NOT be
-                erased.
-              * ``False``, text within the region covered by the image will be
-                erased, though text can be inter-mixed with the image after it's
-                been drawn.
-
-            compress: ZLIB compression level.
-
-              An integer between 0 and 9: 1 -> best speed, 9 -> best compression, 0 ->
-              no compression. This results in a trade-off between render time and data
-              size/draw speed.
-
-            kwargs: Keyword arguments passed up the inheritance chain.
-
-        See the ``draw()`` method of the parent classes for full details, including the
-        description of other parameters.
-        """
-        arguments = locals()
-        super().draw(
-            *args,
-            **kwargs,
-            **{
-                var: arguments[var]
-                for var, default in __class__.draw.__kwdefaults__.items()
-                if arguments[var] is not default
-            },
-        )
 
     @classmethod
     def is_supported(cls) -> bool:
@@ -360,8 +344,8 @@ class KittyImage(GraphicsImage):
 
         | Only used on Kitty <= 0.25.0 because ``blend=False`` is buggy on these
           versions. Does nothing on any other version or terminal.
-        | Note that this implementation might do more than required since it clears
-          all images on screen.
+        | Also clears any frame of any previously drawn animation, since they all use
+          the same z-index.
 
         See :py:meth:`~term_image.image.BaseImage._clear_frame` for description.
         """
