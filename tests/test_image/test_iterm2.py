@@ -10,6 +10,7 @@ import pytest
 from PIL import Image
 from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
+from PIL.WebPImagePlugin import WebPImageFile
 
 from term_image.exceptions import ITerm2ImageError, TermImageWarning
 from term_image.image import iterm2
@@ -187,7 +188,7 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
     compressed_image = standard_b64decode(payload.encode())
     img = Image.open(io.BytesIO(compressed_image))
     if native:
-        assert isinstance(img, (GifImageFile, PngImageFile))
+        assert isinstance(img, (GifImageFile, PngImageFile, WebPImageFile))
         assert img.is_animated
 
     if read_from_file or native:
@@ -855,10 +856,11 @@ def test_native_anim():
     # Reads from file when possible
     for image, file in (
         (apng_image, apng_file),
+        (webp_image, webp_file),
         (gif_image, gif_file),
         (img_image, gif_file),
     ):
-        for ITerm2Image._TERM in ("iterm2", "wezterm"):
+        for ITerm2Image._TERM in supported_terminals:
             assert (
                 file
                 == decode_image(
@@ -867,31 +869,7 @@ def test_native_anim():
             )
             test_image_size(image, term=ITerm2Image._TERM, native=True)
 
-        # Drawing APNG and GIF is supported
-        try:
-            sys.stdout = stdout
-            image.draw(native=True, stall_native=False)
-        finally:
-            clear_stdout()
-            sys.stdout = sys.__stdout__
-
-    # Re-encodes when image file is not accessible
-    ITerm2Image._TERM = ""
-    for ITerm2Image._TERM in ("iterm2", "wezterm"):
-        assert gif_file != decode_image(render_native(no_file_image), native=True)[3]
-        test_image_size(no_file_image, term=ITerm2Image._TERM, native=True)
-
-    # No image file an unknown format
-    no_file_img.format = None
-    with pytest.raises(ITerm2ImageError, match="Native animation .* unknown format"):
-        render_native(no_file_image)
-
-    # Konsole does not implement native animation
-    ITerm2Image._TERM = "konsole"
-    for image in (apng_image, gif_image, webp_image):
-        with pytest.raises(
-            ITerm2ImageError, match="Native animation .* active terminal"
-        ):
+            # No exception is raised
             try:
                 sys.stdout = stdout
                 image.draw(native=True, stall_native=False)
@@ -899,19 +877,20 @@ def test_native_anim():
                 clear_stdout()
                 sys.stdout = sys.__stdout__
 
-    # WEBP format is not supported by the terminal emulators
-    for ITerm2Image._TERM in ("iterm2", "wezterm"):
+    # Re-encodes when image file is not accessible
+    for ITerm2Image._TERM in supported_terminals:
         assert (
-            webp_file
-            != decode_image(render_native(webp_image), term=ITerm2Image._TERM)[3]
+            gif_file
+            != decode_image(
+                render_native(no_file_image), term=ITerm2Image._TERM, native=True
+            )[3]
         )
-        sys.stdout = stdout
-        try:
-            with pytest.raises(ITerm2ImageError, match="Native WEBP animation"):
-                webp_image.draw(native=True, stall_native=False)
-        finally:
-            clear_stdout()
-            sys.stdout = sys.__stdout__
+        test_image_size(no_file_image, term=ITerm2Image._TERM, native=True)
+
+    # No image file and unknown format
+    no_file_img.format = None
+    with pytest.raises(ITerm2ImageError, match="Native animation .* unknown format"):
+        render_native(no_file_image)
 
     # Image data size limit
     ITerm2Image.NATIVE_ANIM_MAXSIZE = 300000
