@@ -22,7 +22,6 @@ Welcome to term-image's documentation!
    :caption: Contents
 
    quickstart/index
-   gallery
    guide/index
    reference/index
    planned
