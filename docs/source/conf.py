@@ -4,6 +4,8 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from term_image import __version__
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -16,7 +18,7 @@
 project = "term-image"
 copyright = "2022, Toluwaleke Ogundipe"
 author = "Toluwaleke Ogundipe"
-release = "0.6.0.dev0"
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
