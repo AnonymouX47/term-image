@@ -7,9 +7,9 @@
 <br>
 
 <p align="center">
-   &#128214; <a href='https://term-image.readthedocs.io/'>Docs</a>
+   &#128214; <a href='https://term-image.readthedocs.io'>Docs</a>
     &#9553; 
-   &#127979; <a href='https://term-image.readthedocs.io/en/latest/tutorial.html'>Tutorial</a>
+   &#127979; <a href='https://term-image.readthedocs.io/en/stable/quickstart/tutorial.html'>Tutorial</a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
    <a href='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml'>
       <img src='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml/badge.svg'>
    </a>
-   <a href='https://term-image.readthedocs.io/en/latest/?badge=latest'>
+   <a href='https://term-image.readthedocs.io'>
       <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
    </a>
    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
@@ -59,7 +59,7 @@
 ## Installation
 
 ### Requirements
-- Operating System: Unix / Linux / Mac OS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html))
+- Operating System: Unix / Linux / Mac OS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/stable/faqs.html))
 - [Python](https://www.python.org/) >= 3.7
 - A terminal emulator with **any** of the following:
   
@@ -67,7 +67,7 @@
   - support for the [iTerm2 inline image protocol](https://iterm2.com/documentation-images.html).
   - full Unicode support and ANSI 24-bit color support
 
-  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/latest/index.html#planned-features)).
+  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/stable/planned.html)).
 
 ### Steps
 The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip` (**recommended**):
@@ -96,7 +96,7 @@ pip install .
 ```
 
 ### Supported Terminal Emulators
-See [here](https://term-image.readthedocs.io/en/latest/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
+See [here](https://term-image.readthedocs.io/en/stable/quickstart/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
 If you've tested this library on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
@@ -125,7 +125,7 @@ Also, if you have any issue with terminal support, you may report or check infor
 
 ## Demo
 
-Check out the [gallery](https://term-image.readthedocs.io/en/latest/gallery.html) and this [image viewer](https://github.com/AnonymouX47/term-image-viewer) based on this library.
+Check out this [image viewer](https://github.com/AnonymouX47/term-image-viewer) based on this library.
 
 
 ## Quick Start
@@ -194,7 +194,7 @@ For animated images, only the first method can animate the output, the second on
 
 **If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
-See the [tutorial](https://term-image.readthedocs.io/en/latest/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/latest/reference/index.html) for full descriptions and details of the available features.
+See the [tutorial](https://term-image.readthedocs.io/en/stable/quickstart/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/reference/index.html) for full descriptions and details of the available features.
 
 
 ## Contribution
@@ -211,15 +211,15 @@ Thanks! :heart:
 
 ## Planned Features
 
-See [here](https://term-image.readthedocs.io/en/latest/planned.html).
+See [here](https://term-image.readthedocs.io/en/stable/planned.html).
 
 ## Known Issues
 
-See [here](https://term-image.readthedocs.io/en/latest/issues.html).
+See [here](https://term-image.readthedocs.io/en/stable/issues.html).
 
 ## FAQs
 
-See the [FAQs](https://term-image.readthedocs.io/en/latest/faqs.html) section of the docs.
+See the [FAQs](https://term-image.readthedocs.io/en/stable/faqs.html) section of the docs.
 
 ## Credits
 
