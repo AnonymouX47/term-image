@@ -183,7 +183,7 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 - Maximum line length is 88 characters.
 - All functions (including methods) should be adequately annotated.
   - **Note:** Currently, annotations are only for documentation purposes and better/quicker comprehension of the defined interfaces by the users and developers.
-- Try to keep things (definitions, names, dictionary keys, etc...) **sorted** wherever reasonably possible.
+- Try to keep things (definitions, names, dictionary keys, etc...) **lexicographically sorted** wherever reasonably possible.
   - Makes finding things quicker and easier :smiley:.
 - For any matter of style not directly/indirectly addressed here, please try as much as possible to follow formats or styles already established in the project.
 - Any questions or suggestions about the above can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/7).
@@ -340,14 +340,14 @@ isort .
 
 The following steps perform checks and report any errors without modifying source files. See [Documentation Corrections](#documentation-corrections) for how to correct any errors reported.
 
-*Comming soon...*
+*Coming soon...*
 
 
 ### Documentation Corrections
 
 The following steps correct errors reported by [Documentation Checks](#documentation-checks) and modify source files.
 
-*Comming soon...*
+*Coming soon...*
 
 
 ## Running the Tests
