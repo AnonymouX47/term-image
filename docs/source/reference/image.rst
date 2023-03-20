@@ -96,7 +96,7 @@ The Classes
 |
 
 .. autoclass:: ITerm2Image
-   :exclude-members: is_supported
+   :exclude-members: draw, is_supported
 
 |
 

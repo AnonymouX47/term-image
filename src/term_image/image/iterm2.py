@@ -115,18 +115,16 @@ class ITerm2Image(GraphicsImage):
       * *default* → ``4``
       * Results in a trade-off between render time and data size/draw speed
 
-    * **native** (*bool*) → Native animation policy.
+    * **native** (*bool*) → Native animation policy. [1]_
 
       * ``True`` → use the protocol's native animation feature
       * ``False`` → use the normal animation
       * *default* → ``False``
-      * Ignored if the image is not animated or *animate* is ``False``
-      * The terminal emulator completely controls the animation
       * *alpha*, *repeat*, *cached* and *style* do not apply
-      * Uses the **WHOLE** render method
+      * Ignored if the image is not animated or *animate* is ``False``
       * Normal restrictions for sizing of animations do not apply
-      * Not all animated image formats are supported e.g WEBP
-      * Not all terminal emulators implement this feature of the protocol e.g Konsole
+      * Uses **WHOLE** render method
+      * The terminal emulator completely controls the animation
 
     * **stall_native** (*bool*) → Native animation execution control.
 
@@ -148,8 +146,8 @@ class ITerm2Image(GraphicsImage):
 
       * ``L`` → **LINES** render method (current frame only, for animated images)
       * ``W`` → **WHOLE** render method (current frame only, for animated images)
-      * ``N`` → Native animation (ignored when used with non-animated images, WEBP
-        animated images or :py:class:`~term_image.image.ImageIterator`)
+      * ``N`` → Native animation [1]_ (ignored when used with non-animated images or
+        :py:class:`~term_image.image.ImageIterator`)
       * *default* → current effective render method of the instance
 
     * ``m`` → cell content inter-mix policy (**Only supported in WezTerm**, ignored
@@ -184,6 +182,15 @@ class ITerm2Image(GraphicsImage):
         * `iTerm2 <https://iterm2.com>`_
         * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
         * `WezTerm <https://wezfurlong.org/wezterm/>`_
+
+    .. [1] Native animation support:
+
+       * Not all animated image formats may be supported by every supported terminal
+         emulator
+       * Not all supported terminal emulators implement this feature of the protocol
+         e.g on Konsole, the first frame is drawn but the image is not animated
+
+    |
     """
 
     #: * ``x < 0``, JPEG encoding is disabled.
