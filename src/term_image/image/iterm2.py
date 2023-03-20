@@ -480,19 +480,26 @@ class ITerm2Image(GraphicsImage):
                 control_data = "".join(
                     (
                         f"size={compressed_image.tell()};width={r_width}"
-                        f";height={r_height};preserveAspectRatio=0;inline=1:"
+                        f";height={r_height};preserveAspectRatio=0;inline=1"
+                        f"{';doNotMoveCursor=1' * is_on_konsole}:"
                     )
                 )
                 compressed_image.seek(0)
                 return "".join(
                     (
-                        f"{erase}{jump_right}\n" * (r_height - 1),
+                        (
+                            ""
+                            if is_on_konsole
+                            else f"{erase}{jump_right}\n" * (r_height - 1)
+                        ),
                         erase,
-                        jump_up,
+                        "" if is_on_konsole else jump_up,
                         START,
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
                         ST,
+                        f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
+                        jump_right * is_on_konsole,
                     )
                 )
 
