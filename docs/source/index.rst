@@ -15,11 +15,12 @@ Welcome to term-image's documentation!
    On this note, you probably also want to switch to the specific documentation for the
    version you're using (somewhere at the lower left corner of this page).
 
-|
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
 
    quickstart/index
    guide/index
@@ -29,13 +30,12 @@ Welcome to term-image's documentation!
    faqs
    glossary
 
-|
 
-.. toctree::
-   :caption: Indices and tables
+Indices and Tables
+------------------
 
-   genindex
-   modindex
+* :ref:`genindex`
+* :ref:`modindex`
 
 
 .. sidebar-links::
