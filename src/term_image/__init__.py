@@ -29,8 +29,12 @@ from . import utils
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
-version_info = (0, 6, 0, "dev0")
-__version__ = ".".join(map(str, version_info))
+version_info = (0, 6, 0, "dev")
+
+# Follows https://semver.org/spec/v2.0.0.html
+__version__ = ".".join(map(str, version_info[:3]))
+if version_info[3:]:
+    __version__ += "-" + ".".join(map(str, version_info[3:]))
 
 #: Default timeout for :ref:`terminal-queries`
 #:
