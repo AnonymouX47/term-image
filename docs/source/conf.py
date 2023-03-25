@@ -84,6 +84,7 @@ autodoc_typehints = "description"
 autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
 autodoc_member_order = "bysource"
+autodoc_inherit_docstrings = False
 
 # # -- sphinx-intersphinx ----------------------------------------------
 intersphinx_mapping = {
