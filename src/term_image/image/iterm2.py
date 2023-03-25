@@ -19,6 +19,8 @@ from ..utils import (
     CSI,
     OSC,
     ST,
+    ClassInstanceProperty,
+    ClassProperty,
     get_terminal_name_version,
     get_terminal_size,
     write_tty,
@@ -193,45 +195,6 @@ class ITerm2Image(GraphicsImage):
     |
     """
 
-    #: * ``x < 0``, JPEG encoding is disabled.
-    #: * ``0 <= x <= 95``, JPEG encoding is used, with the specified quality, for
-    #:   **most** non-transparent renders (at the cost of image quality).
-    #:
-    #: Only applies when not reading directly from file.
-    #:
-    #: By default, images are encoded in the PNG format (when not reading directly
-    #: from file) but in some cases, higher compression might be desired.
-    #: Also, JPEG encoding is significantly faster and can be useful to improve
-    #: non-native animation performance.
-    #:
-    #: .. hint:: The transparency status of some images can not be correctly determined
-    #:   in an efficient way at render time. To ensure the JPEG format is always used
-    #:   for a re-encoded render, disable transparency or set a background color.
-    JPEG_QUALITY: int = -1
-
-    #: Maximum size (in bytes) of image data for native animation.
-    #:
-    #: | :py:class:`TermImageWarning<term_image.TermImageWarning>` is issued
-    #:   (and shown **only the first time**, except a filter is set to do otherwise)
-    #:   if the image data size for a native animation is above this value.
-    #: | This value can be altered but should be done with caution to avoid excessive
-    #:   memory usage.
-    NATIVE_ANIM_MAXSIZE: int = 2 * 2**20  # 2 MiB
-
-    #: * ``True``, image data is read directly from file when possible and no image
-    #:   manipulation is required.
-    #: * ``False``, images are always loaded and re-encoded, in the PNG format by
-    #:   default.
-    #:
-    #: This is an optimization to reduce render times and is only applicable to the
-    #: **WHOLE** render method, since the the **LINES** method inherently requires
-    #: image manipulation.
-    #:
-    #: .. note:: This setting does not affect animations, native animations are always
-    #:   read from file when possible and frames of non-native animations have to be
-    #:   loaded and re-encoded.
-    READ_FROM_FILE: bool = True
-
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
         map(re.compile, "[LWN] m[01] c[0-9]".split(" "))
     )
@@ -289,6 +252,204 @@ class ITerm2Image(GraphicsImage):
 
     _TERM: str = ""
     _TERM_VERSION: str = ""
+
+    jpeg_quality = ClassInstanceProperty(
+        lambda self_or_cls: getattr(self_or_cls, "_jpeg_quality", -1),
+        doc="""
+        JPEG encoding quality
+
+        :type: int
+
+        GET:
+            Returns the effective JPEG encoding quality of the invoker
+            (negative if disabled).
+
+        SET:
+            If invoked via:
+
+            * a **class**, the **class-wide** quality is set.
+            * an **instance**, the **instance-specific** quality is set.
+
+        DELETE:
+            If invoked via:
+
+            * a **class**, the **class-wide** quality is unset.
+            * an **instance**, the **instance-specific** quality is unset.
+
+        If:
+
+        * *value* < ``0``; JPEG encoding is disabled.
+        * ``0`` <= *value* <= ``95``; JPEG encoding is enabled with the given quality.
+
+        If **unset** for:
+
+        * a **class**, it uses that of its parent *iterm2* style class (if any) or the
+          default (disabled), if unset for all parents or the class has no parent
+          *iterm2* style class.
+        * an **instance**, it uses that of it's class.
+
+        By **default**, the quality is **unset** i.e JPEG encoding is **disabled** and
+        images are encoded in the PNG format (when not reading directly from file) but
+        in some cases, higher and/or faster compression may be desired.
+        JPEG encoding is significantly faster than PNG encoding and produces smaller
+        (in data size) output but **at the cost of image quality**.
+
+        NOTE:
+            * This property is :term:`descendant`.
+            * This optimization applies to only **re-encoded** (i.e not read directly
+              from file) **non-transparent** renders.
+
+        TIP:
+            The transparency status of some images can not be correctly determined
+            in an efficient way at render time. To ensure JPEG encoding is always used
+            for a re-encoded render, disable transparency or set a background color.
+
+            Furthermore, to ensure that renders with the **WHOLE** :term:`render method`
+            are always re-encoded, disable :py:attr:`read_from_file`.
+
+            This optimization is useful in improving non-native animation performance.
+
+        SEE ALSO:
+            * the *alpha* parameter of :py:meth:`~term_image.image.BaseImage.draw`
+              and the ``#``, ``bgcolor`` fields of the :ref:`format-spec`
+            * :py:attr:`read_from_file`
+        """,
+    )
+
+    @jpeg_quality.setter
+    def jpeg_quality(self_or_cls, quality: int) -> None:
+        if not isinstance(quality, int):
+            raise TypeError(
+                f"Invalid type for 'quality' (got: {type(quality).__name__})"
+            )
+        if quality > 95:
+            raise ValueError(f"'quality' out of range (got: {quality})")
+
+        self_or_cls._jpeg_quality = quality
+
+    @jpeg_quality.deleter
+    def jpeg_quality(self_or_cls) -> None:
+        try:
+            del self_or_cls._jpeg_quality
+        except AttributeError:
+            pass
+
+    native_anim_max_bytes = ClassProperty(
+        # 2 MiB default
+        lambda self_or_cls: getattr(__class__, "_native_anim_max_bytes", 2 * 2**20),
+        doc="""
+        Maximum size (in bytes) of image data for native animation
+
+        :type: int
+
+        GET:
+            Returns the set value.
+
+        SET:
+            A positive integer; the value is set on this class
+            (:py:class:`ITerm2Image`).
+
+        DELETE:
+            The value is unset, thereby resetting it to the default.
+
+        :py:class:`~term_image.exceptions.TermImageWarning` is issued (and shown
+        **only the first time**, except a filter is set to do otherwise) if the
+        image data size for a native animation is above this value.
+
+        NOTE:
+            This property is :term:`descendant` but is always unset for all subclasses
+            and instances. Hence, setting/resetting it on this class, a subclass or an
+            instance affects this class, all its subclasses and all their instances.
+
+        WARNING:
+            This property should be altered with caution to avoid excessive memory
+            usage.
+        """,
+    )
+
+    @native_anim_max_bytes.setter
+    def native_anim_max_bytes(self, max_bytes: int):
+        if not isinstance(max_bytes, int):
+            raise TypeError(
+                f"Invalid type for 'max_bytes' (got: {type(max_bytes).__name__})"
+            )
+        if max_bytes <= 0:
+            raise ValueError(f"'max_bytes' out of range (got: {max_bytes})")
+
+        __class__._native_anim_max_bytes = max_bytes
+
+    @native_anim_max_bytes.deleter
+    def native_anim_max_bytes(self):
+        try:
+            del __class__._native_anim_max_bytes
+        except AttributeError:
+            pass
+
+    read_from_file = ClassInstanceProperty(
+        lambda self_or_cls: getattr(self_or_cls, "_read_from_file", True),
+        doc="""
+        Read-from-file optimization policy
+
+        :type: bool
+
+        GET:
+            Returns the effective read-from-file policy of the invoker.
+
+        SET:
+            If invoked via:
+
+            * a **class**, the **class-wide** policy is set.
+            * an **instance**, the **instance-specific** policy is set.
+
+        DELETE:
+            If invoked via:
+
+            * a **class**, the **class-wide** policy is unset.
+            * an **instance**, the **instance-specific** policy is unset.
+
+        If the value is:
+
+        * ``True``, image data is read directly from file when possible and no image
+          manipulation is required.
+        * ``False``, images are always re-encoded (in the PNG format by default).
+
+        If **unset** for:
+
+        * a **class**, it uses that of its parent *iterm2* style class (if any) or the
+          default (``True``), if unset for all parents or the class has no parent
+          *iterm2* style class.
+        * an **instance**, it uses that of it's class.
+
+        By **default**, the policy is **unset**, which is equivalent to ``True``
+        i.e the optimization is **enabled**.
+
+        NOTE:
+            * This property is :term:`descendant`.
+            * This is an optimization to reduce render times and is only applicable to
+              the **WHOLE** render method, since the the **LINES** method inherently
+              requires image manipulation.
+            * This property does not affect animations. Native animations are always
+              read from file when possible and frames of non-native animations have
+              to be re-encoded.
+
+        SEE ALSO:
+            :py:attr:`jpeg_quality`
+        """,
+    )
+
+    @read_from_file.setter
+    def read_from_file(self_or_cls, policy: bool) -> None:
+        if not isinstance(policy, bool):
+            raise TypeError(f"Invalid type for 'policy' (got: {type(policy).__name__})")
+
+        self_or_cls._read_from_file = policy
+
+    @read_from_file.deleter
+    def read_from_file(self_or_cls) -> None:
+        try:
+            del self_or_cls._read_from_file
+        except AttributeError:
+            pass
 
     @classmethod
     def clear(cls, cursor: bool = False, now: bool = False) -> None:
@@ -471,7 +632,7 @@ class ITerm2Image(GraphicsImage):
 
             with compressed_image:
                 compressed_image.seek(0, 2)
-                if compressed_image.tell() > __class__.NATIVE_ANIM_MAXSIZE:
+                if compressed_image.tell() > self.native_anim_max_bytes:
                     warnings.warn(
                         "Image data size above the maximum for native animation",
                         TermImageWarning,
@@ -507,7 +668,7 @@ class ITerm2Image(GraphicsImage):
         width, height = self._get_minimal_render_size(adjust=render_method == LINES)
 
         if (  # Read directly from file when possible and reasonable
-            self.READ_FROM_FILE
+            self.read_from_file
             and not self._is_animated
             and file_is_readable
             and render_method == WHOLE
@@ -533,9 +694,9 @@ class ITerm2Image(GraphicsImage):
             img = self._get_render_data(
                 img, alpha, size=(width, height), pixel_data=False, frame=frame
             )[0]  # fmt: skip
-            if self.JPEG_QUALITY >= 0 and img.mode == "RGB":
+            if self.jpeg_quality >= 0 and img.mode == "RGB":
                 format = "jpeg"
-                jpeg_quality = min(self.JPEG_QUALITY, 95)
+                jpeg_quality = self.jpeg_quality
             else:
                 format = "png"
                 jpeg_quality = None
