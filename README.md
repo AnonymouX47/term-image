@@ -9,7 +9,7 @@
 <p align="center">
    &#128214; <a href='https://term-image.readthedocs.io'>Docs</a>
     &#9553; 
-   &#127979; <a href='https://term-image.readthedocs.io/en/stable/start/tutorial.html'>Tutorial</a>
+   &#127979; <a href='https://term-image.readthedocs.io/en/stable/library/tutorial.html'>Tutorial</a>
 </p>
 
 <p align="center">
@@ -67,7 +67,7 @@
   - support for the [iTerm2 inline image protocol](https://iterm2.com/documentation-images.html).
   - full Unicode support and ANSI 24-bit color support
 
-  **Plans to support a wider variety of terminal emulators are in motion** (see [here](https://term-image.readthedocs.io/en/stable/planned.html)).
+  **Plans to support a wider variety of terminal emulators are in motion** (see [Planned Features](#planned-features)).
 
 ### Steps
 The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip` (**recommended**):
@@ -96,7 +96,7 @@ pip install .
 ```
 
 ### Supported Terminal Emulators
-See [here](https://term-image.readthedocs.io/en/stable/start/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
+See [here](https://term-image.readthedocs.io/en/stable/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
 If you've tested this library on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
@@ -194,7 +194,7 @@ For animated images, only the first method can animate the output, the second on
 
 **If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
-See the [tutorial](https://term-image.readthedocs.io/en/stable/start/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/reference/index.html) for full descriptions and details of the available features.
+See the [tutorial](https://term-image.readthedocs.io/en/stable/library/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/library/reference/index.html) for full descriptions and details of the available features.
 
 
 ## Contribution
@@ -211,11 +211,11 @@ Thanks! :heart:
 
 ## Planned Features
 
-See [here](https://term-image.readthedocs.io/en/stable/planned.html).
+See [here](https://term-image.readthedocs.io/en/stable/library/index.html#planned-features).
 
 ## Known Issues
 
-See [here](https://term-image.readthedocs.io/en/stable/issues.html).
+See [here](https://term-image.readthedocs.io/en/stable/library/index.html#known-issues).
 
 ## FAQs
 
