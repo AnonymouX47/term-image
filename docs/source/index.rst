@@ -22,7 +22,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   quickstart/index
+   start/index
    guide/index
    reference/index
    planned

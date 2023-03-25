@@ -9,7 +9,7 @@
 <p align="center">
    &#128214; <a href='https://term-image.readthedocs.io'>Docs</a>
     &#9553; 
-   &#127979; <a href='https://term-image.readthedocs.io/en/stable/quickstart/tutorial.html'>Tutorial</a>
+   &#127979; <a href='https://term-image.readthedocs.io/en/stable/start/tutorial.html'>Tutorial</a>
 </p>
 
 <p align="center">
@@ -96,7 +96,7 @@ pip install .
 ```
 
 ### Supported Terminal Emulators
-See [here](https://term-image.readthedocs.io/en/stable/quickstart/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
+See [here](https://term-image.readthedocs.io/en/stable/start/installation.html#supported-terminal-emulators) for a list of tested terminal emulators.
 
 If you've tested this library on any other terminal emulator that meets the requirements for any of the render styles,
 please mention the name (and version) in a new thread under [this discussion](https://github.com/AnonymouX47/term-image/discussions/4).
@@ -194,7 +194,7 @@ For animated images, only the first method can animate the output, the second on
 
 **If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
-See the [tutorial](https://term-image.readthedocs.io/en/stable/quickstart/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/reference/index.html) for full descriptions and details of the available features.
+See the [tutorial](https://term-image.readthedocs.io/en/stable/start/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/reference/index.html) for full descriptions and details of the available features.
 
 
 ## Contribution
