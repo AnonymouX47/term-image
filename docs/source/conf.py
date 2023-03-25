@@ -4,7 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-from term_image import __version__
+from term_image import __version__, utils
 
 # -- Path setup --------------------------------------------------------------
 
@@ -112,20 +112,22 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
     from enum import EnumMeta
     from types import FunctionType
 
-    from term_image.utils import ClassInstanceMethod
-
     if isinstance(obj, EnumMeta):
         return "Enumerations"
     elif isinstance(obj, type) and issubclass(obj, Warning):
         return "Warnings"
     elif isinstance(parent, type):
         obj = vars(parent)[name.rpartition(".")[2]]
-        if isinstance(obj, property):
-            return "Properties"
+        if isinstance(obj, utils.ClassProperty):
+            return "Class Properties"
+        elif isinstance(obj, utils.ClassInstanceProperty):
+            return "Class/Instance Properties"
+        elif isinstance(obj, property):
+            return "Instance Properties"
         elif isinstance(obj, FunctionType):
             return "Instance Methods"
-        elif isinstance(obj, ClassInstanceMethod):
-            return "Class-Instance Methods"
+        elif isinstance(obj, utils.ClassInstanceMethod):
+            return "Class/Instance Methods"
         elif isinstance(obj, classmethod):
             return "Class Methods"
         elif isinstance(obj, staticmethod):
@@ -134,3 +136,10 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
 
 def setup(app):
     app.connect("autodocsumm-grouper", autodocssumm_grouper)
+
+
+# -- Extras -----------------------------------------------------------
+
+# The overidding `__get__()`s do not return the descriptor itself
+utils.ClassInstanceProperty.__get__ = property.__get__
+utils.ClassProperty.__get__ = property.__get__

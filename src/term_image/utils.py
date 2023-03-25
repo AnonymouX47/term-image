@@ -52,10 +52,98 @@ class ClassInstanceMethod(classmethod):
     and when invoked via an instance, behaves like an instance method.
     """
 
-    def __get__(self, obj, cls=None):
-        # classmethod just uses cls directly if present.
-        # Otherwise, type(obj) but we're not concerned with that.
-        return super().__get__(None, obj or cls)
+    def __get__(self, instance, owner=None):
+        # classmethod just uses `owner` directly if given.
+        # Otherwise, type(instance) but we're not concerned with this.
+        return super().__get__(None, instance or owner)
+
+
+class ClassPropertyBase(property):
+    """Base class for properties that operate on their **owner**.
+
+    NOTE:
+        For ``__set__()`` and ``__delete__()`` to actually work, the metaclass of the
+        owner must be made to recognize and directly call these methods within it's
+        ``__setattr__()`` and ``__delattr__()``.
+
+        If the owner defines (not inherits) a ``_class_properties_`` attribute, it must
+        be a :py:class:``dict`` and is populated with the names (as in the owner's
+        namespace) of all instances of this class (i.e class properties) mapped to the
+        respective instances.
+
+        For this reason, :py:class:`ClassPropertyMeta` is provided.
+    """
+
+    def __init__(self, fget=None, fset=None, fdel=None, doc=None):
+        super().__init__(fget, fset, fdel, doc)
+        # `property` doesn't set `__doc__`, probably cos this class' `__doc__`
+        # attribute overrides its `__doc__` descriptor.
+        super().__setattr__("__doc__", doc)
+
+    def __set_name__(self, owner, name):
+        self.__objclass__ = owner
+        try:
+            class_properties = owner.__dict__["_class_properties_"]
+        except KeyError:
+            pass
+        else:
+            class_properties[name] = self
+
+
+class ClassInstanceProperty(ClassPropertyBase):
+    """A property which operates on the invoker, be it the owner or an instance."""
+
+    def __get__(self, instance, owner=None):
+        return super().__get__(instance or owner, owner)
+
+
+class ClassProperty(ClassPropertyBase):
+    """A property which always operates on the owner, even when invoked by an
+    instance.
+    """
+
+    def __get__(self, instance, owner=None):
+        return super().__get__(owner, owner)
+
+    def __set__(self, obj, value):
+        super().__set__(type(obj) if isinstance(obj, self.__objclass__) else obj, value)
+
+    def __delete__(self, obj):
+        super().__delete__(type(obj) if isinstance(obj, self.__objclass__) else obj)
+
+
+class ClassPropertyMeta(type):
+    """A metaclass that implements support for modifiable class properties owned by
+    its instances.
+
+    - Takes care of inherited class properties.
+    - Works with both cooperative multiple ane multi-level inheritance.
+
+    SEE ALSO:
+        :py:class:`ClassPropertyBase`
+    """
+
+    def __new__(cls, name, bases, dict, **kwds):
+        class_properties = dict["_class_properties_"] = {}
+        for base in bases:
+            if isinstance(base, __class__):
+                class_properties.update(base._class_properties_)
+
+        return super().__new__(cls, name, bases, dict, **kwds)
+
+    def __setattr__(self, name, value):
+        class_property = self._class_properties_.get(name)
+        if class_property:
+            class_property.__set__(self, value)
+        else:
+            super().__setattr__(name, value)
+
+    def __delattr__(self, name):
+        class_property = self._class_properties_.get(name)
+        if class_property:
+            class_property.__delete__(self)
+        else:
+            super().__delattr__(name)
 
 
 # Decorator Functions

@@ -44,6 +44,7 @@ from ..utils import (
     COLOR_RESET,
     CSI,
     ClassInstanceMethod,
+    ClassPropertyMeta,
     cached,
     get_cell_size,
     get_fg_bg_colors,
@@ -152,7 +153,7 @@ class Size(Enum):
     ORIGINAL = Hidden()
 
 
-class ImageMeta(ABCMeta):
+class ImageMeta(ClassPropertyMeta, ABCMeta):
     """Type of all render style classes.
 
     NOTE:
