@@ -87,7 +87,6 @@ The Classes
 |
 
 .. autoclass:: BlockImage
-   :exclude-members: is_supported
 
 |
 
@@ -96,12 +95,10 @@ The Classes
 |
 
 .. autoclass:: ITerm2Image
-   :exclude-members: draw, is_supported
 
 |
 
 .. autoclass:: KittyImage
-   :exclude-members: is_supported
 
 |
 
