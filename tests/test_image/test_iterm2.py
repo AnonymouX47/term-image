@@ -22,7 +22,7 @@ from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
 from .test_base import clear_stdout, stdout
 
-ITerm2Image.READ_FROM_FILE = False
+ITerm2Image.read_from_file = False
 
 
 def test_setup_common():
@@ -32,6 +32,412 @@ def test_setup_common():
 for name, obj in vars(common).items():
     if name.endswith(("_All", "_Graphics")):
         globals()[name] = obj
+
+
+class TestProperties:
+    class TestJpegQuality:
+        def test_type_value(self):
+            try:
+                for value in (None, "100", 100.0, ()):
+                    with pytest.raises(TypeError):
+                        ITerm2Image.jpeg_quality = value
+
+                for value in (96, 100, 1000):
+                    with pytest.raises(ValueError):
+                        ITerm2Image.jpeg_quality = value
+
+                # Value range
+                ITerm2Image.jpeg_quality = -100
+                ITerm2Image.jpeg_quality = -2
+                ITerm2Image.jpeg_quality = -1
+                ITerm2Image.jpeg_quality = 0
+                ITerm2Image.jpeg_quality = 1
+            finally:
+                del ITerm2Image.jpeg_quality
+
+        def test_descendant(self):
+            A = ITerm2Image
+
+            class B(A):
+                pass
+
+            class C(B):
+                pass
+
+            assert A.jpeg_quality == -1
+            assert B.jpeg_quality == -1
+            assert C.jpeg_quality == -1
+
+            try:
+                A.jpeg_quality = 90
+
+                # descendant
+                assert A.jpeg_quality == 90
+                assert B.jpeg_quality == 90
+                assert C.jpeg_quality == 90
+
+                C.jpeg_quality = 70
+
+                # descent is broken by sub-subclass
+                assert A.jpeg_quality == 90
+                assert B.jpeg_quality == 90
+                assert C.jpeg_quality == 70
+
+                B.jpeg_quality = 80
+
+                # descent is broken by subclass
+                assert A.jpeg_quality == 90
+                assert B.jpeg_quality == 80
+                assert C.jpeg_quality == 70
+
+                B.jpeg_quality = 60
+
+                # changing for a class doesn't affect a subclass with the property set
+                assert A.jpeg_quality == 90
+                assert B.jpeg_quality == 60
+                assert C.jpeg_quality == 70
+
+                del C.jpeg_quality
+
+                # A subclass with the propery unset uses that of its parent
+                assert A.jpeg_quality == 90
+                assert B.jpeg_quality == 60
+                assert C.jpeg_quality == 60
+
+                A.jpeg_quality = 50
+
+                # changing for a class doesn't affect a subclass with the property set
+                # or that subclass' subclass with the property unset
+                assert A.jpeg_quality == 50
+                assert B.jpeg_quality == 60
+                assert C.jpeg_quality == 60
+
+                del B.jpeg_quality
+
+                # A subclass and its subclass with the propery unset use that of their
+                # parent
+                assert A.jpeg_quality == 50
+                assert B.jpeg_quality == 50
+                assert C.jpeg_quality == 50
+
+                del A.jpeg_quality
+
+                # Use default when there is no parent or all parents have the property
+                # unset
+                assert A.jpeg_quality == -1
+                assert B.jpeg_quality == -1
+                assert C.jpeg_quality == -1
+            finally:
+                del ITerm2Image.jpeg_quality
+
+        def test_class_wide_instance_specific(self):
+            A = ITerm2Image
+
+            class B(A):
+                pass
+
+            assert A.jpeg_quality == -1
+            assert B.jpeg_quality == -1
+
+            a1 = A(python_img)
+            a2 = A(python_img)
+            b1 = B(python_img)
+            b2 = B(python_img)
+
+            assert a1.jpeg_quality == -1
+            assert a2.jpeg_quality == -1
+            assert b1.jpeg_quality == -1
+            assert b2.jpeg_quality == -1
+
+            try:
+                A.jpeg_quality = 90
+
+                # Descendant class-wide
+                assert a1.jpeg_quality == 90
+                assert a2.jpeg_quality == 90
+                assert b1.jpeg_quality == 90
+                assert b2.jpeg_quality == 90
+
+                B.jpeg_quality = 80
+
+                # Direct class-wide
+                assert a1.jpeg_quality == 90
+                assert a2.jpeg_quality == 90
+                assert b1.jpeg_quality == 80
+                assert b2.jpeg_quality == 80
+
+                a2.jpeg_quality = 70
+                b2.jpeg_quality = 70
+
+                # Instance-specific overrides direct class-wide
+                assert a1.jpeg_quality == 90
+                assert a2.jpeg_quality == 70
+                assert b1.jpeg_quality == 80
+                assert b2.jpeg_quality == 70
+
+                del B.jpeg_quality
+
+                # Instance-specific overrides descendant class-wide
+                assert a1.jpeg_quality == 90
+                assert a2.jpeg_quality == 70
+                assert b1.jpeg_quality == 90
+                assert b2.jpeg_quality == 70
+
+                del a2.jpeg_quality
+                del b2.jpeg_quality
+
+                # Unset instance-specific falls back to class-wide
+                assert a1.jpeg_quality == 90
+                assert a2.jpeg_quality == 90
+                assert b1.jpeg_quality == 90
+                assert b2.jpeg_quality == 90
+
+                del A.jpeg_quality
+
+                # Unset instance-specific falls back to default when class-wide is unset
+                assert a1.jpeg_quality == -1
+                assert a2.jpeg_quality == -1
+                assert b1.jpeg_quality == -1
+                assert b2.jpeg_quality == -1
+            finally:
+                del ITerm2Image.jpeg_quality
+
+    def test_native_anim_max_bytes(self):
+        A = ITerm2Image
+
+        class B(A):
+            pass
+
+        a = A(python_img)
+        b = B(python_img)
+
+        default = 2 * 2**20
+        assert A.native_anim_max_bytes == default
+        assert B.native_anim_max_bytes == default
+        assert a.native_anim_max_bytes == default
+        assert b.native_anim_max_bytes == default
+
+        try:
+            for value in (None, "100", 100.0, ()):
+                with pytest.raises(TypeError):
+                    ITerm2Image.native_anim_max_bytes = value
+
+            for value in (0, -1, -100):
+                with pytest.raises(ValueError):
+                    ITerm2Image.native_anim_max_bytes = value
+
+            A.native_anim_max_bytes = 1
+            assert A.native_anim_max_bytes == 1
+            assert B.native_anim_max_bytes == 1
+            assert a.native_anim_max_bytes == 1
+            assert b.native_anim_max_bytes == 1
+
+            del b.native_anim_max_bytes
+            assert A.native_anim_max_bytes == default
+            assert B.native_anim_max_bytes == default
+            assert a.native_anim_max_bytes == default
+            assert b.native_anim_max_bytes == default
+
+            B.native_anim_max_bytes = 200
+            assert A.native_anim_max_bytes == 200
+            assert B.native_anim_max_bytes == 200
+            assert a.native_anim_max_bytes == 200
+            assert b.native_anim_max_bytes == 200
+
+            del a.native_anim_max_bytes
+            assert A.native_anim_max_bytes == default
+            assert B.native_anim_max_bytes == default
+            assert a.native_anim_max_bytes == default
+            assert b.native_anim_max_bytes == default
+
+            a.native_anim_max_bytes = 300
+            assert A.native_anim_max_bytes == 300
+            assert B.native_anim_max_bytes == 300
+            assert a.native_anim_max_bytes == 300
+            assert b.native_anim_max_bytes == 300
+
+            del B.native_anim_max_bytes
+            assert A.native_anim_max_bytes == default
+            assert B.native_anim_max_bytes == default
+            assert a.native_anim_max_bytes == default
+            assert b.native_anim_max_bytes == default
+
+            b.native_anim_max_bytes = 400
+            assert A.native_anim_max_bytes == 400
+            assert B.native_anim_max_bytes == 400
+            assert a.native_anim_max_bytes == 400
+            assert b.native_anim_max_bytes == 400
+
+            del A.native_anim_max_bytes
+            assert A.native_anim_max_bytes == default
+            assert B.native_anim_max_bytes == default
+            assert a.native_anim_max_bytes == default
+            assert b.native_anim_max_bytes == default
+        finally:
+            del ITerm2Image.native_anim_max_bytes
+
+    class TestReadFromFile:
+        def test_type_value(self):
+            try:
+                for value in (None, 1, "1", 1.0, ()):
+                    with pytest.raises(TypeError):
+                        ITerm2Image.read_from_file = value
+
+                ITerm2Image.read_from_file = True
+                ITerm2Image.read_from_file = False
+            finally:
+                ITerm2Image.read_from_file = False
+
+        def test_descendant(self):
+            A = ITerm2Image
+
+            class B(A):
+                pass
+
+            class C(B):
+                pass
+
+            try:
+                del ITerm2Image.read_from_file
+
+                assert A.read_from_file
+                assert B.read_from_file
+                assert C.read_from_file
+
+                A.read_from_file = False
+
+                # descendant
+                assert not A.read_from_file
+                assert not B.read_from_file
+                assert not C.read_from_file
+
+                C.read_from_file = True
+
+                # descent is broken by sub-subclass
+                assert not A.read_from_file
+                assert not B.read_from_file
+                assert C.read_from_file
+
+                B.read_from_file = True
+
+                # descent is broken by subclass
+                assert not A.read_from_file
+                assert B.read_from_file
+                assert C.read_from_file
+
+                B.read_from_file = False
+
+                # changing for a class doesn't affect a subclass with the property set
+                assert not A.read_from_file
+                assert not B.read_from_file
+                assert C.read_from_file
+
+                del C.read_from_file
+
+                # A subclass with the propery unset uses that of its parent
+                assert not A.read_from_file
+                assert not B.read_from_file
+                assert not C.read_from_file
+
+                A.read_from_file = True
+
+                # changing for a class doesn't affect a subclass with the property set
+                # or that subclass' subclass with the property unset
+                assert A.read_from_file
+                assert not B.read_from_file
+                assert not C.read_from_file
+
+                del B.read_from_file
+
+                # A subclass and its subclass with the propery unset use that of their
+                # parent
+                assert A.read_from_file
+                assert B.read_from_file
+                assert C.read_from_file
+
+                del A.read_from_file
+
+                # Use default when there is no parent or all parents have the property
+                # unset
+                assert A.read_from_file
+                assert B.read_from_file
+                assert C.read_from_file
+            finally:
+                ITerm2Image.read_from_file = False
+
+        def test_class_wide_instance_specific(self):
+            A = ITerm2Image
+
+            class B(A):
+                pass
+
+            a1 = A(python_img)
+            a2 = A(python_img)
+            b1 = B(python_img)
+            b2 = B(python_img)
+
+            try:
+                del ITerm2Image.read_from_file
+
+                assert A.read_from_file
+                assert B.read_from_file
+                assert a1.read_from_file
+                assert a2.read_from_file
+                assert b1.read_from_file
+                assert b2.read_from_file
+
+                A.read_from_file = False
+
+                # Descendant class-wide
+                assert not a1.read_from_file
+                assert not a2.read_from_file
+                assert not b1.read_from_file
+                assert not b2.read_from_file
+
+                B.read_from_file = True
+
+                # Direct class-wide
+                assert not a1.read_from_file
+                assert not a2.read_from_file
+                assert b1.read_from_file
+                assert b2.read_from_file
+
+                a2.read_from_file = True
+                b2.read_from_file = False
+
+                # Instance-specific overrides direct class-wide
+                assert not a1.read_from_file
+                assert a2.read_from_file
+                assert b1.read_from_file
+                assert not b2.read_from_file
+
+                b2.read_from_file = True
+                del B.read_from_file
+
+                # Instance-specific overrides descendant class-wide
+                assert not a1.read_from_file
+                assert a2.read_from_file
+                assert not b1.read_from_file
+                assert b2.read_from_file
+
+                del a2.read_from_file
+                del b2.read_from_file
+
+                # Unset instance-specific falls back to class-wide
+                assert not a1.read_from_file
+                assert not a2.read_from_file
+                assert not b1.read_from_file
+                assert not b2.read_from_file
+
+                del A.read_from_file
+
+                # Unset instance-specific falls back to default when class-wide is unset
+                assert a1.read_from_file
+                assert a2.read_from_file
+                assert b1.read_from_file
+                assert b2.read_from_file
+            finally:
+                ITerm2Image.read_from_file = False
 
 
 def test_set_render_method():
@@ -426,7 +832,7 @@ class TestRenderLines:
         png_image.set_render_method(LINES)
         jpeg_image.set_render_method(LINES)
         try:
-            ITerm2Image.JPEG_QUALITY = 95
+            ITerm2Image.jpeg_quality = 95
             ITerm2Image._TERM = ""
 
             # Will use PNG since the image has alpha
@@ -470,15 +876,15 @@ class TestRenderLines:
                     assert mode == "RGB"
 
             # Compresssion level / Image data size
-            ITerm2Image.JPEG_QUALITY = 0
+            ITerm2Image.jpeg_quality = 0
             jpeg_0 = str(jpeg_image)
-            ITerm2Image.JPEG_QUALITY = 50
+            ITerm2Image.jpeg_quality = 50
             jpeg_50 = str(jpeg_image)
-            ITerm2Image.JPEG_QUALITY = 95
+            ITerm2Image.jpeg_quality = 95
             jpeg_95 = str(jpeg_image)
             assert len(jpeg_0) < len(jpeg_50) < len(jpeg_95)
         finally:
-            ITerm2Image.JPEG_QUALITY = -1
+            del ITerm2Image.jpeg_quality
 
 
 class TestRenderWhole:
@@ -714,7 +1120,7 @@ class TestRenderWhole:
         png_image.set_render_method(WHOLE)
         jpeg_image.set_render_method(WHOLE)
         try:
-            ITerm2Image.JPEG_QUALITY = 95
+            ITerm2Image.jpeg_quality = 95
             ITerm2Image._TERM = ""
 
             # Will use PNG since the image has alpha
@@ -757,15 +1163,15 @@ class TestRenderWhole:
                 assert mode == "RGB"
 
             # Compresssion level / Image data size
-            ITerm2Image.JPEG_QUALITY = 0
+            ITerm2Image.jpeg_quality = 0
             jpeg_0 = str(jpeg_image)
-            ITerm2Image.JPEG_QUALITY = 50
+            ITerm2Image.jpeg_quality = 50
             jpeg_50 = str(jpeg_image)
-            ITerm2Image.JPEG_QUALITY = 95
+            ITerm2Image.jpeg_quality = 95
             jpeg_95 = str(jpeg_image)
             assert len(jpeg_0) < len(jpeg_50) < len(jpeg_95)
         finally:
-            ITerm2Image.JPEG_QUALITY = -1
+            del ITerm2Image.jpeg_quality
 
 
 def test_read_from_file():
@@ -781,7 +1187,7 @@ def test_read_from_file():
     jpeg_image = ITerm2Image.from_file("tests/images/vert.jpg")
     jpeg_image.set_render_method(WHOLE)
 
-    ITerm2Image.READ_FROM_FILE = True
+    ITerm2Image.read_from_file = True
     try:
         ITerm2Image._TERM = ""
 
@@ -826,7 +1232,7 @@ def test_read_from_file():
                 assert file != decode_image(str(image), term=ITerm2Image._TERM)[3]
                 test_image_size(image, term=ITerm2Image._TERM)
     finally:
-        ITerm2Image.READ_FROM_FILE = False
+        ITerm2Image.read_from_file = False
 
 
 def test_native_anim():
@@ -893,7 +1299,7 @@ def test_native_anim():
         render_native(no_file_image)
 
     # Image data size limit
-    ITerm2Image.NATIVE_ANIM_MAXSIZE = 300000
+    ITerm2Image.native_anim_max_bytes = 300000
     with pytest.warns(TermImageWarning, match="maximum for native animation"):
         render_native(apng_image)
     render_native(gif_image)
