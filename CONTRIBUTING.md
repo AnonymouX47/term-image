@@ -183,8 +183,11 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 - Maximum line length is 88 characters.
 - All functions (including methods) should be adequately annotated.
   - **Note:** Currently, annotations are only for documentation purposes and better/quicker comprehension of the defined interfaces by the users and developers.
-- Try to keep things (definitions, names, dictionary keys, etc...) **lexicographically sorted** wherever reasonably possible.
-  - Makes finding things quicker and easier :smiley:.
+- Try to keep things (definitions, names, dictionary keys, list items, etc) ...
+  - **grouped** (preferably by the most dominant criterium e.g object/definition type)
+  - **sorted** (preferrably lexicographically, with the exception of dependant definitions e.g decorators, metaclasses, baseclasses, etc)
+- ... wherever **reasonably** possible.
+  - Makes things organized and finding things is quicker and easier :smiley:.
 - For any matter of style not directly/indirectly addressed here, please try as much as possible to follow formats or styles already established in the project.
 - Any questions or suggestions about the above can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/7).
 - See also: [Documentation Style](#documentation-style).
