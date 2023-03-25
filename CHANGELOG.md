@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `term_image.utils.DISABLE_QUERIES` -> `term_image.disable_queries()` and `term_image.enable_queries()`
   - `term_image.utils.SWAP_WIN_SIZE` -> `term_image.enable_win_size_swap()` and `term_image.disable_win_size_swap()`
 - Removed restrictions on iterm2 native animation ([#84]).
+- Change: Replaced `ITerm2Image` class variables with class and class/instance properties ([c4050bd]).
+  - `JPEG_QUALITY` -> `jpeg_quality`
+  - `NATIVE_ANIM_MAXSIZE` -> `native_anim_max_bytes`
+  - `READ_FROM_FILE` -> `read_from_file`
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -65,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [cdc6650]: https://github.com/AnonymouX47/term-image/commit/cdc665021cc293b0fb5c0519177287752ef64dc4
 [43e40f4]: https://github.com/AnonymouX47/term-image/commit/43e40f4b345d2295d3cdb9e82c7127ce57edc177
 [f82aef0]: https://github.com/AnonymouX47/term-image/commit/f82aef0c0fc59832a2979a26b70e575a01c08910
+[c4050bd]: https://github.com/AnonymouX47/term-image/commit/c4050bdcb7a642baa0d03560b392f5add9d9d399
 
 
 ## [0.5.0] - 2023-01-09
