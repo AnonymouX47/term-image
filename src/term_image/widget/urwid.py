@@ -10,7 +10,13 @@ import urwid
 
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage, kitty
-from ..utils import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, COLOR_RESET_b, ESC_b
+from ..utils import (
+    BEGIN_SYNCED_UPDATE,
+    END_SYNCED_UPDATE,
+    COLOR_RESET_b,
+    ESC_b,
+    lock_tty,
+)
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -532,6 +538,21 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         finally:
             self.write(END_SYNCED_UPDATE)
             self.flush()
+
+    @lock_tty
+    def flush(self):
+        """See the baseclass' method for the description."""
+        return super().flush()
+
+    @lock_tty
+    def get_available_raw_input(self):
+        """See the baseclass' method for the description."""
+        return super().get_available_raw_input()
+
+    @lock_tty
+    def write(self, data):
+        """See the baseclass' method for the description."""
+        return super().write(data)
 
     def _start(self, *args, **kwargs):
         ret = super()._start(*args, **kwargs)
