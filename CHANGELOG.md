@@ -14,8 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `auto_image_class()` to `term_image.image` ([#70]).
-- Render style forced support ([#70]).
-  - `enable_forced_support()` and `disable_forced_support()` to `BaseImage`.
+- `BaseImage.forced_support` for render style forced support ([#70], [889a4ca]).
 - New utilities in `term_image.utils` ([#70]):
   - `DEFAULT_QUERY_TIMEOUT`
   - `get_terminal_name_version()`
@@ -70,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [43e40f4]: https://github.com/AnonymouX47/term-image/commit/43e40f4b345d2295d3cdb9e82c7127ce57edc177
 [f82aef0]: https://github.com/AnonymouX47/term-image/commit/f82aef0c0fc59832a2979a26b70e575a01c08910
 [c4050bd]: https://github.com/AnonymouX47/term-image/commit/c4050bdcb7a642baa0d03560b392f5add9d9d399
+[889a4ca]: https://github.com/AnonymouX47/term-image/commit/889a4ca154c05e5f86ed1dc53158b588b6e525a8
 
 
 ## [0.5.0] - 2023-01-09
