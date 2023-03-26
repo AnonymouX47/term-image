@@ -336,7 +336,7 @@ class ITerm2Image(GraphicsImage):
 
     native_anim_max_bytes = ClassProperty(
         # 2 MiB default
-        lambda self_or_cls: getattr(__class__, "_native_anim_max_bytes", 2 * 2**20),
+        lambda cls: getattr(__class__, "_native_anim_max_bytes", 2 * 2**20),
         doc="""
         Maximum size (in bytes) of image data for native animation
 
@@ -346,7 +346,7 @@ class ITerm2Image(GraphicsImage):
             Returns the set value.
 
         SET:
-            A positive integer; the value is set on this class
+            A positive integer; the value is set on the *iterm2* render style baseclass
             (:py:class:`ITerm2Image`).
 
         DELETE:
@@ -368,7 +368,7 @@ class ITerm2Image(GraphicsImage):
     )
 
     @native_anim_max_bytes.setter
-    def native_anim_max_bytes(self, max_bytes: int):
+    def native_anim_max_bytes(cls, max_bytes: int):
         if not isinstance(max_bytes, int):
             raise TypeError(
                 f"Invalid type for 'max_bytes' (got: {type(max_bytes).__name__})"
@@ -379,7 +379,7 @@ class ITerm2Image(GraphicsImage):
         __class__._native_anim_max_bytes = max_bytes
 
     @native_anim_max_bytes.deleter
-    def native_anim_max_bytes(self):
+    def native_anim_max_bytes(cls):
         try:
             del __class__._native_anim_max_bytes
         except AttributeError:
