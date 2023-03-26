@@ -172,10 +172,10 @@ def test_forced_support_Graphics():
         with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
             ImageClass(python_img)
 
-        ImageClass.enable_forced_support()
+        ImageClass.forced_support = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
 
-        ImageClass.disable_forced_support()
+        ImageClass.forced_support = False
         with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
             ImageClass(python_img)
     finally:

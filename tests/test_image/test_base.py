@@ -12,7 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 from term_image import set_cell_ratio
 from term_image.exceptions import InvalidSizeError, TermImageError
-from term_image.image import BlockImage, ImageIterator, ImageSource, Size
+from term_image.image import BaseImage, BlockImage, ImageIterator, ImageSource, Size
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.utils import ESC
 
@@ -154,6 +154,40 @@ class TestProperties:
 
         image.close()
         assert image.closed
+
+    def test_forced_support(self):
+        class A(BaseImage):
+            pass
+
+        class B(A):
+            pass
+
+        class C(B):
+            pass
+
+        for value in (1, 1.0, "1", ()):
+            with pytest.raises(TypeError):
+                A.forced_support = value
+
+        assert not A.forced_support
+        assert not B.forced_support
+        assert not C.forced_support
+
+        A.forced_support = True
+        assert A.forced_support
+        assert B.forced_support
+        assert C.forced_support
+
+        B.forced_support = False
+        assert A.forced_support
+        assert not B.forced_support
+        assert not C.forced_support
+
+        C.forced_support = False
+        B.forced_support = True
+        assert A.forced_support
+        assert B.forced_support
+        assert not C.forced_support
 
     def test_frame_duration(self):
         image = BlockImage(python_img)
