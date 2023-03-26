@@ -44,6 +44,7 @@ from ..utils import (
     COLOR_RESET,
     CSI,
     ClassInstanceMethod,
+    ClassProperty,
     ClassPropertyMeta,
     cached,
     get_cell_size,
@@ -347,6 +348,43 @@ class BaseImage(metaclass=ImageMeta):
         :type: bool
         """,
     )
+
+    forced_support = ClassProperty(
+        lambda cls: cls._forced_support,
+        doc="""Render style forced support status
+
+        :type: bool
+
+        GET:
+            Returns the forced support status of the render style of the invoker.
+
+        SET:
+            Forced support is enabled or disabled for the render style of the invoker.
+
+        If forced support is:
+
+        * **enabled**, the render style is treated as if it were supported,
+          regardless of the return value of :py:meth:`is_supported`.
+        * **disabled**, the return value of :py:meth:`is_supported` determines if
+          the render style is supported or not.
+
+        By **default**, forced support is **disabled** by the base style class
+        (:py:class:`BaseImage`).
+
+        NOTE:
+            * This property is :term:`descendant`.
+            * This doesn't affect the return value of :py:meth:`is_supported` but
+              may affect operations that require that a render style be supported e.g
+              instantiation of some render style classes.
+        """,
+    )
+
+    @forced_support.setter
+    def forced_support(cls, status):
+        if not isinstance(status, bool):
+            raise TypeError(f"Invalid type for 'status' (got: {type(status).__name__})")
+
+        cls._forced_support = status
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
@@ -672,20 +710,6 @@ class BaseImage(metaclass=ImageMeta):
         finally:
             self._closed = True
 
-    @classmethod
-    def disable_forced_support(cls):
-        """Disables forced support for a render style.
-
-        Causes the return value of :py:meth:`is_supported` determines if the render
-        style is supported or not, which is the default behaviour.
-
-        NOTE:
-            This setting is :term:`descendant` i.e it affects the class on which it
-            is disabled and all its subclasses **for which it is not enabled**
-            (via :py:meth:`enable_forced_support`).
-        """
-        cls._forced_support = False
-
     def draw(
         self,
         h_align: Optional[str] = None,
@@ -856,22 +880,6 @@ class BaseImage(metaclass=ImageMeta):
             check_size=check_size,
             animated=not style.get("native") and self._is_animated and animate,
         )
-
-    @classmethod
-    def enable_forced_support(cls):
-        """Enables forced support for a render style.
-
-        Causes a render style to be treated as if it were supported, regardless of the
-        return value of :py:meth:`is_supported`.
-
-        NOTE:
-            This setting is :term:`descendant` i.e it affects the class on which it
-            is enabled and all its subclasses **for which it is not disabled**
-            (via :py:meth:`disable_forced_support`).
-
-            This doesn't influence the return value of :py:meth:`is_supported`.
-        """
-        cls._forced_support = True
 
     @classmethod
     def from_file(
@@ -2027,6 +2035,10 @@ class GraphicsImage(BaseImage):
     ATTENTION:
         This class cannot be directly instantiated. Image instances should be created
         from its subclasses.
+
+    TIP:
+        To allow instantiation regardless of whether the render style is supported or
+        not, enable :py:attr:`~term_image.image.BaseImage.forced_support`.
     """
 
     # Size unit conversion already involves cell size calculation
