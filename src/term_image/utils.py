@@ -236,10 +236,15 @@ def lock_tty(func: FunctionType) -> FunctionType:
             # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
 
-    lock_tty_wrapper.__doc__ += """
-    HINT:
-        Synchronized with :py:func:`lock_tty`.
-    """
+    if func.__doc__ is not None:
+        lock_tty_wrapper.__doc__ = (
+            func.__doc__.rstrip()
+            + """
+
+        IMPORTANT:
+            Synchronized with :py:func:`~term_image.utils.lock_tty`.
+        """
+        )
 
     return lock_tty_wrapper
 
