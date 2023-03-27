@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `JPEG_QUALITY` -> `jpeg_quality`
   - `NATIVE_ANIM_MAXSIZE` -> `native_anim_max_bytes`
   - `READ_FROM_FILE` -> `read_from_file`
+- Store downloaded image files in an OS/env-specific temporary directory ([1750e75]).
 
 ### Removed
 - The CLI and TUI ([#72]).
@@ -68,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [538d408]: https://github.com/AnonymouX47/term-image/pull/70/commits/538d408c8c4aed8ed7e65bd439eb955992a227ea
 [5979612]: https://github.com/AnonymouX47/term-image/pull/70/commits/59796123d4861ae8d1a8bfd6dc5c5ebf2d030ded
 [be603f7]: https://github.com/AnonymouX47/term-image/pull/70/commits/be603f7817ebd11f9ad4a7de093eadd47dafe05a
+[1750e75]: https://github.com/AnonymouX47/term-image/pull/70/commits/1750e75950de83e0b926ca7b5b670c906e80ccad
 
 
 ## [0.5.0] - 2023-01-09
