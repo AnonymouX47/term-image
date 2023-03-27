@@ -9,14 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resource leaks via unclosed PIL image instances ([cdc6650]).
 - Unhandled initialization of images with null-sized PIL image instances ([43e40f4]).
 - 'iterm2' render output on non-Konsole terminal emulators when rendered height is `1`, for WHOLE render method and native animations ([f82aef0]).
-- [lib,cli] Uppercase letters in hex BG colors being flagged as invalid ([b4533d5]).
-- [cli,tui] Crash when `"log file"` or `--log-file` specifies a path with a non-stat-able directory ([#70]).
+- Uppercase letters in hex BG colors being flagged as invalid ([b4533d5]).
 
 ### Added
-- `auto_image_class()` to `term_image.image` ([#70]).
-- `BaseImage.forced_support` for render style forced support ([#70], [889a4ca]).
+- `term_image.image.auto_image_class()` ([538d408] in [#70]).
+- `BaseImage.forced_support` for render style forced support ([5979612] in [#70], [889a4ca]).
+- `term_image.DEFAULT_QUERY_TIMEOUT` ([be603f7] in [#70], [#82]).
 - New utilities in `term_image.utils` ([#70]):
-  - `DEFAULT_QUERY_TIMEOUT`
   - `get_terminal_name_version()`
   - `get_terminal_size()`
   - `read_tty_all()`
@@ -33,13 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
 - **(BREAKING!)** Changed the valid values for the `z_index` style-specific parameter of the *kitty* render style ([#74]).
-  - `None` is no longer a valid value.
-  - The lower bound of the valid value range is now `-(2**31 - 1)`.
 - Extended `ITerm2Image.clear()` ([807a9ec]).
 - Computed image size and `image.rendered_size` (regardless of the value of `image.scale`) can no longer be null (contain `0`) ([#78]).
   - No more "Image size or scale too small" error at render time.
 - **(BREAKING!)** Redefined gloabl settings and moved all to package top-level ([#82]).
-  - `term_image.utils.DEFAULT_QUERY_TIMEOUT` -> `term_image.DEFAULT_QUERY_TIMEOUT`
   - `term_image.utils.set_query_timeout()` -> `term_image.set_query_timeout()`
   - `term_image.utils.DISABLE_QUERIES` -> `term_image.disable_queries()` and `term_image.enable_queries()`
   - `term_image.utils.SWAP_WIN_SIZE` -> `term_image.enable_win_size_swap()` and `term_image.disable_win_size_swap()`
@@ -52,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - The CLI and TUI ([#72]).
 - `term_image.utils.read_tty()` from the public API ([#70]).
-- As much private API usage across the CLI and TUI code ([#70]).
 
 [#70]: https://github.com/AnonymouX47/term-image/pull/70
 [#72]: https://github.com/AnonymouX47/term-image/pull/72
@@ -70,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [f82aef0]: https://github.com/AnonymouX47/term-image/commit/f82aef0c0fc59832a2979a26b70e575a01c08910
 [c4050bd]: https://github.com/AnonymouX47/term-image/commit/c4050bdcb7a642baa0d03560b392f5add9d9d399
 [889a4ca]: https://github.com/AnonymouX47/term-image/commit/889a4ca154c05e5f86ed1dc53158b588b6e525a8
+[538d408]: https://github.com/AnonymouX47/term-image/pull/70/commits/538d408c8c4aed8ed7e65bd439eb955992a227ea
+[5979612]: https://github.com/AnonymouX47/term-image/pull/70/commits/59796123d4861ae8d1a8bfd6dc5c5ebf2d030ded
+[be603f7]: https://github.com/AnonymouX47/term-image/pull/70/commits/be603f7817ebd11f9ad4a7de093eadd47dafe05a
 
 
 ## [0.5.0] - 2023-01-09
