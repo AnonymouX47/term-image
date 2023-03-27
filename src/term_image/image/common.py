@@ -14,6 +14,7 @@ __all__ = (
     "ImageIterator",
 )
 
+import atexit
 import io
 import os
 import re
@@ -24,7 +25,8 @@ from enum import Enum
 from functools import wraps
 from math import ceil
 from operator import gt, mul, sub
-from random import randint
+from shutil import rmtree
+from tempfile import mkdtemp, mkstemp
 from types import FunctionType, TracebackType
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
@@ -63,6 +65,7 @@ _NO_VERTICAL_SPEC = re.compile(
     r"(([<|>])?(\d+)?)?\.(#(\.\d+|[0-9a-fA-F]{6})?)?", re.ASCII
 )
 _ALPHA_BG_FORMAT = re.compile("#([0-9a-fA-F]{6})?", re.ASCII)
+_TEMP_DIR = mkdtemp()
 
 
 @no_redecorate
@@ -969,23 +972,16 @@ class BaseImage(metaclass=ImageMeta):
         if response.status_code == 404:
             raise URLNotFoundError(f"URL {url!r} does not exist.")
 
+        # Ensure initialization is successful before writing to file
         try:
             new = cls(Image.open(io.BytesIO(response.content)), **kwargs)
         except UnidentifiedImageError as e:
             e.args = (f"The URL {url!r} doesn't link to an identifiable image",)
             raise
 
-        # Ensure initialization is successful before writing to file
-
-        basedir = os.path.join(os.path.expanduser("~"), ".term_image", "temp")
-        if not os.path.isdir(basedir):
-            os.makedirs(basedir)
-
-        filepath = os.path.join(basedir, os.path.basename(url))
-        while os.path.exists(filepath):
-            filepath += str(randint(0, 9))
-        with open(filepath, "wb") as image_writer:
-            image_writer.write(response.content)
+        fd, filepath = mkstemp("-" + os.path.basename(url), dir=_TEMP_DIR)
+        os.write(fd, response.content)
+        os.close(fd)
 
         new._source = filepath
         new._source_type = ImageSource.URL
@@ -2378,3 +2374,8 @@ class ImageIterator:
         # For consistency in behaviour
         if img is image._source:
             img.seek(0)
+
+
+@atexit.register
+def _cleanup_temp_dir():
+    rmtree(_TEMP_DIR, ignore_errors=True)

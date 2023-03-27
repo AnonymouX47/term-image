@@ -21,7 +21,6 @@ In no particular order:
 * Image trimming
 * Specify key to end animation
 * Drawing images to an alternate output
-* Use :py:mod:`tempfile` for URL-sourced images
 * Source images from raw pixel data
 * IPython Extension
 * and much more...
