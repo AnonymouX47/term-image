@@ -954,13 +954,13 @@ class BaseImage(metaclass=ImageMeta):
         and exceptions raised or propagated by the class constructor.
 
         NOTE:
-            This method creates a temporary image file, but only after a successful
-            initialization.
+            This method creates a temporary file, but only after successful
+            initialization. The file is removed:
 
-            Proper clean-up is guaranteed except maybe in very rare cases.
-
-            To ensure 100% guarantee of clean-up, use the object as a
-            :ref:`context manager <context-manager>`.
+            - when :py:meth:`close` is called,
+            - upon exiting a ``with`` statement block that uses the instance as a
+              context manager, or
+            - when the instance is garbage collected.
         """
         if not isinstance(url, str):
             raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")

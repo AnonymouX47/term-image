@@ -112,7 +112,9 @@ Context Management Protocol Support
    with from_url(url) as image:
        ...
 
-Using an instance as a context manager more surely guarantees **object finalization** (i.e clean-up/release of resources), especially for instances with URL sources (see :py:meth:`BaseImage.from_url`).
+Using an instance as a context manager guarantees **instant** object **finalization**
+(i.e clean-up/release of resources), especially for instances with URL sources
+(see :py:meth:`BaseImage.from_url`).
 
 |
 
