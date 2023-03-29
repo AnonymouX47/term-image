@@ -147,11 +147,14 @@ About #2 and #3
    For example, an :github:repo:`image viewer <AnonymouX47/term-image-viewer>`
    based on this project uses `urwid <https://urwid.org>`_ which reads from the
    terminal using :py:meth:`urwid.raw_display.Screen.get_available_raw_input`.
-   To prevent this method from interfering with terminal queries, it is wrapped thus::
+   To prevent this method from interfering with terminal queries, it uses
+   :py:class:`~term_image.widget.UrwidImageScreen` which overrides and wraps the
+   method like::
 
-       urwid.raw_display.Screen.get_available_raw_input = lock_tty(
-           urwid.raw_display.Screen.get_available_raw_input
-       )
+      class UrwidImageScreen(Screen):
+          @lock_tty
+          def get_available_raw_input(self):
+             return super().get_available_raw_input()
 
    Also, if the :term:`active terminal` is not the controlling terminal of the process
    using this library (e.g output is redirected to another TTY device), ensure no
