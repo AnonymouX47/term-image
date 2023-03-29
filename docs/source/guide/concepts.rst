@@ -145,7 +145,7 @@ About #2 and #3
    progress (as a result of asynchronous execution e.g multithreading or multiprocessing),
    decorate it with :py:func:`~term_image.utils.lock_tty` to ensure it doesn't interfere.
 
-   For example, an :github:repo:`image viewer <AnonymouX47/term-image-viewer>`
+   For example, an :github:repo:`image viewer <AnonymouX47/termvisage>`
    based on this project uses `urwid <https://urwid.org>`_ which reads from the
    terminal using :py:meth:`urwid.raw_display.Screen.get_available_raw_input`.
    To prevent this method from interfering with terminal queries, it uses

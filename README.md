@@ -53,7 +53,7 @@
 
 
 > ### :warning: NOTICE!!! :warning:
-> The image viewer (CLI and TUI) has been moved to [term-image-viewer](https://github.com/AnonymouX47/term-image-viewer).
+> The image viewer (CLI and TUI) has been moved to [termvisage].
 
 
 ## Installation
@@ -125,7 +125,7 @@ Also, if you have any issue with terminal support, you may report or check infor
 
 ## Demo
 
-Check out this [image viewer](https://github.com/AnonymouX47/term-image-viewer) based on this library.
+Check out this [image viewer][termvisage] based on this library.
 
 
 ## Quick Start
@@ -240,3 +240,6 @@ I'm sincerly sorry for any inconviences that may result from the means of donati
 Please bare with me, as usual means of accepting donations are not available in the region of the world where I reside.
 
 Thank you! :heart:
+
+
+[termvisage]: https://github.com/AnonymouX47/termvisage
