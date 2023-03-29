@@ -52,7 +52,7 @@
 - [Donate](#donate)
 
 
-> ### :warning: NOTICE!!! :warning:
+> ### ⚠️ NOTICE!!! ⚠️
 > The image viewer (CLI and TUI) has been moved to [termvisage].
 
 
@@ -120,7 +120,7 @@ Also, if you have any issue with terminal support, you may report or check infor
 - Horizontal and vertical alignment
 - Automatic and manual font ratio adjustment (to preserve image aspect ratio)
 - Well-documented
-- and more... :grin:
+- and more... 😁
 
 
 ## Demo
@@ -188,7 +188,7 @@ For animated images, only the first method can animate the output, the second on
 ## Usage
 
 <p align="center"><b>
-   :construction: Under Construction - There will most likely be incompatible changes between minor versions of
+   🚧 Under Construction - There will most likely be incompatible changes between minor versions of
    <a href='https://semver.org/spec/v2.0.0.html#spec-item-4'>version zero</a>!
 </b></p>
 
@@ -206,7 +206,7 @@ If you wish to work on any of the listed features/improvements, please click on 
 
 Hint: You can filter issues by *label* or simply *search* using the features's description.
 
-Thanks! :heart:
+Thanks! 💓
 
 
 ## Planned Features
@@ -239,7 +239,7 @@ I'm sincerly sorry for any inconviences that may result from the means of donati
 
 Please bare with me, as usual means of accepting donations are not available in the region of the world where I reside.
 
-Thank you! :heart:
+Thank you! 💓
 
 
 [termvisage]: https://github.com/AnonymouX47/termvisage
