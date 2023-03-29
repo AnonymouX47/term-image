@@ -786,8 +786,9 @@ if OS_IS_UNIX:
                 "Hence, some features will behave differently or be disabled.\n"
                 "See https://term-image.readthedocs.io/en/stable/guide/concepts"
                 ".html#active-terminal\n"
-                "You can set an 'ignore' filter for this warning before loading "
-                "`term_image`, if not using any of the features affected.",
+                "Any filter for this warning must be set before loading `term_image`, "
+                "using `UserWarning` with the warning message (since "
+                "`TermImageWarning` won't be available).",
                 TermImageWarning,
             )
     if _tty:

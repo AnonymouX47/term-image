@@ -106,8 +106,9 @@ The first one that is ascertained to be a terminal device is used for all
 emulators.
 
 .. note::
-   If none of the streams/files is a terminal device, then a warning is issued
-   and dependent functionality is disabled.
+   If none of the streams/files is a TTY device, then a
+   :py:class:`~term_image.exceptions.TermImageWarning`
+   is issued and dependent functionality is disabled.
 
 
 .. _terminal-queries:
