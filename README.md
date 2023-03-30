@@ -78,21 +78,8 @@ pip install term-image
 
 The **development** version can be installed thus:
 
-**NOTE:** it's recommended to install in an isolated virtual environment which can be created by any means.
-
-Clone this repository from within a terminal
 ```shell
-git clone https://github.com/AnonymouX47/term-image.git
-```
-
-Navigate into the local repository
-```shell
-cd term-image
-```
-
-Install
-```shell
-pip install .
+pip install git+https://github.com/AnonymouX47/term-image.git
 ```
 
 ### Supported Terminal Emulators

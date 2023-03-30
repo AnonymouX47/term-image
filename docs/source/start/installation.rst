@@ -26,25 +26,9 @@ The latest **stable** version can be installed from `PyPI <https://pypi.python.o
 
 The **development** version can be installed thus:
 
-**NOTE:** it's recommended to install in an isolated virtual environment, can be created by any means.
-
-Clone the `repository <https://github.com/AnonymouX47/term-image>`_,
-
 .. code-block:: shell
 
-   git clone https://github.com/AnonymouX47/term-image.git
-
-then navigate into the local repository
-
-.. code-block:: shell
-
-   cd term-image
-
-and run
-
-.. code-block:: shell
-
-   pip install .
+   pip install git+https://github.com/AnonymouX47/term-image.git
 
 
 Supported Terminal Emulators
