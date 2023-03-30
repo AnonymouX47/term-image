@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `term_image.utils.DISABLE_QUERIES` -> `term_image.disable_queries()` and `term_image.enable_queries()`
   - `term_image.utils.SWAP_WIN_SIZE` -> `term_image.enable_win_size_swap()` and `term_image.disable_win_size_swap()`
 - Removed restrictions on iterm2 native animation ([#84]).
-- Change: Replaced `ITerm2Image` class variables with class and class/instance properties ([c4050bd]).
+- Replaced `ITerm2Image` class variables with class and class/instance properties ([c4050bd]).
   - `JPEG_QUALITY` -> `jpeg_quality`
   - `NATIVE_ANIM_MAXSIZE` -> `native_anim_max_bytes`
   - `READ_FROM_FILE` -> `read_from_file`
@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [538d408]: https://github.com/AnonymouX47/term-image/pull/70/commits/538d408c8c4aed8ed7e65bd439eb955992a227ea
 [5979612]: https://github.com/AnonymouX47/term-image/pull/70/commits/59796123d4861ae8d1a8bfd6dc5c5ebf2d030ded
 [be603f7]: https://github.com/AnonymouX47/term-image/pull/70/commits/be603f7817ebd11f9ad4a7de093eadd47dafe05a
-[1750e75]: https://github.com/AnonymouX47/term-image/pull/70/commits/1750e75950de83e0b926ca7b5b670c906e80ccad
+[1750e75]: https://github.com/AnonymouX47/term-image/commit/1750e75950de83e0b926ca7b5b670c906e80ccad
 [f359d4e]: https://github.com/AnonymouX47/term-image/commit/f359d4edcb1be0f1021b56c1d18f54fde302c3b2
 
 
