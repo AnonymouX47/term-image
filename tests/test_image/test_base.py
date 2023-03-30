@@ -5,6 +5,7 @@ import io
 import os
 import sys
 from operator import floordiv, mul
+from pathlib import Path
 from random import random
 
 import pytest
@@ -35,6 +36,14 @@ def close_imgs():
 def clear_stdout():
     stdout.seek(0)
     stdout.truncate()
+
+
+class BytesPath:
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def __fspath__(self) -> bytes:
+        return self.path.encode()
 
 
 class TestConstructor:
@@ -113,8 +122,9 @@ class TestFromFile:
             BlockImage.from_file(python_img)
         with pytest.raises(FileNotFoundError):
             BlockImage.from_file(python_image + "e")
-        with pytest.raises(IsADirectoryError):
-            BlockImage.from_file("tests")
+        for dir_path in ("tests", Path("tests"), BytesPath("tests")):
+            with pytest.raises(IsADirectoryError):
+                BlockImage.from_file(dir_path)
         with pytest.raises(UnidentifiedImageError):
             BlockImage.from_file("LICENSE")
 
@@ -127,10 +137,11 @@ class TestFromFile:
             BlockImage.from_file(python_image, scale=1.0)
 
     def test_filepath(self):
-        image = BlockImage.from_file(python_image)
-        assert isinstance(image, BlockImage)
-        assert image._source == os.path.abspath(python_image)
-        assert image._source_type is ImageSource.FILE_PATH
+        for path in (python_image, Path(python_image), BytesPath(python_image)):
+            image = BlockImage.from_file(path)
+            assert isinstance(image, BlockImage)
+            assert image.source == os.path.abspath(python_image)
+            assert image.source_type is ImageSource.FILE_PATH
 
     @pytest.mark.skipif(
         not os.path.islink(python_sym),
@@ -402,9 +413,10 @@ class TestProperties:
         assert image.source is python_img
         assert image.source_type is ImageSource.PIL_IMAGE
 
-        image = BlockImage.from_file(python_image)
-        assert image.source == os.path.abspath(python_image)
-        assert image.source_type is ImageSource.FILE_PATH
+        for path in (python_image, Path(python_image), BytesPath(python_image)):
+            image = BlockImage.from_file(path)
+            assert image.source == os.path.abspath(python_image)
+            assert image.source_type is ImageSource.FILE_PATH
 
         with pytest.raises(AttributeError):
             image.source = None

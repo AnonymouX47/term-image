@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import pytest
 
 from term_image.image import AutoImage, BaseImage, ImageSource, from_file
 
-from .test_base import python_image, python_img
+from .test_base import BytesPath, python_image, python_img
 
 
 class TestConvinience:
@@ -32,7 +34,8 @@ class TestConvinience:
         with pytest.raises(TypeError, match=r"'scale'"):
             from_file(python_image, scale=1.0)
 
-        assert isinstance(from_file(python_image), BaseImage)
+        for path in (python_image, Path(python_image), BytesPath(python_image)):
+            assert isinstance(from_file(path), BaseImage)
 
 
 def test_image_source():
