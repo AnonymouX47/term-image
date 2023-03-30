@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `term_image.widget.UrwidImageCanvas`
   - `term_image.widget.UrwidImageScreen`
     - Support for terminal-synchronized output ([#80]).
+- Support for path-like objects as image sources ([f359d4e]).
 
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
@@ -70,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [5979612]: https://github.com/AnonymouX47/term-image/pull/70/commits/59796123d4861ae8d1a8bfd6dc5c5ebf2d030ded
 [be603f7]: https://github.com/AnonymouX47/term-image/pull/70/commits/be603f7817ebd11f9ad4a7de093eadd47dafe05a
 [1750e75]: https://github.com/AnonymouX47/term-image/pull/70/commits/1750e75950de83e0b926ca7b5b670c906e80ccad
+[f359d4e]: https://github.com/AnonymouX47/term-image/commit/f359d4edcb1be0f1021b56c1d18f54fde302c3b2
 
 
 ## [0.5.0] - 2023-01-09
