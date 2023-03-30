@@ -12,7 +12,7 @@ In no particular order:
   (See :github:issue:`58`,
   :github:issue:`60`)
 * Support for `fbTerm <https://code.google.com/archive/p/fbterm/>`_
-* Support for open file objects and the :py:class:`os.PathLike` interface
+* Support for open file objects
 * Determination of frame duration per frame during animations and image iteration
 * Asynchronous animation rendering
 * Kitty image ID (See :github:issue:`40`)
