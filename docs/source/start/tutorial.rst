@@ -23,25 +23,31 @@ Instances can also be created using the :ref:`image-classes` directly via their 
 constructors or :py:meth:`~term_image.image.BaseImage.from_file` and
 :py:meth:`~term_image.image.BaseImage.from_url` methods.
 
-If the file is stored on your local filesystem::
+1. Initialize with a file path:
 
-   from term_image.image import from_file
+   ::
 
-   image = from_file("path/to/python.png")
+      from term_image.image import from_file
 
-You can also use a URL if you don't have the file stored locally::
+      image = from_file("path/to/python.png")
 
-   from term_image.image import from_url
+2. Initialize with a URL:
+   
+   ::
 
-   image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tutorial/python.png")
+      from term_image.image import from_url
 
-The library can also be used with :py:class:`PIL.Image.Image` instances::
+      image = from_url("https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/tutorial/python.png")
 
-   from PIL import Image
-   from term_image.image import AutoImage
+3. Initialize with a PIL (Pillow) image instance:
 
-   img = Image.open("python.png")
-   image = AutoImage(img)
+   ::
+
+      from PIL import Image
+      from term_image.image import AutoImage
+
+      img = Image.open("path/to/python.png")
+      image = AutoImage(img)
 
 
 Rendering an Image
@@ -145,25 +151,21 @@ The output (using :py:func:`print`) should look like:
 Drawing/Displaying an Image
 ---------------------------
 
-There are two ways to draw an image to the terminal screen:
+There are two basic ways to draw an image to the terminal screen:
 
 1. Using the :py:meth:`~term_image.image.BaseImage.draw` method::
 
       image.draw()
 
    **NOTE:** :py:meth:`~term_image.image.BaseImage.draw` has various parameters for
-   :term:`alignment`/:term:`padding`, transparency, animation control, etc.
+   :doc:`/guide/formatting`.
 
 2. Using :py:func:`print` with an image render output (i.e printing the rendered string):
 
    ::
 
       print(image)  # Uses str()
-
-   OR
-
-   ::
-
+      # OR
       print(f"{image:>200.^70#ffffff}")  # Uses format()
 
 .. note::

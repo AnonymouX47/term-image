@@ -119,57 +119,49 @@ Check out this [image viewer][termvisage] based on this library.
 
 ### Creating an instance
 
-<details>
-<summary>Click to expand</summary>
+1. Initialize with a file path:
+   ```python
+   from term_image.image import from_file
+   
+   image = from_file("path/to/image.png")
+   ```
 
-```python
-from term_image.image import from_file
+2. Initialize with a URL:
+   ```python
+   from term_image.image import from_url
+   
+   image = from_url("https://www.example.com/image.png")
+   ```
 
-image = from_file("path/to/image.png")
-```
+3. Initialize with a PIL (Pillow) image instance:
+   ```python
+   from PIL import Image
+   from term_image.image import AutoImage
+   
+   img = Image.open("path/to/image.png")
+   image = AutoImage(img)
+   ```
 
-You can also use a URL if you don't have the file stored locally
-```python
-from term_image.image import from_url
+### Drawing/Displaying an Image
 
-image = from_url("https://www.example.com/image.png")
-```
+There are two basic ways to draw an image to the terminal screen:
 
-The library can also be used with PIL images
-```python
-from PIL import Image
-from term_image.image import AutoImage
+1. Using the `draw()` method:
+   ```python
+   image.draw()
+   ```
+   **NOTE:** `draw()` has various parameters for render formatting.
 
-img = Image.open("path/to/image.png")
-image = AutoImage(img)
-```
+2. Using `print()` with an image render output:
+   ```python
+   print(image)  # without formatting
+   # OR
+   print(f"{image:>200.^100#ffffff}")  # with formatting
+   ```
 
-</details>
+For animated images, only the former animates the output, the latter only draws the current frame.
 
-### Drawing/Displaying an image to/in the terminal
-
-<details>
-<summary>Click to expand</summary>
-
-There are two ways to draw an image to the terminal.
-
-#### 1. The `draw()` method
-```python
-image.draw()
-```
-
-#### 2. Using `print()` with a rendered image
-```python
-print(image)  # without formatting
-```
-OR
-```python
-print(f"{image:>200.^100#ffffff}")  # with formatting
-```
-
-For animated images, only the first method can animate the output, the second only outputs the current frame.
-
-</details>
+See the [tutorial](https://term-image.readthedocs.io/en/stable/start/tutorial.html) for a more detailed introduction.
 
 
 ## Usage
@@ -181,7 +173,7 @@ For animated images, only the first method can animate the output, the second on
 
 **If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
 
-See the [tutorial](https://term-image.readthedocs.io/en/stable/start/tutorial.html) for a more detailed introduction and the [reference](https://term-image.readthedocs.io/en/stable/reference/index.html) for full descriptions and details of the available features.
+See the [docs](https://term-image.readthedocs.io) for the User Guide and API Reference.
 
 
 ## Contribution
