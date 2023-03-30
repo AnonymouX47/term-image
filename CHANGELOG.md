@@ -5,14 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [0.6.0] - 2023-03-30
 ### Fixed
 - Resource leaks via unclosed PIL image instances ([cdc6650]).
-- Unhandled initialization of images with null-sized PIL image instances ([43e40f4]).
+- Unhandled initialization of images with null-sized PIL image instances ([54665f8]).
 - 'iterm2' render output on non-Konsole terminal emulators when rendered height is `1`, for WHOLE render method and native animations ([f82aef0]).
 - Uppercase letters in hex BG colors being flagged as invalid ([b4533d5]).
 
 ### Added
-- `term_image.image.auto_image_class()` ([538d408] in [#70]).
+- `term_image.image.auto_image_class()` ([538d408] in [#70], [45898e8]).
 - `BaseImage.forced_support` for render style forced support ([5979612] in [#70], [889a4ca]).
 - `term_image.DEFAULT_QUERY_TIMEOUT` ([be603f7] in [#70], [#82]).
 - New utilities in `term_image.utils` ([#70]):
@@ -33,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **(BREAKING!)** Redefined `KittyImage.clear()` ([97eceab]).
 - **(BREAKING!)** Changed the valid values for the `z_index` style-specific parameter of the *kitty* render style ([#74]).
-- Extended `ITerm2Image.clear()` ([807a9ec]).
 - Computed image size and `image.rendered_size` (regardless of the value of `image.scale`) can no longer be null (contain `0`) ([#78]).
   - No more "Image size or scale too small" error at render time.
 - **(BREAKING!)** Redefined gloabl settings and moved all to package top-level ([#82]).
@@ -63,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [97eceab]: https://github.com/AnonymouX47/term-image/commit/97eceab77e7448a18281aa6edb3fa8ec9e6564c5
 [807a9ec]: https://github.com/AnonymouX47/term-image/commit/807a9ecad717e46621a5214dbf849369d3afbc0b
 [cdc6650]: https://github.com/AnonymouX47/term-image/commit/cdc665021cc293b0fb5c0519177287752ef64dc4
-[43e40f4]: https://github.com/AnonymouX47/term-image/commit/43e40f4b345d2295d3cdb9e82c7127ce57edc177
+[54665f8]: https://github.com/AnonymouX47/term-image/commit/54665f8a1ceb60107b6ae2cc098ef8652d4dabbe
 [f82aef0]: https://github.com/AnonymouX47/term-image/commit/f82aef0c0fc59832a2979a26b70e575a01c08910
 [c4050bd]: https://github.com/AnonymouX47/term-image/commit/c4050bdcb7a642baa0d03560b392f5add9d9d399
 [889a4ca]: https://github.com/AnonymouX47/term-image/commit/889a4ca154c05e5f86ed1dc53158b588b6e525a8
@@ -72,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [be603f7]: https://github.com/AnonymouX47/term-image/pull/70/commits/be603f7817ebd11f9ad4a7de093eadd47dafe05a
 [1750e75]: https://github.com/AnonymouX47/term-image/commit/1750e75950de83e0b926ca7b5b670c906e80ccad
 [f359d4e]: https://github.com/AnonymouX47/term-image/commit/f359d4edcb1be0f1021b56c1d18f54fde302c3b2
+[45898e8]: https://github.com/AnonymouX47/term-image/commit/45898e80eebd976fb839d1d0476bb4a6e431bd68
 
 
 ## [0.5.0] - 2023-01-09
@@ -367,7 +370,8 @@ See the commit messages for [0.4.1] for the full logs.
 - First official release
 
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.5.0
 [0.4.1]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/AnonymouX47/term-image/compare/v0.3.0...v0.4.0
