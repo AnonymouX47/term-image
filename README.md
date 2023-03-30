@@ -1,10 +1,14 @@
 <div align="center">
-<h1><b>Term-Image</b></h1>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/main/docs/source/resources/logo.png" height="200">
 
-<br><br>
-<b>Display Images in the terminal</b>
-<br>
+<h1><b>Term-Image</b></h1>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/abca69a2cc50f60aa16d982a8f11ccd294ce50bf/docs/source/resources/logo.png" height="200">
+</p>
+
+<p align="center">
+<b>Display images in the terminal with Python</b>
+</p>
 
 <p align="center">
    &#128214; <a href='https://term-image.readthedocs.io'>Docs</a>
@@ -16,7 +20,9 @@
    <a href='https://pypi.org/project/term-image/'>
       <img src='https://img.shields.io/pypi/v/term-image.svg'>
    </a>
-   <img src="https://static.pepy.tech/badge/term-image">
+   <a href='https://pepy.tech/project/term-image'>
+      <img src="https://pepy.tech/badge/term-image/month">
+   </a>
    <a href='https://pypi.org/project/term-image/'>
       <img src='https://img.shields.io/pypi/pyversions/term-image.svg'>
    </a>
@@ -102,11 +108,11 @@ Also, if you have any issue with terminal support, you may report or check infor
   - Multiple formats: GIF, WEBP, APNG (and possibly more)
   - Fully controllable iteration over rendered frames of animated images
   - Image animation with multiple parameters
+- Integration into various TUI / terminal-based output libraries.
 - Terminal size awareness
 - Automatic and manual image sizing
 - Horizontal and vertical alignment
 - Automatic and manual font ratio adjustment (to preserve image aspect ratio)
-- Well-documented
 - and more... 😁
 
 
