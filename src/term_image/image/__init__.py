@@ -21,6 +21,7 @@ __all__ = (
     "ImageIterator",
 )
 
+import os
 from typing import Optional, Tuple, Union
 
 import PIL
@@ -70,7 +71,7 @@ def AutoImage(
 
 
 def from_file(
-    filepath: str,
+    filepath: Union[str, os.PathLike],
     **kwargs: Union[None, int, Tuple[float, float]],
 ) -> BaseImage:
     """Creates an image instance from an image file.

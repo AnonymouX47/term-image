@@ -887,7 +887,7 @@ class BaseImage(metaclass=ImageMeta):
     @classmethod
     def from_file(
         cls,
-        filepath: str,
+        filepath: Union[str, os.PathLike],
         **kwargs: Union[None, int, Tuple[float, float]],
     ) -> BaseImage:
         """Creates an instance from an image file.
@@ -900,17 +900,23 @@ class BaseImage(metaclass=ImageMeta):
             A new instance.
 
         Raises:
-            TypeError: *filepath* is not a string.
+            TypeError: *filepath* is of an inappropriate type.
             FileNotFoundError: The given path does not exist.
             IsADirectoryError: Propagated from from :py:func:`PIL.Image.open`.
             PIL.UnidentifiedImageError: Propagated from from :py:func:`PIL.Image.open`.
 
         Also Propagates exceptions raised or propagated by the class constructor.
         """
-        if not isinstance(filepath, str):
+        if not isinstance(filepath, (str, os.PathLike)):
             raise TypeError(
-                f"File path must be a string (got: {type(filepath).__name__!r})."
+                "File path must be a string or path-like object "
+                f"(got: {type(filepath).__name__!r})."
             )
+
+        if isinstance(filepath, os.PathLike):
+            filepath = filepath.__fspath__()
+            if isinstance(filepath, bytes):
+                filepath = filepath.decode()
 
         # Intentionally propagates `IsADirectoryError` since the message is OK
         try:
