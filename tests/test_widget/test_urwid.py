@@ -43,7 +43,7 @@ class TestWidget:
                 UrwidImage(value)
 
         for value in (None, 2.0, 2):
-            with pytest.raises(TypeError, match="'format'"):
+            with pytest.raises(TypeError, match="'format_spec'"):
                 UrwidImage(python_image, value)
         for string in (".", "+"):
             with pytest.raises(ValueError, match="format specifier"):

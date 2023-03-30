@@ -27,8 +27,8 @@ class UrwidImage(urwid.Widget):
 
     Args:
         image: The image to be rendered by the widget.
-        format: Image :ref:`format specifier <format-spec>`. Padding width and height
-          are ignored.
+        format_spec: :ref:`Render format specifier <format-spec>`. Padding width and
+          height are ignored.
         upscale: If ``True``, the image will be upscaled to fit maximally within the
           available size, if neccessary, while still preserving the aspect ratio.
           Otherwise, the image is never upscaled.
@@ -72,14 +72,16 @@ class UrwidImage(urwid.Widget):
     _ti_next_z_index = 1
 
     def __init__(
-        self, image: BaseImage, format: str = "", *, upscale: bool = False
+        self, image: BaseImage, format_spec: str = "", *, upscale: bool = False
     ) -> None:
         if not isinstance(image, BaseImage):
             raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
 
-        if not isinstance(format, str):
-            raise TypeError(f"Invalid type for 'format' (got: {type(format).__name__})")
-        *fmt, alpha, style_args = image._check_format_spec(format)
+        if not isinstance(format_spec, str):
+            raise TypeError(
+                f"Invalid type for 'format_spec' (got: {type(format_spec).__name__})"
+            )
+        *fmt, alpha, style_args = image._check_format_spec(format_spec)
 
         if not isinstance(upscale, bool):
             raise TypeError(

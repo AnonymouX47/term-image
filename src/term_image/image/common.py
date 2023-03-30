@@ -2165,8 +2165,8 @@ class ImageIterator:
         image: Animated image.
         repeat: The number of times to go over the entire image. A negative value
           implies infinite repetition.
-        format: The :ref:`format specifier <format-spec>` to be used to format the
-          rendered frames (default: auto).
+        format_spec: The :ref:`format specifier <format-spec>` for the rendered
+          frames (default: auto).
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not. If it is
 
@@ -2194,7 +2194,7 @@ class ImageIterator:
         self,
         image: BaseImage,
         repeat: int = -1,
-        format: str = "",
+        format_spec: str = "",
         cached: Union[bool, int] = 100,
     ) -> None:
         if not isinstance(image, BaseImage):
@@ -2207,9 +2207,11 @@ class ImageIterator:
         if not repeat:
             raise ValueError("'repeat' must be non-zero")
 
-        if not isinstance(format, str):
-            raise TypeError(f"Invalid type for 'format' (got: {type(format).__name__})")
-        *fmt, alpha, style_args = image._check_format_spec(format)
+        if not isinstance(format_spec, str):
+            raise TypeError(
+                f"Invalid type for 'format_spec' (got: {type(format_spec).__name__})"
+            )
+        *fmt, alpha, style_args = image._check_format_spec(format_spec)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
             raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
@@ -2218,7 +2220,7 @@ class ImageIterator:
 
         self._image = image
         self._repeat = repeat
-        self._format = format
+        self._format = format_spec
         self._cached = (
             cached if isinstance(cached, bool) else image.n_frames <= cached
         ) and repeat != 1
@@ -2252,9 +2254,11 @@ class ImageIterator:
             raise
 
     def __repr__(self) -> str:
-        return "{}(image={!r}, repeat={}, format={!r}, cached={}, loop_no={})".format(
-            type(self).__name__,
-            *self.__dict__.values(),
+        return (
+            "{}(image={!r}, repeat={}, format_spec={!r}, cached={}, loop_no={})".format(
+                type(self).__name__,
+                *self.__dict__.values(),
+            )
         )
 
     loop_no = property(

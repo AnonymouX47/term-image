@@ -41,10 +41,10 @@ def test_args():
         ImageIterator(gif_image, 0)
 
     for value in (None, 2.0, 2):
-        with pytest.raises(TypeError, match="'format'"):
-            ImageIterator(gif_image, format=value)
+        with pytest.raises(TypeError, match="'format_spec'"):
+            ImageIterator(gif_image, format_spec=value)
     with pytest.raises(ValueError, match="format specifier"):
-        ImageIterator(gif_image, format=".")
+        ImageIterator(gif_image, format_spec=".")
 
     for value in (None, 2.0, "2"):
         with pytest.raises(TypeError, match="'cached'"):
@@ -65,16 +65,16 @@ class TestInit:
             assert isinstance(image_it._animator, GeneratorType)
 
     def test_with_args(self):
-        for repeat, format, cached in (
+        for repeat, format_spec, cached in (
             (-1, "", 100),
             (2, "#", True),
             (10, "1.1", False),
             (100, "#.9", 1),
         ):
-            image_it = ImageIterator(gif_image, repeat, format, cached)
+            image_it = ImageIterator(gif_image, repeat, format_spec, cached)
             assert image_it._image is gif_image
             assert image_it._repeat == repeat
-            assert image_it._format == format
+            assert image_it._format == format_spec
             assert image_it._cached is (
                 cached if isinstance(cached, bool) else gif_image.n_frames <= cached
             )
