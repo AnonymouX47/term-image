@@ -61,6 +61,24 @@ class TestWidget:
         image_w = UrwidImage(python_image)
         assert image_w.image is python_image
 
+    def test_error_placeholder(self):
+        image = BlockImage(Image.new("La", (1, 1)))
+        image_w = UrwidImage(image)
+        placeholder = urwid.SolidFill("?")
+
+        with pytest.raises(ValueError, match="convert"):
+            image_w.render(_size)
+
+        image_w.set_error_placeholder(placeholder)
+        canv = image_w.render(_size)
+        assert isinstance(canv, urwid.CompositeCanvas)
+        assert len(canv.shards) == 1
+
+        solid_canv = canv.shards[0][1][0][-1]
+        assert isinstance(solid_canv, urwid.SolidCanvas)
+        assert solid_canv.widget_info[0] is placeholder
+        assert solid_canv.size == _size
+
 
 class TestRows:
     def test_upscale_false(self):
