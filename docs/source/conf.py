@@ -15,7 +15,7 @@ from term_image import __version__, utils
 
 # -- Project information -----------------------------------------------------
 
-project = "term-image"
+project = "Term-Image"
 copyright = "2022, Toluwaleke Ogundipe"
 author = "Toluwaleke Ogundipe"
 release = __version__
