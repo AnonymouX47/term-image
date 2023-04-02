@@ -33,6 +33,14 @@ class UrwidImage(urwid.Widget):
           available size, if neccessary, while still preserving the aspect ratio.
           Otherwise, the image is never upscaled.
 
+    Raises:
+        TypeError: An argument is of an inappropriate type.
+        ValueError: An argument is of an appropriate type but has an
+          unexpected/invalid value.
+        term_image.exceptions.StyleError: Invalid style-specific format specifier.
+        term_image.exceptions.UrwidImageError: Too many image widgets rendering images
+          with the *kitty* render style.
+
     | Any ample space in the widget's render size is filled with spaces.
     | For animated images, the current frame (at render-time) is rendered.
 
@@ -44,14 +52,11 @@ class UrwidImage(urwid.Widget):
         method for *kitty* and *iterm2* render styles.
 
     NOTE:
-        The `z_index` style-specific parameter for the
-        :py:class:`kitty <term_image.image.KittyImage>` render style is ignored as this
-        is used internally.
-
-    WARNING:
-        If *image* is of the *iterm2* render style, prevent the widget from reaching the
-        **last line** of the screen as **Wezterm** doesn't work properly in this case
-        (it scrolls the screen).
+        * The `z-index` style-specific format spec field for
+          :py:class:`~term_image.image.KittyImage` is ignored as this is used
+          internally.
+        * A **maximum** of ``2**32 - 2`` instances initialized with
+          :py:class:`~term_image.image.KittyImage` instances may exist at the same time.
 
     IMPORTANT:
         This is defined if and only if the ``urwid`` package is available.
@@ -207,6 +212,9 @@ class UrwidImage(urwid.Widget):
 
         Args:
             widget: The placholder widget or ``None`` to remove the placeholder.
+
+        Raises:
+            TypeError: *widget* is not an urwid widget.
 
         If set, any exception raised during rendering is **suppressed** and the
         placeholder is rendered in place of the image.
