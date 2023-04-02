@@ -16,6 +16,7 @@ from ..utils import (
     COLOR_RESET_b,
     ESC_b,
     lock_tty,
+    write_tty,
 )
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
@@ -140,18 +141,6 @@ class UrwidImage(urwid.Widget):
         if isinstance(self._ti_image, KittyImage):
             KittyImage.clear(z_index=self._ti_z_index, now=now)
             self._ti_disguise_state = (self._ti_disguise_state + 1) % 3
-
-    @staticmethod
-    def clear_all(*, now: bool = False) -> None:
-        """Clears all on-screen images of :ref:`graphics-based <graphics-based>` styles
-        that support/require such an operation.
-
-        Args:
-            now: If ``True`` the images are cleared immediately. Otherwise they're
-              cleared just before the next screen redraw.
-        """
-        KittyImage.clear(now=now)  # Also takes care of iterm2 images on Konsole
-        UrwidImageCanvas._ti_change_disguise()
 
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         image = self._ti_image
@@ -538,6 +527,23 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         self._ti_screen_canv = None
         self._ti_image_cviews = frozenset()
 
+    def clear_images(self, *, now: bool = False) -> None:
+        """Clears all on-screen images of :ref:`graphics-based <graphics-based>`
+        styles that support/require such an operation.
+
+        Args:
+            now: If ``True`` the images are cleared immediately.
+              Otherwise, they're cleared when next the output buffer is flushed,
+              such as at the next screen redraw.
+        """
+        # Also takes care of iterm2 images on Konsole
+        if KittyImage._forced_support or KittyImage.is_supported():
+            if now:
+                write_tty(kitty.DELETE_ALL_IMAGES_b)
+            else:
+                self.write(kitty.DELETE_ALL_IMAGES)
+            UrwidImageCanvas._ti_change_disguise()
+
     def draw_screen(self, maxres, canvas):
         self.write(BEGIN_SYNCED_UPDATE)
         try:
@@ -590,7 +596,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
 
         if not isinstance(screen_canv, urwid.CompositeCanvas):
             if self._ti_image_cviews:
-                UrwidImage.clear_all()
+                self.clear_images()
                 self._ti_image_cviews.clear()
             return
 
@@ -640,9 +646,9 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             if isinstance(widget._ti_image, KittyImage):
                 kitty_widgets.append(widget)
             else:
-                UrwidImage.clear_all()
-                # Multiple `clear_all()`s messes up the canvas disguise
-                # Also, a single `clear_all()` takes care of all images
+                self.clear_images()
+                # Multiple `clear_images()`s messes up the canvas disguise
+                # A single `clear_images()` takes care of all images anyways
                 break
         else:
             for widget in kitty_widgets:
