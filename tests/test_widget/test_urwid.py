@@ -306,44 +306,6 @@ def setup_kitty_clear_buffers():
         tty_buf.close()
 
 
-class TestClearAll:
-    def test_now_false(self):
-        with setup_kitty_clear_buffers() as (buf, tty_buf):
-            UrwidImage.clear_all()
-            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
-            assert tty_buf.getvalue() == b""
-
-    def test_now_true(self):
-        with setup_kitty_clear_buffers() as (buf, tty_buf):
-            UrwidImage.clear_all(now=True)
-            assert buf.getvalue() == ""
-            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
-
-    def test_not_supported(self):
-        KittyImage._supported = False
-        try:
-            with setup_kitty_clear_buffers() as (buf, tty_buf):
-                UrwidImage.clear_all()
-                assert buf.getvalue() == ""
-                assert tty_buf.getvalue() == b""
-
-                UrwidImage.clear_all(now=True)
-                assert buf.getvalue() == ""
-                assert tty_buf.getvalue() == b""
-        finally:
-            KittyImage._supported = True
-
-    def test_disguise(self):
-        UrwidImageCanvas._ti_disguise_state = 0
-        try:
-            with setup_kitty_clear_buffers():
-                for value in (1, 2, 0, 1, 2, 0, 1):
-                    UrwidImage.clear_all()
-                    assert UrwidImageCanvas._ti_disguise_state == value
-        finally:
-            UrwidImageCanvas._ti_disguise_state = 0
-
-
 class TestClear:
     def test_now_false(self):
         for image_w in [UrwidImage(kitty_image) for _ in range(4)]:
@@ -1145,6 +1107,66 @@ class TestScreen:
         assert output.endswith(END_SYNCED_UPDATE)
 
 
+buf = io.StringIO()
+screen = UrwidImageScreen(sys.__stdin__, buf)
+screen.start()
+
+
+class TestScreenClearImages:
+    @contextmanager
+    def setup_clear_buffers(self):
+        from term_image.widget import urwid
+
+        tty_buf = io.BytesIO()
+        write_tty = urwid.write_tty
+        urwid.write_tty = tty_buf.write
+        buf.seek(0)
+        buf.truncate()
+        try:
+            yield buf, tty_buf
+        finally:
+            buf.seek(0)
+            buf.truncate()
+            tty_buf.close()
+            urwid.write_tty = write_tty
+
+    def test_now_false(self):
+        with self.setup_clear_buffers() as (buf, tty_buf):
+            screen.clear_images()
+            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert tty_buf.getvalue() == b""
+
+    def test_now_true(self):
+        with self.setup_clear_buffers() as (buf, tty_buf):
+            screen.clear_images(now=True)
+            assert buf.getvalue() == ""
+            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
+
+    def test_not_supported(self):
+        KittyImage._supported = False
+        try:
+            with self.setup_clear_buffers() as (buf, tty_buf):
+                screen.clear_images()
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+
+                screen.clear_images(now=True)
+                assert buf.getvalue() == ""
+                assert tty_buf.getvalue() == b""
+        finally:
+            KittyImage._supported = True
+
+    def test_disguise(self):
+        UrwidImageCanvas._ti_disguise_state = 0
+        try:
+            with self.setup_clear_buffers():
+                for value in (1, 2, 0, 1, 2, 0, 1):
+                    screen.clear_images()
+                    assert UrwidImageCanvas._ti_disguise_state == value
+        finally:
+            UrwidImageCanvas._ti_disguise_state = 0
+
+
 block_image_w = UrwidImage(BlockImage(python_img))
 kitty_image_w = UrwidImage(KittyImage(python_img))
 iterm2_image_w = UrwidImage(ITerm2Image(python_img))
@@ -1169,12 +1191,8 @@ widget = urwid.Overlay(
     5,
 )
 
-buf = io.StringIO()
-screen = UrwidImageScreen(sys.__stdin__, buf)
-screen.start()
 
-
-class TestScreenClearImages:
+class TestScreenAutoClearImages:
     def test_image_cviews(self):
         assert screen._ti_image_cviews == frozenset()
         screen.draw_screen(_size, widget.render(_size))
