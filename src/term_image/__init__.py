@@ -29,7 +29,7 @@ from . import utils
 from .exceptions import TermImageError
 from .utils import get_cell_size
 
-version_info = (0, 6, 0)
+version_info = (0, 7, 0, "dev")
 
 # Follows https://semver.org/spec/v2.0.0.html
 __version__ = ".".join(map(str, version_info[:3]))
