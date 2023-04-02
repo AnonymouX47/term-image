@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
+
+[08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
+
 
 ## [0.6.0] - 2023-03-30
 ### Fixed
