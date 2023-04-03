@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
+- `KeyboardInterrupt` is no longer raised when `SIGINT` is used to end an animation ([fa47742]).
 
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
+[fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 
 
 ## [0.6.0] - 2023-03-30
