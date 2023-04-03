@@ -130,7 +130,8 @@ class ITerm2Image(GraphicsImage):
 
     * **stall_native** (*bool*) → Native animation execution control.
 
-      * ``True`` → block until ``SIGINT`` (Ctrl+C) is recieved
+      * ``True`` → block until :py:data:`~signal.SIGINT` (``CTRL + C``) is recieved
+        (like non-native animation)
       * ``False`` → return as soon as the image is transmitted
       * *default* → ``True``
 
@@ -548,7 +549,10 @@ class ITerm2Image(GraphicsImage):
                 self._handle_interrupted_draw()
                 raise
             else:
-                stall_native and native_anim.wait()
+                try:
+                    stall_native and native_anim.wait()
+                except KeyboardInterrupt:
+                    pass
         else:
             if not mix and self._TERM == "wezterm":
                 lines = max(

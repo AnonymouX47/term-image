@@ -808,7 +808,7 @@ class BaseImage(metaclass=ImageMeta):
           * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
-          with :py:data:`~signal.SIGINT` (``CTRL + C``), raising
+          with :py:data:`~signal.SIGINT` (``CTRL + C``), **without** raising
           :py:class:`KeyboardInterrupt`.
         """
         fmt = self._check_formatting(h_align, pad_width, v_align, pad_height)
@@ -1506,7 +1506,9 @@ class BaseImage(metaclass=ImageMeta):
 
                 # Render next frame during current frame's duration
                 start = time.time()
-        except (KeyboardInterrupt, Exception):
+        except KeyboardInterrupt:
+            self._handle_interrupted_draw()
+        except Exception:
             self._handle_interrupted_draw()
             raise
         finally:
