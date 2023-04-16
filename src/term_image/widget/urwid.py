@@ -527,6 +527,10 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         self._ti_screen_canv = None
         self._ti_image_cviews = frozenset()
 
+    def clear(self):
+        self.clear_images()
+        return super().clear()
+
     def clear_images(self, *, now: bool = False) -> None:
         """Clears all on-screen images of :ref:`graphics-based <graphics-based>`
         styles that support/require such an operation.
