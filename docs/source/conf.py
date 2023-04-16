@@ -28,7 +28,6 @@ extensions = [
     "sphinx_toolbox.sidebar_links",
     "sphinx_toolbox.more_autosummary",
 ]
-toc_object_entries = False
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
