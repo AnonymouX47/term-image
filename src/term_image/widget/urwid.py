@@ -513,9 +513,6 @@ class UrwidImageScreen(urwid.raw_display.Screen):
     and clears them off the screen when necessary (e.g at startup, when scrolling,
     upon terminal resize and at exit).
 
-    It also synchronizes output on terminal emulators that support the feature to
-    reduce/eliminate image flickering/tearing.
-
     See the baseclass for further description.
 
     IMPORTANT:
@@ -548,7 +545,16 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                 self.write(kitty.DELETE_ALL_IMAGES)
             UrwidImageCanvas._ti_change_disguise()
 
+    # `@lock_tty` prevents queries during a synced update.
+    # Otherwise, responses would be delayed until the synced update ends and that might
+    # be after the query has timed out.
+    @lock_tty
     def draw_screen(self, maxres, canvas):
+        """See the description of the baseclass' method.
+
+        Synchronizes output on terminal emulators that support the feature to
+        reduce/eliminate image flickering and screen tearing.
+        """
         self.write(BEGIN_SYNCED_UPDATE)
         try:
             if canvas is not self._ti_screen_canv:
