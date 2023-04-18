@@ -242,7 +242,7 @@ def lock_tty(func: FunctionType) -> FunctionType:
             + """
 
         IMPORTANT:
-            Synchronized with :py:func:`~term_image.utils.lock_tty`.
+            Synchronized with :py:func:`term_image.utils.lock_tty`.
         """
         )
 
