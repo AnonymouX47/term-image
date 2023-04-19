@@ -424,10 +424,10 @@ class KittyImage(GraphicsImage):
             self._close_image(img)
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
-        erase = "" if mix else f"{CSI}{r_width}X"
+        erase = f"{CSI}{r_width}X"  # clears underlying text
         jump_right = f"{CSI}{r_width}C"
-        if not blend:
-            delete = f"{START}a=d,d=C;{ST}"
+        fill = f"{erase * (not mix)}{jump_right}"
+        fill_newline = f"{fill}\n"
 
         if render_method == LINES:
             cell_height = height // r_height
@@ -438,32 +438,28 @@ class KittyImage(GraphicsImage):
                 trans = Transmission(
                     control_data, raw_image.read(bytes_per_line), compress
                 )
-                blend or buffer.write(delete)
+                blend or buffer.write(DELETE_CURSOR_IMAGES)
                 for chunk in trans.get_chunks():
                     buffer.write(chunk)
-                # Writing spaces clears any text under transparent areas of an image
                 for _ in range(r_height - 1):
-                    buffer.write(erase)
-                    buffer.write(jump_right)
-                    buffer.write("\n")
+                    buffer.write(fill_newline)
                     trans = Transmission(
                         control_data, raw_image.read(bytes_per_line), compress
                     )
-                    blend or buffer.write(delete)
+                    blend or buffer.write(DELETE_CURSOR_IMAGES)
                     for chunk in trans.get_chunks():
                         buffer.write(chunk)
-                buffer.write(erase)
-                buffer.write(jump_right)
+                buffer.write(fill)
 
                 return buffer.getvalue()
 
         vars(control_data).update(v=height, r=r_height)
         return "".join(
             (
-                ("" if blend else delete),
+                DELETE_CURSOR_IMAGES * (not blend),
                 Transmission(control_data, raw_image, compress).get_chunked(),
-                f"{erase}{jump_right}\n" * (r_height - 1),
-                f"{erase}{jump_right}",
+                fill_newline * (r_height - 1),
+                fill,
             )
         )
 
