@@ -582,15 +582,11 @@ class UrwidImageScreen(urwid.raw_display.Screen):
 
     def _start(self, *args, **kwargs):
         ret = super()._start(*args, **kwargs)
-        if KittyImage._forced_support or KittyImage.is_supported():
-            self.write(kitty.DELETE_ALL_IMAGES)
-
+        self.clear_images()
         return ret
 
     def _stop(self):
-        if KittyImage._forced_support or KittyImage.is_supported():
-            self.write(kitty.DELETE_ALL_IMAGES)
-
+        self.clear_images()
         return super()._stop()
 
     def _ti_clear_images(self):
