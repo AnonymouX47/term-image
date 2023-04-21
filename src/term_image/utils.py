@@ -216,23 +216,33 @@ def lock_tty(func: FunctionType) -> FunctionType:
 
     When a decorated function is called, a re-entrant lock is acquired by the current
     process or thread and released after the call, such that any other decorated
-    function called within another thread or subprocess has to wait till the lock is
+    function called within another thread or subprocess waits until the lock is
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
     NOTE:
-        It automatically works across parent-/sub-processes, started directly or
-        indirectly via :py:class:`multiprocessing.Process` (or a subclass of it) and
-        their threads.
+        It works across parent-/sub-processes, started directly or indirectly via
+        :py:class:`multiprocessing.Process` (or a subclass of it), and their threads,
+        provided :py:mod:`multiprocessing.synchronize` is supported on the host
+        platform. Otherwise, a warning is issued when starting a subprocess.
 
-    IMPORTANT:
-        It only works if :py:mod:`multiprocessing.synchronize` is supported on the host
-        platform.  If not supported, a warning is issued when starting a subprocess.
+    WARNING:
+        If :py:mod:`multiprocessing.synchronize` is supported and a subprocess is
+        started within a call (possibly recursive) to a decorated function, the thread
+        in which that occurs will be out of sync until that call returns.
+        Hence, avoid starting a subprocess within a decorated function.
     """
 
     @wraps(func)
     def lock_tty_wrapper(*args, **kwargs):
-        with _tty_lock:
+        # If a thread reaches this point while the lock is being changed
+        # (the old lock has been acquired but hasn't been changed), after the lock has
+        # been changed and the former lock is released, the waiting thread will acquire
+        # the old lock making it to be out of sync.
+        # Hence the second expression, which allows such a thread to acquire the new
+        # lock and be in sync.
+        # NB: Multiple expressions are processed as multiple nested with statements.
+        with _tty_lock, _tty_lock:
             # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
 
@@ -375,7 +385,8 @@ def get_fg_bg_colors(
         * an RGB hex string if *hex* is ``True``
         * ``None`` if undetermined
     """
-    with _tty_lock:  # All of the terminal's reply isn't read in `query_terminal()`
+    # The terminal's response to the queries is not read all at once
+    with _tty_lock, _tty_lock:  # See the comment in `lock_tty_wrapper()`
         response = query_terminal(
             # Not all terminals (e.g VTE-based) support multiple queries in one escape
             # sequence, hence the repetition of OSC ... ST
@@ -407,7 +418,8 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
         A 2-tuple, ``(name, version)``. If either is not available, returns ``None``
         in its place.
     """
-    with _tty_lock:  # the terminal's response to the query is not read all at once
+    # The terminal's response to the queries is not read all at once
+    with _tty_lock, _tty_lock:  # See the comment in `lock_tty_wrapper()`
         # Terminal name/version query + terminal attribute query
         # The latter is to speed up the entire query since most (if not all)
         # terminals should support it and most terminals treat queries as FIFO
@@ -469,7 +481,14 @@ def get_window_size() -> Optional[Tuple[int, int]]:
     Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
     support.
     """
-    with _win_size_lock:
+    # If a thread reaches this point while the lock is being changed
+    # (the old lock has been acquired but hasn't been changed), after the lock has
+    # been changed and the former lock is released, the waiting thread will acquire
+    # the old lock making it to be out of sync.
+    # Hence the second expression, which allows such a thread to acquire the new
+    # lock and be in sync.
+    # NB: Multiple expressions are processed as multiple nested with statements.
+    with _win_size_lock, _win_size_lock:
         ts = get_terminal_size()
         if ts == tuple(_win_size_cache[:2]):
             size = tuple(_win_size_cache[2:])
@@ -678,12 +697,14 @@ def x_parse_color(spec: str) -> Tuple[int, int, int]:
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock, _win_size_cache, _win_size_lock
 
-    # Ensure it's not acquired by another process/thread before changing it.
-    # The only way this can be countered is if the owner thread is the
-    # one starting a process, which is very unlikely within a function meant
-    # for input/output :|
+    # Ensure a lock is not acquired by another process/thread before changing it.
+    # The only case in which this is useless is when the owner thread is the
+    # one starting a process. In such a situation, the owner thread will be partially
+    # (may acquire the new lock in a nested call while still holding the old lock)
+    # out of sync until it has fully released the old lock.
+
     with _tty_lock:
-        if isinstance(_tty_lock, type(RLock())):
+        if isinstance(_tty_lock, _rlock_type):
             try:
                 self._tty_lock = _tty_lock = mp_RLock()
             except ImportError:
@@ -705,7 +726,7 @@ def _process_start_wrapper(self, *args, **kwargs):
             self._tty_lock = _tty_lock
 
     with _win_size_lock:
-        if isinstance(_win_size_lock, type(RLock())):
+        if isinstance(_win_size_lock, _rlock_type):
             try:
                 self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
                 _win_size_lock = _win_size_cache.get_lock()
@@ -717,15 +738,14 @@ def _process_start_wrapper(self, *args, **kwargs):
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-def _process_run_wrapper(self, *args, set_tty_lock: bool = True, **kwargs):
+def _process_run_wrapper(self, *args, **kwargs):
     global _tty_lock, _win_size_cache, _win_size_lock
 
-    if set_tty_lock:
-        if self._tty_lock:
-            _tty_lock = self._tty_lock
-        if self._win_size_cache:
-            _win_size_cache = self._win_size_cache
-            _win_size_lock = _win_size_cache.get_lock()
+    if self._tty_lock:
+        _tty_lock = self._tty_lock
+    if self._win_size_cache:
+        _win_size_cache = self._win_size_cache
+        _win_size_lock = _win_size_cache.get_lock()
 
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
@@ -769,6 +789,7 @@ _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4
 _win_size_lock = RLock()
+_rlock_type = type(_tty_lock)
 
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
