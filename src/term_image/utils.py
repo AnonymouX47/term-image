@@ -232,18 +232,9 @@ def lock_tty(func: FunctionType) -> FunctionType:
 
     @wraps(func)
     def lock_tty_wrapper(*args, **kwargs):
-        # If a thread reaches this point while the lock is being changed
-        # (the old lock has been acquired but hasn't been changed), after the lock has
-        # been changed and the former lock is released, the waiting thread will acquire
-        # the old lock making it to be out of sync.
-        # Hence the nested acquisition, which allows such a thread to acquire the new
-        # lock and be in sync.
         with _tty_lock:
-            # In case the lock got changed while waiting to aquire it (the old one)
-            # above.
-            with _tty_lock:
-                # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
-                return func(*args, **kwargs)
+            # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
+            return func(*args, **kwargs)
 
     if func.__doc__ is not None:
         lock_tty_wrapper.__doc__ = (
@@ -687,13 +678,12 @@ def x_parse_color(spec: str) -> Tuple[int, int, int]:
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock, _win_size_cache, _win_size_lock
 
-    # Ensure a lock not acquired by another process/thread before changing it.
-    # The only way this can be rendered useless is if the owner thread is the
+    # Ensure it's not acquired by another process/thread before changing it.
+    # The only way this can be countered is if the owner thread is the
     # one starting a process, which is very unlikely within a function meant
-    # for input/output. :|
-
+    # for input/output :|
     with _tty_lock:
-        if isinstance(_tty_lock, _rlock_type):
+        if isinstance(_tty_lock, type(RLock())):
             try:
                 self._tty_lock = _tty_lock = mp_RLock()
             except ImportError:
@@ -715,7 +705,7 @@ def _process_start_wrapper(self, *args, **kwargs):
             self._tty_lock = _tty_lock
 
     with _win_size_lock:
-        if isinstance(_win_size_lock, _rlock_type):
+        if isinstance(_win_size_lock, type(RLock())):
             try:
                 self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
                 _win_size_lock = _win_size_cache.get_lock()
@@ -779,7 +769,6 @@ _tty: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4
 _win_size_lock = RLock()
-_rlock_type = type(_tty_lock)
 
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
