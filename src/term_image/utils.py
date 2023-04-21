@@ -251,9 +251,9 @@ def lock_tty(func: FunctionType) -> FunctionType:
             func.__doc__.rstrip()
             + """
 
-        IMPORTANT:
-            Synchronized with :py:func:`term_image.utils.lock_tty`.
-        """
+    IMPORTANT:
+        Synchronized with :py:func:`term_image.utils.lock_tty`.
+    """
         )
 
     return lock_tty_wrapper
@@ -667,8 +667,8 @@ def read_tty_all() -> bytes:
     Returns:
         The input read.
 
-    HINT:
-        Synchronized with :py:func:`lock_tty`.
+    IMPORTANT:
+        Synchronized with :py:func:`term_image.utils.lock_tty`.
     """
     return read_tty()
 
