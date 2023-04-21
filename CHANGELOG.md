@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Terminal queries during synced updates by `UrwidImageScreen` ([7191885]).
+- Multi-process synchronization ([238777b]).
 
 ### Added
 - `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3
 [7191885]: https://github.com/AnonymouX47/term-image/commit/71918852bf1ca5cd42f3ec4cf72a35eb878ffb3c
+[238777b]: https://github.com/AnonymouX47/term-image/commit/238777badfa50418edce5aedc3a88e247f24cc5d
 
 
 ## [0.6.0] - 2023-03-30
