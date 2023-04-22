@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Terminal queries during synced updates by `UrwidImageScreen` ([7191885]).
+- Multi-process synchronization ([238777b]).
+
+[7191885]: https://github.com/AnonymouX47/term-image/commit/71918852bf1ca5cd42f3ec4cf72a35eb878ffb3c
+[238777b]: https://github.com/AnonymouX47/term-image/commit/238777badfa50418edce5aedc3a88e247f24cc5d
 
 
 ## [0.6.0] - 2023-03-30
