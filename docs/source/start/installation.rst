@@ -18,13 +18,13 @@ Requirements
 Steps
 -----
 
-The latest **stable** version can be installed from `PyPI <https://pypi.python.org/pypi/term-image>`_ using ``pip``:
+The latest **stable** version can be installed from `PyPI <https://pypi.org/project/term-image>`_ with:
 
 .. code-block:: shell
 
    pip install term-image
 
-The **development** version can be installed thus:
+The **development** version can be installed with:
 
 .. code-block:: shell
 
