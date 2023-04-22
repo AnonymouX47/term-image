@@ -2,21 +2,21 @@
 
 <h1><b>Term-Image</b></h1>
 
-<p align="center">
+<p>
 <img src="https://raw.githubusercontent.com/AnonymouX47/term-image/abca69a2cc50f60aa16d982a8f11ccd294ce50bf/docs/source/resources/logo.png" height="200">
 </p>
 
-<p align="center">
+<p>
 <b>Display images in the terminal with Python</b>
 </p>
 
-<p align="center">
+<p>
    &#128214; <a href='https://term-image.readthedocs.io'>Docs</a>
     &#9553; 
    &#127979; <a href='https://term-image.readthedocs.io/en/stable/start/tutorial.html'>Tutorial</a>
 </p>
 
-<p align="center">
+<p>
    <a href='https://pypi.org/project/term-image/'>
       <img src='https://img.shields.io/pypi/v/term-image.svg'>
    </a>
@@ -76,13 +76,13 @@
   **Plans to support a wider variety of terminal emulators are in motion** (see [Planned Features](#planned-features)).
 
 ### Steps
-The latest **stable** version can be installed from [PyPI](https://pypi.python.org/pypi/term-image) using `pip` (**recommended**):
+The latest **stable** version can be installed from [PyPI](https://pypi.org/project/term-image) with:
 
 ```shell
 pip install term-image
 ```
 
-The **development** version can be installed thus:
+The **development** version can be installed with:
 
 ```shell
 pip install git+https://github.com/AnonymouX47/term-image.git
