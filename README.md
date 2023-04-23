@@ -36,7 +36,7 @@
       <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
    </a>
    <img src="https://img.shields.io/github/last-commit/AnonymouX47/term-image">
-   <a href="https://twitter.com/intent/tweet?text=Display%20and%20browse%20images%20in%20the%20the%20terminal&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
+   <a href="https://twitter.com/intent/tweet?text=Display%20images%20in%20the%20terminal%20with%20Python&url=https://github.com/AnonymouX47/term-image&hashtags=developers,images,terminal,python">
       <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social">
    </a>
 </p>
