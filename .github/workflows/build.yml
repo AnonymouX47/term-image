@@ -28,5 +28,5 @@ jobs:
     - name: Test package build and installation
       run: |
         make build
-        pip install dist/*.whl
-        pip install dist/*.tar.gz
+        pip install -I dist/*.whl
+        pip install -I dist/*.tar.gz
