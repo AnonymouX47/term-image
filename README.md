@@ -1,3 +1,7 @@
+<a href="https://www.buymeacoffee.com/anonymoux47" target="_blank">
+   <img align="right" src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a><br><br>
+
 <div align="center">
 
 <h1><b>Term-Image</b></h1>
@@ -214,16 +218,11 @@ The following projects have been (and are still) crucial to the development of t
 
 ## Donate
 
+<a href="https://www.buymeacoffee.com/anonymoux47" target="_blank">
+   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a>
+
 Your donation will go a long way in aiding the progress and development of this project.
-
-```
-USDT Address: TKP6d3hLcs7i5R18WRFxLe3zsPQcCBS1Ro
-Network: TRC20
-```
-I'm sincerly sorry for any inconviences that may result from the means of donation.
-
-Please bare with me, as usual means of accepting donations are not available in the region of the world where I reside.
-
 Thank you! 💓
 
 
