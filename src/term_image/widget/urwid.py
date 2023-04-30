@@ -117,7 +117,7 @@ class UrwidImage(urwid.Widget):
     def __del__(self) -> None:
         try:
             if isinstance(self._ti_image, KittyImage):
-                type(self)._ti_free_z_indexes.add(self._ti_z_index)
+                __class__._ti_free_z_indexes.add(self._ti_z_index)
         except AttributeError:  # Object initialization most likely failed
             pass
 
@@ -213,15 +213,15 @@ class UrwidImage(urwid.Widget):
 
         cls._ti_error_placeholder = widget
 
-    @classmethod
-    def _ti_get_z_index(cls) -> int:
-        if cls._ti_free_z_indexes:
-            return cls._ti_free_z_indexes.pop()
+    @staticmethod
+    def _ti_get_z_index() -> int:
+        if __class__._ti_free_z_indexes:
+            return __class__._ti_free_z_indexes.pop()
 
-        z_index = cls._ti_next_z_index
+        z_index = __class__._ti_next_z_index
         if z_index == 2**31:
             raise UrwidImageError("Too many image widgets with the kitty render style")
-        cls._ti_next_z_index = -z_index if z_index > 0 else -z_index + 1
+        __class__._ti_next_z_index = -z_index if z_index > 0 else -z_index + 1
 
         return z_index
 
