@@ -5,12 +5,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Fixed
-- Terminal queries during synced updates by `UrwidImageScreen` ([7191885]).
-- Multi-process synchronization ([238777b]).
-- `UrwidImage` instances with kitty-style images ([2006052]).
-- Ignored exception during `UrwidImage` finalization on Python 3.7 ([4c19c11]).
-
 ### Added
 - `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
 
@@ -21,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3
+
+
+## [0.6.1] - 2023-04-30
+### Fixed
+- Terminal queries during synced updates by `UrwidImageScreen` ([7191885]).
+- Multi-process synchronization ([238777b]).
+- `UrwidImage` instances with kitty-style images ([2006052]).
+- Ignored exception during `UrwidImage` finalization on Python 3.7 ([4c19c11]).
+
 [7191885]: https://github.com/AnonymouX47/term-image/commit/71918852bf1ca5cd42f3ec4cf72a35eb878ffb3c
 [238777b]: https://github.com/AnonymouX47/term-image/commit/238777badfa50418edce5aedc3a88e247f24cc5d
 [2006052]: https://github.com/AnonymouX47/term-image/commit/20060520c2d9ad4fc9445bf911b796c5cdf49161
@@ -391,6 +394,7 @@ See the commit messages for [0.4.1] for the full logs.
 
 
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...HEAD
+[0.6.1]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.5.0
 [0.4.1]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.4.1
