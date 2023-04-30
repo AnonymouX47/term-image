@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Terminal queries during synced updates by `UrwidImageScreen` ([7191885]).
 - Multi-process synchronization ([238777b]).
+- `UrwidImage` instances with kitty-style images ([2006052]).
+- Ignored exception during `UrwidImage` finalization on Python 3.7 ([4c19c11]).
 
 [7191885]: https://github.com/AnonymouX47/term-image/commit/71918852bf1ca5cd42f3ec4cf72a35eb878ffb3c
 [238777b]: https://github.com/AnonymouX47/term-image/commit/238777badfa50418edce5aedc3a88e247f24cc5d
+[2006052]: https://github.com/AnonymouX47/term-image/commit/20060520c2d9ad4fc9445bf911b796c5cdf49161
+[4c19c11]: https://github.com/AnonymouX47/term-image/commit/4c19c1173dd942923945bfbea02f8a1f3459ea14
 
 
 ## [0.6.0] - 2023-03-30
