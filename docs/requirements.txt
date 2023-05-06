@@ -2,3 +2,7 @@ sphinx==6.1.2
 furo==2022.12.7
 sphinx-toolbox==3.4.0
 urwid==2.1.2
+
+# `sphinx-toolbox` requires `cachecontrol`, which is incompatible with `urllib3>=2`
+# See https://github.com/ionrock/cachecontrol/issues/292
+urllib3<2

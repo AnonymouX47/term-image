@@ -22,7 +22,7 @@ formats:
 # Optionally declare the Python requirements required to build your docs
 python:
    install:
-   - requirements: docs/requirements.txt
    # For `autodoc`
    - method: pip
      path: .
+   - requirements: docs/requirements.txt
