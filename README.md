@@ -209,8 +209,10 @@ See the [FAQs](https://term-image.readthedocs.io/en/stable/faqs.html) section of
 ## Credits
 
 The following projects have been (and are still) crucial to the development of this project:
-
 - [Pillow](https://python-pillow.org)
+
+The project logo was composed using resource(s) from the following source(s):
+- [Gallery icons created by Andrean Prabowo - Flaticon](https://www.flaticon.com/free-icons/gallery)
 
 ## Donate
 
