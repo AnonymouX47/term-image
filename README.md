@@ -3,7 +3,7 @@
 <h1><b>Term-Image</b></h1>
 
 <p>
-<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/abca69a2cc50f60aa16d982a8f11ccd294ce50bf/docs/source/resources/logo.png" height="200">
+<img src="https://raw.githubusercontent.com/AnonymouX47/term-image/92ff4b2d2e4731be9e1b2ac7378964ebed9f10f9/docs/source/resources/logo.png" height="200">
 </p>
 
 <p>
