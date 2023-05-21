@@ -177,7 +177,7 @@ See the [tutorial](https://term-image.readthedocs.io/en/stable/start/tutorial.ht
    <a href='https://semver.org/spec/v2.0.0.html#spec-item-4'>version zero</a>!
 </b></p>
 
-**If you want to use this library in a project while it's still on version zero, ensure you pin the dependency version to a specific minor version e.g `>=0.4,<0.5`.**
+**If you want to use this library in a project while it's still on version zero, ensure you pin the dependency to a specific minor version e.g `>=0.4,<0.5`.**
 
 See the [docs](https://term-image.readthedocs.io) for the User Guide and API Reference.
 
