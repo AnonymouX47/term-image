@@ -2,9 +2,9 @@
 
 from random import random
 
+from term_image.ctlseqs import SGR_BG_RGB, SGR_NORMAL
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import BG_FMT, COLOR_RESET, CSI
 
 from .. import set_fg_bg_colors
 from . import common
@@ -43,14 +43,14 @@ class TestRender:
         render = self.render_image(_ALPHA_THRESHOLD)
         assert render == str(self.trans) == f"{self.trans:1.1}"
         assert all(
-            line == COLOR_RESET + " " * self.trans.width + COLOR_RESET
+            line == SGR_NORMAL + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # Transparency disabled
         render = self.render_image(None)
         assert render == f"{self.trans:1.1#}"
         assert all(
-            line == f"{CSI}48;2;0;0;0m" + " " * self.trans.width + COLOR_RESET
+            line == SGR_BG_RGB % (0, 0, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
 
@@ -64,7 +64,7 @@ class TestRender:
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"
             assert all(
-                line == BG_FMT % bg + " " * self.trans.width + COLOR_RESET
+                line == SGR_BG_RGB % bg + " " * self.trans.width + SGR_NORMAL
                 for line in render.splitlines()
             )
         set_fg_bg_colors((0, 0, 0), (0, 0, 0))
@@ -72,28 +72,28 @@ class TestRender:
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
         assert all(
-            line == f"{CSI}48;2;255;0;0m" + " " * self.trans.width + COLOR_RESET
+            line == SGR_BG_RGB % (255, 0, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # green
         render = self.render_image("#00ff00")
         assert render == f"{self.trans:1.1#00ff00}"
         assert all(
-            line == f"{CSI}48;2;0;255;0m" + " " * self.trans.width + COLOR_RESET
+            line == SGR_BG_RGB % (0, 255, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # blue
         render = self.render_image("#0000ff")
         assert render == f"{self.trans:1.1#0000ff}"
         assert all(
-            line == f"{CSI}48;2;0;0;255m" + " " * self.trans.width + COLOR_RESET
+            line == SGR_BG_RGB % (0, 0, 255) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # white
         render = self.render_image("#ffffff")
         assert render == f"{self.trans:1.1#ffffff}"
         assert all(
-            line == f"{CSI}48;2;255;255;255m" + " " * self.trans.width + COLOR_RESET
+            line == SGR_BG_RGB % (255, 255, 255) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
 
@@ -103,7 +103,7 @@ class TestRender:
             render = self.render_image(_ALPHA_THRESHOLD)
             assert render.count("\n") + 1 == self.trans.rendered_height
             assert all(
-                line == COLOR_RESET + " " * self.trans.rendered_width + COLOR_RESET
+                line == SGR_NORMAL + " " * self.trans.rendered_width + SGR_NORMAL
                 for line in render.splitlines()
             )
 
@@ -118,6 +118,6 @@ class TestRender:
             render = self.render_image(_ALPHA_THRESHOLD)
             assert render.count("\n") + 1 == self.trans.rendered_height
             assert all(
-                line == COLOR_RESET + " " * self.trans.rendered_width + COLOR_RESET
+                line == SGR_NORMAL + " " * self.trans.rendered_width + SGR_NORMAL
                 for line in render.splitlines()
             )

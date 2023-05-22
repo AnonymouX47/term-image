@@ -8,10 +8,10 @@ from zlib import decompress
 
 import pytest
 
+from term_image import ctlseqs
 from term_image.exceptions import KittyImageError
 from term_image.image import kitty
-from term_image.image.kitty import LINES, START, WHOLE, KittyImage
-from term_image.utils import CSI, ST
+from term_image.image.kitty import LINES, WHOLE, KittyImage
 
 from .. import set_fg_bg_colors
 from . import common
@@ -175,12 +175,12 @@ def expand_control_data(control_data):
 
 
 def decode_image(data):
-    empty, start, data = data.partition(START)
+    empty, start, data = data.partition(ctlseqs.KITTY_START)
     assert empty == ""
-    assert start == START
+    assert start == ctlseqs.KITTY_START
 
-    transmission, end, fill = data.rpartition(ST)
-    assert end == ST
+    transmission, end, fill = data.rpartition(ctlseqs.ST)
+    assert end == ctlseqs.ST
 
     control_data, chunked_payload = transmission.split(";", 1)
     control_codes = expand_control_data(control_data)
@@ -189,14 +189,14 @@ def decode_image(data):
     )
 
     with io.StringIO() as full_payload:
-        # Implies every split after the first would've started with START
-        chunks = chunked_payload.split(START)
+        # Implies every split after the first would've started with KITTY_START
+        chunks = chunked_payload.split(ctlseqs.KITTY_START)
         first_chunk = chunks.pop(0)
 
         if chunks:
             last_chunk = chunks.pop()
-            payload, end, empty = first_chunk.partition(ST)
-            assert end == ST
+            payload, end, empty = first_chunk.partition(ctlseqs.ST)
+            assert end == ctlseqs.ST
             assert empty == ""
             assert ("m", "1") in control_codes
         else:
@@ -209,8 +209,8 @@ def decode_image(data):
         full_payload.write(payload)
 
         for chunk in chunks:
-            transmission, end, empty = chunk.partition(ST)
-            assert end == ST
+            transmission, end, empty = chunk.partition(ctlseqs.ST)
+            assert end == ctlseqs.ST
             assert empty == ""
             control_data, payload = transmission.split(";")
             assert ("m", "1") in expand_control_data(control_data)
@@ -259,7 +259,7 @@ class TestRenderLines:
                 code in control_codes for code in expand_control_data(size_control_data)
             )
             assert len(raw_image) == bytes_per_line
-            assert fill == fill_fmt.format(cols=cols)
+            assert fill == FILL % ((cols,) * 2)
 
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
@@ -399,14 +399,14 @@ class TestRenderLines:
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
         for line in render.splitlines():
             fill = decode_image(line)[2]
-            assert fill == fill_fmt.format(cols=self.trans.rendered_width)
+            assert fill == FILL % ((self.trans.rendered_width,) * 2)
 
         # mix = True
         render = self.render_image(None, m=True)
         assert render == f"{self.trans:1.1#+m1}"
         for line in render.splitlines():
             fill = decode_image(line)[2]
-            assert fill == jump_right.format(cols=self.trans.rendered_width)
+            assert fill == ctlseqs.CURSOR_FORWARD % self.trans.rendered_width
 
     def test_compress(self):
         self.trans.scale = 1.0
@@ -442,7 +442,7 @@ class TestRenderLines:
 
         render = self.render_image(None, b=False)
         for line in render.splitlines():
-            assert line.startswith(delete)
+            assert line.startswith(ctlseqs.KITTY_DELETE_CURSOR)
 
     def test_scaled(self):
         # At varying scales
@@ -485,7 +485,7 @@ class TestRenderWhole:
         )
         assert len(raw_image) == w * h * 4
         assert fill.count("\n") + 1 == lines
-        assert (line == fill_fmt.format(cols=cols) for line in fill.splitlines())
+        assert (line == FILL % ((cols,) * 2) for line in fill.splitlines())
 
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
@@ -612,7 +612,7 @@ class TestRenderWhole:
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
         assert all(
-            line == fill_fmt.format(cols=self.trans.rendered_width)
+            line == FILL % ((self.trans.rendered_width,) * 2)
             for line in decode_image(render)[2].splitlines()
         )
 
@@ -620,7 +620,7 @@ class TestRenderWhole:
         render = self.render_image(None, m=True)
         assert render == f"{self.trans:1.1#+m1}"
         assert all(
-            line == jump_right.format(cols=self.trans.rendered_width)
+            line == ctlseqs.CURSOR_FORWARD % self.trans.rendered_width
             for line in decode_image(render)[2].splitlines()
         )
 
@@ -647,7 +647,7 @@ class TestRenderWhole:
         self.trans.scale = 1.0
 
         render = self.render_image(None, b=False)
-        assert render.startswith(delete)
+        assert render.startswith(ctlseqs.KITTY_DELETE_CURSOR)
 
     def test_scaled(self):
         # At varying scales
@@ -708,22 +708,22 @@ class TestClear:
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(now=True)
             assert buf.getvalue() == ""
-            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
+            assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_ALL_b
 
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear()
-            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert buf.getvalue() == ctlseqs.KITTY_DELETE_ALL
             assert tty_buf.getvalue() == b""
 
     def test_cursor(self):
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(cursor=True, now=True)
             assert buf.getvalue() == ""
-            assert tty_buf.getvalue() == kitty.DELETE_CURSOR_IMAGES_b
+            assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_CURSOR_b
 
         with self.setup_buffer() as (buf, tty_buf):
             KittyImage.clear(cursor=True)
-            assert buf.getvalue() == kitty.DELETE_CURSOR_IMAGES
+            assert buf.getvalue() == ctlseqs.KITTY_DELETE_CURSOR
             assert tty_buf.getvalue() == b""
 
     def test_z_index(self):
@@ -731,11 +731,11 @@ class TestClear:
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value, now=True)
                 assert buf.getvalue() == ""
-                assert tty_buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES_b % value
+                assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_Z_INDEX_b % value
 
             with self.setup_buffer() as (buf, tty_buf):
                 KittyImage.clear(z_index=value)
-                assert buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % value
+                assert buf.getvalue() == ctlseqs.KITTY_DELETE_Z_INDEX % value
                 assert tty_buf.getvalue() == b""
 
     def test_not_supported(self):
@@ -769,6 +769,4 @@ class TestClear:
             KittyImage._supported = True
 
 
-delete = f"{START}a=d,d=C;{ST}"
-jump_right = f"{CSI}{{cols}}C"
-fill_fmt = f"{CSI}{{cols}}X{jump_right}"
+FILL = ctlseqs.ERASE_CHARS + ctlseqs.CURSOR_FORWARD
