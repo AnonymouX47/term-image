@@ -309,7 +309,7 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
 
     @wraps(func)
     def unix_only_wrapper(*args, **kwargs):
-        return _tty and func(*args, **kwargs)
+        return _tty_fd and func(*args, **kwargs)
 
     unix_only_wrapper.__doc__ += """
     NOTE:
@@ -460,10 +460,10 @@ def get_terminal_size() -> os.terminal_size:
         - gives different results in certain situations
         - is what this library works with
     """
-    if _tty:
+    if _tty_fd:
         # faster and gives correct results when output is redirected
         try:
-            size = os.get_terminal_size(_tty)
+            size = os.get_terminal_size(_tty_fd)
         except OSError:
             size = None
     else:
@@ -502,7 +502,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
         size = None
         buf = array("H", [0, 0, 0, 0])
         try:
-            if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
+            if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
                 size = tuple(buf[2:])
                 if size == (0, 0):
                     size = None
@@ -567,15 +567,15 @@ def query_terminal(
     if not _queries_enabled:
         return None
 
-    old_attr = termios.tcgetattr(_tty)
-    new_attr = termios.tcgetattr(_tty)
+    old_attr = termios.tcgetattr(_tty_fd)
+    new_attr = termios.tcgetattr(_tty_fd)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
     try:
-        termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSAFLUSH, new_attr)
         write_tty(request)
         return read_tty(more, timeout or _query_timeout)
     finally:
-        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
 
 
 @unix_tty_only
@@ -622,8 +622,8 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    old_attr = termios.tcgetattr(_tty)
-    new_attr = termios.tcgetattr(_tty)
+    old_attr = termios.tcgetattr(_tty_fd)
+    new_attr = termios.tcgetattr(_tty_fd)
     new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
     new_attr[6][termios.VTIME] = 0  # Never block based on time
     if echo:
@@ -635,32 +635,32 @@ def read_tty(
 
     input = bytearray()
     try:
-        termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
-        r, w, x = [_tty], [], []
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
+        r, w, x = [_tty_fd], [], []
 
         if timeout is None:
             # VMIN=0 does not work as expected on some platforms when there's no input
             while select(r, w, x, 0.0)[0]:
-                input.extend(os.read(_tty, 100))
+                input.extend(os.read(_tty_fd, 100))
         else:
             start = monotonic()
             if min > 0:
-                input.extend(os.read(_tty, min))
+                input.extend(os.read(_tty_fd, min))
 
                 # Don't block based on based on amount of bytes anymore
                 new_attr[6][termios.VMIN] = 0
-                termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
+                termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
 
             duration = monotonic() - start
             while (timeout < 0 or duration < timeout) and more(input):
                 # Reduces CPU usage
                 # Also, VMIN=0 does not work on some platforms when there's no input
                 if select(r, w, x, None if timeout < 0 else timeout - duration)[0]:
-                    input.extend(os.read(_tty, 1))
+                    input.extend(os.read(_tty_fd, 1))
                 duration = monotonic() - start
             # logging.debug(duration)
     finally:
-        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
 
     return bytes(input)
 
@@ -687,9 +687,9 @@ def write_tty(data: bytes) -> None:
     Args:
         data: Data to be written.
     """
-    os.write(_tty, data)
+    os.write(_tty_fd, data)
     try:
-        termios.tcdrain(_tty)
+        termios.tcdrain(_tty_fd)
     except termios.error:  # "Permission denied" on some platforms e.g Termux
         pass
 
@@ -754,7 +754,7 @@ def _process_run_wrapper(self, *args, **kwargs):
 _query_timeout = 0.1
 _queries_enabled: bool = True
 _swap_win_size: bool = False
-_tty: Optional[int] = None
+_tty_fd: Optional[int] = None
 _tty_lock = RLock()
 _win_size_cache = [0] * 4
 _win_size_lock = RLock()
@@ -763,13 +763,13 @@ _rlock_type = type(_tty_lock)
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
         try:
-            _tty = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
+            _tty_fd = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
             break
         except (OSError, AttributeError):
             pass
     else:
         try:
-            _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
         except OSError:
             warnings.warn(
                 "It seems this process is not running within a terminal. "
@@ -781,9 +781,9 @@ if OS_IS_UNIX:
                 "`TermImageWarning` won't be available).",
                 TermImageWarning,
             )
-    if _tty:
-        if isinstance(_tty, str):
-            _tty = os.open(_tty, os.O_RDWR)
+    if _tty_fd:
+        if isinstance(_tty_fd, str):
+            _tty_fd = os.open(_tty_fd, os.O_RDWR)
 
         Process.start = wraps(Process.start)(_process_start_wrapper)
         Process.run = wraps(Process.run)(_process_run_wrapper)
