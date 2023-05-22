@@ -12,7 +12,16 @@ from zlib import compress, decompress
 
 import PIL
 
-from ..utils import CSI, ESC, ST, get_terminal_name_version, query_terminal, write_tty
+from .. import ctlseqs
+
+# These sequences are used during performance-critical operations that occur often
+from ..ctlseqs import (
+    CURSOR_FORWARD,
+    ERASE_CHARS,
+    KITTY_DELETE_CURSOR,
+    KITTY_TRANSMISSION,
+)
+from ..utils import get_terminal_name_version, query_terminal, write_tty
 from .common import GraphicsImage
 
 # Constants for render methods
@@ -264,17 +273,21 @@ class KittyImage(GraphicsImage):
         elif given_args:
             arg, _ = given_args.pop()
             (write_tty if now else _stdout_write)(
-                (DELETE_CURSOR_IMAGES_b if now else DELETE_CURSOR_IMAGES)
+                (ctlseqs.KITTY_DELETE_CURSOR_b if now else ctlseqs.KITTY_DELETE_CURSOR)
                 if arg == "cursor"
                 else (
-                    (DELETE_Z_INDEX_IMAGES_b if now else DELETE_Z_INDEX_IMAGES)
+                    (
+                        ctlseqs.KITTY_DELETE_Z_INDEX_b
+                        if now
+                        else ctlseqs.KITTY_DELETE_Z_INDEX
+                    )
                     % z_index
                 )
             )
         elif now:
-            write_tty(DELETE_ALL_IMAGES_b)
+            write_tty(ctlseqs.KITTY_DELETE_ALL_b)
         else:
-            _stdout_write(DELETE_ALL_IMAGES)
+            _stdout_write(ctlseqs.KITTY_DELETE_ALL)
 
     @classmethod
     def is_supported(cls) -> bool:
@@ -289,17 +302,17 @@ class KittyImage(GraphicsImage):
             # The second query is to speed up the query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                (
-                    f"{START}a=q,t=d,i=31,f=24,s=1,v=1,C=1,c=1,r=1;AAAA{ST}{CSI}c"
-                ).encode(),
+                ctlseqs.KITTY_SUPPORT_QUERY_b + ctlseqs.DA1_b,
                 lambda s: not s.endswith(b"c"),
             )
 
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
-            if response and (
-                response.decode().rpartition(ESC)[0] == f"{START}i=31;OK{ST}"
-            ):
+            if response:
+                response = ctlseqs.KITTY_RESPONSE_re.match(
+                    response.rpartition(ctlseqs.ESC_b)[0].decode()
+                )
+            if response and response["id"] == "31" and response["message"] == "OK":
                 name, version = get_terminal_name_version()
                 # Only kitty >= 0.20.0 implement the protocol features utilized
                 if name == "kitty" and version:
@@ -375,10 +388,10 @@ class KittyImage(GraphicsImage):
         might not be treated as expected on some terminals e.g Konsole.
         """
 
-        # End last command (does no harm if there wasn't an unterminated commanand)
+        # End last command (does no harm if there wasn't an unterminated command)
         # and send "last chunk" in case the last transmission was chunked.
         # Konsole sometimes requires ST to be written twice.
-        print(f"{ST * 2}{START}q=1,m=0;{ST}", end="", flush=True)
+        print(ctlseqs.ST * 2 + ctlseqs.KITTY_END_CHUNKED, end="", flush=True)
 
     def _render_image(
         self,
@@ -424,10 +437,8 @@ class KittyImage(GraphicsImage):
             self._close_image(img)
 
         control_data = ControlData(f=format, s=width, c=r_width, z=z_index)
-        erase = f"{CSI}{r_width}X"  # clears underlying text
-        jump_right = f"{CSI}{r_width}C"
-        fill = f"{erase * (not mix)}{jump_right}"
-        fill_newline = f"{fill}\n"
+        fill = ("" if mix else ERASE_CHARS % r_width) + (CURSOR_FORWARD % r_width)
+        fill_newline = fill + "\n"
 
         if render_method == LINES:
             cell_height = height // r_height
@@ -438,7 +449,7 @@ class KittyImage(GraphicsImage):
                 trans = Transmission(
                     control_data, raw_image.read(bytes_per_line), compress
                 )
-                blend or buffer.write(DELETE_CURSOR_IMAGES)
+                blend or buffer.write(KITTY_DELETE_CURSOR)
                 for chunk in trans.get_chunks():
                     buffer.write(chunk)
                 for _ in range(r_height - 1):
@@ -446,7 +457,7 @@ class KittyImage(GraphicsImage):
                     trans = Transmission(
                         control_data, raw_image.read(bytes_per_line), compress
                     )
-                    blend or buffer.write(DELETE_CURSOR_IMAGES)
+                    blend or buffer.write(KITTY_DELETE_CURSOR)
                     for chunk in trans.get_chunks():
                         buffer.write(chunk)
                 buffer.write(fill)
@@ -456,7 +467,7 @@ class KittyImage(GraphicsImage):
         vars(control_data).update(v=height, r=r_height)
         return "".join(
             (
-                DELETE_CURSOR_IMAGES * (not blend),
+                KITTY_DELETE_CURSOR * (not blend),
                 Transmission(control_data, raw_image, compress).get_chunked(),
                 fill_newline * (r_height - 1),
                 fill,
@@ -511,16 +522,17 @@ class Transmission:
         with self.get_payload() as payload:
             chunk, next_chunk = payload.read(size), payload.read(size)
             yield (
-                f"{START}{self.get_control_data()},m={bool(next_chunk):d};{chunk}{ST}"
+                KITTY_TRANSMISSION
+                % (f"{self.get_control_data()},m={bool(next_chunk):d}", chunk)
             )
 
             chunk, next_chunk = next_chunk, payload.read(size)
             while next_chunk:
-                yield f"{START}m=1;{chunk}{ST}"
+                yield KITTY_TRANSMISSION % ("m=1", chunk)
                 chunk, next_chunk = next_chunk, payload.read(size)
 
             if chunk:  # false if there was never a next chunk
-                yield f"{START}m=0;{chunk}{ST}"
+                yield KITTY_TRANSMISSION % ("m=0", chunk)
 
     def get_control_data(self) -> str:
         return ",".join(
@@ -619,12 +631,4 @@ class _ControlData:  # Currently Unused
     h: Optional[int] = None
 
 
-START = f"{ESC}_G"
-FMT = f"{START}%(control)s;%(payload)s{ST}"
-DELETE_ALL_IMAGES = f"{ESC}_Ga=d,d=A;{ST}"
-DELETE_ALL_IMAGES_b = DELETE_ALL_IMAGES.encode()
-DELETE_CURSOR_IMAGES = f"{ESC}_Ga=d,d=C;{ST}"
-DELETE_CURSOR_IMAGES_b = DELETE_CURSOR_IMAGES.encode()
-DELETE_Z_INDEX_IMAGES = f"{ESC}_Ga=d,d=Z,z=%d;{ST}"
-DELETE_Z_INDEX_IMAGES_b = DELETE_Z_INDEX_IMAGES.encode()
 _stdout_write = sys.stdout.write

@@ -14,11 +14,12 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 
 import PIL
 
+from .. import ctlseqs
+
+# These sequences are used during performance-critical operations that occur often
+from ..ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
 from ..exceptions import TermImageWarning, _style_error
 from ..utils import (
-    CSI,
-    OSC,
-    ST,
     ClassInstanceProperty,
     ClassProperty,
     get_terminal_name_version,
@@ -26,12 +27,6 @@ from ..utils import (
     write_tty,
 )
 from .common import GraphicsImage, ImageSource
-from .kitty import (
-    DELETE_ALL_IMAGES,
-    DELETE_CURSOR_IMAGES,
-    DELETE_ALL_IMAGES_b,
-    DELETE_CURSOR_IMAGES_b,
-)
 
 # Constants for render methods
 LINES = "lines"
@@ -473,9 +468,9 @@ class ITerm2Image(GraphicsImage):
             # Konsole utilizes the same image rendering implementation as it
             # uses for the kiity graphics protocol.
             (write_tty if now else _stdout_write)(
-                (DELETE_CURSOR_IMAGES_b if now else DELETE_CURSOR_IMAGES)
+                (ctlseqs.KITTY_DELETE_CURSOR_b if now else ctlseqs.KITTY_DELETE_CURSOR)
                 if cursor
-                else (DELETE_ALL_IMAGES_b if now else DELETE_ALL_IMAGES)
+                else (ctlseqs.KITTY_DELETE_ALL_b if now else ctlseqs.KITTY_DELETE_ALL)
             )
 
     def draw(self, *args, **kwargs):
@@ -560,11 +555,18 @@ class ITerm2Image(GraphicsImage):
                     self.rendered_height,
                 )
                 r_width = self.rendered_width
-                erase_and_jump = f"{CSI}{r_width}X{CSI}{r_width}C"
+                erase_and_jump = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
                 first_frame = self._format_render(
                     f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
                 )
-                print(first_frame, f"\r{CSI}{lines - 1}A", sep="", end="", flush=True)
+                print(
+                    first_frame,
+                    "\r",
+                    CURSOR_UP % (lines - 1),
+                    sep="",
+                    end="",
+                    flush=True,
+                )
 
             super()._display_animated(img, alpha, fmt, *args, mix=True, **kwargs)
 
@@ -580,7 +582,7 @@ class ITerm2Image(GraphicsImage):
         # End last transmission (does no harm if there wasn't an unterminated
         # transmission)
         # Konsole sometimes requires ST to be written twice.
-        print(f"{ST * 2}", end="", flush=True)
+        print(ctlseqs.ST * 2, end="", flush=True)
 
     def _render_image(
         self,
@@ -604,9 +606,9 @@ class ITerm2Image(GraphicsImage):
         # Workarounds
         is_on_konsole = self._TERM == "konsole"
         is_on_wezterm = self._TERM == "wezterm"
-        jump_right = f"{CSI}{r_width}C"
-        jump_up = f"{CSI}{r_height - 1}A" if r_height > 1 else ""
-        erase = f"{CSI}{r_width}X" if not mix and is_on_wezterm else ""
+        jump_right = CURSOR_FORWARD % r_width
+        jump_up = CURSOR_UP % (r_height - 1) if r_height > 1 else ""
+        erase = ERASE_CHARS % r_width if not mix and is_on_wezterm else ""
 
         file_is_readable = True
         if self._source_type is ImageSource.PIL_IMAGE:
@@ -659,7 +661,7 @@ class ITerm2Image(GraphicsImage):
                         ),
                         erase,
                         "" if is_on_konsole else jump_up,
-                        START,
+                        ITERM2_START,
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
                         ST,
@@ -747,7 +749,8 @@ class ITerm2Image(GraphicsImage):
                     compressed_image.truncate()
 
                     buffer.write(erase)
-                    buffer.write(f"{START}size={compressed_image.tell()}")
+                    buffer.write(ITERM2_START)
+                    buffer.write(f"size={compressed_image.tell()}")
                     buffer.write(control_data)
                     buffer.write(
                         standard_b64encode(compressed_image.getvalue()).decode()
@@ -774,7 +777,7 @@ class ITerm2Image(GraphicsImage):
                     "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
                     erase,
                     "" if is_on_konsole else jump_up,
-                    START,
+                    ITERM2_START,
                     control_data,
                     standard_b64encode(compressed_image.read()).decode(),
                     ST,
@@ -784,6 +787,5 @@ class ITerm2Image(GraphicsImage):
             )
 
 
-START = f"{OSC}1337;File="
 native_anim = Event()
 _stdout_write = sys.stdout.write
