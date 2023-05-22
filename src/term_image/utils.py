@@ -13,7 +13,6 @@ __all__ = (
 )
 
 import os
-import re
 import sys
 import warnings
 from array import array
@@ -27,6 +26,7 @@ from time import monotonic
 from types import FunctionType
 from typing import Callable, Optional, Tuple, Union
 
+from . import ctlseqs
 from .exceptions import TermImageWarning
 
 # import logging
@@ -349,11 +349,11 @@ def color(
 
     The color code is ommited for any of *fg* or *bg* that is empty.
     """
-    return (FG_FMT * bool(fg) + BG_FMT * bool(bg) + "%s") % (
+    return (ctlseqs.SGR_FG_RGB * bool(fg) + ctlseqs.SGR_BG_RGB * bool(bg) + "%s") % (
         *fg,
         *bg,
         text,
-    ) + COLOR_RESET * end
+    ) + ctlseqs.SGR_NORMAL * end
 
 
 @unix_tty_only
@@ -389,21 +389,23 @@ def get_fg_bg_colors(
     with _tty_lock, _tty_lock:  # See the comment in `lock_tty_wrapper()`
         response = query_terminal(
             # Not all terminals (e.g VTE-based) support multiple queries in one escape
-            # sequence, hence the repetition of OSC ... ST
-            f"{OSC}10;?{ST}{OSC}11;?{ST}{CSI}c".encode(),
+            # sequence, hence the separate sequences for FG and BG
+            ctlseqs.TEXT_FG_QUERY_b + ctlseqs.TEXT_BG_QUERY_b + ctlseqs.DA1_b,
             # The response might contain a "c"; can't stop reading at "c"
-            lambda s: not s.endswith(CSI_b),
+            lambda s: not s.endswith(ctlseqs.CSI_b),
         )
         if _queries_enabled:
-            read_tty()  # The rest of the response to `CSI c`
+            read_tty()  # The rest of the response to DA1
 
     fg = bg = None
     if response:
-        for c, spec in RGB_SPEC.findall(response.decode().rpartition(ESC)[0]):
+        for c, spec in ctlseqs.RGB_SPEC_re.findall(
+            response.decode().rpartition(ctlseqs.ESC)[0]
+        ):
             if c == "10":
-                fg = x_parse_color(spec)
+                fg = ctlseqs.x_parse_color(spec)
             elif c == "11":
-                bg = x_parse_color(spec)
+                bg = ctlseqs.x_parse_color(spec)
 
     return tuple(
         rgb and ("#" + ("{:02x}" * 3).format(*rgb) if hex else rgb) for rgb in (fg, bg)
@@ -424,14 +426,16 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
         # The latter is to speed up the entire query since most (if not all)
         # terminals should support it and most terminals treat queries as FIFO
         response = query_terminal(
-            f"{CSI}>q{CSI}c".encode(),
+            ctlseqs.XTVERSION_b + ctlseqs.DA1_b,
             # The response might contain a "c"; can't stop reading at "c"
-            lambda s: not s.endswith(CSI_b),
+            lambda s: not s.endswith(ctlseqs.CSI_b),
         )
         if _queries_enabled:
-            read_tty()  # The rest of the response to `CSI c`
+            read_tty()  # The rest of the response to DA1
 
-    match = response and NAME_VERSION.fullmatch(response.decode().rpartition(ESC)[0])
+    match = response and ctlseqs.XTVERSION_re.fullmatch(
+        response.decode().rpartition(ctlseqs.ESC)[0]
+    )
     name, version = (
         match.groups()
         if match
@@ -506,16 +510,17 @@ def get_window_size() -> Optional[Tuple[int, int]]:
             pass
 
         if not size:
-            # Then CSI 14 t
+            # Then XTWINOPS
             # The second sequence is to speed up the entire query since most (if not
             # all) terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                f"{CSI}14t{CSI}c".encode(), more=lambda s: not s.endswith(b"c")
+                ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
+                more=lambda s: not s.endswith(b"c"),
             )
-            size = (response or None) and WIN_SIZE.match(response.decode())
-            if size:
+            match = response and ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode())
+            if match:
                 # XTWINOPS specifies (height, width)
-                size = tuple(map(int, size.groups()))[::-1]
+                size = tuple(map(int, match.groups()))[::-1]
 
                 # Termux seems to respond with (height / 2, width), though the values
                 # are incorrect as they change with different zoom levels but still
@@ -525,6 +530,7 @@ def get_window_size() -> Optional[Tuple[int, int]]:
 
         size = size[:: -_swap_win_size or 1] if size else (0, 0)
         _win_size_cache[:] = ts + size
+
         return None if 0 in size else size
 
 
@@ -688,12 +694,6 @@ def write_tty(data: bytes) -> None:
         pass
 
 
-def x_parse_color(spec: str) -> Tuple[int, int, int]:
-    """Converts an RGB device specification according to XParseColor"""
-    # One hex char -> 4 bits
-    return tuple(int(x, 16) * 255 // ((1 << (len(x) * 4)) - 1) for x in spec.split("/"))
-
-
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock, _win_size_cache, _win_size_lock
 
@@ -749,37 +749,6 @@ def _process_run_wrapper(self, *args, **kwargs):
 
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
-
-RGB_SPEC = re.compile(r"\033](\d+);rgb:([\da-fA-F/]+)\033\\", re.ASCII)
-WIN_SIZE = re.compile(r"\033\[4;(\d+);(\d+)t", re.ASCII)
-NAME_VERSION = re.compile(r"\033P>\|(\w+)[( ]([^)\033]+)\)?\033\\", re.ASCII)
-
-# Constants for escape sequences
-ESC = "\033"
-ESC_b = ESC.encode()
-CSI = f"{ESC}["
-CSI_b = CSI.encode()
-OSC = f"{ESC}]"
-OSC_b = OSC.encode()
-ST = f"{ESC}\\"
-ST_b = ST.encode()
-BG_FMT = f"{CSI}48;2;%d;%d;%dm"
-BG_FMT_b = BG_FMT.encode()
-FG_FMT = f"{CSI}38;2;%d;%d;%dm"
-FG_FMT_b = FG_FMT.encode()
-COLOR_RESET = f"{CSI}m"
-COLOR_RESET_b = COLOR_RESET.encode()
-DECSET = f"{CSI}?%dh"
-DECSET_b = DECSET.encode()
-DECRST = f"{CSI}?%dl"
-DECRST_b = DECRST.encode()
-
-# Terminal Synchronized Output
-# See https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-BEGIN_SYNCED_UPDATE = DECSET % 2026
-BEGIN_SYNCED_UPDATE_b = BEGIN_SYNCED_UPDATE.encode()
-END_SYNCED_UPDATE = DECRST % 2026
-END_SYNCED_UPDATE_b = END_SYNCED_UPDATE.encode()
 
 # Private internal variables
 _query_timeout = 0.1

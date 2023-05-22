@@ -11,7 +11,8 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..utils import BG_FMT, COLOR_RESET, FG_FMT, get_fg_bg_colors
+from ..ctlseqs import SGR_BG_RGB, SGR_FG_RGB, SGR_NORMAL
+from ..utils import get_fg_bg_colors
 from .common import TextImage
 
 warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
@@ -68,15 +69,15 @@ class BlockImage(TextImage):
             if alpha:
                 no_alpha = False
                 if a_cluster1 == 0 == a_cluster2:
-                    buf_write(COLOR_RESET)
+                    buf_write(SGR_NORMAL)
                     buf_write(blank * n)
                 elif a_cluster1 == 0:  # up is transparent
-                    buf_write(COLOR_RESET)
-                    buf_write(FG_FMT % cluster2)
+                    buf_write(SGR_NORMAL)
+                    buf_write(SGR_FG_RGB % cluster2)
                     buf_write(lower_pixel * n)
                 elif a_cluster2 == 0:  # down is transparent
-                    buf_write(COLOR_RESET)
-                    buf_write(FG_FMT % cluster1)
+                    buf_write(SGR_NORMAL)
+                    buf_write(SGR_FG_RGB % cluster1)
                     buf_write(upper_pixel * n)
                 else:
                     no_alpha = True
@@ -86,11 +87,11 @@ class BlockImage(TextImage):
                 # Kitty does not render BG colors equal to the default BG color
                 if is_on_kitty and cluster2 == bg_color:
                     r += r < 255 or -1
-                buf_write(BG_FMT % (r, g, b))
+                buf_write(SGR_BG_RGB % (r, g, b))
                 if cluster1 == cluster2:
                     buf_write(blank * n)
                 else:
-                    buf_write(FG_FMT % cluster1)
+                    buf_write(SGR_FG_RGB % cluster1)
                     buf_write(upper_pixel * n)
 
         buffer = io.StringIO()
@@ -106,7 +107,7 @@ class BlockImage(TextImage):
             blank = " "
             lower_pixel = LOWER_PIXEL
             upper_pixel = UPPER_PIXEL
-        end_of_line = COLOR_RESET + "\n"
+        end_of_line = SGR_NORMAL + "\n"
 
         width, height = self._get_render_size()
         frame_img = img if frame else None
@@ -171,7 +172,7 @@ class BlockImage(TextImage):
             if row_no < height:  # last line not yet rendered
                 buf_write(end_of_line)
 
-        buf_write(COLOR_RESET)  # Reset color after last line
+        buf_write(SGR_NORMAL)  # Reset color after last line
 
         with buffer:
             return buffer.getvalue()

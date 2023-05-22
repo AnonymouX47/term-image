@@ -36,6 +36,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
+from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
 from ..exceptions import (
     InvalidSizeError,
     TermImageError,
@@ -43,8 +44,6 @@ from ..exceptions import (
     _style_error,
 )
 from ..utils import (
-    COLOR_RESET,
-    CSI,
     ClassInstanceMethod,
     ClassProperty,
     ClassPropertyMeta,
@@ -853,7 +852,7 @@ class BaseImage(metaclass=ImageMeta):
 
         def render(image: PIL.Image.Image) -> None:
             # Hide the cursor immediately if the output is a terminal device
-            sys.stdout.isatty() and print(f"{CSI}?25l", end="", flush=True)
+            sys.stdout.isatty() and print(HIDE_CURSOR, end="", flush=True)
             try:
                 style_args = self._check_style_args(style)
                 if self._is_animated and animate:
@@ -875,7 +874,7 @@ class BaseImage(metaclass=ImageMeta):
                         raise
             finally:
                 # Reset color and show the cursor
-                print(COLOR_RESET, f"{CSI}?25h" * sys.stdout.isatty(), sep="")
+                print(SGR_NORMAL, SHOW_CURSOR * sys.stdout.isatty(), sep="")
 
         self._renderer(
             render,
@@ -1488,6 +1487,8 @@ class BaseImage(metaclass=ImageMeta):
         duration = self._frame_duration
         image_it = ImageIterator(self, repeat, "", cached)
         image_it._animator = image_it._animate(img, alpha, fmt, style_args)
+        cursor_up = CURSOR_UP % (lines - 1)
+        cursor_down = CURSOR_DOWN % lines
 
         try:
             print(next(image_it._animator), end="", flush=True)  # First frame
@@ -1502,7 +1503,7 @@ class BaseImage(metaclass=ImageMeta):
                 # move cursor up to the begining of the first line of the image
                 # and print the new current frame.
                 self._clear_frame()
-                print(f"\r{CSI}{lines - 1}A", frame, sep="", end="", flush=True)
+                print("\r", cursor_up, frame, sep="", end="", flush=True)
 
                 # Render next frame during current frame's duration
                 start = time.time()
@@ -1517,7 +1518,7 @@ class BaseImage(metaclass=ImageMeta):
             self._seek_position = prev_seek_pos
             # Move the cursor to the last line of the image to prevent "overlayed"
             # output in the terminal
-            print(f"{CSI}{lines}B", end="")
+            print(cursor_down, end="")
 
     def _format_render(
         self,

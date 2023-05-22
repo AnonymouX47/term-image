@@ -7,6 +7,7 @@ import pytest
 import urwid
 from PIL import Image
 
+from term_image import ctlseqs
 from term_image.exceptions import UrwidImageError
 from term_image.image import (
     BlockImage,
@@ -18,13 +19,6 @@ from term_image.image import (
     kitty,
 )
 from term_image.image.common import _ALPHA_THRESHOLD
-from term_image.utils import (
-    BEGIN_SYNCED_UPDATE,
-    COLOR_RESET,
-    END_SYNCED_UPDATE,
-    BG_FMT_b,
-    COLOR_RESET_b,
-)
 from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 
 _size = (30, 15)
@@ -157,7 +151,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(COLOR_RESET)
+                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
                     assert left == " "
                     assert right == " "
 
@@ -178,7 +172,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(COLOR_RESET)
+                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
                     assert left == ""
                     assert right == ""
 
@@ -232,7 +226,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(COLOR_RESET)
+                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
                     assert left == " "
                     assert right == " "
 
@@ -251,7 +245,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(COLOR_RESET)
+                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
                     assert left == ""
                     assert right == ""
 
@@ -312,7 +306,7 @@ class TestClear:
             with setup_kitty_clear_buffers() as (buf, tty_buf):
                 image_w.clear()
                 assert (
-                    buf.getvalue() == kitty.DELETE_Z_INDEX_IMAGES % image_w._ti_z_index
+                    buf.getvalue() == ctlseqs.KITTY_DELETE_Z_INDEX % image_w._ti_z_index
                 )
                 assert tty_buf.getvalue() == b""
 
@@ -323,7 +317,7 @@ class TestClear:
                 assert buf.getvalue() == ""
                 assert (
                     tty_buf.getvalue()
-                    == kitty.DELETE_Z_INDEX_IMAGES_b % image_w._ti_z_index
+                    == ctlseqs.KITTY_DELETE_Z_INDEX_b % image_w._ti_z_index
                 )
 
     def test_not_supported(self):
@@ -808,8 +802,12 @@ class TestCanvasTrim:
                     b"".join(line[trim_left : trim_left + cols]) for line in render
                 ]
                 canv_text = content_to_text(canv.content(trim_left, 0, cols))
-                prefix = COLOR_RESET_b * (pad_left < trim_left < _size[0] - pad_right)
-                suffix = COLOR_RESET_b * (_size[0] - pad_left > trim_right > pad_right)
+                prefix = ctlseqs.SGR_NORMAL_b * (
+                    pad_left < trim_left < _size[0] - pad_right
+                )
+                suffix = ctlseqs.SGR_NORMAL_b * (
+                    _size[0] - pad_left > trim_right > pad_right
+                )
 
                 assert len(render_text) == len(canv_text)
 
@@ -935,8 +933,12 @@ class TestCanvasTrim:
                 canv_text = content_to_text(
                     canv.content(trim_left, trim_top, cols, rows)
                 )
-                prefix = COLOR_RESET_b * (pad_left < trim_left < _size[0] - pad_right)
-                suffix = COLOR_RESET_b * (_size[0] - pad_left > trim_right > pad_right)
+                prefix = ctlseqs.SGR_NORMAL_b * (
+                    pad_left < trim_left < _size[0] - pad_right
+                )
+                suffix = ctlseqs.SGR_NORMAL_b * (
+                    _size[0] - pad_left > trim_right > pad_right
+                )
 
                 assert len(render_text) == len(canv_text)
 
@@ -1055,7 +1057,7 @@ class TestCanvasTrim:
                     canv.content(trim_left, cols=_size[0] - trim_left)
                 )
                 for line in text:
-                    assert line.startswith(BG_FMT_b % (16, 32, 48) + b" ")
+                    assert line.startswith(ctlseqs.SGR_BG_RGB_b % (16, 32, 48) + b" ")
 
 
 class TestScreen:
@@ -1071,8 +1073,8 @@ class TestScreen:
             screen.stop()
             stop_output = buf.getvalue()
 
-            assert start_output.endswith(kitty.DELETE_ALL_IMAGES)
-            assert stop_output.startswith(kitty.DELETE_ALL_IMAGES)
+            assert start_output.endswith(ctlseqs.KITTY_DELETE_ALL)
+            assert stop_output.startswith(ctlseqs.KITTY_DELETE_ALL)
 
         def test_not_supported(self):
             buf = io.StringIO()
@@ -1087,8 +1089,8 @@ class TestScreen:
                 screen.stop()
                 stop_output = buf.getvalue()
 
-                assert kitty.DELETE_ALL_IMAGES not in start_output
-                assert kitty.DELETE_ALL_IMAGES not in stop_output
+                assert ctlseqs.KITTY_DELETE_ALL not in start_output
+                assert ctlseqs.KITTY_DELETE_ALL not in stop_output
             finally:
                 KittyImage._supported = True
 
@@ -1103,8 +1105,8 @@ class TestScreen:
         screen.draw_screen(_size, widget.render(_size))
         output = buf.getvalue()
 
-        assert output.startswith(BEGIN_SYNCED_UPDATE)
-        assert output.endswith(END_SYNCED_UPDATE)
+        assert output.startswith(ctlseqs.BEGIN_SYNCED_UPDATE)
+        assert output.endswith(ctlseqs.END_SYNCED_UPDATE)
 
 
 buf = io.StringIO()
@@ -1133,14 +1135,14 @@ class TestScreenClearImages:
     def test_now_false(self):
         with self.setup_clear_buffers() as (buf, tty_buf):
             screen.clear_images()
-            assert buf.getvalue() == kitty.DELETE_ALL_IMAGES
+            assert buf.getvalue() == ctlseqs.KITTY_DELETE_ALL
             assert tty_buf.getvalue() == b""
 
     def test_now_true(self):
         with self.setup_clear_buffers() as (buf, tty_buf):
             screen.clear_images(now=True)
             assert buf.getvalue() == ""
-            assert tty_buf.getvalue() == kitty.DELETE_ALL_IMAGES_b
+            assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_ALL_b
 
     def test_not_supported(self):
         KittyImage._supported = False

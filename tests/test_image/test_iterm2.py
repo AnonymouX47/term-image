@@ -12,10 +12,10 @@ from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
+from term_image import ctlseqs
 from term_image.exceptions import ITerm2ImageError, TermImageWarning
 from term_image.image import iterm2
-from term_image.image.iterm2 import LINES, START, WHOLE, ITerm2Image
-from term_image.utils import CSI, ST
+from term_image.image.iterm2 import LINES, WHOLE, ITerm2Image
 
 from .. import set_fg_bg_colors
 from . import common
@@ -571,13 +571,13 @@ def expand_control_data(control_data):
 
 
 def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
-    fill_1, start, data = data.partition(START)
-    assert start == START
+    fill_1, start, data = data.partition(ctlseqs.ITERM2_START)
+    assert start == ctlseqs.ITERM2_START
     if term == "konsole":
         assert fill_1 == ""
 
-    transmission, end, fill_2 = data.rpartition(ST)
-    assert end == ST
+    transmission, end, fill_2 = data.rpartition(ctlseqs.ST)
+    assert end == ctlseqs.ST
     if term != "konsole":
         assert fill_2 == ""
 
@@ -646,9 +646,9 @@ class TestRenderLines:
             )
             assert len(raw_image) == pixels_per_line * len(mode)
             assert fill == (
-                jump_right.format(cols=cols)
+                ctlseqs.CURSOR_FORWARD % cols
                 if term == "konsole"
-                else erase.format(cols=cols)
+                else ctlseqs.ERASE_CHARS % cols
                 if term == "wezterm"
                 else ""
             )
@@ -773,9 +773,9 @@ class TestRenderLines:
             assert render == str(self.trans) == f"{self.trans:1.1+m0}"
             for line in render.splitlines():
                 assert decode_image(line, term=ITerm2Image._TERM)[-1] == (
-                    jump_right.format(cols=cols)
+                    ctlseqs.CURSOR_FORWARD % cols
                     if ITerm2Image._TERM == "konsole"
-                    else erase.format(cols=cols)
+                    else ctlseqs.ERASE_CHARS % cols
                     if ITerm2Image._TERM == "wezterm"
                     else ""
                 )
@@ -785,7 +785,7 @@ class TestRenderLines:
             assert render == f"{self.trans:1.1#+m1}"
             for line in render.splitlines():
                 assert decode_image(line, term=ITerm2Image._TERM)[-1] == (
-                    jump_right.format(cols=cols)
+                    ctlseqs.CURSOR_FORWARD % cols
                     if ITerm2Image._TERM == "konsole"
                     else ""
                 )
@@ -920,17 +920,17 @@ class TestRenderWhole:
         assert all(
             line
             == (
-                erase.format(cols=cols) * (term == "wezterm")
-                + jump_right.format(cols=cols)
+                ctlseqs.ERASE_CHARS % cols * (term == "wezterm")
+                + ctlseqs.CURSOR_FORWARD % cols
             )
             for line in fills
         )
         assert last_fill == (
-            jump_right.format(cols=cols)
+            ctlseqs.CURSOR_FORWARD % cols
             if term == "konsole"
             else (
-                erase.format(cols=cols) * (term == "wezterm")
-                + f"{CSI}{lines - 1}A" * (lines > 1)
+                ctlseqs.ERASE_CHARS % cols * (term == "wezterm")
+                + ctlseqs.CURSOR_UP % (lines - 1) * (lines > 1)
             )
         )
 
@@ -1051,17 +1051,17 @@ class TestRenderWhole:
             assert all(
                 line
                 == (
-                    erase.format(cols=cols) * (ITerm2Image._TERM == "wezterm")
-                    + jump_right.format(cols=cols)
+                    ctlseqs.ERASE_CHARS % cols * (ITerm2Image._TERM == "wezterm")
+                    + ctlseqs.CURSOR_FORWARD % cols
                 )
                 for line in fills
             )
             assert last_fill == (
-                jump_right.format(cols=cols)
+                ctlseqs.CURSOR_FORWARD % cols
                 if ITerm2Image._TERM == "konsole"
                 else (
-                    erase.format(cols=cols) * (ITerm2Image._TERM == "wezterm")
-                    + f"{CSI}{lines - 1}A"
+                    ctlseqs.ERASE_CHARS % cols * (ITerm2Image._TERM == "wezterm")
+                    + ctlseqs.CURSOR_UP % (lines - 1)
                 )
             )
 
@@ -1071,11 +1071,11 @@ class TestRenderWhole:
             *fills, last_fill = decode_image(
                 render, term=ITerm2Image._TERM  # fmt: skip
             )[-1].splitlines()
-            assert all(line == jump_right.format(cols=cols) for line in fills)
+            assert all(line == ctlseqs.CURSOR_FORWARD % cols for line in fills)
             assert last_fill == (
-                jump_right.format(cols=cols)
+                ctlseqs.CURSOR_FORWARD % cols
                 if ITerm2Image._TERM == "konsole"
-                else f"{CSI}{lines - 1}A"
+                else ctlseqs.CURSOR_UP % (lines - 1)
             )
 
     def test_compress(self):
@@ -1334,11 +1334,11 @@ class TestClear:
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(now=True)
                 assert buf.getvalue() == ""
-                assert tty_buf.getvalue() == iterm2.DELETE_ALL_IMAGES_b
+                assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_ALL_b
 
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear()
-                assert buf.getvalue() == iterm2.DELETE_ALL_IMAGES
+                assert buf.getvalue() == ctlseqs.KITTY_DELETE_ALL
                 assert tty_buf.getvalue() == b""
         finally:
             ITerm2Image._TERM = _TERM
@@ -1350,11 +1350,11 @@ class TestClear:
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(cursor=True, now=True)
                 assert buf.getvalue() == ""
-                assert tty_buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES_b
+                assert tty_buf.getvalue() == ctlseqs.KITTY_DELETE_CURSOR_b
 
             with self.setup_buffer() as (buf, tty_buf):
                 ITerm2Image.clear(cursor=True)
-                assert buf.getvalue() == iterm2.DELETE_CURSOR_IMAGES
+                assert buf.getvalue() == ctlseqs.KITTY_DELETE_CURSOR
                 assert tty_buf.getvalue() == b""
         finally:
             ITerm2Image._TERM = _TERM
@@ -1390,6 +1390,3 @@ class TestClear:
 
 
 supported_terminals = {"iterm2", "wezterm", "konsole"}
-erase = f"{CSI}{{cols}}X"
-jump_right = f"{CSI}{{cols}}C"
-fill_fmt = f"{CSI}{{cols}}X{jump_right}"

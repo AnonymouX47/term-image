@@ -8,16 +8,13 @@ from typing import Optional, Tuple
 
 import urwid
 
+from .. import ctlseqs
+
+# These sequences are used during performance-critical operations that occur often
+from ..ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
 from ..exceptions import UrwidImageError
-from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage, kitty
-from ..utils import (
-    BEGIN_SYNCED_UPDATE,
-    END_SYNCED_UPDATE,
-    COLOR_RESET_b,
-    ESC_b,
-    lock_tty,
-    write_tty,
-)
+from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
+from ..utils import lock_tty, write_tty
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -352,7 +349,7 @@ class UrwidImageCanvas(urwid.Canvas):
                     ((None, "U", b" " * new_pad_right),) if new_pad_right else ()
                 )
                 color_reset = (
-                    ((None, "U", COLOR_RESET_b),)
+                    ((None, "U", SGR_NORMAL_b),)
                     if image_size[0] > trim_image_right > 0
                     else ()
                 )
@@ -537,9 +534,9 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         # Also takes care of iterm2 images on Konsole
         if KittyImage._forced_support or KittyImage.is_supported():
             if now:
-                write_tty(kitty.DELETE_ALL_IMAGES_b)
+                write_tty(ctlseqs.KITTY_DELETE_ALL_b)
             else:
-                self.write(kitty.DELETE_ALL_IMAGES)
+                self.write(ctlseqs.KITTY_DELETE_ALL)
             UrwidImageCanvas._ti_change_disguise()
 
     # `@lock_tty` prevents queries during a synced update.
