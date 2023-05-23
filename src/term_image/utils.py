@@ -93,7 +93,7 @@ class ClassPropertyBase(property):
         super().__init__(fget, fset, fdel, doc)
         # `property` doesn't set `__doc__`, probably cos this class' `__doc__`
         # attribute overrides its `__doc__` descriptor.
-        super().__setattr__("__doc__", doc)
+        super().__setattr__("__doc__", doc or fget.__doc__)
 
     def __set_name__(self, owner, name):
         self.__objclass__ = owner
