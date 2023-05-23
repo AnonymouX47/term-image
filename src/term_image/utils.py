@@ -53,10 +53,24 @@ class ClassInstanceMethod(classmethod):
     and when invoked via an instance, behaves like an instance method.
     """
 
+    def __init__(
+        self, f_owner: FunctionType, f_instance: Optional[FunctionType] = None
+    ):
+        super().__init__(f_owner)
+        self.f_owner = f_owner
+        self.f_instance = f_instance
+
     def __get__(self, instance, owner=None):
-        # classmethod just uses `owner` directly if given.
-        # Otherwise, type(instance) but we're not concerned with this.
-        return super().__get__(None, instance or owner)
+        if instance:
+            return self.f_instance.__get__(instance, owner)
+        else:
+            return super().__get__(instance, owner)
+
+    def classmethod(self, function: FunctionType) -> ClassInstanceMethod:
+        return type(self)(function, self.f_instance)
+
+    def instancemethod(self, function: FunctionType) -> ClassInstanceMethod:
+        return type(self)(self.f_owner, function)
 
 
 class ClassPropertyBase(property):

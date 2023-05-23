@@ -1039,7 +1039,7 @@ class BaseImage(metaclass=ImageMeta):
             self._seek_position = pos
 
     @ClassInstanceMethod
-    def set_render_method(self_or_cls, method: Optional[str] = None) -> None:
+    def set_render_method(cls, method: Optional[str] = None) -> None:
         """Sets the :term:`render method` used by instances of a :term:`render style`
         class that implements multiple render methods.
 
@@ -1079,23 +1079,33 @@ class BaseImage(metaclass=ImageMeta):
             raise TypeError(
                 f"'method' must be a string or `None` (got: {type(method).__name__!r})"
             )
-
-        if method is not None and method.lower() not in self_or_cls._render_methods:
-            cls = (
-                type(self_or_cls) if isinstance(self_or_cls, __class__) else self_or_cls
-            )
+        if method is not None and method.lower() not in cls._render_methods:
             raise ValueError(f"Unknown render method {method!r} for {cls.__name__}")
 
         if not method:
-            if isinstance(self_or_cls, __class__):
-                try:
-                    del self_or_cls._render_method
-                except AttributeError:
-                    pass
-            elif self_or_cls._render_methods:
-                self_or_cls._render_method = self_or_cls._default_render_method
+            if cls._render_methods:
+                cls._render_method = cls._default_render_method
         else:
-            self_or_cls._render_method = method
+            cls._render_method = method
+
+    @set_render_method.instancemethod
+    def set_render_method(self, method: Optional[str] = None) -> None:
+        if method is not None and not isinstance(method, str):
+            raise TypeError(
+                f"'method' must be a string or `None` (got: {type(method).__name__!r})"
+            )
+        if method is not None and method.lower() not in type(self)._render_methods:
+            raise ValueError(
+                f"Unknown render method {method!r} for {type(self).__name__}"
+            )
+
+        if not method:
+            try:
+                del self._render_method
+            except AttributeError:
+                pass
+        else:
+            self._render_method = method
 
     def set_size(
         self,
