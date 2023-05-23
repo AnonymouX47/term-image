@@ -24,7 +24,7 @@ from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 from typing import Callable, Optional, Tuple, Union
 
 from . import ctlseqs
@@ -132,7 +132,7 @@ class ClassPropertyMeta(type):
     its instances.
 
     - Takes care of inherited class properties.
-    - Works with both cooperative multiple ane multi-level inheritance.
+    - Works with both cooperative multiple and multi-level inheritance.
 
     SEE ALSO:
         :py:class:`ClassPropertyBase`
@@ -144,7 +144,10 @@ class ClassPropertyMeta(type):
             if isinstance(base, __class__):
                 class_properties.update(base._class_properties_)
 
-        return super().__new__(cls, name, bases, dict, **kwds)
+        self = super().__new__(cls, name, bases, dict, **kwds)
+        self._class_properties_ = MappingProxyType(class_properties)
+
+        return self
 
     def __setattr__(self, name, value):
         class_property = self._class_properties_.get(name)
