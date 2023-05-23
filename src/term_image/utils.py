@@ -108,8 +108,78 @@ class ClassPropertyBase(property):
 class ClassInstanceProperty(ClassPropertyBase):
     """A property which operates on the invoker, be it the owner or an instance."""
 
+    def __init__(
+        self,
+        fget=None,
+        fset=None,
+        fdel=None,
+        cls_fget=None,
+        cls_fset=None,
+        cls_fdel=None,
+        doc=None,
+    ):
+        super().__init__(fget, fset, fdel, doc)
+        self.cls_fget = cls_fget
+        self.cls_fset = cls_fset
+        self.cls_fdel = cls_fdel
+
     def __get__(self, instance, owner=None):
-        return super().__get__(instance or owner, owner)
+        return self._invoke("get", instance, owner)
+
+    def __set__(self, obj, value):
+        return (
+            self._invoke("set", obj, None, value)
+            if isinstance(obj, self.__objclass__)
+            else self._invoke("set", None, obj, value)
+        )
+
+    def __delete__(self, obj):
+        return (
+            self._invoke("delete", obj, None)
+            if isinstance(obj, self.__objclass__)
+            else self._invoke("delete", None, obj)
+        )
+
+    def getter(self, fget: Callable) -> ClassInstanceProperty:
+        return self._copy(fget=fget)
+
+    def setter(self, fset: Callable) -> ClassInstanceProperty:
+        return self._copy(fset=fset)
+
+    def deleter(self, fdel: Callable) -> ClassInstanceProperty:
+        return self._copy(fdel=fdel)
+
+    def cls_getter(self, cls_fget: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fget=cls_fget)
+
+    def cls_setter(self, cls_fset: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fset=cls_fset)
+
+    def cls_deleter(self, cls_fdel: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fdel=cls_fdel)
+
+    def _copy(self, **kwargs):
+        return type(self)(
+            self.fget or kwargs.get("fget"),
+            self.fset or kwargs.get("fset"),
+            self.fdel or kwargs.get("fdel"),
+            self.cls_fget or kwargs.get("cls_fget"),
+            self.cls_fset or kwargs.get("cls_fset"),
+            self.cls_fdel or kwargs.get("cls_fdel"),
+            self.__doc__,
+        )
+
+    def _invoke(self, op, instance, owner, *value):
+        if instance:
+            func = getattr(self, f"f{op[:3]}")
+            if func:
+                return func(instance, *value)
+            raise AttributeError(f"can't {op} attribute on instance") from None
+        else:
+            func = getattr(self, f"cls_f{op[:3]}")
+            if func:
+                return func(owner, *value)
+            raise AttributeError(f"can't {op} attribute on owner") from None
 
 
 class ClassProperty(ClassPropertyBase):
