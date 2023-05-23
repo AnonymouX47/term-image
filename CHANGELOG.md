@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
+- `term_image.utils.get_cell_size()` to the public API ([#87]).
 
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
 - `KeyboardInterrupt` is no longer raised when `SIGINT` is used to end an animation ([fa47742]).
 - Switched to the standard SGR FG/BG direct color control sequences ([b38e2e8]).
+- Improved terminal cell size computation ([#87]).
 
+[#87]: https://github.com/AnonymouX47/term-image/pull/87
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3

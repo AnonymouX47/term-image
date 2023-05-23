@@ -330,6 +330,10 @@ class ITerm2Image(GraphicsImage):
         except AttributeError:
             pass
 
+    jpeg_quality = jpeg_quality.cls_getter(jpeg_quality.fget)
+    jpeg_quality = jpeg_quality.cls_setter(jpeg_quality.fset)
+    jpeg_quality = jpeg_quality.cls_deleter(jpeg_quality.fdel)
+
     native_anim_max_bytes = ClassProperty(
         # 2 MiB default
         lambda cls: getattr(__class__, "_native_anim_max_bytes", 2 * 2**20),
@@ -446,6 +450,10 @@ class ITerm2Image(GraphicsImage):
             del self_or_cls._read_from_file
         except AttributeError:
             pass
+
+    read_from_file = read_from_file.cls_getter(read_from_file.fget)
+    read_from_file = read_from_file.cls_setter(read_from_file.fset)
+    read_from_file = read_from_file.cls_deleter(read_from_file.fdel)
 
     @classmethod
     def clear(cls, cursor: bool = False, now: bool = False) -> None:

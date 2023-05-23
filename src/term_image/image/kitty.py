@@ -309,9 +309,7 @@ class KittyImage(GraphicsImage):
             # Not supported if it doesn't respond to either query
             # or responds to the second but not the first
             if response:
-                response = ctlseqs.KITTY_RESPONSE_re.match(
-                    response.rpartition(ctlseqs.ESC_b)[0].decode()
-                )
+                response = ctlseqs.KITTY_RESPONSE_re.match(response.decode())
             if response and response["id"] == "31" and response["message"] == "OK":
                 name, version = get_terminal_name_version()
                 # Only kitty >= 0.20.0 implement the protocol features utilized

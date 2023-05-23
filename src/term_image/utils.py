@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 __all__ = (
+    "get_cell_size",
     "get_terminal_name_version",
     "get_terminal_size",
     "lock_tty",
@@ -23,7 +24,7 @@ from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 from typing import Callable, Optional, Tuple, Union
 
 from . import ctlseqs
@@ -52,10 +53,24 @@ class ClassInstanceMethod(classmethod):
     and when invoked via an instance, behaves like an instance method.
     """
 
+    def __init__(
+        self, f_owner: FunctionType, f_instance: Optional[FunctionType] = None
+    ):
+        super().__init__(f_owner)
+        self.f_owner = f_owner
+        self.f_instance = f_instance
+
     def __get__(self, instance, owner=None):
-        # classmethod just uses `owner` directly if given.
-        # Otherwise, type(instance) but we're not concerned with this.
-        return super().__get__(None, instance or owner)
+        if instance:
+            return self.f_instance.__get__(instance, owner)
+        else:
+            return super().__get__(instance, owner)
+
+    def classmethod(self, function: FunctionType) -> ClassInstanceMethod:
+        return type(self)(function, self.f_instance)
+
+    def instancemethod(self, function: FunctionType) -> ClassInstanceMethod:
+        return type(self)(self.f_owner, function)
 
 
 class ClassPropertyBase(property):
@@ -78,7 +93,7 @@ class ClassPropertyBase(property):
         super().__init__(fget, fset, fdel, doc)
         # `property` doesn't set `__doc__`, probably cos this class' `__doc__`
         # attribute overrides its `__doc__` descriptor.
-        super().__setattr__("__doc__", doc)
+        super().__setattr__("__doc__", doc or fget.__doc__)
 
     def __set_name__(self, owner, name):
         self.__objclass__ = owner
@@ -93,8 +108,78 @@ class ClassPropertyBase(property):
 class ClassInstanceProperty(ClassPropertyBase):
     """A property which operates on the invoker, be it the owner or an instance."""
 
+    def __init__(
+        self,
+        fget=None,
+        fset=None,
+        fdel=None,
+        cls_fget=None,
+        cls_fset=None,
+        cls_fdel=None,
+        doc=None,
+    ):
+        super().__init__(fget, fset, fdel, doc)
+        self.cls_fget = cls_fget
+        self.cls_fset = cls_fset
+        self.cls_fdel = cls_fdel
+
     def __get__(self, instance, owner=None):
-        return super().__get__(instance or owner, owner)
+        return self._invoke("get", instance, owner)
+
+    def __set__(self, obj, value):
+        return (
+            self._invoke("set", obj, None, value)
+            if isinstance(obj, self.__objclass__)
+            else self._invoke("set", None, obj, value)
+        )
+
+    def __delete__(self, obj):
+        return (
+            self._invoke("delete", obj, None)
+            if isinstance(obj, self.__objclass__)
+            else self._invoke("delete", None, obj)
+        )
+
+    def getter(self, fget: Callable) -> ClassInstanceProperty:
+        return self._copy(fget=fget)
+
+    def setter(self, fset: Callable) -> ClassInstanceProperty:
+        return self._copy(fset=fset)
+
+    def deleter(self, fdel: Callable) -> ClassInstanceProperty:
+        return self._copy(fdel=fdel)
+
+    def cls_getter(self, cls_fget: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fget=cls_fget)
+
+    def cls_setter(self, cls_fset: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fset=cls_fset)
+
+    def cls_deleter(self, cls_fdel: Callable) -> ClassInstanceProperty:
+        return self._copy(cls_fdel=cls_fdel)
+
+    def _copy(self, **kwargs):
+        return type(self)(
+            self.fget or kwargs.get("fget"),
+            self.fset or kwargs.get("fset"),
+            self.fdel or kwargs.get("fdel"),
+            self.cls_fget or kwargs.get("cls_fget"),
+            self.cls_fset or kwargs.get("cls_fset"),
+            self.cls_fdel or kwargs.get("cls_fdel"),
+            self.__doc__,
+        )
+
+    def _invoke(self, op, instance, owner, *value):
+        if instance:
+            func = getattr(self, f"f{op[:3]}")
+            if func:
+                return func(instance, *value)
+            raise AttributeError(f"can't {op} attribute on instance") from None
+        else:
+            func = getattr(self, f"cls_f{op[:3]}")
+            if func:
+                return func(owner, *value)
+            raise AttributeError(f"can't {op} attribute on owner") from None
 
 
 class ClassProperty(ClassPropertyBase):
@@ -117,7 +202,7 @@ class ClassPropertyMeta(type):
     its instances.
 
     - Takes care of inherited class properties.
-    - Works with both cooperative multiple ane multi-level inheritance.
+    - Works with both cooperative multiple and multi-level inheritance.
 
     SEE ALSO:
         :py:class:`ClassPropertyBase`
@@ -129,7 +214,10 @@ class ClassPropertyMeta(type):
             if isinstance(base, __class__):
                 class_properties.update(base._class_properties_)
 
-        return super().__new__(cls, name, bases, dict, **kwds)
+        self = super().__new__(cls, name, bases, dict, **kwds)
+        self._class_properties_ = MappingProxyType(class_properties)
+
+        return self
 
     def __setattr__(self, name, value):
         class_property = self._class_properties_.get(name)
@@ -309,7 +397,7 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
 
     @wraps(func)
     def unix_only_wrapper(*args, **kwargs):
-        return _tty and func(*args, **kwargs)
+        return _tty_fd and func(*args, **kwargs)
 
     unix_only_wrapper.__doc__ += """
     NOTE:
@@ -357,17 +445,74 @@ def color(
 
 
 @unix_tty_only
-@terminal_size_cached
 def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
-        The terminal cell size in pixels or `None` if undetermined.
-    """
-    ws = get_window_size()
-    size = ws and tuple(map(floordiv, ws, get_terminal_size()))
+        The cell size in pixels or `None` if undetermined.
 
-    return size if size and 0 not in size else None
+    The speed of this implementation is almost entirely dependent on the terminal; the
+    method it supports and its response time if it has to be queried.
+    """
+    # If a thread reaches this point while the lock is being changed
+    # (the old lock has been acquired but hasn't been changed), after the lock has
+    # been changed and the former lock is released, the waiting thread will acquire
+    # the old lock making it to be out of sync.
+    # Hence the second expression, which allows such a thread to acquire the new
+    # lock and be in sync.
+    # NB: Multiple expressions are processed as multiple nested with statements.
+    with _cell_size_lock, _cell_size_lock:
+        ts = get_terminal_size()
+        if ts == tuple(_cell_size_cache[:2]):
+            size = tuple(_cell_size_cache[2:])
+            return None if 0 in size else size
+
+        size = text_area_size = None
+
+        # First try ioctl
+        buf = array("H", [0, 0, 0, 0])
+        try:
+            if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
+                text_area_size = tuple(buf[2:])
+                if 0 in text_area_size:
+                    text_area_size = None
+        except OSError:
+            pass
+
+        if not text_area_size:
+            # Then XTWINOPS
+            # The last sequence is to speed up the entire query since most (if not all)
+            # terminals should support it and most terminals treat queries as FIFO
+            response = query_terminal(
+                ctlseqs.CELL_SIZE_PX_b + ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
+                more=lambda s: not s.endswith(b"c"),
+            )
+            if response:
+                cell_size_match = ctlseqs.CELL_SIZE_PX_re.match(response.decode())
+                if not cell_size_match:
+                    text_area_size_match = ctlseqs.TEXT_AREA_SIZE_PX_re.match(
+                        response.decode()
+                    )
+            # XTWINOPS specifies (height, width)
+            if cell_size_match:
+                size = tuple(map(int, cell_size_match.groups()))[::-1]
+            elif text_area_size_match:
+                text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
+
+                # Termux seems to respond with (height / 2, width), though the values
+                # are incorrect as they change with different zoom levels but still
+                # always give a reasonable (almost always the same) cell size and ratio.
+                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                    text_area_size = (text_area_size[0], text_area_size[1] * 2)
+
+        if text_area_size and _swap_win_size:
+            text_area_size = text_area_size[::-1]
+        size = size or (
+            tuple(map(floordiv, text_area_size, ts)) if text_area_size else (0, 0)
+        )
+        _cell_size_cache[:] = ts + size
+
+        return None if 0 in size else size
 
 
 @cached
@@ -399,9 +544,7 @@ def get_fg_bg_colors(
 
     fg = bg = None
     if response:
-        for c, spec in ctlseqs.RGB_SPEC_re.findall(
-            response.decode().rpartition(ctlseqs.ESC)[0]
-        ):
+        for c, spec in ctlseqs.RGB_SPEC_re.findall(response.decode()):
             if c == "10":
                 fg = ctlseqs.x_parse_color(spec)
             elif c == "11":
@@ -433,9 +576,7 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
         if _queries_enabled:
             read_tty()  # The rest of the response to DA1
 
-    match = response and ctlseqs.XTVERSION_re.fullmatch(
-        response.decode().rpartition(ctlseqs.ESC)[0]
-    )
+    match = response and ctlseqs.XTVERSION_re.match(response.decode())
     name, version = (
         match.groups()
         if match
@@ -460,78 +601,16 @@ def get_terminal_size() -> os.terminal_size:
         - gives different results in certain situations
         - is what this library works with
     """
-    if _tty:
+    if _tty_fd:
         # faster and gives correct results when output is redirected
         try:
-            size = os.get_terminal_size(_tty)
+            size = os.get_terminal_size(_tty_fd)
         except OSError:
             size = None
     else:
         size = None
 
     return size or _get_terminal_size()
-
-
-@unix_tty_only
-def get_window_size() -> Optional[Tuple[int, int]]:
-    """Returns the current window size of the :term:`active terminal`.
-
-    Returns:
-        The terminal size in pixels.
-
-    The speed of this implementation is almost entirely dependent on the terminal; the
-    method it supports and its response time if it has to be queried.
-
-    Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
-    support.
-    """
-    # If a thread reaches this point while the lock is being changed
-    # (the old lock has been acquired but hasn't been changed), after the lock has
-    # been changed and the former lock is released, the waiting thread will acquire
-    # the old lock making it to be out of sync.
-    # Hence the second expression, which allows such a thread to acquire the new
-    # lock and be in sync.
-    # NB: Multiple expressions are processed as multiple nested with statements.
-    with _win_size_lock, _win_size_lock:
-        ts = get_terminal_size()
-        if ts == tuple(_win_size_cache[:2]):
-            size = tuple(_win_size_cache[2:])
-            return None if 0 in size else size
-
-        # First try ioctl
-        size = None
-        buf = array("H", [0, 0, 0, 0])
-        try:
-            if not fcntl.ioctl(_tty, termios.TIOCGWINSZ, buf):
-                size = tuple(buf[2:])
-                if size == (0, 0):
-                    size = None
-        except OSError:
-            pass
-
-        if not size:
-            # Then XTWINOPS
-            # The second sequence is to speed up the entire query since most (if not
-            # all) terminals should support it and most terminals treat queries as FIFO
-            response = query_terminal(
-                ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
-                more=lambda s: not s.endswith(b"c"),
-            )
-            match = response and ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode())
-            if match:
-                # XTWINOPS specifies (height, width)
-                size = tuple(map(int, match.groups()))[::-1]
-
-                # Termux seems to respond with (height / 2, width), though the values
-                # are incorrect as they change with different zoom levels but still
-                # always give a reasonable (almost always the same) cell size and ratio.
-                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                    size = (size[0], size[1] * 2)
-
-        size = size[:: -_swap_win_size or 1] if size else (0, 0)
-        _win_size_cache[:] = ts + size
-
-        return None if 0 in size else size
 
 
 @unix_tty_only
@@ -567,15 +646,15 @@ def query_terminal(
     if not _queries_enabled:
         return None
 
-    old_attr = termios.tcgetattr(_tty)
-    new_attr = termios.tcgetattr(_tty)
+    old_attr = termios.tcgetattr(_tty_fd)
+    new_attr = termios.tcgetattr(_tty_fd)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
     try:
-        termios.tcsetattr(_tty, termios.TCSAFLUSH, new_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSAFLUSH, new_attr)
         write_tty(request)
         return read_tty(more, timeout or _query_timeout)
     finally:
-        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
 
 
 @unix_tty_only
@@ -622,8 +701,8 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    old_attr = termios.tcgetattr(_tty)
-    new_attr = termios.tcgetattr(_tty)
+    old_attr = termios.tcgetattr(_tty_fd)
+    new_attr = termios.tcgetattr(_tty_fd)
     new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
     new_attr[6][termios.VTIME] = 0  # Never block based on time
     if echo:
@@ -635,32 +714,32 @@ def read_tty(
 
     input = bytearray()
     try:
-        termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
-        r, w, x = [_tty], [], []
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
+        r, w, x = [_tty_fd], [], []
 
         if timeout is None:
             # VMIN=0 does not work as expected on some platforms when there's no input
             while select(r, w, x, 0.0)[0]:
-                input.extend(os.read(_tty, 100))
+                input.extend(os.read(_tty_fd, 100))
         else:
             start = monotonic()
             if min > 0:
-                input.extend(os.read(_tty, min))
+                input.extend(os.read(_tty_fd, min))
 
                 # Don't block based on based on amount of bytes anymore
                 new_attr[6][termios.VMIN] = 0
-                termios.tcsetattr(_tty, termios.TCSANOW, new_attr)
+                termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
 
             duration = monotonic() - start
             while (timeout < 0 or duration < timeout) and more(input):
                 # Reduces CPU usage
                 # Also, VMIN=0 does not work on some platforms when there's no input
                 if select(r, w, x, None if timeout < 0 else timeout - duration)[0]:
-                    input.extend(os.read(_tty, 1))
+                    input.extend(os.read(_tty_fd, 1))
                 duration = monotonic() - start
             # logging.debug(duration)
     finally:
-        termios.tcsetattr(_tty, termios.TCSANOW, old_attr)
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
 
     return bytes(input)
 
@@ -687,15 +766,15 @@ def write_tty(data: bytes) -> None:
     Args:
         data: Data to be written.
     """
-    os.write(_tty, data)
+    os.write(_tty_fd, data)
     try:
-        termios.tcdrain(_tty)
+        termios.tcdrain(_tty_fd)
     except termios.error:  # "Permission denied" on some platforms e.g Termux
         pass
 
 
 def _process_start_wrapper(self, *args, **kwargs):
-    global _tty_lock, _win_size_cache, _win_size_lock
+    global _tty_lock, _cell_size_cache, _cell_size_lock
 
     # Ensure a lock is not acquired by another process/thread before changing it.
     # The only case in which this is useless is when the owner thread is the
@@ -725,27 +804,27 @@ def _process_start_wrapper(self, *args, **kwargs):
         else:
             self._tty_lock = _tty_lock
 
-    with _win_size_lock:
-        if isinstance(_win_size_lock, _rlock_type):
+    with _cell_size_lock:
+        if isinstance(_cell_size_lock, _rlock_type):
             try:
-                self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
-                _win_size_lock = _win_size_cache.get_lock()
+                self._cell_size_cache = _cell_size_cache = Array("i", _cell_size_cache)
+                _cell_size_lock = _cell_size_cache.get_lock()
             except ImportError:
-                self._win_size_cache = None
+                self._cell_size_cache = None
         else:
-            self._win_size_cache = _win_size_cache
+            self._cell_size_cache = _cell_size_cache
 
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
 def _process_run_wrapper(self, *args, **kwargs):
-    global _tty_lock, _win_size_cache, _win_size_lock
+    global _tty_lock, _cell_size_cache, _cell_size_lock
 
     if self._tty_lock:
         _tty_lock = self._tty_lock
-    if self._win_size_cache:
-        _win_size_cache = self._win_size_cache
-        _win_size_lock = _win_size_cache.get_lock()
+    if self._cell_size_cache:
+        _cell_size_cache = self._cell_size_cache
+        _cell_size_lock = _cell_size_cache.get_lock()
 
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
@@ -754,22 +833,22 @@ def _process_run_wrapper(self, *args, **kwargs):
 _query_timeout = 0.1
 _queries_enabled: bool = True
 _swap_win_size: bool = False
-_tty: Optional[int] = None
+_tty_fd: Optional[int] = None
 _tty_lock = RLock()
-_win_size_cache = [0] * 4
-_win_size_lock = RLock()
+_cell_size_cache = [0] * 4
+_cell_size_lock = RLock()
 _rlock_type = type(_tty_lock)
 
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
         try:
-            _tty = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
+            _tty_fd = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
             break
         except (OSError, AttributeError):
             pass
     else:
         try:
-            _tty = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
         except OSError:
             warnings.warn(
                 "It seems this process is not running within a terminal. "
@@ -781,9 +860,9 @@ if OS_IS_UNIX:
                 "`TermImageWarning` won't be available).",
                 TermImageWarning,
             )
-    if _tty:
-        if isinstance(_tty, str):
-            _tty = os.open(_tty, os.O_RDWR)
+    if _tty_fd:
+        if isinstance(_tty_fd, str):
+            _tty_fd = os.open(_tty_fd, os.O_RDWR)
 
         Process.start = wraps(Process.start)(_process_start_wrapper)
         Process.run = wraps(Process.run)(_process_run_wrapper)
