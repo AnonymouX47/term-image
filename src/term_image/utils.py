@@ -357,17 +357,74 @@ def color(
 
 
 @unix_tty_only
-@terminal_size_cached
 def get_cell_size() -> Optional[Tuple[int, int]]:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
-        The terminal cell size in pixels or `None` if undetermined.
-    """
-    ws = get_window_size()
-    size = ws and tuple(map(floordiv, ws, get_terminal_size()))
+        The cell size in pixels or `None` if undetermined.
 
-    return size if size and 0 not in size else None
+    The speed of this implementation is almost entirely dependent on the terminal; the
+    method it supports and its response time if it has to be queried.
+    """
+    # If a thread reaches this point while the lock is being changed
+    # (the old lock has been acquired but hasn't been changed), after the lock has
+    # been changed and the former lock is released, the waiting thread will acquire
+    # the old lock making it to be out of sync.
+    # Hence the second expression, which allows such a thread to acquire the new
+    # lock and be in sync.
+    # NB: Multiple expressions are processed as multiple nested with statements.
+    with _cell_size_lock, _cell_size_lock:
+        ts = get_terminal_size()
+        if ts == tuple(_cell_size_cache[:2]):
+            size = tuple(_cell_size_cache[2:])
+            return None if 0 in size else size
+
+        size = text_area_size = None
+
+        # First try ioctl
+        buf = array("H", [0, 0, 0, 0])
+        try:
+            if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
+                text_area_size = tuple(buf[2:])
+                if 0 in text_area_size:
+                    text_area_size = None
+        except OSError:
+            pass
+
+        if not text_area_size:
+            # Then XTWINOPS
+            # The last sequence is to speed up the entire query since most (if not all)
+            # terminals should support it and most terminals treat queries as FIFO
+            response = query_terminal(
+                ctlseqs.CELL_SIZE_PX_b + ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
+                more=lambda s: not s.endswith(b"c"),
+            )
+            if response:
+                cell_size_match = ctlseqs.CELL_SIZE_PX_re.match(response.decode())
+                if not cell_size_match:
+                    text_area_size_match = ctlseqs.TEXT_AREA_SIZE_PX_re.match(
+                        response.decode()
+                    )
+            # XTWINOPS specifies (height, width)
+            if cell_size_match:
+                size = tuple(map(int, cell_size_match.groups()))[::-1]
+            elif text_area_size_match:
+                text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
+
+                # Termux seems to respond with (height / 2, width), though the values
+                # are incorrect as they change with different zoom levels but still
+                # always give a reasonable (almost always the same) cell size and ratio.
+                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                    text_area_size = (text_area_size[0], text_area_size[1] * 2)
+
+        if text_area_size and _swap_win_size:
+            text_area_size = text_area_size[::-1]
+        size = size or (
+            tuple(map(floordiv, text_area_size, ts)) if text_area_size else (0, 0)
+        )
+        _cell_size_cache[:] = ts + size
+
+        return None if 0 in size else size
 
 
 @cached
@@ -470,68 +527,6 @@ def get_terminal_size() -> os.terminal_size:
         size = None
 
     return size or _get_terminal_size()
-
-
-@unix_tty_only
-def get_window_size() -> Optional[Tuple[int, int]]:
-    """Returns the current window size of the :term:`active terminal`.
-
-    Returns:
-        The terminal size in pixels.
-
-    The speed of this implementation is almost entirely dependent on the terminal; the
-    method it supports and its response time if it has to be queried.
-
-    Returns ``None`` if the size couldn't be gotten in time or the terminal lacks
-    support.
-    """
-    # If a thread reaches this point while the lock is being changed
-    # (the old lock has been acquired but hasn't been changed), after the lock has
-    # been changed and the former lock is released, the waiting thread will acquire
-    # the old lock making it to be out of sync.
-    # Hence the second expression, which allows such a thread to acquire the new
-    # lock and be in sync.
-    # NB: Multiple expressions are processed as multiple nested with statements.
-    with _win_size_lock, _win_size_lock:
-        ts = get_terminal_size()
-        if ts == tuple(_win_size_cache[:2]):
-            size = tuple(_win_size_cache[2:])
-            return None if 0 in size else size
-
-        # First try ioctl
-        size = None
-        buf = array("H", [0, 0, 0, 0])
-        try:
-            if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
-                size = tuple(buf[2:])
-                if size == (0, 0):
-                    size = None
-        except OSError:
-            pass
-
-        if not size:
-            # Then XTWINOPS
-            # The second sequence is to speed up the entire query since most (if not
-            # all) terminals should support it and most terminals treat queries as FIFO
-            response = query_terminal(
-                ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
-                more=lambda s: not s.endswith(b"c"),
-            )
-            match = response and ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode())
-            if match:
-                # XTWINOPS specifies (height, width)
-                size = tuple(map(int, match.groups()))[::-1]
-
-                # Termux seems to respond with (height / 2, width), though the values
-                # are incorrect as they change with different zoom levels but still
-                # always give a reasonable (almost always the same) cell size and ratio.
-                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                    size = (size[0], size[1] * 2)
-
-        size = size[:: -_swap_win_size or 1] if size else (0, 0)
-        _win_size_cache[:] = ts + size
-
-        return None if 0 in size else size
 
 
 @unix_tty_only
@@ -695,7 +690,7 @@ def write_tty(data: bytes) -> None:
 
 
 def _process_start_wrapper(self, *args, **kwargs):
-    global _tty_lock, _win_size_cache, _win_size_lock
+    global _tty_lock, _cell_size_cache, _cell_size_lock
 
     # Ensure a lock is not acquired by another process/thread before changing it.
     # The only case in which this is useless is when the owner thread is the
@@ -725,27 +720,27 @@ def _process_start_wrapper(self, *args, **kwargs):
         else:
             self._tty_lock = _tty_lock
 
-    with _win_size_lock:
-        if isinstance(_win_size_lock, _rlock_type):
+    with _cell_size_lock:
+        if isinstance(_cell_size_lock, _rlock_type):
             try:
-                self._win_size_cache = _win_size_cache = Array("i", _win_size_cache)
-                _win_size_lock = _win_size_cache.get_lock()
+                self._cell_size_cache = _cell_size_cache = Array("i", _cell_size_cache)
+                _cell_size_lock = _cell_size_cache.get_lock()
             except ImportError:
-                self._win_size_cache = None
+                self._cell_size_cache = None
         else:
-            self._win_size_cache = _win_size_cache
+            self._cell_size_cache = _cell_size_cache
 
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
 def _process_run_wrapper(self, *args, **kwargs):
-    global _tty_lock, _win_size_cache, _win_size_lock
+    global _tty_lock, _cell_size_cache, _cell_size_lock
 
     if self._tty_lock:
         _tty_lock = self._tty_lock
-    if self._win_size_cache:
-        _win_size_cache = self._win_size_cache
-        _win_size_lock = _win_size_cache.get_lock()
+    if self._cell_size_cache:
+        _cell_size_cache = self._cell_size_cache
+        _cell_size_lock = _cell_size_cache.get_lock()
 
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
@@ -756,8 +751,8 @@ _queries_enabled: bool = True
 _swap_win_size: bool = False
 _tty_fd: Optional[int] = None
 _tty_lock = RLock()
-_win_size_cache = [0] * 4
-_win_size_lock = RLock()
+_cell_size_cache = [0] * 4
+_cell_size_lock = RLock()
 _rlock_type = type(_tty_lock)
 
 if OS_IS_UNIX:
