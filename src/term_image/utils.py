@@ -456,9 +456,7 @@ def get_fg_bg_colors(
 
     fg = bg = None
     if response:
-        for c, spec in ctlseqs.RGB_SPEC_re.findall(
-            response.decode().rpartition(ctlseqs.ESC)[0]
-        ):
+        for c, spec in ctlseqs.RGB_SPEC_re.findall(response.decode()):
             if c == "10":
                 fg = ctlseqs.x_parse_color(spec)
             elif c == "11":
@@ -490,9 +488,7 @@ def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
         if _queries_enabled:
             read_tty()  # The rest of the response to DA1
 
-    match = response and ctlseqs.XTVERSION_re.fullmatch(
-        response.decode().rpartition(ctlseqs.ESC)[0]
-    )
+    match = response and ctlseqs.XTVERSION_re.match(response.decode())
     name, version = (
         match.groups()
         if match
