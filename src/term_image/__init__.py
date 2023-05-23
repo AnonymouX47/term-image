@@ -27,7 +27,6 @@ from typing import Optional, Union
 
 from . import utils
 from .exceptions import TermImageError
-from .utils import get_cell_size
 
 version_info = (0, 7, 0, "dev")
 
@@ -121,7 +120,7 @@ def get_cell_ratio() -> float:
     See :py:func:`set_cell_ratio`.
     """
     # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-    return _cell_ratio or truediv(*(get_cell_size() or (1, 2)))
+    return _cell_ratio or truediv(*(utils.get_cell_size() or (1, 2)))
 
 
 def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
@@ -161,7 +160,7 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
 
     if isinstance(ratio, AutoCellRatio):
         if AutoCellRatio.is_supported is None:
-            AutoCellRatio.is_supported = get_cell_size() is not None
+            AutoCellRatio.is_supported = utils.get_cell_size() is not None
 
         if not AutoCellRatio.is_supported:
             raise TermImageError(
@@ -170,7 +169,7 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
             )
         elif ratio is AutoCellRatio.FIXED:
             # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-            _cell_ratio = truediv(*(get_cell_size() or (1, 2)))
+            _cell_ratio = truediv(*(utils.get_cell_size() or (1, 2)))
         else:
             _cell_ratio = None
     elif isinstance(ratio, float):
