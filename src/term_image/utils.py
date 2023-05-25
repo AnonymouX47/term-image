@@ -25,7 +25,7 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 from types import FunctionType, MappingProxyType
-from typing import Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 from . import ctlseqs
 from .exceptions import TermImageWarning
@@ -409,6 +409,26 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
 
 
 # Non-decorators
+
+
+def arg_type_error(arg: str, value: Any) -> TypeError:
+    return TypeError(f"Invalid type for {arg!r} (got: {type(value).__name__})")
+
+
+def arg_value_error(arg: str, value: Any) -> ValueError:
+    return ValueError(f"Invalid value for {arg!r} (got: {value!r})")
+
+
+def arg_value_error_msg(msg: str, value: Any) -> ValueError:
+    return ValueError(f"{msg!r} (got: {value!r})")
+
+
+def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueError:
+    return ValueError(
+        f"{arg!r} out of range (got: {value!r}, {got_extra})"
+        if got_extra
+        else f"{arg!r} out of range (got: {value!r})"
+    )
 
 
 def clear_queue(queue: Union[Queue, mp_Queue]):
