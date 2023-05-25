@@ -21,9 +21,9 @@ def close_imgs():
 
 
 def test_from_url():
-    with pytest.raises(TypeError, match=r".* a string .*"):
+    with pytest.raises(TypeError, match=r"'url'"):
         BlockImage.from_url(python_img)
-    with pytest.raises(ValueError, match="Invalid URL.*"):
+    with pytest.raises(ValueError, match="Invalid URL"):
         BlockImage.from_url(python_image)
     with pytest.raises(URLNotFoundError):
         BlockImage.from_url(python_url + "e")
@@ -39,11 +39,11 @@ def test_from_url():
     assert image._source_type is ImageSource.URL
 
     # Ensure size arguments get through
-    with pytest.raises(ValueError, match=r".* both width and height"):
+    with pytest.raises(ValueError, match=r"both width and height"):
         BlockImage.from_url(python_url, width=1, height=1)
 
     # Ensure scale argument gets through
-    with pytest.raises(TypeError, match=r"'scale' .*"):
+    with pytest.raises(TypeError, match=r"'scale'"):
         BlockImage.from_url(python_url, scale=1.0)
 
 
@@ -65,7 +65,7 @@ def test_close():
 
 class TestConvinience:
     def test_from_url(self):
-        with pytest.raises(TypeError, match=r"a string"):
+        with pytest.raises(TypeError, match=r"'url'"):
             from_url(python_img)
 
         # Ensure size arguments get through
