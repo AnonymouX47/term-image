@@ -565,9 +565,10 @@ class ITerm2Image(GraphicsImage):
                     self.rendered_height,
                 )
                 r_width = self.rendered_width
-                erase_and_jump = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
+                erase_and_move_cursor = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
                 first_frame = self._format_render(
-                    f"{erase_and_jump}\n" * (lines - 1) + f"{erase_and_jump}", *fmt
+                    f"{erase_and_move_cursor}\n" * (lines - 1) + erase_and_move_cursor,
+                    *fmt,
                 )
                 print(
                     first_frame,
@@ -616,8 +617,8 @@ class ITerm2Image(GraphicsImage):
         # Workarounds
         is_on_konsole = self._TERM == "konsole"
         is_on_wezterm = self._TERM == "wezterm"
-        jump_right = CURSOR_FORWARD % r_width
-        jump_up = CURSOR_UP % (r_height - 1) if r_height > 1 else ""
+        cursor_right = CURSOR_FORWARD % r_width
+        cursor_up = CURSOR_UP % (r_height - 1) if r_height > 1 else ""
         erase = ERASE_CHARS % r_width if not mix and is_on_wezterm else ""
 
         file_is_readable = True
@@ -667,16 +668,16 @@ class ITerm2Image(GraphicsImage):
                         (
                             ""
                             if is_on_konsole
-                            else f"{erase}{jump_right}\n" * (r_height - 1)
+                            else f"{erase}{cursor_right}\n" * (r_height - 1)
                         ),
                         erase,
-                        "" if is_on_konsole else jump_up,
+                        "" if is_on_konsole else cursor_up,
                         ITERM2_START,
                         control_data,
                         standard_b64encode(compressed_image.read()).decode(),
                         ST,
-                        f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
-                        jump_right * is_on_konsole,
+                        f"{cursor_right}\n" * (r_height - 1) if is_on_konsole else "",
+                        cursor_right * is_on_konsole,
                     )
                 )
 
@@ -766,7 +767,7 @@ class ITerm2Image(GraphicsImage):
                         standard_b64encode(compressed_image.getvalue()).decode()
                     )
                     buffer.write(ST)
-                    is_on_konsole and buffer.write(jump_right)
+                    is_on_konsole and buffer.write(cursor_right)
                     line < r_height and buffer.write("\n")
 
                 return buffer.getvalue()
@@ -784,15 +785,19 @@ class ITerm2Image(GraphicsImage):
             compressed_image.seek(0)
             return "".join(
                 (
-                    "" if is_on_konsole else f"{erase}{jump_right}\n" * (r_height - 1),
+                    (
+                        ""
+                        if is_on_konsole
+                        else f"{erase}{cursor_right}\n" * (r_height - 1)
+                    ),
                     erase,
-                    "" if is_on_konsole else jump_up,
+                    "" if is_on_konsole else cursor_up,
                     ITERM2_START,
                     control_data,
                     standard_b64encode(compressed_image.read()).decode(),
                     ST,
-                    f"{jump_right}\n" * (r_height - 1) if is_on_konsole else "",
-                    jump_right * is_on_konsole,
+                    f"{cursor_right}\n" * (r_height - 1) if is_on_konsole else "",
+                    cursor_right * is_on_konsole,
                 )
             )
 
