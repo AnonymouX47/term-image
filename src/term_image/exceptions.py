@@ -13,11 +13,11 @@ class TermImageError(Exception):
     """Exception baseclass. Raised for generic errors."""
 
 
-class URLNotFoundError(FileNotFoundError, TermImageError):
+class URLNotFoundError(TermImageError, FileNotFoundError):
     """Raised for 404 errors."""
 
 
-class InvalidSizeError(ValueError, TermImageError):
+class InvalidSizeError(TermImageError):
     """Raised for invalid image sizes."""
 
 
