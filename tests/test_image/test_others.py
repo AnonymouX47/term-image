@@ -9,7 +9,7 @@ from .test_base import BytesPath, python_image, python_img
 
 class TestConvinience:
     def test_auto_image(self):
-        with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
+        with pytest.raises(TypeError, match=r"'image'"):
             AutoImage(python_image)
 
         # Ensure size arguments get through
@@ -23,7 +23,7 @@ class TestConvinience:
         assert isinstance(AutoImage(python_img), BaseImage)
 
     def test_from_file(self):
-        with pytest.raises(TypeError, match=r"a string"):
+        with pytest.raises(TypeError, match=r"'filepath'"):
             from_file(python_img)
 
         # Ensure size arguments get through

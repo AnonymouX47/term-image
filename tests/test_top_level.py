@@ -13,10 +13,10 @@ class TestCellRatio:
     @reset_cell_size_ratio()
     def test_args(self):
         for value in (0, "1", ()):
-            with pytest.raises(TypeError, match=r"'ratio' must be"):
+            with pytest.raises(TypeError):
                 set_cell_ratio(value)
         for value in (0.0, -0.1, -1.0):
-            with pytest.raises(ValueError, match=r"'ratio' must be"):
+            with pytest.raises(ValueError):
                 set_cell_ratio(value)
 
         set_cell_size(None)

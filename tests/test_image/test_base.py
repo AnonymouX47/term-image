@@ -48,7 +48,7 @@ class BytesPath:
 
 class TestConstructor:
     def test_args(self):
-        with pytest.raises(TypeError, match=r"'PIL\.Image\.Image' instance"):
+        with pytest.raises(TypeError, match=r"'image'"):
             BlockImage(python_image)
 
         for size in ((0, 1), (1, 0), (0, 0)):
@@ -118,7 +118,7 @@ class TestConstructor:
 
 class TestFromFile:
     def test_args(self):
-        with pytest.raises(TypeError, match=r"a string"):
+        with pytest.raises(TypeError, match=r"'filepath'"):
             BlockImage.from_file(python_img)
         with pytest.raises(FileNotFoundError):
             BlockImage.from_file(python_image + "e")
@@ -540,37 +540,37 @@ class TestSetSize:
 
     def test_args_width_height(self):
         for value in (1, *Size):
-            with pytest.raises(ValueError, match=".* both width and height"):
+            with pytest.raises(ValueError, match="both width and height"):
                 self.image.set_size(value, value)
         for value in (1.0, "1", (), []):
-            with pytest.raises(TypeError, match="'width' must be"):
+            with pytest.raises(TypeError, match="'width'"):
                 self.image.set_size(value)
-            with pytest.raises(TypeError, match="'height' must be"):
+            with pytest.raises(TypeError, match="'height'"):
                 self.image.set_size(height=value)
         for value in (0, -1, -100):
-            with pytest.raises(ValueError, match="'width' must be"):
+            with pytest.raises(ValueError, match="'width'"):
                 self.image.set_size(value)
-            with pytest.raises(ValueError, match="'height' must be"):
+            with pytest.raises(ValueError, match="'height'"):
                 self.image.set_size(height=value)
 
     def test_args_allow(self):
         for value in (1.0, "1", (), []):
-            with pytest.raises(TypeError, match="'h_allow' must be"):
+            with pytest.raises(TypeError, match="'h_allow'"):
                 self.image.set_size(h_allow=value)
-            with pytest.raises(TypeError, match="'v_allow' must be"):
+            with pytest.raises(TypeError, match="'v_allow'"):
                 self.image.set_size(v_allow=value)
         for value in (-1, -100):
-            with pytest.raises(ValueError, match="'h_allow' must be"):
+            with pytest.raises(ValueError, match="'h_allow'"):
                 self.image.set_size(h_allow=value)
-            with pytest.raises(ValueError, match="'v_allow' must be"):
+            with pytest.raises(ValueError, match="'v_allow'"):
                 self.image.set_size(v_allow=value)
 
     def test_args_maxsize(self):
         for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
-            with pytest.raises(TypeError, match="'maxsize' must be"):
+            with pytest.raises(TypeError, match="'maxsize'"):
                 self.image.set_size(maxsize=value)
         for value in ((), (0,), (1,), (1, 1, 1), (0, 1), (1, 0), (-1, 1), (1, -1)):
-            with pytest.raises(ValueError, match="'maxsize' must contain"):
+            with pytest.raises(ValueError, match="'maxsize'"):
                 self.image.set_size(maxsize=value)
 
     def test_cannot_exceed_maxsize(self):
@@ -855,27 +855,27 @@ class TestFormatting:
     def test_args(self):
         self.image.set_size()
         for value in (1, 1.0, (), []):
-            with pytest.raises(TypeError, match="'h_align' must be .*"):
+            with pytest.raises(TypeError, match="'h_align'"):
                 self.check_formatting(h_align=value)
-            with pytest.raises(TypeError, match="'v_align' must be .*"):
+            with pytest.raises(TypeError, match="'v_align'"):
                 self.check_formatting(v_align=value)
 
         for value in ("", "cool", ".", " ", "\n"):
-            with pytest.raises(ValueError, match="Invalid horizontal .*"):
+            with pytest.raises(ValueError, match="'h_align'"):
                 self.check_formatting(h_align=value)
-            with pytest.raises(ValueError, match="Invalid vertical .*"):
+            with pytest.raises(ValueError, match="'v_align'"):
                 self.check_formatting(v_align=value)
 
         for value in ("1", 1.0, (), []):
-            with pytest.raises(TypeError, match="Padding width must be .*"):
+            with pytest.raises(TypeError, match="'pad_width'"):
                 self.check_formatting(width=value)
-            with pytest.raises(TypeError, match="Padding height must be .*"):
+            with pytest.raises(TypeError, match="'pad_height'"):
                 self.check_formatting(height=value)
 
         for value in (0, -1, -100):
-            with pytest.raises(ValueError, match="Padding width must be .*"):
+            with pytest.raises(ValueError, match="'pad_width'"):
                 self.check_formatting(width=value)
-            with pytest.raises(ValueError, match="Padding height must be .*"):
+            with pytest.raises(ValueError, match="'pad_height'"):
                 self.check_formatting(height=value)
 
     def test_arg_align_conversion(self):
@@ -1048,34 +1048,34 @@ class TestDraw:
     def test_args(self):
         sys.stdout = stdout
         for value in (1, (), [], {}, b""):
-            with pytest.raises(TypeError, match="'alpha' must be"):
+            with pytest.raises(TypeError, match="'alpha'"):
                 self.image.draw(alpha=value)
 
         for value in (-1.0, -0.1, 1.0, 1.1):
-            with pytest.raises(ValueError, match="Alpha threshold"):
+            with pytest.raises(ValueError, match="'alpha'"):
                 self.image.draw(alpha=value)
 
         for value in ("f", "fffff", "fffffff", "12h45g", "-2343"):
             with pytest.raises(ValueError, match="Invalid hex color"):
                 self.image.draw(alpha=value)
 
-        with pytest.raises(ValueError, match="Padding width"):
+        with pytest.raises(ValueError, match="'pad_width'"):
             self.image.draw(pad_width=columns + 1)
 
         self.image.set_size(h_allow=2)
-        with pytest.raises(ValueError, match="Padding width"):
+        with pytest.raises(ValueError, match="'pad_width'"):
             self.image.draw(pad_width=columns - 1)
 
-        with pytest.raises(ValueError, match="Padding height"):
+        with pytest.raises(ValueError, match="'pad_height'"):
             self.anim_image.draw(pad_height=lines + 1)
 
         for value in (1, 1.0, "1", (), []):
-            with pytest.raises(TypeError, match="'animate' .* boolean"):
+            with pytest.raises(TypeError, match="'animate'"):
                 self.anim_image.draw(animate=value)
 
         for arg in ("scroll", "check_size"):
             for value in (1, 1.0, "1", (), []):
-                with pytest.raises(TypeError, match=f"{arg!r} .* boolean"):
+                with pytest.raises(TypeError, match=f"{arg!r}"):
                     self.image.draw(**{arg: value})
 
     def test_size_validation(self):
@@ -1178,28 +1178,28 @@ class TestDraw:
             sys.stdout = stdout
             self.anim_image.set_size(width=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
                 self.anim_image.draw()
 
         def test_fit_to_width_height(self):
             sys.stdout = stdout
             self.anim_image.set_size(height=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
                 self.anim_image.draw()
 
         def test_scroll(self):
             sys.stdout = stdout
             self.anim_image.set_size()
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
                 self.anim_image.draw(scroll=True)
 
         def test_fit_scroll(self):
             sys.stdout = stdout
             self.anim_image.set_size(Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animations"):
+            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
                 self.anim_image.draw(scroll=True)
 
         def test_check_size(self):

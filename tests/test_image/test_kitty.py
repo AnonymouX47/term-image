@@ -694,7 +694,7 @@ class TestClear:
                 KittyImage.clear(z_index=value)
 
         for value in (-(2**31 + 1), 2**31):
-            with pytest.raises(ValueError, match="z-index .* range"):
+            with pytest.raises(ValueError, match="'z_index'"):
                 KittyImage.clear(z_index=value)
 
         for value in (1, 1.1, "1", []):
