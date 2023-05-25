@@ -1867,8 +1867,8 @@ class BaseImage(metaclass=ImageMeta):
                 # *scroll* is/are `True`.
                 if animated and self.rendered_height > lines:
                     raise InvalidSizeError(
-                        "The rendered height cannot be greater than the terminal "
-                        "height for animations"
+                        "The rendered height is greater than the terminal height for "
+                        "an animation"
                     )
 
             return renderer(self._get_image(), *args, **kwargs)
