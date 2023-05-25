@@ -129,7 +129,7 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
     Args:
         ratio: Can be one of the following values.
 
-          * A positive ``float`` value.
+          * A positive :py:class:`float` value.
           * :py:attr:`AutoCellRatio.FIXED`, the ratio is immediately determined from
             the :term:`active terminal`.
           * :py:attr:`AutoCellRatio.DYNAMIC`, the ratio is determined from the

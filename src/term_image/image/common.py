@@ -735,19 +735,21 @@ class BaseImage(metaclass=ImageMeta):
               "right" / ">"). Default: center.
             pad_width: Number of columns within which to align the image.
 
+              * A positive integer or ``None``. If ``None``, the
+                :term:`available terminal width <available width>` is used.
               * Excess columns are filled with spaces.
               * Must not be greater than the
                 :term:`available terminal width <available width>`.
-              * Default: terminal width, minus horizontal allowance.
 
             v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
               Default: middle.
             pad_height: Number of lines within which to align the image.
 
+              * A positive integer or ``None``. If ``None``, the
+                :term:`available terminal height <available height>` is used.
               * Excess lines are filled with spaces.
-              * Must not be greater than the :term:`available terminal height
-                <available height>`, **for animations**.
-              * Default: terminal height, minus vertical allowance.
+              * Must not be greater than the :term:`terminal height`,
+                **for animations**.
 
             alpha: Transparency setting.
 
@@ -1039,9 +1041,9 @@ class BaseImage(metaclass=ImageMeta):
               (case-insensitive).
 
         Raises:
-            TypeError: *method* is not a string or ``None``.
-            ValueError: the given method is not implmented by the invoking class
-              (or class of the invoking instance).
+            TypeError: An argument is of an inappropriate type.
+            ValueError: An argument is of an appropriate type but has an
+              unexpected/invalid value.
 
         See the **Render Methods** section in the description of subclasses that
         implement such for their specific usage.
@@ -1107,18 +1109,18 @@ class BaseImage(metaclass=ImageMeta):
         Args:
             width: Can be
 
-              * an integer; horizontal dimension of the image, in columns.
+              * a positive integer; horizontal dimension of the image, in columns.
               * a :py:class:`~term_image.image.Size` enum member.
 
             height: Can be
 
-              * an integer; vertical dimension of the image, in lines.
+              * a positive integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
-            h_allow: Horizontal allowance i.e minimum number of columns to leave unused.
-            v_allow: Vertical allowance i.e minimum number of lines to leave unused.
-            maxsize: If given, as ``(columns, lines)``, it's used instead of the
-              terminal size.
+            h_allow: :term:`Horizontal allowance`; a non-negative integer.
+            v_allow: :term:`Vertical allowance`; a non-negative integer.
+            maxsize: If given, as ``(columns, lines)`` (where *columns* and *lines* are
+              positive integers), it's used instead of the terminal size.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -2155,8 +2157,8 @@ class ImageIterator:
         cached: Determines if the :term:`rendered` frames will be cached (for speed up
           of subsequent renders) or not. If it is
 
-          * a boolean, it directly sets if the frames will be cached or not.
-          * an integer, caching is enabled only if the framecount of the image
+          * a boolean, caching is enabled if ``True``. Otherwise, caching is disabled.
+          * a positive integer, caching is enabled only if the framecount of the image
             is less than or equal to the given number.
 
     Raises:
