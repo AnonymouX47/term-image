@@ -150,7 +150,7 @@ class UrwidImage(urwid.Widget):
                 )
             size = (size[0], image._size[1])
         else:  # fixed
-            raise ValueError("Not a fixed widget")
+            raise UrwidImageError("Not a fixed widget")
 
         try:
             render = image._format_render(

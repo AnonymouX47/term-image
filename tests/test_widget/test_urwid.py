@@ -251,7 +251,7 @@ class TestRender:
 
     def test_fixed(self):
         image_w = UrwidImage(trans)
-        with pytest.raises(ValueError, match="fixed"):
+        with pytest.raises(UrwidImageError, match="fixed"):
             image_w.render(())
 
 
