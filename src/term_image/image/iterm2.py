@@ -22,6 +22,8 @@ from ..exceptions import TermImageWarning, _style_error
 from ..utils import (
     ClassInstanceProperty,
     ClassProperty,
+    arg_type_error,
+    arg_value_error_range,
     get_terminal_name_version,
     get_terminal_size,
     write_tty,
@@ -315,11 +317,9 @@ class ITerm2Image(GraphicsImage):
     @jpeg_quality.setter
     def jpeg_quality(self_or_cls, quality: int) -> None:
         if not isinstance(quality, int):
-            raise TypeError(
-                f"Invalid type for 'quality' (got: {type(quality).__name__})"
-            )
+            raise arg_type_error("jpeg_quality", quality)
         if quality > 95:
-            raise ValueError(f"'quality' out of range (got: {quality})")
+            raise arg_value_error_range("jpeg_quality", quality)
 
         self_or_cls._jpeg_quality = quality
 
@@ -370,11 +370,9 @@ class ITerm2Image(GraphicsImage):
     @native_anim_max_bytes.setter
     def native_anim_max_bytes(cls, max_bytes: int):
         if not isinstance(max_bytes, int):
-            raise TypeError(
-                f"Invalid type for 'max_bytes' (got: {type(max_bytes).__name__})"
-            )
+            raise arg_type_error("native_anim_max_bytes", max_bytes)
         if max_bytes <= 0:
-            raise ValueError(f"'max_bytes' out of range (got: {max_bytes})")
+            raise arg_value_error_range("native_anim_max_bytes", max_bytes)
 
         __class__._native_anim_max_bytes = max_bytes
 
@@ -440,8 +438,7 @@ class ITerm2Image(GraphicsImage):
     @read_from_file.setter
     def read_from_file(self_or_cls, policy: bool) -> None:
         if not isinstance(policy, bool):
-            raise TypeError(f"Invalid type for 'policy' (got: {type(policy).__name__})")
-
+            raise arg_type_error("read_from_file", policy)
         self_or_cls._read_from_file = policy
 
     @read_from_file.deleter
@@ -469,6 +466,11 @@ class ITerm2Image(GraphicsImage):
         NOTE:
             Required and works only on Konsole, as text doesn't overwrite images.
         """
+        if not isinstance(cursor, bool):
+            raise arg_type_error("cursor", cursor)
+        if not isinstance(now, bool):
+            raise arg_type_error("now", now)
+
         # There's no point checking for forced support since this is only required on
         # konsole which supports the protocol.
         # `is_supported()` is first called to ensure `_TERM` has been set.

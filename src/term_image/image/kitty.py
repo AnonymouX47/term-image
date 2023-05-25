@@ -21,7 +21,14 @@ from ..ctlseqs import (
     KITTY_DELETE_CURSOR,
     KITTY_TRANSMISSION,
 )
-from ..utils import get_terminal_name_version, query_terminal, write_tty
+from ..utils import (
+    arg_type_error,
+    arg_value_error_msg,
+    arg_value_error_range,
+    get_terminal_name_version,
+    query_terminal,
+    write_tty,
+)
 from .common import GraphicsImage
 
 # Constants for render methods
@@ -247,21 +254,16 @@ class KittyImage(GraphicsImage):
             return
 
         if not isinstance(cursor, bool):
-            raise TypeError(f"Invalid type for 'cursor' (got: {type(cursor).__name__})")
+            raise arg_type_error("cursor", cursor)
 
         if z_index is not None:
             if not isinstance(z_index, int):
-                raise TypeError(
-                    f"Invalid type for 'z_index' (got: {type(z_index).__name__})"
-                )
+                raise arg_type_error("z_index", z_index)
             if not -(1 << 31) <= z_index < (1 << 31):
-                raise ValueError(
-                    "z-index must be within the 32-bit signed integer range "
-                    f"(got: {z_index})"
-                )
+                raise arg_value_error_range("z_index", z_index)
 
         if not isinstance(now, bool):
-            raise TypeError(f"Invalid type for 'now' (got: {type(now).__name__})")
+            raise arg_type_error("now", now)
 
         default_args = __class__.clear.__func__.__kwdefaults__
         nonlocals = locals()
@@ -269,7 +271,9 @@ class KittyImage(GraphicsImage):
         given_args = args.items() - (default_args.items() | {("now", True)})
 
         if len(given_args) > 1:
-            raise ValueError("Only one argument may be given")
+            raise arg_value_error_msg(
+                "Only one argument (aside 'now') may be given", len(given_args)
+            )
         elif given_args:
             arg, _ = given_args.pop()
             (write_tty if now else _stdout_write)(

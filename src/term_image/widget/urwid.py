@@ -14,7 +14,7 @@ from .. import ctlseqs
 from ..ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
-from ..utils import lock_tty, write_tty
+from ..utils import arg_type_error, lock_tty, write_tty
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -78,18 +78,14 @@ class UrwidImage(urwid.Widget):
         self, image: BaseImage, format_spec: str = "", *, upscale: bool = False
     ) -> None:
         if not isinstance(image, BaseImage):
-            raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
+            raise arg_type_error("image", image)
 
         if not isinstance(format_spec, str):
-            raise TypeError(
-                f"Invalid type for 'format_spec' (got: {type(format_spec).__name__})"
-            )
+            raise arg_type_error("format_spec", format_spec)
         *fmt, alpha, style_args = image._check_format_spec(format_spec)
 
         if not isinstance(upscale, bool):
-            raise TypeError(
-                f"Invalid type for 'upscale' (got: {type(upscale).__name__})"
-            )
+            raise arg_type_error("upscale", upscale)
 
         super().__init__()
         self._ti_image = image
@@ -203,7 +199,7 @@ class UrwidImage(urwid.Widget):
         placeholder is rendered in place of the image.
         """
         if not isinstance(widget, urwid.Widget):
-            raise TypeError("Invalid type for 'widget' (got: {type(widget).__name__})")
+            raise arg_type_error("widget", widget)
 
         cls._ti_error_placeholder = widget
 

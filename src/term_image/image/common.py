@@ -47,6 +47,10 @@ from ..utils import (
     ClassInstanceMethod,
     ClassProperty,
     ClassPropertyMeta,
+    arg_type_error,
+    arg_value_error,
+    arg_value_error_msg,
+    arg_value_error_range,
     cached,
     get_cell_size,
     get_fg_bg_colors,
@@ -271,10 +275,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> None:
         """See the class description"""
         if not isinstance(image, Image.Image):
-            raise TypeError(
-                "Expected a 'PIL.Image.Image' instance for 'image' "
-                f"(got: {type(image).__name__!r})."
-            )
+            raise arg_type_error("image", image)
         if 0 in image.size:
             raise ValueError("'image' is null-sized")
 
@@ -384,7 +385,7 @@ class BaseImage(metaclass=ImageMeta):
     @forced_support.setter
     def forced_support(cls, status):
         if not isinstance(status, bool):
-            raise TypeError(f"Invalid type for 'status' (got: {type(status).__name__})")
+            raise arg_type_error("forced_support", status)
 
         cls._forced_support = status
 
@@ -405,9 +406,9 @@ class BaseImage(metaclass=ImageMeta):
     @frame_duration.setter
     def frame_duration(self, value: float) -> None:
         if not isinstance(value, float):
-            raise TypeError(f"Invalid duration type (got: {type(value).__name__})")
+            raise arg_type_error("frame_duration", value)
         if value <= 0.0:
-            raise ValueError(f"Invalid frame duration (got: {value})")
+            raise arg_value_error_range("frame_duration", value)
         if self._is_animated:
             self._frame_duration = value
 
@@ -557,12 +558,12 @@ class BaseImage(metaclass=ImageMeta):
     def scale(self, scale: Union[float, Tuple[float, float]]) -> None:
         if isinstance(scale, float):
             if not 0.0 < scale <= 1.0:
-                raise ValueError(f"Scale value out of range (got: {scale})")
+                raise arg_value_error_range("scale", scale)
             self._scale[:] = (scale,) * 2
         elif isinstance(scale, tuple):
             self._scale[:] = self._check_scale(scale)
         else:
-            raise TypeError("'scale' must be a float or a tuple of floats")
+            raise arg_type_error("scale", scale)
 
     scale_x = property(
         lambda self: self._scale[0],
@@ -626,7 +627,7 @@ class BaseImage(metaclass=ImageMeta):
     @size.setter
     def size(self, value: Size) -> None:
         if not isinstance(value, Size):
-            raise TypeError("'size' must be a `Size` enum member")
+            raise arg_type_error("size", value)
         self._size = value
         self._fit_to_width = value is Size.FIT_TO_WIDTH
         self._h_allow = 0
@@ -815,23 +816,18 @@ class BaseImage(metaclass=ImageMeta):
         if alpha is not None:
             if isinstance(alpha, float):
                 if not 0.0 <= alpha < 1.0:
-                    raise ValueError(f"Alpha threshold out of range (got: {alpha})")
+                    raise arg_value_error_range("alpha", alpha)
             elif isinstance(alpha, str):
                 if not _ALPHA_BG_FORMAT.fullmatch(alpha):
-                    raise ValueError(f"Invalid hex color string (got: {alpha})")
+                    raise arg_value_error_msg("Invalid hex color string", alpha)
             else:
-                raise TypeError(
-                    "'alpha' must be `None` or of type `float` or `str` "
-                    f"(got: {type(alpha).__name__})"
-                )
+                raise arg_type_error("alpha", alpha)
 
         if self._is_animated and not isinstance(animate, bool):
-            raise TypeError("'animate' must be a boolean")
+            raise arg_type_error("animate", animate)
 
         if None is not pad_width > get_terminal_size()[0] - self._h_allow:
-            raise ValueError(
-                "Padding width is greater than the available terminal width"
-            )
+            raise ValueError("'pad_width' is greater than the available terminal width")
 
         if (
             not style.get("native")
@@ -840,13 +836,13 @@ class BaseImage(metaclass=ImageMeta):
             and None is not pad_height > get_terminal_size()[1]
         ):
             raise ValueError(
-                "Padding height can not be greater than the terminal height for "
-                "animations"
+                "'pad_height' is greater than the terminal height for an animation"
             )
 
         for arg in ("scroll", "check_size"):
-            if not isinstance(locals()[arg], bool):
-                raise TypeError(f"{arg!r} must be a boolean")
+            arg_value = locals()[arg]
+            if not isinstance(arg_value, bool):
+                raise arg_type_error(arg, arg_value)
 
         # Checks for *repeat* and *cached* are delegated to `ImageIterator`.
 
@@ -907,10 +903,7 @@ class BaseImage(metaclass=ImageMeta):
         Also Propagates exceptions raised or propagated by the class constructor.
         """
         if not isinstance(filepath, (str, os.PathLike)):
-            raise TypeError(
-                "File path must be a string or path-like object "
-                f"(got: {type(filepath).__name__!r})."
-            )
+            raise arg_type_error("filepath", filepath)
 
         if isinstance(filepath, os.PathLike):
             filepath = filepath.__fspath__()
@@ -968,9 +961,9 @@ class BaseImage(metaclass=ImageMeta):
             - when the instance is garbage collected.
         """
         if not isinstance(url, str):
-            raise TypeError(f"URL must be a string (got: {type(url).__name__!r}).")
+            raise arg_type_error("url", url)
         if not all(urlparse(url)[:3]):
-            raise ValueError(f"Invalid URL: {url!r}")
+            raise arg_value_error_msg("Invalid URL", url)
 
         # Propagates connection-related errors.
         response = requests.get(url, stream=True)
@@ -1030,11 +1023,9 @@ class BaseImage(metaclass=ImageMeta):
         Frame numbers start from 0 (zero).
         """
         if not isinstance(pos, int):
-            raise TypeError(f"Invalid frame number type (got: {type(pos).__name__})")
+            raise arg_type_error("pos", pos)
         if not 0 <= pos < self.n_frames:
-            raise ValueError(
-                f"Frame number out of range (got: {pos}, n_frames={self.n_frames})"
-            )
+            raise arg_value_error_range("pos", pos, f"n_frames={self.n_frames}")
         if self._is_animated:
             self._seek_position = pos
 
@@ -1076,9 +1067,7 @@ class BaseImage(metaclass=ImageMeta):
             The **class-wide** render method is :term:`descendant`.
         """
         if method is not None and not isinstance(method, str):
-            raise TypeError(
-                f"'method' must be a string or `None` (got: {type(method).__name__!r})"
-            )
+            raise arg_type_error("method", method)
         if method is not None and method.lower() not in cls._render_methods:
             raise ValueError(f"Unknown render method {method!r} for {cls.__name__}")
 
@@ -1091,9 +1080,7 @@ class BaseImage(metaclass=ImageMeta):
     @set_render_method.instancemethod
     def set_render_method(self, method: Optional[str] = None) -> None:
         if method is not None and not isinstance(method, str):
-            raise TypeError(
-                f"'method' must be a string or `None` (got: {type(method).__name__!r})"
-            )
+            raise arg_type_error("method", method)
         if method is not None and method.lower() not in type(self)._render_methods:
             raise ValueError(
                 f"Unknown render method {method!r} for {type(self).__name__}"
@@ -1170,35 +1157,26 @@ class BaseImage(metaclass=ImageMeta):
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
-        for argname, x in zip(("width", "height"), (width, height)):
-            if not (x is None or isinstance(x, (Size, int))):
-                raise TypeError(
-                    f"{argname!r} must be `None`, a `Size` enum member or an integer "
-                    f"(got: type {type(x).__name__!r})"
-                )
-            if isinstance(x, int) and x <= 0:
-                raise ValueError(f"{argname!r} must be positive (got: {x})")
+        for arg_name, arg_value in zip(("width", "height"), (width, height)):
+            if not (arg_value is None or isinstance(arg_value, (Size, int))):
+                raise arg_type_error(arg_name, arg_value)
+            if isinstance(arg_value, int) and arg_value <= 0:
+                raise arg_value_error_range(arg_name, arg_value)
 
-        for argname, x in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
-            if not isinstance(x, int):
-                raise TypeError(
-                    f"{argname!r} must be an integer (got: type {type(x).__name__!r})"
-                )
-            if x < 0:
-                raise ValueError(f"{argname!r} must be non-negative (got: {x})")
+        for arg_name, arg_value in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
+            if not isinstance(arg_value, int):
+                raise arg_type_error(arg_name, arg_value)
+            if arg_value < 0:
+                raise arg_value_error_range(arg_name, arg_value)
 
         if maxsize is not None:
             if not (
                 isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
             ):
-                raise TypeError(
-                    f"'maxsize' must be a tuple of integers (got: {maxsize!r})"
-                )
+                raise arg_type_error("maxsize", maxsize)
 
             if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
-                raise ValueError(
-                    f"'maxsize' must contain two positive integers (got: {maxsize})"
-                )
+                raise arg_value_error("maxsize", maxsize)
 
         fit_to_width = Size.FIT_TO_WIDTH in (width, height)
         self._size = self._valid_size(
@@ -1240,7 +1218,7 @@ class BaseImage(metaclass=ImageMeta):
         """
         match_ = _FORMAT_SPEC.fullmatch(spec)
         if not match_ or _NO_VERTICAL_SPEC.fullmatch(spec):
-            raise ValueError(f"Invalid format specifier (got: {spec!r})")
+            raise arg_value_error_msg("Invalid format specifier", spec)
 
         (
             _,
@@ -1285,31 +1263,30 @@ class BaseImage(metaclass=ImageMeta):
             The respective arguments appropriate for ``_format_render()``.
         """
         if not isinstance(h_align, (type(None), str)):
-            raise TypeError("'h_align' must be a string.")
+            raise arg_type_error("h_align", h_align)
         if None is not h_align not in set("<|>"):
             align = {"left": "<", "center": "|", "right": ">"}.get(h_align)
             if not align:
-                raise ValueError(f"Invalid horizontal alignment option: {h_align!r}")
+                raise arg_value_error("h_align", h_align)
             h_align = align
 
         if not isinstance(width, (type(None), int)):
-            raise TypeError("Padding width must be `None` or an integer.")
-        if width is not None:
-            if width <= 0:
-                raise ValueError(f"Padding width must be positive (got: {width})")
+            raise arg_type_error("pad_width", width)
+        if None is not width <= 0:
+            raise arg_value_error_range("pad_width", width)
 
         if not isinstance(v_align, (type(None), str)):
-            raise TypeError("'v_align' must be a string.")
+            raise arg_type_error("v_align", v_align)
         if None is not v_align not in set("^-_"):
             align = {"top": "^", "middle": "-", "bottom": "_"}.get(v_align)
             if not align:
-                raise ValueError(f"Invalid vertical alignment option: {v_align!r}")
+                raise arg_value_error("v_align", v_align)
             v_align = align
 
         if not isinstance(height, (type(None), int)):
-            raise TypeError("Padding height must be `None` or an integer.")
+            raise arg_type_error("pad_height", height)
         if None is not height <= 0:
-            raise ValueError(f"Padding height must be positive (got: {height})")
+            raise arg_value_error_range("pad_height", height)
 
         return h_align, width, v_align, height
 
@@ -1325,16 +1302,14 @@ class BaseImage(metaclass=ImageMeta):
             ValueError: The object is not a 2-tuple or the values are out of range.
         """
         if not (isinstance(scale, tuple) and all(isinstance(x, float) for x in scale)):
-            raise TypeError(f"'scale' must be a tuple of floats (got: {scale!r})")
+            raise arg_type_error("scale", scale)
 
         if not (len(scale) == 2 and all(0.0 < x <= 1.0 for x in scale)):
-            raise ValueError(
-                f"'scale' must be a tuple of two floats, 0.0 < x <= 1.0 (got: {scale})"
-            )
+            raise arg_value_error("scale", scale)
         return scale
 
     @staticmethod
-    def _check_scale_2(value: float) -> float:
+    def _check_scale_2(scale: float) -> float:
         """Checks a single scale value.
 
         Returns:
@@ -1344,13 +1319,11 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: The object is not a ``float``.
             ValueError: The value is out of range.
         """
-        if not isinstance(value, float):
-            raise TypeError(
-                f"Given value must be a float (got: type {type(value).__name__!r})"
-            )
-        if not 0.0 < value <= 1.0:
-            raise ValueError(f"Scale value out of range (got: {value})")
-        return value
+        if not isinstance(scale, float):
+            raise arg_type_error("scale", scale)
+        if not 0.0 < scale <= 1.0:
+            raise arg_value_error_range("scale", scale)
+        return scale
 
     @classmethod
     def _check_style_args(cls, style_args: Dict[str, Any]) -> Dict[str, Any]:
@@ -1940,9 +1913,8 @@ class BaseImage(metaclass=ImageMeta):
         # The non-constraining axis is always the one directly adjusted.
 
         if all(not isinstance(x, int) for x in (width, height)):
-            for name in ("columns", "lines"):
-                if locals()[name] <= 0:
-                    raise ValueError(f"Amount of available {name} too small")
+            if columns <= 0 or lines <= 0:
+                raise arg_value_error_msg("Available size too small", (columns, lines))
 
             if Size.AUTO in (width, height):
                 width = height = (
@@ -2211,32 +2183,30 @@ class ImageIterator:
         cached: Union[bool, int] = 100,
     ) -> None:
         if not isinstance(image, BaseImage):
-            raise TypeError(f"Invalid type for 'image' (got: {type(image).__name__})")
+            raise arg_type_error("image", image)
         if not image._is_animated:
-            raise ValueError("This image is not animated")
+            raise ValueError("'image' is not animated")
 
         if not isinstance(repeat, int):
-            raise TypeError(f"Invalid type for 'repeat' (got: {type(repeat).__name__})")
+            raise arg_type_error("repeat", repeat)
         if not repeat:
-            raise ValueError("'repeat' must be non-zero")
+            raise arg_value_error("repeat", repeat)
 
         if not isinstance(format_spec, str):
-            raise TypeError(
-                f"Invalid type for 'format_spec' (got: {type(format_spec).__name__})"
-            )
+            raise arg_type_error("format_spec", format_spec)
         *fmt, alpha, style_args = image._check_format_spec(format_spec)
 
         if not isinstance(cached, int):  # `bool` is a subclass of `int`
-            raise TypeError(f"Invalid type for 'cached' (got: {type(cached).__name__})")
+            raise arg_type_error("cached", cached)
         if False is not cached <= 0:
-            raise ValueError("'cached' must be a boolean or a positive integer")
+            raise arg_value_error_range("cached", cached)
 
         self._image = image
         self._repeat = repeat
         self._format = format_spec
-        self._cached = (
+        self._cached = repeat != 1 and (
             cached if isinstance(cached, bool) else image.n_frames <= cached
-        ) and repeat != 1
+        )
         self._loop_no = None
         self._animator = image._renderer(
             self._animate, alpha, fmt, style_args, check_size=False
@@ -2319,12 +2289,9 @@ class ImageIterator:
         Frame numbers start from ``0`` (zero).
         """
         if not isinstance(pos, int):
-            raise TypeError(f"Invalid frame number type (got: {type(pos).__name__})")
+            raise arg_type_error("pos", pos)
         if not 0 <= pos < self._image.n_frames:
-            raise ValueError(
-                "Frame number out of range "
-                f"(got: {pos}, n_frames={self._image._n_frames})"
-            )
+            raise arg_value_error_range("pos", pos, f"n_frames={self._image.n_frames}")
 
         try:
             self._animator.send(pos)

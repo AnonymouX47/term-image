@@ -174,13 +174,10 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
             _cell_ratio = None
     elif isinstance(ratio, float):
         if ratio <= 0.0:
-            raise ValueError(f"'ratio' must be greater than zero (got: {ratio})")
+            raise utils.arg_value_error_range("ratio", ratio)
         _cell_ratio = ratio
     else:
-        raise TypeError(
-            "'ratio' must be a float or AutoCellRatio enum member "
-            f"(got: {type(ratio).__name__})"
-        )
+        raise utils.arg_type_error("ratio", ratio)
 
 
 def set_query_timeout(timeout: float) -> None:
@@ -194,9 +191,9 @@ def set_query_timeout(timeout: float) -> None:
         ValueError: *timeout* is less than or equal to zero.
     """
     if not isinstance(timeout, float):
-        raise TypeError(f"'timeout' must be a float (got: {type(timeout).__name__!r})")
+        raise utils.arg_type_error("timeout", timeout)
     if timeout <= 0.0:
-        raise ValueError(f"'timeout' must be greater than zero (got: {timeout!r})")
+        raise utils.arg_value_error_range("timeout", timeout)
 
     utils._query_timeout = timeout
 
