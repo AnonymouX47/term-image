@@ -114,9 +114,12 @@ class UrwidImage(urwid.Widget):
     image = property(
         lambda self: self._ti_image,
         doc="""
-        The image rendered by the widget.
+        The image rendered by the widget
 
         :type: BaseImage
+
+        GET:
+            Returns the image instance rendered by the widget.
         """,
     )
 

@@ -183,13 +183,15 @@ class ImageMeta(ClassPropertyMeta, ABCMeta):
         ),
         doc="""Name of the render style [category].
 
-        Returns:
-            * The name of the render style [category] implemented by the invoking
-              class, if defined **within** this package (``term_image``)
-            * ``None``, if the invoking class is defined **outside** this package
-              (``term_image``)
-
         :type: Optional[str]
+
+        GET:
+            Returns:
+
+                * The name of the render style [category] implemented by the invoking
+                  class, if defined **within** this package (``term_image``)
+                * ``None``, if the invoking class is defined **outside** this package
+                  (``term_image``)
 
         **Examples**
 
@@ -349,6 +351,10 @@ class BaseImage(metaclass=ImageMeta):
         doc="""Instance finalization status
 
         :type: bool
+
+        GET:
+            Returns ``True`` if the instance has been finalized (:py:meth:`close` has
+            been called). Otherwise, ``False``.
         """,
     )
 
@@ -391,15 +397,19 @@ class BaseImage(metaclass=ImageMeta):
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
-        doc="""Duration of a single frame for :term:`animated` images
-
-        Returns:
-            * A duration (in seconds), if the image is animated.
-            * ``None``, if the image is not animated.
+        doc="""Duration of a single frame
 
         :type: Optional[float]
 
-        Setting this on non-animated images is simply ignored.
+        GET:
+            Returns:
+
+            * The duration of a single frame (in seconds), if the image is animated.
+            * ``None``, if otherwise.
+
+        SET:
+            If the image is animated, The frame duration is set.
+            Otherwise, nothing is done.
         """,
     )
 
@@ -418,47 +428,65 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **unscaled** height of the image
 
-        Returns:
-            * The image height (in lines), if the image size is
-              :term:`fixed <fixed size>`.
-            * A :py:class:`~term_image.image.Size` enum member; if the image size
-              is :term:`dynamic <dynamic size>`.
-
         :type: Union[Size, int]
 
-        SETTABLE VALUES:
+        GET:
+            Returns:
 
-        * a positive :py:class:`int`; the image height is set to the given value and
-          the width is set proportionally.
-        * a :py:class:`~term_image.image.Size` enum member; the image size
-          is set as prescibed by the enum member.
-        * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
+            * The image height (in lines), if the image size is
+              :term:`fixed <fixed size>`.
+            * A :py:class:`~term_image.image.Size` enum member, if the image size
+              is :term:`dynamic <dynamic size>`.
 
-        Setting this
+        SET:
+            If set to:
 
-        * results in a :term:`fixed size`.
-        * resets the recognized advanced sizing options to their defaults.
+            * a positive :py:class:`int`; the image height is set to the given value
+              and the width is set proportionally.
+            * a :py:class:`~term_image.image.Size` enum member; the image size is set
+              as prescibed by the enum member.
+            * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
+
+            This results in a :term:`fixed size`.
+
+            .. note::
+                * Default allowances apply.
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
     is_animated = property(
         lambda self: self._is_animated,
-        doc="``True`` if the image is :term:`animated`. Otherwise, ``False``.",
+        doc="""
+        Animatability of the image
+
+        :type: bool
+
+        GET:
+            Returns ``True`` if the image is :term:`animated`. Otherwise, ``False``.
+        """,
     )
 
     original_size = property(
         lambda self: self._original_size,
-        doc="""Size of the source image (in pixels)
+        doc="""Size of the source (in pixels)
 
         :type: Tuple[int, int]
+
+        GET:
+            Returns the source size.
         """,
     )
 
     @property
     def n_frames(self) -> int:
-        """The number of frames in the image
+        """Image frame count
 
         :type: int
+
+        GET:
+            Returns the number of frames the image has.
         """
         if not self._is_animated:
             return 1
@@ -485,9 +513,11 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **scaled** height of the image
 
-        Also the exact number of lines that the drawn image will occupy in a terminal.
-
         :type: int
+
+        GET:
+            Returns the actual number of lines that the image will occupy when drawn
+            in a terminal.
         """,
     )
 
@@ -512,10 +542,11 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **scaled** size of the image
 
-        Also the exact number of columns and lines (respectively) that the drawn image
-        will occupy in a terminal.
-
         :type: Tuple[int, int]
+
+        GET:
+            Returns the actual number of columns and lines (respectively) that the
+            image will occupy when drawn in a terminal.
         """,
     )
 
@@ -532,9 +563,11 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **scaled** width of the image
 
-        Also the exact number of columns that the drawn image will occupy in a terminal.
-
         :type: int
+
+        GET:
+            Returns the actual number of columns that the image will occupy when drawn
+            in a terminal.
         """,
     )
 
@@ -543,14 +576,20 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Image :term:`scale`
 
-        SETTABLE VALUES:
-
-        * A *scale value*; sets both axes.
-        * A :py:class:`tuple` of two *scale values*; sets ``(x, y)`` respectively.
-
-        A scale value is a :py:class:`float` in the range **0.0 < value <= 1.0**.
-
         :type: Tuple[float, float]
+
+        GET:
+            Returns the scale of the image on the horizontal and vertical axes
+            respectively.
+
+        SET:
+            If set to:
+
+            * A *scale value*; sets the scale on both axes.
+            * A :py:class:`tuple` of two *scale values*; sets the scale on the
+              ``(horizontal, vertical)`` axes respectively.
+
+        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
         """,
     )
 
@@ -570,9 +609,15 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Horizontal :term:`scale`
 
-        A scale value is a :py:class:`float` in the range **0.0 < x <= 1.0**.
-
         :type: float
+
+        GET:
+            Returns the scale of the image on the horizontal axis.
+
+        SET:
+            Sets the scale of the image on the horizontal axis.
+
+        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
         """,
     )
 
@@ -585,9 +630,15 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         Vertical :term:`scale`
 
-        A scale value is a :py:class:`float` in the range **0.0 < y <= 1.0**.
-
         :type: float
+
+        GET:
+            Returns the scale of the image on the vertical axis.
+
+        SET:
+            Sets the scale of the image on the vertical axis.
+
+        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
         """,
     )
 
@@ -600,27 +651,27 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **unscaled** size of the image
 
-        Returns:
+        :type: Union[Size, Tuple[int, int]]
+
+        GET:
+            Returns:
+
             * The image size, ``(columns, lines)``, if the image size is
               :term:`fixed <fixed size>`.
             * A :py:class:`~term_image.image.Size` enum member, if the image size
               is :term:`dynamic <dynamic size>`.
 
-        :type: Union[Size, Tuple[int, int]]
+        SET:
+            Sets the image size as prescibed by the given
+            :py:class:`~term_image.image.Size` enum member.
 
-        SETTABLE VALUES:
+            This implies :term:`dynamic sizing` i.e the size is computed whenever the
+            image is :term:`rendered`.
 
-        * A :py:class:`~term_image.image.Size` enum member; the image size
-          is set as prescibed by the enum member.
-
-        Setting this
-
-        * implies :term:`dynamic sizing` i.e the size is computed whenever the image is
-          :term:`rendered`.
-        * resets the recognized advanced sizing options to their defaults.
-
-        This is multiplied by the :term:`scale` on respective axes when the image
-        is :term:`rendered`.
+            .. note::
+                * Default allowances apply.
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -636,18 +687,24 @@ class BaseImage(metaclass=ImageMeta):
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
         doc="""
-        The :term:`source` from which the instance was initialized
+        Image :term:`source`
 
         :type: Union[PIL.Image.Image, str]
+
+        GET:
+            Returns the :term:`source` from which the instance was initialized.
         """,
     )
 
     source_type = property(
         lambda self: self._source_type,
         doc="""
-        The kind of :term:`source` from which the instance was initialized
+        Image :term:`source` type
 
         :type: ImageSource
+
+        GET:
+            Returns the type of :term:`source` from which the instance was initialized.
         """,
     )
 
@@ -657,26 +714,31 @@ class BaseImage(metaclass=ImageMeta):
         doc="""
         The **unscaled** width of the image
 
-        Returns:
+        :type: Union[Size, int]
+
+        GET:
+            Returns:
+
             * The image width (in columns), if the image size is
               :term:`fixed <fixed size>`.
             * A :py:class:`~term_image.image.Size` enum member; if the image size
               is :term:`dynamic <dynamic size>`.
 
-        :type: Union[Size, int]
+        SET:
+            If set to:
 
-        SETTABLE VALUES:
+            * a positive :py:class:`int`; the image width is set to the given value
+              and the height is set proportionally.
+            * a :py:class:`~term_image.image.Size` enum member; the image size is set
+              as prescibed by the enum member.
+            * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
 
-        * a positive :py:class:`int`; the image width is set to the given value and
-          the height is set proportionally.
-        * a :py:class:`~term_image.image.Size` enum member; the image size
-          is set as prescibed by the enum member.
-        * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
+            This results in a :term:`fixed size`.
 
-        Setting this
-
-        * results in a :term:`fixed size`.
-        * resets the recognized advanced sizing options to their defaults.
+            .. note::
+                * Default allowances apply.
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -2250,10 +2312,16 @@ class ImageIterator:
         lambda self: self._loop_no,
         doc="""Iteration repeat countdown
 
-        :type: int
+        :type: Optional[int]
+
+        GET:
+            Returns:
+
+            * ``None``, if iteration hasn't started.
+            * Otherwise, the current iteration repeat countdown value.
 
         Changes on the first iteration of each loop, except for infinite iteration
-        where it's always ``-1``.
+        where it's always ``-1``. When iteration has ended, the value is zero.
         """,
     )
 
