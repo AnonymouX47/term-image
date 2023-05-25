@@ -4,7 +4,6 @@ __all__ = ("BlockImage",)
 
 import io
 import os
-import warnings
 from math import ceil
 from operator import mul
 from typing import Optional, Tuple, Union
@@ -14,8 +13,6 @@ import PIL
 from ..ctlseqs import SGR_BG_RGB, SGR_FG_RGB, SGR_NORMAL
 from ..utils import get_fg_bg_colors
 from .common import TextImage
-
-warnings.filterwarnings("once", category=DeprecationWarning, module=__name__)
 
 LOWER_PIXEL = "\u2584"  # lower-half block element
 UPPER_PIXEL = "\u2580"  # upper-half block element
