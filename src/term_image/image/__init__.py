@@ -22,7 +22,7 @@ __all__ = (
 )
 
 import os
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import PIL
 
@@ -57,7 +57,6 @@ def AutoImage(
     *,
     width: Optional[int] = None,
     height: Optional[int] = None,
-    scale: Tuple[float, float] = (1.0, 1.0),
 ) -> BaseImage:
     """Creates an image instance from a PIL image instance.
 
@@ -67,12 +66,12 @@ def AutoImage(
 
     Same arguments and raised exceptions as the :py:class:`BaseImage` class constructor.
     """
-    return auto_image_class()(image, width=width, height=height, scale=scale)
+    return auto_image_class()(image, width=width, height=height)
 
 
 def from_file(
     filepath: Union[str, os.PathLike],
-    **kwargs: Union[None, int, Tuple[float, float]],
+    **kwargs: Union[None, int],
 ) -> BaseImage:
     """Creates an image instance from an image file.
 
@@ -87,7 +86,7 @@ def from_file(
 
 def from_url(
     url: str,
-    **kwargs: Union[None, int, Tuple[float, float]],
+    **kwargs: Union[None, int],
 ) -> BaseImage:
     """Creates an image instance from an image URL.
 

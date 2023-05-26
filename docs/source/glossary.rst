@@ -135,11 +135,6 @@ Below are definitions of terms used across the API, exception messages and the d
 
       .. seealso:: :ref:`render-styles`
 
-   scale
-      The fraction/ratio of an image's size that'll actually be used to :term:`render` it.
-      
-      .. seealso:: :ref:`image-scale`
-
    manual size
    manual sizing
       A form of sizing wherein **both** the width and the height are specified to set the image size.

@@ -6,7 +6,6 @@ import os
 import sys
 from operator import floordiv, mul
 from pathlib import Path
-from random import random
 
 import pytest
 from PIL import Image, UnidentifiedImageError
@@ -59,17 +58,9 @@ class TestConstructor:
         with pytest.raises(ValueError, match=r".* both width and height"):
             BlockImage(python_img, width=1, height=1)
 
-        with pytest.raises(TypeError, match=r"'scale'"):
-            BlockImage(python_img, scale=0.5)
-        for value in ((0.0, 0.0), (-0.4, -0.4)):
-            with pytest.raises(ValueError, match=r"'scale'"):
-                BlockImage(python_img, scale=value)
-
     def test_init(self):
         image = BlockImage(python_img)
         assert image._size is Size.FIT
-        assert isinstance(image._scale, list)
-        assert image._scale == [1.0, 1.0]
         assert image._source is python_img
         assert image._source_type is ImageSource.PIL_IMAGE
         assert isinstance(image._original_size, tuple)
@@ -97,9 +88,7 @@ class TestConstructor:
             assert isinstance(image._size, tuple)
             assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
 
-        image = BlockImage(python_img, scale=(0.5, 0.4))
-        assert image._scale == [0.5, 0.4]
-
+        image = BlockImage(python_img)
         assert image._is_animated is False
 
     def test_init_animated(self):
@@ -131,10 +120,6 @@ class TestFromFile:
         # Ensure size arguments get through
         with pytest.raises(ValueError, match=r"both width and height"):
             BlockImage.from_file(python_image, width=1, height=1)
-
-        # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale'"):
-            BlockImage.from_file(python_image, scale=1.0)
 
     def test_filepath(self):
         for path in (python_image, Path(python_image), BytesPath(python_image)):
@@ -301,24 +286,6 @@ class TestProperties:
         assert isinstance(image.rendered_width, int)
         assert isinstance(image.rendered_height, int)
 
-        # Varying scales
-        for value in range(1, 101):
-            scale = value / 100
-            image.scale = scale
-            assert 0 != image.rendered_width == (round(_width * scale) or 1)
-            assert 0 != image.rendered_height == (round(_height * scale) or 1)
-
-        # Random scales
-        for _ in range(100):
-            scale = random()
-            if scale == 0:
-                continue
-            image.scale = scale
-            assert 0 != image.rendered_width == (round(_width * scale) or 1)
-            assert 0 != image.rendered_height == (round(_height * scale) or 1)
-
-        image.scale = 1.0
-
         # The rendered size is independent of the cell ratio
         # Change in cell-ratio must not affect the image's rendered size
         try:
@@ -329,71 +296,6 @@ class TestProperties:
             assert image.rendered_size == (_width, _height)
         finally:
             set_cell_ratio(0.5)
-
-    def test_scale_value_checks(self):
-        image = BlockImage(python_img)
-
-        # Value type
-        for value in (0, 1, None, "1", "1.0"):
-            with pytest.raises(TypeError):
-                image.scale = value
-        for value in (0, 1, None, "1", "1.0", (1.0, 1.0)):
-            with pytest.raises(TypeError):
-                image.scale_x = value
-            with pytest.raises(TypeError):
-                image.scale_y = value
-
-        # Value range
-        for value in (0.0, -0.1, 1.0001, 2.0):
-            with pytest.raises(ValueError):
-                image.scale = value
-            with pytest.raises(ValueError):
-                image.scale_x = value
-            with pytest.raises(ValueError):
-                image.scale_y = value
-
-        # Tuple item type
-        for value in ((1, 1), (1.0, 1), (1, 1.0), ("1.0",)):
-            with pytest.raises(TypeError):
-                image.scale = value
-
-        # Tuple length
-        for value in ((0.5,), (0.5,) * 3):
-            with pytest.raises(ValueError):
-                image.scale = value
-
-        # Tuple item value range
-        for value in (
-            (0.0, 0.5),
-            (0.5, 0.0),
-            (-0.5, 0.5),
-            (0.5, -0.5),
-            (1.1, 0.5),
-            (0.5, 1.1),
-        ):
-            with pytest.raises(ValueError):
-                image.scale = value
-
-    def test_scale_x_y(self):
-        image = BlockImage(python_img)
-        assert image.scale == (1.0, 1.0)
-        assert image.scale_x == image.scale_y == 1.0
-
-        assert isinstance(image.scale, tuple)
-        assert isinstance(image.scale_x, float)
-        assert isinstance(image.scale_y, float)
-
-        image.scale = 0.5
-        assert image.scale == (0.5,) * 2
-        assert image.scale_x == image.scale_y == 0.5
-
-        image.scale_x = 0.25
-        assert image.scale_x == image.scale[0] == 0.25
-        assert image.scale_y == 0.5
-
-        image.scale_y = 0.75
-        assert image.scale_y == image.scale[1] == 0.75
-        assert image.scale_x == 0.25
 
     def test_size(self):
         image = BlockImage(python_img)
@@ -612,7 +514,6 @@ class TestRenderData:
     # It's easy to predict it's pixel values
     trans = BlockImage.from_file("tests/images/trans.png")
     trans.height = _size
-    trans.scale = 1.0
 
     def get_render_data(self, img=None, alpha=None, **kwargs):
         return self.trans._get_render_data(
@@ -778,7 +679,9 @@ class TestRenderData:
 # suffice.
 class TestFormatting:
     image = BlockImage(python_img)
-    image.scale = 0.5  # To ensure there's padding
+    image.set_size()
+    full_width = image.width
+    image.width //= 2  # To ensure there's padding
     render = str(image)
     check_formatting = staticmethod(image._check_formatting)
 
@@ -816,6 +719,7 @@ class TestFormatting:
 
         # unquote to debug padding
         """
+        print(self.image.size)
         for name in ("left", "right", "top", "bottom"):
             side = vars()[name]
             print(f"------------ {name} - {len(side)} --------------")
@@ -922,29 +826,29 @@ class TestFormatting:
         assert self.check_formatting(height=lines) == (None, None, None, lines)
 
     def test_padding_width(self):
-        self.image.set_size()
-        for width in range(self.image.rendered_width, columns + 1):
+        self.image.width = self.full_width // 2
+        for width in range(self.full_width, columns + 1):
             self.check_padding("<", width)
             self.check_padding("|", width)
             self.check_padding(">", width)
             self.check_padding(None, width)
 
     def test_padding_height(self):
-        self.image.set_size()
-        for height in range(self.image.rendered_height, lines + 1):
+        self.image.width = self.full_width // 2
+        for height in range(self.full_width, lines + 1):
             self.check_padding(None, None, "^", height)
             self.check_padding(None, None, "-", height)
             self.check_padding(None, None, "_", height)
             self.check_padding(None, None, None, height)
 
     def test_align(self):
-        self.image.set_size()
+        self.image.width = self.full_width // 2
         self.check_padding("<", columns, "^", lines)
         self.check_padding("|", columns, "-", lines)
         self.check_padding(">", columns, "_", lines)
 
     def test_allowance_default(self):
-        self.image.set_size()
+        self.image.width = self.full_width // 2
         left, right, top, bottom = self.check_padding()
         assert all(len(line) == columns for line in top)
         assert all(len(line) == columns for line in bottom)
@@ -952,7 +856,7 @@ class TestFormatting:
         assert len(top) + len(right) + len(bottom) == lines - 2
 
     def test_allowance_non_default(self):
-        self.image.set_size(h_allow=2, v_allow=3)
+        self.image.set_size((self.full_width - 2) // 2, h_allow=2, v_allow=3)
         left, right, top, bottom = self.check_padding(render=str(self.image))
         assert all(len(line) == columns - 2 for line in top)
         assert all(len(line) == columns - 2 for line in bottom)
@@ -962,6 +866,7 @@ class TestFormatting:
     def test_allowance_fit_to_width(self):
         # Vertical allowance nullified
         self.image.set_size(Size.FIT_TO_WIDTH, h_allow=2, v_allow=3)
+        self.image._size = tuple(map(floordiv, self.image._size, (2, 2)))
         left, right, top, bottom = self.check_padding(render=str(self.image))
         assert all(len(line) == columns - 2 for line in top)
         assert all(len(line) == columns - 2 for line in bottom)

@@ -230,8 +230,6 @@ class BaseImage(metaclass=ImageMeta):
           * an integer; vertical dimension of the image, in lines.
           * a :py:class:`~term_image.image.Size` enum member.
 
-        scale: The fraction of the size (on respective axes) to render the image with.
-
     Raises:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
@@ -243,8 +241,6 @@ class BaseImage(metaclass=ImageMeta):
     NOTE:
         * If neither *width* nor *height* is given (or both are ``None``),
           :py:attr:`~term_image.image.Size.FIT` applies.
-        * The image size is multiplied by the :term:`scale` on respective axes when
-          the image is :term:`rendered`.
         * For animated images, the seek position is initialized to the current seek
           position of the given image.
         * It's allowed to set properties for :term:`animated` images on non-animated
@@ -273,7 +269,6 @@ class BaseImage(metaclass=ImageMeta):
         *,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
         """See the class description"""
         if not isinstance(image, Image.Image):
@@ -289,8 +284,6 @@ class BaseImage(metaclass=ImageMeta):
             self.size = Size.FIT
         else:
             self.set_size(width, height)
-        self._scale = []
-        self._scale[:] = self._check_scale(scale)
 
         self._is_animated = hasattr(image, "is_animated") and image.is_animated
         if self._is_animated:
@@ -327,7 +320,7 @@ class BaseImage(metaclass=ImageMeta):
         return ImageIterator(self, 1, "1.1", False)
 
     def __repr__(self) -> str:
-        return "<{}: source_type={} size={} scale={} is_animated={}>".format(
+        return "<{}: source_type={} size={} is_animated={}>".format(
             type(self).__name__,
             self._source_type.name,
             (
@@ -335,7 +328,6 @@ class BaseImage(metaclass=ImageMeta):
                 if isinstance(self._size, Size)
                 else "x".join(map(str, self._size))
             ),
-            "x".join(format(x, ".2") for x in self._scale),
             self._is_animated,
         )
 
@@ -426,7 +418,7 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[1],
         lambda self, height: self.set_size(height=height),
         doc="""
-        The **unscaled** height of the image
+        Image height
 
         :type: Union[Size, int]
 
@@ -501,155 +493,59 @@ class BaseImage(metaclass=ImageMeta):
         return self._n_frames
 
     rendered_height = property(
-        lambda self: round(
-            (
-                self._valid_size(None, self._size)
-                if isinstance(self._size, Size)
-                else self._size
-            )[1]
-            * self._scale[1]
-        )
-        or 1,
+        lambda self: (
+            self._valid_size(None, self._size)
+            if isinstance(self._size, Size)
+            else self._size
+        )[1],
         doc="""
-        The **scaled** height of the image
+        The height with which the image is :term:`rendered`
 
         :type: int
 
         GET:
-            Returns the actual number of lines that the image will occupy when drawn
-            in a terminal.
+            Returns the number of lines the image will occupy when drawn in a terminal.
         """,
     )
 
     rendered_size = property(
-        lambda self: tuple(
-            map(
-                lambda x: x or 1,
-                map(
-                    round,
-                    map(
-                        mul,
-                        (
-                            self._valid_size(self._size, None)
-                            if isinstance(self._size, Size)
-                            else self._size
-                        ),
-                        self._scale,
-                    ),
-                ),
-            )
+        lambda self: (
+            self._valid_size(self._size, None)
+            if isinstance(self._size, Size)
+            else self._size
         ),
         doc="""
-        The **scaled** size of the image
+        The size with which the image is :term:`rendered`
 
         :type: Tuple[int, int]
 
         GET:
-            Returns the actual number of columns and lines (respectively) that the
-            image will occupy when drawn in a terminal.
+            Returns the number of columns and lines (respectively) the image will
+            occupy when drawn in a terminal.
         """,
     )
 
     rendered_width = property(
-        lambda self: round(
-            (
-                self._valid_size(self._size, None)
-                if isinstance(self._size, Size)
-                else self._size
-            )[0]
-            * self._scale[0]
-        )
-        or 1,
+        lambda self: (
+            self._valid_size(self._size, None)
+            if isinstance(self._size, Size)
+            else self._size
+        )[0],
         doc="""
-        The **scaled** width of the image
+        The width with which the image is :term:`rendered`
 
         :type: int
 
         GET:
-            Returns the actual number of columns that the image will occupy when drawn
-            in a terminal.
+            Returns the number of columns the image will occupy when drawn in a
+            terminal.
         """,
     )
-
-    scale = property(
-        lambda self: tuple(self._scale),
-        doc="""
-        Image :term:`scale`
-
-        :type: Tuple[float, float]
-
-        GET:
-            Returns the scale of the image on the horizontal and vertical axes
-            respectively.
-
-        SET:
-            If set to:
-
-            * A *scale value*; sets the scale on both axes.
-            * A :py:class:`tuple` of two *scale values*; sets the scale on the
-              ``(horizontal, vertical)`` axes respectively.
-
-        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
-        """,
-    )
-
-    @scale.setter
-    def scale(self, scale: Union[float, Tuple[float, float]]) -> None:
-        if isinstance(scale, float):
-            if not 0.0 < scale <= 1.0:
-                raise arg_value_error_range("scale", scale)
-            self._scale[:] = (scale,) * 2
-        elif isinstance(scale, tuple):
-            self._scale[:] = self._check_scale(scale)
-        else:
-            raise arg_type_error("scale", scale)
-
-    scale_x = property(
-        lambda self: self._scale[0],
-        doc="""
-        Horizontal :term:`scale`
-
-        :type: float
-
-        GET:
-            Returns the scale of the image on the horizontal axis.
-
-        SET:
-            Sets the scale of the image on the horizontal axis.
-
-        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
-        """,
-    )
-
-    @scale_x.setter
-    def scale_x(self, x: float) -> None:
-        self._scale[0] = self._check_scale_2(x)
-
-    scale_y = property(
-        lambda self: self._scale[1],
-        doc="""
-        Vertical :term:`scale`
-
-        :type: float
-
-        GET:
-            Returns the scale of the image on the vertical axis.
-
-        SET:
-            Sets the scale of the image on the vertical axis.
-
-        A scale value is a :py:class:`float` in the range **0.0 < scale <= 1.0**.
-        """,
-    )
-
-    @scale_y.setter
-    def scale_y(self, y: float) -> None:
-        self._scale[1] = self._check_scale_2(y)
 
     size = property(
         lambda self: self._size,
         doc="""
-        The **unscaled** size of the image
+        Image size
 
         :type: Union[Size, Tuple[int, int]]
 
@@ -712,7 +608,7 @@ class BaseImage(metaclass=ImageMeta):
         lambda self: self._size if isinstance(self._size, Size) else self._size[0],
         lambda self, width: self.set_size(width),
         doc="""
-        The **unscaled** width of the image
+        Image width
 
         :type: Union[Size, int]
 
@@ -947,7 +843,7 @@ class BaseImage(metaclass=ImageMeta):
     def from_file(
         cls,
         filepath: Union[str, os.PathLike],
-        **kwargs: Union[None, int, Tuple[float, float]],
+        **kwargs: Union[None, int],
     ) -> BaseImage:
         """Creates an instance from an image file.
 
@@ -995,7 +891,7 @@ class BaseImage(metaclass=ImageMeta):
     def from_url(
         cls,
         url: str,
-        **kwargs: Union[None, int, Tuple[float, float]],
+        **kwargs: Union[None, int],
     ) -> BaseImage:
         """Creates an instance from an image URL.
 
@@ -1354,41 +1250,6 @@ class BaseImage(metaclass=ImageMeta):
 
         return h_align, width, v_align, height
 
-    @staticmethod
-    def _check_scale(scale: Tuple[float, float]) -> Tuple[float, float]:
-        """Checks a tuple of scale values.
-
-        Returns:
-            The tuple of scale values, if valid.
-
-        Raises:
-            TypeError: The object is not a tuple of ``float``\\ s.
-            ValueError: The object is not a 2-tuple or the values are out of range.
-        """
-        if not (isinstance(scale, tuple) and all(isinstance(x, float) for x in scale)):
-            raise arg_type_error("scale", scale)
-
-        if not (len(scale) == 2 and all(0.0 < x <= 1.0 for x in scale)):
-            raise arg_value_error("scale", scale)
-        return scale
-
-    @staticmethod
-    def _check_scale_2(scale: float) -> float:
-        """Checks a single scale value.
-
-        Returns:
-            The scale value, if valid.
-
-        Raises:
-            TypeError: The object is not a ``float``.
-            ValueError: The value is out of range.
-        """
-        if not isinstance(scale, float):
-            raise arg_type_error("scale", scale)
-        if not 0.0 < scale <= 1.0:
-            raise arg_value_error_range("scale", scale)
-        return scale
-
     @classmethod
     def _check_style_args(cls, style_args: Dict[str, Any]) -> Dict[str, Any]:
         """Validates style-specific arguments and translates them into the required
@@ -1736,10 +1597,7 @@ class BaseImage(metaclass=ImageMeta):
 
     @abstractmethod
     def _get_render_size(self) -> Tuple[int, int]:
-        """Returns the size (in pixels) required to render the image.
-
-        Applies the image scale.
-        """
+        """Returns the size (in pixels) required to render the image."""
         raise NotImplementedError
 
     @classmethod
@@ -1896,9 +1754,6 @@ class BaseImage(metaclass=ImageMeta):
             if isinstance(_size, Size):
                 self.set_size(_size)
             elif check_size or animated:
-                # NOTE: If the set size is larger than the available terminal size but
-                # the scale makes it fit in, then it's all good.
-
                 columns, lines = map(
                     sub,
                     get_terminal_size(),
@@ -1957,8 +1812,6 @@ class BaseImage(metaclass=ImageMeta):
         columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
         max_width = self._pixels_cols(cols=columns)
         max_height = self._pixels_lines(lines=lines)
-
-        # NOTE: The image scale is not considered since it should never be > 1
 
         # As for cell ratio...
         #
@@ -2101,7 +1954,6 @@ class GraphicsImage(BaseImage):
         *,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        scale: Tuple[float, float] = (1.0, 1.0),
     ) -> None:
         # calls `is_supported()` first to set required class attributes, in case
         # support is forced for a style that is actually supported
@@ -2230,8 +2082,7 @@ class ImageIterator:
         term_image.exceptions.StyleError: Invalid style-specific format specifier.
 
     * If *repeat* equals ``1``, caching is disabled.
-    * The iterator has immediate response to changes in the image size
-      and :term:`scale`.
+    * The iterator has immediate response to changes in the image size.
     * If the image size is :term:`dynamic <dynamic size>`, it's computed per frame.
     * The number of the last yielded frame is set as the image's seek position.
     * Directly adjusting the seek position of the image doesn't affect iteration.

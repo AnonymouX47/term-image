@@ -1,7 +1,5 @@
 """BlockImage-specific tests"""
 
-from random import random
-
 from term_image.ctlseqs import SGR_BG_RGB, SGR_NORMAL
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
@@ -30,15 +28,12 @@ class TestRender:
         return self.trans._renderer(self.trans._render_image, alpha)
 
     def test_size(self):
-        self.trans.scale = 1.0
         render = self.render_image(_ALPHA_THRESHOLD)
         # No '\n' after the last line, hence the `+ 1`
         assert render.count("\n") + 1 == self.trans.height
         assert render.partition("\n")[0].count(" ") == self.trans.width
 
     def test_transparency(self):
-        self.trans.scale = 1.0
-
         # Transparency enabled
         render = self.render_image(_ALPHA_THRESHOLD)
         assert render == str(self.trans) == f"{self.trans:1.1}"
@@ -55,8 +50,6 @@ class TestRender:
         )
 
     def test_background_colour(self):
-        self.trans.scale = 1.0
-
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
             set_fg_bg_colors(bg=bg)
@@ -96,28 +89,3 @@ class TestRender:
             line == SGR_BG_RGB % (255, 255, 255) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
-
-    def test_scaled(self):
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101)):
-            render = self.render_image(_ALPHA_THRESHOLD)
-            assert render.count("\n") + 1 == self.trans.rendered_height
-            assert all(
-                line == SGR_NORMAL + " " * self.trans.rendered_width + SGR_NORMAL
-                for line in render.splitlines()
-            )
-
-        # Random scales
-        for _ in range(100):
-            scale = random()
-            if scale == 0.0:
-                continue
-            self.trans.scale = scale
-            assert 0 not in self.trans.rendered_size
-
-            render = self.render_image(_ALPHA_THRESHOLD)
-            assert render.count("\n") + 1 == self.trans.rendered_height
-            assert all(
-                line == SGR_NORMAL + " " * self.trans.rendered_width + SGR_NORMAL
-                for line in render.splitlines()
-            )

@@ -158,7 +158,7 @@ def test_str_All():
 def test_format_All():
     image = ImageClass(python_img)
     image.set_size()
-    image.scale = 0.5  # Leave some space for formatting
+    image.width //= 2  # To ensure there's padding
     assert format(image) == image._format_render(str(image))
 
 

@@ -4,7 +4,6 @@ import io
 import sys
 from base64 import standard_b64decode
 from contextlib import contextmanager
-from random import random
 
 import pytest
 from PIL import Image
@@ -678,13 +677,11 @@ class TestRenderLines:
             self._test_image_size(image, term=ITerm2Image._TERM)
 
     def test_size(self):
-        self.trans.scale = 1.0
         for ITerm2Image._TERM in supported_terminals:
             self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
     def test_raw_image_and_transparency(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
@@ -709,7 +706,6 @@ class TestRenderLines:
 
     def test_raw_image_and_background_colour(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
@@ -764,7 +760,6 @@ class TestRenderLines:
 
     def test_mix(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         cols = self.trans.rendered_width
 
         for ITerm2Image._TERM in supported_terminals:
@@ -792,7 +787,6 @@ class TestRenderLines:
 
     def test_compress(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
 
         # compress = 4  (default)
         assert self.render_image() == str(self.trans) == f"{self.trans:1.1+c4}"
@@ -808,23 +802,6 @@ class TestRenderLines:
             > len(self.render_image(c=1))
             > len(self.render_image(c=9))
         )
-
-    def test_scaled(self):
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
-            for ITerm2Image._TERM in supported_terminals:
-                self._test_image_size(self.trans, term=ITerm2Image._TERM)
-
-        # Random scales
-        for _ in range(20):
-            scale = random()
-            if scale == 0.0:
-                continue
-            self.trans.scale = scale
-
-            assert 0 not in self.trans.rendered_size
-            for ITerm2Image._TERM in supported_terminals:
-                self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
     def test_jpeg(self):
         png_image = ITerm2Image.from_file("tests/images/trans.png")
@@ -956,13 +933,11 @@ class TestRenderWhole:
             self._test_image_size(image, term=ITerm2Image._TERM)
 
     def test_size(self):
-        self.trans.scale = 1.0
         for ITerm2Image._TERM in supported_terminals:
             self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
     def test_raw_image_and_transparency(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
         # Transparency enabled
@@ -985,7 +960,6 @@ class TestRenderWhole:
 
     def test_raw_image_and_background_colour(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
         # Terminal BG
@@ -1038,7 +1012,6 @@ class TestRenderWhole:
 
     def test_mix(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
         cols, lines = self.trans.rendered_size
 
         for ITerm2Image._TERM in supported_terminals:
@@ -1080,7 +1053,6 @@ class TestRenderWhole:
 
     def test_compress(self):
         ITerm2Image._TERM = ""
-        self.trans.scale = 1.0
 
         # compress = 4  (default)
         assert self.render_image() == str(self.trans) == f"{self.trans:1.1+c4}"
@@ -1096,23 +1068,6 @@ class TestRenderWhole:
             > len(self.render_image(c=1))
             > len(self.render_image(c=9))
         )
-
-    def test_scaled(self):
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
-            for ITerm2Image._TERM in supported_terminals:
-                self._test_image_size(self.trans, term=ITerm2Image._TERM)
-
-        # Random scales
-        for _ in range(20):
-            scale = random()
-            if scale == 0.0:
-                continue
-            self.trans.scale = scale
-
-            assert 0 not in self.trans.rendered_size
-            for ITerm2Image._TERM in supported_terminals:
-                self._test_image_size(self.trans, term=ITerm2Image._TERM)
 
     def test_jpeg(self):
         png_image = ITerm2Image.from_file("tests/images/trans.png")
@@ -1215,7 +1170,7 @@ def test_read_from_file():
                 pixels=image.original_size[1]
             )
 
-            # Will not be downscale
+            # Will not be downscaled
             image.height = lines_for_original_height * 2
             for ITerm2Image._TERM in supported_terminals:
                 assert (

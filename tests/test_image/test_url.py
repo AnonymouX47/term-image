@@ -42,10 +42,6 @@ def test_from_url():
     with pytest.raises(ValueError, match=r"both width and height"):
         BlockImage.from_url(python_url, width=1, height=1)
 
-    # Ensure scale argument gets through
-    with pytest.raises(TypeError, match=r"'scale'"):
-        BlockImage.from_url(python_url, scale=1.0)
-
 
 def test_source():
     image = BlockImage.from_url(python_url)
@@ -71,9 +67,5 @@ class TestConvinience:
         # Ensure size arguments get through
         with pytest.raises(ValueError, match=r"both width and height"):
             from_url(python_url, width=1, height=1)
-
-        # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale'"):
-            from_url(python_url, scale=1.0)
 
         assert isinstance(from_url(python_url), BaseImage)

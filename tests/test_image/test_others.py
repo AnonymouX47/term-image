@@ -16,10 +16,6 @@ class TestConvinience:
         with pytest.raises(ValueError, match=r"both width and height"):
             AutoImage(python_img, width=1, height=1)
 
-        # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale'"):
-            AutoImage(python_img, scale=0.5)
-
         assert isinstance(AutoImage(python_img), BaseImage)
 
     def test_from_file(self):
@@ -29,10 +25,6 @@ class TestConvinience:
         # Ensure size arguments get through
         with pytest.raises(ValueError, match=r"both width and height"):
             from_file(python_image, width=1, height=1)
-
-        # Ensure scale argument gets through
-        with pytest.raises(TypeError, match=r"'scale'"):
-            from_file(python_image, scale=1.0)
 
         for path in (python_image, Path(python_image), BytesPath(python_image)):
             assert isinstance(from_file(path), BaseImage)
