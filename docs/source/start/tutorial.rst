@@ -80,12 +80,15 @@ The output (using :py:func:`print`) should look like:
 Formatted Rendering
 ^^^^^^^^^^^^^^^^^^^
 .. note::
-   To see the effect of :term:`alignment` in the steps below, please scale the image down using::
+   To see the effect of :term:`alignment` in the steps below, set the image size
+   **smaller** than **your** terminal size, with e.g::
 
-     image.scale = 0.75
+     image.height = 50
 
-   This simply sets the x-axis and y-axis :term:`scale` of the image to ``0.75``.
-   We'll see more about this :ref:`later <image-scale>`.
+   This sets the image height to ``50`` lines (which is less than ``70``, the height of
+   the terminal window used to prepare this tutorial) and the width proportionally.
+
+   We'll see more about this later.
 
 Below are examples of formatted rendering:
 
@@ -176,14 +179,14 @@ There are two basic ways to draw an image to the terminal screen:
      terminal, while the latter doesn't.
 
 
-.. important:: All the examples above use :term:`dynamic <dynamic size>`,
-   :term:`automatic <automatic size>` sizing and default :term:`scale`.
+.. important:: All the examples **above** use :term:`dynamic <dynamic size>` and
+   :term:`automatic <automatic size>` sizing.
 
 
 Image Size
 ----------
 
-| The size of an image is the **unscaled** dimension with which an image is rendered.
+| The size of an image determines the dimension of its render output.
 | The image size can be retrieved via the :py:attr:`~term_image.image.BaseImage.size`,
   :py:attr:`~term_image.image.BaseImage.width` and :py:attr:`~term_image.image.BaseImage.height` properties.
 
@@ -315,57 +318,7 @@ True
    See :py:meth:`~term_image.image.BaseImage.set_size` for extended sizing control.
 
 
-.. _image-scale:
-
-Image scale
------------
-
-| The scale of an image is the **ratio** of its size with which it will actually be rendered.
-| A valid scale value is a :py:class:`float` in the range ``0.0`` < ``x`` <= ``1.0``
-  i.e greater than zero and less than or equal to one.
-
-The image scale can be retrieved via the properties :py:attr:`~term_image.image.BaseImage.scale`,
-:py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y`.
-
-The scale can be set at instantiation by passing a value to the *scale* **keyword-only** paramter.
-
->>> image = from_file("python.png", scale=(0.75, 0.6))
->>> image.scale
->>> (0.75, 0.6)
-
-The drawn image (using ``image.draw()``) should look like:
-
-.. image:: /resources/tutorial/scale_set.png
-
-If the *scale* argument is ommited, the default scale ``(1.0, 1.0)`` is used.
-
->>> image = from_file("python.png")
->>> image.scale
->>> (1.0, 1.0)
-
-The drawn image (using ``image.draw()``) should look like:
-
-.. image:: /resources/tutorial/scale_unset.png
-
-| The properties :py:attr:`~term_image.image.BaseImage.scale`, :py:attr:`~term_image.image.BaseImage.scale_x` and :py:attr:`~term_image.image.BaseImage.scale_y` are used to set the scale of an image after instantiation.
-
-| ``scale`` accepts a tuple of two scale values or a single scale value.
-| ``scale_x`` and ``scale_y`` each accept a single scale value.
-
->>> image = from_file("python.png")
->>> image.scale = (.3, .56756)
->>> image.scale
-(0.3, 0.56756)
->>> image.scale = .5
->>> image.scale
-(0.5, 0.5)
->>> image.scale_x = .75
->>> image.scale
-(0.75, 0.5)
->>> image.scale_y = 1.
->>> image.scale
-(0.75, 1.0)
-
 |
 
-Finally, to explore more of the library's features and functionality, check out the :doc:`/guide/index` and the :doc:`/reference/index`.
+To explore more of the library's features and functionality, check out the
+:doc:`/guide/index` and the :doc:`/reference/index`.
