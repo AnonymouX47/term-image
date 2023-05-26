@@ -71,7 +71,7 @@ def AutoImage(
 
 def from_file(
     filepath: Union[str, os.PathLike],
-    **kwargs: Union[None, int, Tuple[float, float]],
+    **kwargs: Union[None, int],
 ) -> BaseImage:
     """Creates an image instance from an image file.
 
@@ -86,7 +86,7 @@ def from_file(
 
 def from_url(
     url: str,
-    **kwargs: Union[None, int, Tuple[float, float]],
+    **kwargs: Union[None, int],
 ) -> BaseImage:
     """Creates an image instance from an image URL.
 

@@ -843,7 +843,7 @@ class BaseImage(metaclass=ImageMeta):
     def from_file(
         cls,
         filepath: Union[str, os.PathLike],
-        **kwargs: Union[None, int, Tuple[float, float]],
+        **kwargs: Union[None, int],
     ) -> BaseImage:
         """Creates an instance from an image file.
 
@@ -891,7 +891,7 @@ class BaseImage(metaclass=ImageMeta):
     def from_url(
         cls,
         url: str,
-        **kwargs: Union[None, int, Tuple[float, float]],
+        **kwargs: Union[None, int],
     ) -> BaseImage:
         """Creates an instance from an image URL.
 
