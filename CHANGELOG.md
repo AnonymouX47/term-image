@@ -17,7 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **(BREAKING!)** `InvalidSizeError` no longer inherits from `ValueError` ([26ea969]).
 - **(BREAKING!)** `UrwidImage` now raises `UrwidImageError` instead of `ValueError` when rendered as a fixed widget ([a612b59]).
 
+### Removed
+- Image scaling ([#88]).
+  - *scale* parameter of `BaseImage`, `BaseImage.from_file()`, `BaseImage.from_url()`, etc.
+  - `scale`, `scale_x` and `scale_y` properties of `BaseImage`.
+
 [#87]: https://github.com/AnonymouX47/term-image/pull/87
+[#88]: https://github.com/AnonymouX47/term-image/pull/88
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3
