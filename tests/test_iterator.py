@@ -208,15 +208,6 @@ def test_caching():
     image_it.seek(gif_image2.n_frames - 1)
     assert next(image_it).count("\n") + 1 == 20
 
-    # Change in scale
-    gif_image2.scale = 0.5
-    frame_0_3 = next(image_it)
-    assert frame_0_3 is not frame_0_1
-    assert frame_0_3 is not frame_0_2
-    assert frame_0_3.count("\n") + 1 == 10
-    image_it.seek(gif_image2.n_frames - 1)
-    assert next(image_it).count("\n") + 1 == 10
-
     image_it.close()
 
 

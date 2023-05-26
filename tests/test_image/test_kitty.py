@@ -3,7 +3,6 @@
 import io
 from base64 import standard_b64decode
 from contextlib import contextmanager
-from random import random
 from zlib import decompress
 
 import pytest
@@ -264,7 +263,6 @@ class TestRenderLines:
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
         # Size is tested in `test_size()`
-        self.trans.scale = 1.0
         for line in self.render_image().splitlines():
             decode_image(line)
 
@@ -300,11 +298,9 @@ class TestRenderLines:
         self._test_image_size(image)
 
     def test_size(self):
-        self.trans.scale = 1.0
         self._test_image_size(self.trans)
 
     def test_image_data_and_transparency(self):
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
@@ -326,7 +322,6 @@ class TestRenderLines:
             assert raw_image.count(b"\0\0\0") == pixels_per_line
 
     def test_image_data_and_background_colour(self):
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
         pixels_per_line = w * (h // _size)
 
@@ -376,8 +371,6 @@ class TestRenderLines:
             assert raw_image.count(b"\xff" * 3) == pixels_per_line
 
     def test_z_index(self):
-        self.trans.scale = 1.0
-
         # z_index = 0  (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+z0}"
@@ -392,8 +385,6 @@ class TestRenderLines:
                 assert ("z", f"{value}") in decode_image(line)[0]
 
     def test_mix(self):
-        self.trans.scale = 1.0
-
         # mix = False (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
@@ -409,8 +400,6 @@ class TestRenderLines:
             assert fill == ctlseqs.CURSOR_FORWARD % self.trans.rendered_width
 
     def test_compress(self):
-        self.trans.scale = 1.0
-
         # compress = 4  (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+c4}"
@@ -438,26 +427,9 @@ class TestRenderLines:
         )
 
     def test_blend_false(self):
-        self.trans.scale = 1.0
-
         render = self.render_image(None, b=False)
         for line in render.splitlines():
             assert line.startswith(ctlseqs.KITTY_DELETE_CURSOR)
-
-    def test_scaled(self):
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
-            self._test_image_size(self.trans)
-
-        # Random scales
-        for _ in range(20):
-            scale = random()
-            if scale == 0.0:
-                continue
-            self.trans.scale = scale
-
-            assert 0 not in self.trans.rendered_size
-            self._test_image_size(self.trans)
 
 
 class TestRenderWhole:
@@ -490,7 +462,6 @@ class TestRenderWhole:
     def test_transmission(self):
         # Not chunked (image data is entirely contiguous, so it's highly compressed)
         # Image data size is tested in `test_size()`
-        self.trans.scale = 1.0
         decode_image(self.render_image())
 
         # Chunked (image data is very sparse, so it's still large after compression)
@@ -520,11 +491,9 @@ class TestRenderWhole:
         self._test_image_size(image)
 
     def test_size(self):
-        self.trans.scale = 1.0
         self._test_image_size(self.trans)
 
     def test_image_data_and_transparency(self):
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
         # Transparency enabled
@@ -544,7 +513,6 @@ class TestRenderWhole:
         assert raw_image.count(b"\0\0\0") == w * h
 
     def test_image_data_and_background_colour(self):
-        self.trans.scale = 1.0
         w, h = get_actual_render_size(self.trans)
 
         # Terminal BG
@@ -591,8 +559,6 @@ class TestRenderWhole:
         assert raw_image.count(b"\xff" * 3) == w * h
 
     def test_z_index(self):
-        self.trans.scale = 1.0
-
         # z_index = 0  (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+z0}"
@@ -606,8 +572,6 @@ class TestRenderWhole:
             assert ("z", f"{value}") in control_codes
 
     def test_mix(self):
-        self.trans.scale = 1.0
-
         # mix = False (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+m0}"
@@ -625,8 +589,6 @@ class TestRenderWhole:
         )
 
     def test_compress(self):
-        self.trans.scale = 1.0
-
         # compress = 4  (default)
         render = self.render_image()
         assert render == str(self.trans) == f"{self.trans:1.1+c4}"
@@ -644,25 +606,8 @@ class TestRenderWhole:
             assert ("o", "z") in decode_image(render)[0]
 
     def test_blend_false(self):
-        self.trans.scale = 1.0
-
         render = self.render_image(None, b=False)
         assert render.startswith(ctlseqs.KITTY_DELETE_CURSOR)
-
-    def test_scaled(self):
-        # At varying scales
-        for self.trans.scale in map(lambda x: x / 100, range(10, 101, 10)):
-            self._test_image_size(self.trans)
-
-        # Random scales
-        for _ in range(20):
-            scale = random()
-            if scale == 0.0:
-                continue
-            self.trans.scale = scale
-
-            assert 0 not in self.trans.rendered_size
-            self._test_image_size(self.trans)
 
 
 class TestClear:
