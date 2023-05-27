@@ -42,14 +42,12 @@ def setup_common(ImageClass):
     set_cell_size((9, 18))
     set_cell_ratio(0.5)
 
-    if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(
-        lines=lines - 2
-    ):
+    if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(lines=lines):
         _width = columns
         _height = width_height(dummy, w=columns)
     else:
-        _height = lines - 2
-        _width = width_height(dummy, h=lines - 2)
+        _height = lines
+        _width = width_height(dummy, h=lines)
     _width_px = ImageClass._pixels_cols(cols=_width)
     _height_px = ImageClass._pixels_lines(lines=_height)
 
@@ -231,7 +229,7 @@ class TestSetSize_All:
 
     def test_auto(self):
         max_width = ImageClass._pixels_cols(cols=columns)
-        max_height = ImageClass._pixels_lines(lines=lines - 2)
+        max_height = ImageClass._pixels_lines(lines=lines)
 
         _original_size = self.image.original_size
         try:
@@ -413,19 +411,6 @@ class TestSetSize_All:
         assert self.v_image.height == ImageClass._pixels_lines(pixels=ori_height)
         assert proportional(self.v_image)
 
-    def test_allowance(self):
-        self.h_image.set_size()
-        assert self.h_image.width == columns
-
-        self.v_image.set_size()
-        assert self.v_image.height == lines - 2
-
-        self.h_image.set_size(h_allow=2)
-        assert self.h_image.width == columns - 2
-
-        self.v_image.set_size(v_allow=3)
-        assert self.v_image.height == lines - 3
-
     def test_can_exceed_terminal_size(self):
         self.image.set_size(width=columns + 1)
         assert self.image.width == columns + 1
@@ -447,13 +432,6 @@ class TestSetSize_All:
         self.image.set_size(width=100, maxsize=(200, 100))
         assert self.image.size == (100, 50)
         self.image.set_size(height=50, maxsize=(200, 100))
-        assert self.image.size == (100, 50)
-
-    # This test passes only when the cell ratio is about 0.5
-    def test_maxsize_allowance_ignore(self):
-        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
-        assert self.image.size == (100, 50)
-        self.image.set_size(h_allow=2, v_allow=3, maxsize=(100, 50))
         assert self.image.size == (100, 50)
 
 

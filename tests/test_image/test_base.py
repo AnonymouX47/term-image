@@ -455,18 +455,6 @@ class TestSetSize:
             with pytest.raises(ValueError, match="'height'"):
                 self.image.set_size(height=value)
 
-    def test_args_allow(self):
-        for value in (1.0, "1", (), []):
-            with pytest.raises(TypeError, match="'h_allow'"):
-                self.image.set_size(h_allow=value)
-            with pytest.raises(TypeError, match="'v_allow'"):
-                self.image.set_size(v_allow=value)
-        for value in (-1, -100):
-            with pytest.raises(ValueError, match="'h_allow'"):
-                self.image.set_size(h_allow=value)
-            with pytest.raises(ValueError, match="'v_allow'"):
-                self.image.set_size(v_allow=value)
-
     def test_args_maxsize(self):
         for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
             with pytest.raises(TypeError, match="'maxsize'"):
@@ -689,8 +677,8 @@ class TestFormatting:
         h_align, width, v_align, height, *_ = args + (None,) * 4
         for name, value in kwargs.items():
             exec(f"{name} = {value!r}")
-        width = width or columns - self.image._h_allow
-        height = height or lines - self.image._v_allow
+        width = width or columns
+        height = height or lines
 
         left, right = [], []
         render = self.image._format_render(render or self.render, *args, **kwargs)
@@ -809,10 +797,6 @@ class TestFormatting:
             None,
         )
 
-        # Allowance is not considered
-        self.image.set_size(h_allow=2)
-        assert self.check_formatting(width=columns) == (None, columns, None, None)
-
     def test_arg_padding_height(self):
         self.image.set_size()
         for value in (1, _size, lines):
@@ -820,10 +804,6 @@ class TestFormatting:
 
         # Can exceed terminal height
         assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
-
-        # Allowance is not considered
-        self.image.set_size(v_allow=4)
-        assert self.check_formatting(height=lines) == (None, None, None, lines)
 
     def test_padding_width(self):
         self.image.width = self.full_width // 2
@@ -846,41 +826,6 @@ class TestFormatting:
         self.check_padding("<", columns, "^", lines)
         self.check_padding("|", columns, "-", lines)
         self.check_padding(">", columns, "_", lines)
-
-    def test_allowance_default(self):
-        self.image.width = self.full_width // 2
-        left, right, top, bottom = self.check_padding()
-        assert all(len(line) == columns for line in top)
-        assert all(len(line) == columns for line in bottom)
-        assert len(top) + len(left) + len(bottom) == lines - 2
-        assert len(top) + len(right) + len(bottom) == lines - 2
-
-    def test_allowance_non_default(self):
-        self.image.set_size((self.full_width - 2) // 2, h_allow=2, v_allow=3)
-        left, right, top, bottom = self.check_padding(render=str(self.image))
-        assert all(len(line) == columns - 2 for line in top)
-        assert all(len(line) == columns - 2 for line in bottom)
-        assert len(top) + len(left) + len(bottom) == lines - 3
-        assert len(top) + len(right) + len(bottom) == lines - 3
-
-    def test_allowance_fit_to_width(self):
-        # Vertical allowance nullified
-        self.image.set_size(Size.FIT_TO_WIDTH, h_allow=2, v_allow=3)
-        self.image._size = tuple(map(floordiv, self.image._size, (2, 2)))
-        left, right, top, bottom = self.check_padding(render=str(self.image))
-        assert all(len(line) == columns - 2 for line in top)
-        assert all(len(line) == columns - 2 for line in bottom)
-        assert len(top) + len(left) + len(bottom) == lines
-        assert len(top) + len(right) + len(bottom) == lines
-
-    def test_allowance_maxsize(self):
-        # `maxsize` ignores but doesn't nullify allowances
-        self.image.set_size(h_allow=2, v_allow=3, maxsize=(_size,) * 2)
-        left, right, top, bottom = self.check_padding(render=str(self.image))
-        assert all(len(line) == columns - 2 for line in top)
-        assert all(len(line) == columns - 2 for line in bottom)
-        assert len(top) + len(left) + len(bottom) == lines - 3
-        assert len(top) + len(right) + len(bottom) == lines - 3
 
     def test_format_spec(self):
         for spec in (
@@ -967,10 +912,6 @@ class TestDraw:
         with pytest.raises(ValueError, match="'pad_width'"):
             self.image.draw(pad_width=columns + 1)
 
-        self.image.set_size(h_allow=2)
-        with pytest.raises(ValueError, match="'pad_width'"):
-            self.image.draw(pad_width=columns - 1)
-
         with pytest.raises(ValueError, match="'pad_height'"):
             self.anim_image.draw(pad_height=lines + 1)
 
@@ -989,17 +930,7 @@ class TestDraw:
         with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
-        self.image._size = (1, lines - 1)
-        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
-            self.image.draw()
-
-        self.image.set_size(h_allow=2)
-        self.image._size = (columns - 1, 1)
-        with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
-            self.image.draw()
-
-        self.image.set_size(v_allow=4)
-        self.image._size = (1, lines - 3)
+        self.image._size = (1, lines + 1)
         with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
             self.image.draw()
 
