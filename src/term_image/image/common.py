@@ -440,10 +440,6 @@ class BaseImage(metaclass=ImageMeta):
             * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
 
             This results in a :term:`fixed size`.
-
-            .. note::
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
-                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -562,10 +558,6 @@ class BaseImage(metaclass=ImageMeta):
 
             This implies :term:`dynamic sizing` i.e the size is computed whenever the
             image is :term:`rendered`.
-
-            .. note::
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
-                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -625,10 +617,6 @@ class BaseImage(metaclass=ImageMeta):
             * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
 
             This results in a :term:`fixed size`.
-
-            .. note::
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
-                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -744,9 +732,6 @@ class BaseImage(metaclass=ImageMeta):
               can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
-        * For **non-animations**, if the image size was set with
-          :py:attr:`~term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
-          validated and setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
@@ -1079,9 +1064,6 @@ class BaseImage(metaclass=ImageMeta):
 
         If *width* or *height* is a :py:class:`~term_image.image.Size` enum
         member, :term:`automatic sizing` applies as prescribed by the enum member.
-
-        When :py:attr:`~term_image.image.Size.FIT_TO_WIDTH` is given, size validation
-        operations take it into consideration.
 
         NOTE:
            The size is checked to fit in only when *maxsize* is given along with a fixed
@@ -1704,11 +1686,6 @@ class BaseImage(metaclass=ImageMeta):
               ``True`` and the image's :term:`rendered size` can not fit into the
               :term:`terminal size`.
             term_image.exceptions.TermImageError: The image has been finalized.
-
-        NOTE:
-            For **non-animations**, if the image size was set with
-            :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
-            validated and setting *scroll* is unnecessary.
         """
         _size = self._size
         try:
