@@ -137,17 +137,17 @@ class Size(Enum):
     """Enumeration for :term:`automatic sizing`."""
 
     #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
-    #: :term:`available size`, else :py:attr:`FIT`.
+    #: :term:`frame size`, else :py:attr:`FIT`.
     #:
     #: :meta hide-value:
     AUTO = Hidden()
 
-    #: The image size is set to fit optimally **within** the :term:`available size`.
+    #: The image size is set to fit optimally **within** the :term:`frame size`.
     #:
     #: :meta hide-value:
     FIT = Hidden()
 
-    #: The size is set such that the width is exactly the :term:`available width`,
+    #: The size is set such that the width is exactly the :term:`frame width`,
     #: regardless of the :term:`cell ratio`.
     #:
     #: :meta hide-value:
@@ -442,8 +442,7 @@ class BaseImage(metaclass=ImageMeta):
             This results in a :term:`fixed size`.
 
             .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
                   as defined by :py:meth:`set_size` apply.
         """,
     )
@@ -565,8 +564,7 @@ class BaseImage(metaclass=ImageMeta):
             image is :term:`rendered`.
 
             .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
                   as defined by :py:meth:`set_size` apply.
         """,
     )
@@ -630,8 +628,7 @@ class BaseImage(metaclass=ImageMeta):
             This results in a :term:`fixed size`.
 
             .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
+                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH`
                   as defined by :py:meth:`set_size` apply.
         """,
     )
@@ -691,18 +688,17 @@ class BaseImage(metaclass=ImageMeta):
               "right" / ">"). Default: center.
             pad_width: Number of columns within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the
-                :term:`available terminal width <available width>` is used.
+              * A positive integer or ``None``. If ``None``, the :term:`terminal width`
+                is used.
               * Excess columns are filled with spaces.
-              * Must not be greater than the
-                :term:`available terminal width <available width>`.
+              * Must not be greater than the :term:`terminal width`.
 
             v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
               Default: middle.
             pad_height: Number of lines within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the
-                :term:`available terminal height <available height>` is used.
+              * A positive integer or ``None``. If ``None``, the :term:`terminal height`
+                is used.
               * Excess lines are filled with spaces.
               * Must not be greater than the :term:`terminal height`,
                 **for animations**.
@@ -721,8 +717,7 @@ class BaseImage(metaclass=ImageMeta):
                 * A hex color e.g ``ffffff``, ``7faa52``.
 
             scroll: Only applies to non-animations. If ``True``, allows the image's
-                :term:`rendered height` to be greater than the
-                :term:`available terminal height <available height>`.
+                :term:`rendered height` to be greater than the :term:`terminal height`.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
               an animated image.
@@ -747,13 +742,9 @@ class BaseImage(metaclass=ImageMeta):
               unexpected/invalid value.
             ValueError: Unable to convert or resize image.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
-              can not fit into the :term:`available terminal size <available size>`.
+              can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
-        * If :py:meth:`set_size` was used to set the image size, the horizontal and
-          vertical allowances (set when :py:meth:`set_size` was called) are taken into
-          consideration during size validation. If the size was set via another means or
-          the size is :term:`dynamic <dynamic size>`, the default allowances apply.
         * For **non-animations**, if the image size was set with
           :py:attr:`~term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
           validated and setting *scroll* is unnecessary.
@@ -1071,8 +1062,6 @@ class BaseImage(metaclass=ImageMeta):
               * a positive integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
-            h_allow: :term:`Horizontal allowance`; a non-negative integer.
-            v_allow: :term:`Vertical allowance`; a non-negative integer.
             maxsize: If given, as ``(columns, lines)`` (where *columns* and *lines* are
               positive integers), it's used instead of the terminal size.
 
@@ -1081,7 +1070,7 @@ class BaseImage(metaclass=ImageMeta):
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
             ValueError: Both *width* and *height* are specified.
-            ValueError: The :term:`available size` is too small for
+            ValueError: The :term:`frame size` is too small for
               :term:`automatic sizing`.
             term_image.exceptions.InvalidSizeError: *maxsize* is given and the
               resulting size will not fit into it.
@@ -1092,15 +1081,8 @@ class BaseImage(metaclass=ImageMeta):
         If *width* or *height* is a :py:class:`~term_image.image.Size` enum
         member, :term:`automatic sizing` applies as prescribed by the enum member.
 
-        When :py:attr:`~term_image.image.Size.FIT_TO_WIDTH` is given,
-
-        * size validation operations take it into consideration.
-        * :term:`Vertical allowance` is nullified.
-
-        :term:`Allowances <allowance>` are ignored when *maxsize* is given.
-
-        Render formatting and size validation operations recognize and respect the
-        horizontal and vertical allowances, until the image size is re-set.
+        When :py:attr:`~term_image.image.Size.FIT_TO_WIDTH` is given, size validation
+        operations take it into consideration.
 
         NOTE:
            The size is checked to fit in only when *maxsize* is given along with a fixed
@@ -1723,7 +1705,7 @@ class BaseImage(metaclass=ImageMeta):
         Raises:
             term_image.exceptions.InvalidSizeError: *check_size* or *animated* is
               ``True`` and the image's :term:`rendered size` can not fit into the
-              :term:`available terminal size <available size>`.
+              :term:`terminal size`.
             term_image.exceptions.TermImageError: The image has been finalized.
 
         NOTE:

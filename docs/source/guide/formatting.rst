@@ -115,7 +115,7 @@ Render Format Specification
 * ``width`` → :term:`padding width`
 
   * positive integer
-  * *default*: :term:`terminal width` minus :term:`horizontal allowance`
+  * *default*: :term:`terminal width`
   * if **less than or equal** to the :term:`rendered width`, it has **no effect**
 
 * ``v_align`` → :term:`vertical alignment`
@@ -128,7 +128,7 @@ Render Format Specification
 * ``height`` → :term:`padding height`
 
   * positive integer
-  * *default*: :term:`terminal height` minus :term:`vertical allowance`
+  * *default*: :term:`terminal height` minus two (``2``)
   * if **less than or equal** to the :term:`rendered height`, it has **no effect**
 
 * ``#`` → transparency setting
