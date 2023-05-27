@@ -75,18 +75,14 @@ class TestConstructor:
 
         image = BlockImage(python_img, width=_size)
         assert isinstance(image._size, tuple)
-        assert not image._fit_to_width
         image = BlockImage(python_img, height=_size)
         assert isinstance(image._size, tuple)
-        assert not image._fit_to_width
 
         for value in Size:
             image = BlockImage(python_img, width=value)
             assert isinstance(image._size, tuple)
-            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
             image = BlockImage(python_img, height=value)
             assert isinstance(image._size, tuple)
-            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
 
         image = BlockImage(python_img)
         assert image._is_animated is False
@@ -304,7 +300,6 @@ class TestProperties:
         for value in Size:
             image.size = value
             assert image.size is image.height is image.width is value
-            assert image._fit_to_width is (value is Size.FIT_TO_WIDTH)
 
         for value in (None, 0, 1, 0.1, "1", (1, 1), [1, 1]):
             with pytest.raises(TypeError):
@@ -940,23 +935,18 @@ class TestDraw:
 
         def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.image.set_size(width=Size.FIT_TO_WIDTH)
             self.image._size = (columns, lines + 1)
-            self.image.draw()
-            assert stdout.getvalue().count("\n") == lines + 1
-            clear_stdout()
+            with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
+                self.image.draw()
 
         def test_fit_to_width_height(self):
             sys.stdout = stdout
-            self.image.set_size(height=Size.FIT_TO_WIDTH)
             self.image._size = (columns, lines + 1)
-            self.image.draw()
-            assert stdout.getvalue().count("\n") == lines + 1
-            clear_stdout()
+            with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
+                self.image.draw()
 
         def test_scroll(self):
             sys.stdout = stdout
-            self.image.set_size()
             self.image._size = (columns, lines + 1)
             self.image.draw(scroll=True)
             assert stdout.getvalue().count("\n") == lines + 1
@@ -964,7 +954,6 @@ class TestDraw:
 
         def test_check_size(self):
             sys.stdout = stdout
-            self.image.set_size()
             self.image._size = (columns + 1, lines)
             self.image.draw(check_size=False)
             assert stdout.getvalue().count("\n") == lines
@@ -976,23 +965,18 @@ class TestDraw:
 
         def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.anim_image.set_size(width=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            self.anim_image.draw(animate=False)
-            assert stdout.getvalue().count("\n") == lines + 1
-            clear_stdout()
+            with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
+                self.anim_image.draw(animate=False)
 
         def test_fit_to_width_height(self):
             sys.stdout = stdout
-            self.anim_image.set_size(height=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            self.anim_image.draw(animate=False)
-            assert stdout.getvalue().count("\n") == lines + 1
-            clear_stdout()
+            with pytest.raises(InvalidSizeError, match="image cannot .* terminal size"):
+                self.anim_image.draw(animate=False)
 
         def test_scroll(self):
             sys.stdout = stdout
-            self.anim_image.set_size()
             self.anim_image._size = (columns, lines + 1)
             self.anim_image.draw(scroll=True, animate=False)
             assert stdout.getvalue().count("\n") == lines + 1
@@ -1000,7 +984,6 @@ class TestDraw:
 
         def test_check_size(self):
             sys.stdout = stdout
-            self.anim_image.set_size()
             self.anim_image._size = (columns + 1, lines)
             self.anim_image.draw(animate=False, check_size=False)
             assert stdout.getvalue().count("\n") == lines
@@ -1012,35 +995,28 @@ class TestDraw:
 
         def test_fit_to_width_width(self):
             sys.stdout = stdout
-            self.anim_image.set_size(width=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw()
 
         def test_fit_to_width_height(self):
             sys.stdout = stdout
-            self.anim_image.set_size(height=Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
+            with pytest.raises(
+                InvalidSizeError, match="animation cannot .* terminal size"
+            ):
                 self.anim_image.draw()
 
         def test_scroll(self):
             sys.stdout = stdout
-            self.anim_image.set_size()
-            self.anim_image._size = (columns, lines + 1)
-            with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
-                self.anim_image.draw(scroll=True)
-
-        def test_fit_scroll(self):
-            sys.stdout = stdout
-            self.anim_image.set_size(Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns, lines + 1)
             with pytest.raises(InvalidSizeError, match="rendered height .* animation"):
                 self.anim_image.draw(scroll=True)
 
         def test_check_size(self):
             sys.stdout = stdout
-            self.anim_image.set_size()
             self.anim_image._size = (columns + 1, lines)
             with pytest.raises(
                 InvalidSizeError, match="animation cannot .* terminal size"
@@ -1049,7 +1025,6 @@ class TestDraw:
 
         def test_fit_scroll_check_size(self):
             sys.stdout = stdout
-            self.anim_image.set_size(Size.FIT_TO_WIDTH)
             self.anim_image._size = (columns + 1, lines + 1)
             with pytest.raises(
                 InvalidSizeError, match="animation cannot .* terminal size"
