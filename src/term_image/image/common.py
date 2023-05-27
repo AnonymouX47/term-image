@@ -574,7 +574,6 @@ class BaseImage(metaclass=ImageMeta):
         if not isinstance(value, Size):
             raise arg_type_error("size", value)
         self._size = value
-        self._fit_to_width = value is Size.FIT_TO_WIDTH
 
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
@@ -1110,9 +1109,7 @@ class BaseImage(metaclass=ImageMeta):
             if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
                 raise arg_value_error("maxsize", maxsize)
 
-        fit_to_width = Size.FIT_TO_WIDTH in (width, height)
         self._size = self._valid_size(width, height, maxsize)
-        self._fit_to_width = fit_to_width
 
     def tell(self) -> int:
         """Returns the current image frame number.
@@ -1722,14 +1719,10 @@ class BaseImage(metaclass=ImageMeta):
                 if any(
                     map(
                         gt,
-                        # the compared height will be 0 if *_fit_to_width* or *scroll*
-                        # is `True`. So, the height comparison will always be `False`
+                        # The compared height will be 0 if *scroll* is `True`.
+                        # So, the height comparison will always be `False`
                         # since the terminal height should never be < 0.
-                        map(
-                            mul,
-                            self.rendered_size,
-                            (1, not (self._fit_to_width or scroll)),
-                        ),
+                        map(mul, self.rendered_size, (1, not scroll)),
                         terminal_size,
                     )
                 ):
@@ -1739,8 +1732,7 @@ class BaseImage(metaclass=ImageMeta):
                         + " cannot fit into the terminal size"
                     )
 
-                # Reaching here means it's either valid or *_fit_to_width* and/or
-                # *scroll* is/are `True`.
+                # Reaching here means it's either valid or *scroll* is `True`.
                 if animated and self.rendered_height > terminal_size.lines:
                     raise InvalidSizeError(
                         "The rendered height is greater than the terminal height for "
