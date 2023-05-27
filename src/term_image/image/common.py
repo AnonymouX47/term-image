@@ -24,7 +24,7 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from functools import wraps
 from math import ceil
-from operator import gt, mul, sub
+from operator import gt, mul
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
 from types import FunctionType, TracebackType
@@ -577,8 +577,6 @@ class BaseImage(metaclass=ImageMeta):
             raise arg_type_error("size", value)
         self._size = value
         self._fit_to_width = value is Size.FIT_TO_WIDTH
-        self._h_allow = 0
-        self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
 
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
@@ -786,14 +784,14 @@ class BaseImage(metaclass=ImageMeta):
         if self._is_animated and not isinstance(animate, bool):
             raise arg_type_error("animate", animate)
 
-        if None is not pad_width > get_terminal_size()[0] - self._h_allow:
-            raise ValueError("'pad_width' is greater than the available terminal width")
+        if None is not pad_width > get_terminal_size().columns:
+            raise ValueError("'pad_width' is greater than the terminal width")
 
         if (
             not style.get("native")
             and self._is_animated
             and animate
-            and None is not pad_height > get_terminal_size()[1]
+            and None is not pad_height > get_terminal_size().lines
         ):
             raise ValueError(
                 "'pad_height' is greater than the terminal height for an animation"
@@ -1058,8 +1056,6 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        h_allow: int = 0,
-        v_allow: int = 2,
         maxsize: Optional[Tuple[int, int]] = None,
     ) -> None:
         """Sets the image size with extended control.
@@ -1123,12 +1119,6 @@ class BaseImage(metaclass=ImageMeta):
             if isinstance(arg_value, int) and arg_value <= 0:
                 raise arg_value_error_range(arg_name, arg_value)
 
-        for arg_name, arg_value in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
-            if not isinstance(arg_value, int):
-                raise arg_type_error(arg_name, arg_value)
-            if arg_value < 0:
-                raise arg_value_error_range(arg_name, arg_value)
-
         if maxsize is not None:
             if not (
                 isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
@@ -1139,16 +1129,8 @@ class BaseImage(metaclass=ImageMeta):
                 raise arg_value_error("maxsize", maxsize)
 
         fit_to_width = Size.FIT_TO_WIDTH in (width, height)
-        self._size = self._valid_size(
-            width,
-            height,
-            h_allow,
-            v_allow * (not fit_to_width),
-            maxsize,
-        )
+        self._size = self._valid_size(width, height, maxsize)
         self._fit_to_width = fit_to_width
-        self._h_allow = h_allow
-        self._v_allow = v_allow * (not fit_to_width)
 
     def tell(self) -> int:
         """Returns the current image frame number.
@@ -1388,7 +1370,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> None:
         """Displays an animated GIF image in the terminal."""
         lines = max(
-            (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
+            (fmt or (None,))[-1] or get_terminal_size().lines,
             self.rendered_height,
         )
         prev_seek_pos = self._seek_position
@@ -1443,7 +1425,7 @@ class BaseImage(metaclass=ImageMeta):
         cols, lines = self.rendered_size
         terminal_size = get_terminal_size()
 
-        width = width or terminal_size[0] - self._h_allow
+        width = width or terminal_size.columns
         if width > cols:
             if h_align == "<":  # left
                 left = ""
@@ -1458,7 +1440,7 @@ class BaseImage(metaclass=ImageMeta):
         else:
             left = right = ""
 
-        height = height or terminal_size[1] - self._v_allow
+        height = height or terminal_size.lines
         if height > lines:
             if v_align == "^":  # top
                 top = 0
@@ -1754,14 +1736,7 @@ class BaseImage(metaclass=ImageMeta):
             if isinstance(_size, Size):
                 self.set_size(_size)
             elif check_size or animated:
-                columns, lines = map(
-                    sub,
-                    get_terminal_size(),
-                    # *scroll* nullifies vertical allowance for non-animations
-                    # Makes a difference when terminal height < vertical allowance
-                    (self._h_allow, self._v_allow * (animated or not scroll)),
-                )
-
+                terminal_size = get_terminal_size()
                 if any(
                     map(
                         gt,
@@ -1773,18 +1748,18 @@ class BaseImage(metaclass=ImageMeta):
                             self.rendered_size,
                             (1, not (self._fit_to_width or scroll)),
                         ),
-                        (columns, lines),
+                        terminal_size,
                     )
                 ):
                     raise InvalidSizeError(
                         "The "
                         + ("animation" if animated else "image")
-                        + " cannot fit into the available terminal size"
+                        + " cannot fit into the terminal size"
                     )
 
                 # Reaching here means it's either valid or *_fit_to_width* and/or
                 # *scroll* is/are `True`.
-                if animated and self.rendered_height > lines:
+                if animated and self.rendered_height > terminal_size.lines:
                     raise InvalidSizeError(
                         "The rendered height is greater than the terminal height for "
                         "an animation"
@@ -1800,8 +1775,6 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        h_allow: int = 0,
-        v_allow: int = 2,
         maxsize: Optional[Tuple[int, int]] = None,
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
@@ -1809,7 +1782,7 @@ class BaseImage(metaclass=ImageMeta):
         See the description of :py:meth:`set_size` for the parameters.
         """
         ori_width, ori_height = self._original_size
-        columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
+        columns, lines = maxsize or get_terminal_size()
         max_width = self._pixels_cols(cols=columns)
         max_height = self._pixels_lines(lines=lines)
 
@@ -1831,7 +1804,7 @@ class BaseImage(metaclass=ImageMeta):
 
         if all(not isinstance(x, int) for x in (width, height)):
             if columns <= 0 or lines <= 0:
-                raise arg_value_error_msg("Available size too small", (columns, lines))
+                raise arg_value_error_msg("Frame size too small", (columns, lines))
 
             if Size.AUTO in (width, height):
                 width = height = (
