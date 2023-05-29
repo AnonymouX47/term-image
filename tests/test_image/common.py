@@ -42,12 +42,14 @@ def setup_common(ImageClass):
     set_cell_size((9, 18))
     set_cell_ratio(0.5)
 
-    if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(lines=lines):
+    if ImageClass._pixels_cols(cols=columns) < ImageClass._pixels_lines(
+        lines=lines - 2
+    ):
         _width = columns
         _height = width_height(dummy, w=columns)
     else:
-        _height = lines
-        _width = width_height(dummy, h=lines)
+        _height = lines - 2
+        _width = width_height(dummy, h=lines - 2)
     _width_px = ImageClass._pixels_cols(cols=_width)
     _height_px = ImageClass._pixels_lines(lines=_height)
 
@@ -228,18 +230,18 @@ class TestSetSize_All:
         type(self).v_image = ImageClass.from_file("tests/images/vert.jpg")
 
     def test_auto(self):
-        max_width = ImageClass._pixels_cols(cols=columns)
-        max_height = ImageClass._pixels_lines(lines=lines)
+        frame_width_px = ImageClass._pixels_cols(cols=columns)
+        frame_height_px = ImageClass._pixels_lines(lines=lines - 2)
 
         _original_size = self.image.original_size
         try:
-            # Equal to max size
-            self.image._original_size = (max_width, max_height)
+            # Equal to frame size
+            self.image._original_size = (frame_width_px, frame_height_px)
             self.image.set_size(Size.AUTO)
             assert self.image._valid_size(Size.ORIGINAL) == self.image.size
 
-            # Horizontally larger than max size
-            self.image._original_size = (max_width + 20, max_height - 20)
+            # Horizontally larger than frame size
+            self.image._original_size = (frame_width_px + 20, frame_height_px - 20)
             self.image.set_size(Size.AUTO)
             assert (
                 self.image._valid_size(Size.ORIGINAL)
@@ -247,8 +249,8 @@ class TestSetSize_All:
                 == self.image._valid_size(Size.FIT)
             )
 
-            # Vertically larger than max size
-            self.image._original_size = (max_width - 20, max_height + 20)
+            # Vertically larger than frame size
+            self.image._original_size = (frame_width_px - 20, frame_height_px + 20)
             self.image.set_size(Size.AUTO)
             assert (
                 self.image._valid_size(Size.ORIGINAL)
@@ -256,8 +258,8 @@ class TestSetSize_All:
                 == self.image._valid_size(Size.FIT)
             )
 
-            # Horizontally and vertically larger than max size
-            self.image._original_size = (max_width + 20, max_height + 20)
+            # Horizontally and vertically larger than frame size
+            self.image._original_size = (frame_width_px + 20, frame_height_px + 20)
             self.image.set_size(Size.AUTO)
             assert (
                 self.image._valid_size(Size.ORIGINAL)
@@ -265,8 +267,8 @@ class TestSetSize_All:
                 == self.image._valid_size(Size.FIT)
             )
 
-            # Smaller than max size
-            self.image._original_size = (max_width - 20, max_height - 20)
+            # Smaller than frame size
+            self.image._original_size = (frame_width_px - 20, frame_height_px - 20)
             self.image.set_size(Size.AUTO)
             assert (
                 self.image._valid_size(Size.ORIGINAL)
@@ -404,20 +406,6 @@ class TestSetSize_All:
         self.image.set_size(height=lines + 1)
         assert self.image.height == lines + 1
         assert proportional(self.image)
-
-    # This test passes only when the cell ratio is about 0.5
-    def test_maxsize(self):
-        self.image.set_size(maxsize=(100, 50))
-        assert self.image.size == (100, 50)
-        self.image.set_size(maxsize=(100, 55))
-        assert self.image.size == (100, 50)
-        self.image.set_size(maxsize=(110, 50))
-        assert self.image.size == (100, 50)
-
-        self.image.set_size(width=100, maxsize=(200, 100))
-        assert self.image.size == (100, 50)
-        self.image.set_size(height=50, maxsize=(200, 100))
-        assert self.image.size == (100, 50)
 
 
 class TestCellRatio_Text:

@@ -16,6 +16,7 @@ from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BaseImage, BlockImage, ImageIterator, ImageSource, Size
 from term_image.image.common import _ALPHA_THRESHOLD
 
+from .. import reset_cell_size_ratio
 from .common import _size, columns, lines, python_img, setup_common
 
 python_image = "tests/images/python.png"
@@ -450,29 +451,69 @@ class TestSetSize:
             with pytest.raises(ValueError, match="'height'"):
                 self.image.set_size(height=value)
 
-    def test_args_maxsize(self):
-        for value in (1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",)):
-            with pytest.raises(TypeError, match="'maxsize'"):
-                self.image.set_size(maxsize=value)
-        for value in ((), (0,), (1,), (1, 1, 1), (0, 1), (1, 0), (-1, 1), (1, -1)):
-            with pytest.raises(ValueError, match="'maxsize'"):
-                self.image.set_size(maxsize=value)
+    def test_args_frame_size(self):
+        for value in (None, 1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",), [1, 1]):
+            with pytest.raises(TypeError, match="'frame_size'"):
+                self.image.set_size(frame_size=value)
+        for value in ((), (0,), (1,), (1, 1, 1)):
+            with pytest.raises(ValueError, match="'frame_size'"):
+                self.image.set_size(frame_size=value)
 
-    def test_cannot_exceed_maxsize(self):
-        with pytest.raises(InvalidSizeError, match="will not fit into"):
-            self.image.set_size(width=101, maxsize=(100, 50))  # Exceeds on both axes
-        with pytest.raises(InvalidSizeError, match="will not fit into"):
-            self.image.set_size(width=101, maxsize=(100, 100))  # Exceeds horizontally
-        with pytest.raises(InvalidSizeError, match="will not fit into"):
-            self.image.set_size(height=51, maxsize=(200, 50))  # Exceeds Vertically
+    @reset_cell_size_ratio()
+    def test_frame_size_absolute(self):
+        # Some of these assertions pass only when the cell ratio is about 0.5
+        set_cell_ratio(0.5)
 
-        # Horizontal image in a (supposedly) square space; Exceeds horizontally
-        with pytest.raises(InvalidSizeError, match="will not fit into"):
-            self.h_image.set_size(height=100, maxsize=(100, 50))
+        self.image.set_size(frame_size=(100, 50))
+        assert self.image.size == (100, 50)
 
-        # Vertical image in a (supposedly) square space; Exceeds Vertically
-        with pytest.raises(InvalidSizeError, match="will not fit into"):
-            self.v_image.set_size(width=100, maxsize=(100, 50))
+        self.image.set_size(frame_size=(100, 55))
+        assert self.image.size == (100, 50)
+
+        self.image.set_size(frame_size=(110, 50))
+        assert self.image.size == (100, 50)
+
+        self.h_image.set_size(frame_size=(100, 50))
+        assert self.h_image.width == 100
+
+        self.v_image.set_size(frame_size=(100, 50))
+        assert self.v_image.height == 50
+
+    def test_frame_size_relative(self):
+        self.h_image.set_size()
+        assert self.h_image.width == columns
+
+        self.v_image.set_size()
+        assert self.v_image.height == lines - 2
+
+        self.h_image.set_size(frame_size=(0, 0))
+        assert self.h_image.width == columns
+
+        self.v_image.set_size(frame_size=(0, 0))
+        assert self.v_image.height == lines
+
+        self.h_image.set_size(frame_size=(-3, 0))
+        assert self.h_image.width == columns - 3
+
+        self.v_image.set_size(frame_size=(0, -5))
+        assert self.v_image.height == lines - 5
+
+        self.image.set_size(frame_size=(-columns, -lines))
+        assert self.image.size == (1, 1)
+
+        self.image.set_size(frame_size=(-columns * 2, -lines * 2))
+        assert self.image.size == (1, 1)
+
+    @reset_cell_size_ratio()
+    def test_can_exceed_frame_size(self):
+        # These assertions pass only when the cell ratio is about 0.5
+        set_cell_ratio(0.5)
+
+        self.image.set_size(width=300, frame_size=(200, 100))
+        assert self.image.size == (300, 150)
+
+        self.image.set_size(height=150, frame_size=(200, 100))
+        assert self.image.size == (300, 150)
 
 
 def test_renderer():
