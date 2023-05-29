@@ -263,6 +263,7 @@ class TestProperties:
         assert image.original_size == python_img.size
         assert isinstance(image.original_size, tuple)
 
+    @reset_cell_size_ratio()
     def test_rendered_size_height_width(self):
         image = BlockImage(python_img)  # Square
 
@@ -285,14 +286,11 @@ class TestProperties:
 
         # The rendered size is independent of the cell ratio
         # Change in cell-ratio must not affect the image's rendered size
-        try:
-            set_cell_ratio(0.5)
-            image.width = _width
-            assert image.rendered_size == (_width, _height)
-            set_cell_ratio(0.1)
-            assert image.rendered_size == (_width, _height)
-        finally:
-            set_cell_ratio(0.5)
+        set_cell_ratio(0.5)
+        image.width = _width
+        assert image.rendered_size == (_width, _height)
+        set_cell_ratio(0.1)
+        assert image.rendered_size == (_width, _height)
 
     def test_size(self):
         image = BlockImage(python_img)
