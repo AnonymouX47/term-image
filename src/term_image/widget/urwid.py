@@ -139,7 +139,7 @@ class UrwidImage(urwid.Widget):
         image = self._ti_image
 
         if len(size) == 2:  # box
-            image.set_size(self._ti_sizing, maxsize=size)
+            image.set_size(self._ti_sizing, frame_size=size)
         elif len(size) == 1:  # flow
             if self._ti_sizing is Size.FIT:
                 image.set_size(size[0])

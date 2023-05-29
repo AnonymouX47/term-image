@@ -1031,7 +1031,7 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        maxsize: Optional[Tuple[int, int]] = None,
+        frame_size: Tuple[int, int] = (0, -2),
     ) -> None:
         """Sets the image size with extended control.
 
@@ -1082,16 +1082,16 @@ class BaseImage(metaclass=ImageMeta):
             if isinstance(arg_value, int) and arg_value <= 0:
                 raise arg_value_error_range(arg_name, arg_value)
 
-        if maxsize is not None:
-            if not (
-                isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
-            ):
-                raise arg_type_error("maxsize", maxsize)
+        if not (
+            isinstance(frame_size, tuple)
+            and all(isinstance(x, int) for x in frame_size)
+        ):
+            raise arg_type_error("frame_size", frame_size)
 
-            if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
-                raise arg_value_error("maxsize", maxsize)
+        if not len(frame_size) == 2:
+            raise arg_value_error("frame_size", frame_size)
 
-        self._size = self._valid_size(width, height, maxsize)
+        self._size = self._valid_size(width, height, frame_size)
 
     def tell(self) -> int:
         """Returns the current image frame number.
@@ -1726,16 +1726,22 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        maxsize: Optional[Tuple[int, int]] = None,
+        frame_size: Tuple[int, int] = (0, -2),
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
         See the description of :py:meth:`set_size` for the parameters.
         """
         ori_width, ori_height = self._original_size
-        columns, lines = maxsize or get_terminal_size()
-        max_width = self._pixels_cols(cols=columns)
-        max_height = self._pixels_lines(lines=lines)
+        columns, lines = map(
+            lambda frame_dim, terminal_dim: (
+                frame_dim if frame_dim > 0 else max(terminal_dim + frame_dim, 1)
+            ),
+            frame_size,
+            get_terminal_size(),
+        )
+        frame_width = self._pixels_cols(cols=columns)
+        frame_height = self._pixels_lines(lines=lines)
 
         # As for cell ratio...
         #
@@ -1754,24 +1760,21 @@ class BaseImage(metaclass=ImageMeta):
         # The non-constraining axis is always the one directly adjusted.
 
         if all(not isinstance(x, int) for x in (width, height)):
-            if columns <= 0 or lines <= 0:
-                raise arg_value_error_msg("Frame size too small", (columns, lines))
-
             if Size.AUTO in (width, height):
                 width = height = (
                     Size.FIT
                     if (
-                        ori_width > max_width
-                        or round(ori_height * self._pixel_ratio) > max_height
+                        ori_width > frame_width
+                        or round(ori_height * self._pixel_ratio) > frame_height
                     )
                     else Size.ORIGINAL
                 )
             elif Size.FIT_TO_WIDTH in (width, height):
                 return (
-                    self._pixels_cols(pixels=max_width) or 1,
+                    self._pixels_cols(pixels=frame_width) or 1,
                     self._pixels_lines(
                         pixels=round(
-                            self._width_height_px(w=max_width) * self._pixel_ratio
+                            self._width_height_px(w=frame_width) * self._pixel_ratio
                         )
                     )
                     or 1,
@@ -1788,8 +1791,8 @@ class BaseImage(metaclass=ImageMeta):
             # Hence, the axis with the smaller ratio is the constraining axis.
             # Constraining by the axis with the larger ratio will cause the image
             # to not fit into the axis with the smaller ratio.
-            x = max_width / ori_width
-            y = max_height / ori_height
+            x = frame_width / ori_width
+            y = frame_height / ori_height
             _width_px = ori_width * min(x, y)
             _height_px = ori_height * min(x, y)
 
@@ -1799,7 +1802,7 @@ class BaseImage(metaclass=ImageMeta):
             if x < y:
                 _height_px = _height_px * self._pixel_ratio
                 # If height becomes greater than the max, reduce it to the max
-                height_px = min(_height_px, max_height)
+                height_px = min(_height_px, frame_height)
                 # Calculate the corresponding width
                 width_px = round((height_px / _height_px) * _width_px)
                 # Round the height
@@ -1807,7 +1810,7 @@ class BaseImage(metaclass=ImageMeta):
             else:
                 _width_px = _width_px / self._pixel_ratio
                 # If width becomes greater than the max, reduce it to the max
-                width_px = min(_width_px, max_width)
+                width_px = min(_width_px, frame_width)
                 # Calculate the corresponding height
                 height_px = round((width_px / _width_px) * _height_px)
                 # Round the width
@@ -1828,12 +1831,6 @@ class BaseImage(metaclass=ImageMeta):
                 * self._pixel_ratio
             )
             height = self._pixels_lines(pixels=height_px)
-
-        if maxsize and (width > columns or height > lines):
-            raise InvalidSizeError(
-                f"The resulting size {width, height} will not fit into "
-                f"'maxsize' {maxsize}"
-            )
 
         return (width or 1, height or 1)
 
