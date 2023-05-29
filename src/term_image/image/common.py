@@ -1784,15 +1784,19 @@ class BaseImage(metaclass=ImageMeta):
             # Hence, the axis with the smaller ratio is the constraining axis.
             # Constraining by the axis with the larger ratio will cause the image
             # to not fit into the axis with the smaller ratio.
-            x = frame_width / ori_width
-            y = frame_height / ori_height
-            _width_px = ori_width * min(x, y)
-            _height_px = ori_height * min(x, y)
+            width_ratio = frame_width / ori_width
+            height_ratio = frame_height / ori_height
+            smaller_ratio = min(width_ratio, height_ratio)
 
-            # The cell ratio should affect the axis with the larger ratio since the axis
-            # the smaller ratio is already fully occupied
+            # Set the dimension on the constraining axis to exactly its corresponding
+            # frame dimension and the dimension on the other axis to the same ratio of
+            # its corresponding original image dimension
+            _width_px = ori_width * smaller_ratio
+            _height_px = ori_height * smaller_ratio
 
-            if x < y:
+            # The cell ratio should directly affect the non-constraining axis since the
+            # constraining axis is already fully occupied at this point
+            if height_ratio > width_ratio:
                 _height_px = _height_px * self._pixel_ratio
                 # If height becomes greater than the max, reduce it to the max
                 height_px = min(_height_px, frame_height)
