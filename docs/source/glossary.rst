@@ -139,9 +139,11 @@ Below are definitions of terms used across the API, exception messages and the d
 
    automatic size
    automatic sizing
-      A form of sizing wherein the image size is computed based on a combination of the :term:`frame size`, the image's original size and a given width **or** height.
+      A form of sizing wherein an image's size is computed based on a combination of a
+      :term:`frame size`, the image's original size and a given width **or** height.
 
-      This form of sizing tries to preserve image aspect ratio and can be used with both :term:`fixed sizing` and :term:`dynamic sizing`.
+      This form of sizing tries to preserve image aspect ratio and can be used with both
+      :term:`fixed sizing` and :term:`dynamic sizing`.
 
       .. seealso::
          :term:`manual sizing`,

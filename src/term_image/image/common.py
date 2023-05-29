@@ -222,12 +222,12 @@ class BaseImage(metaclass=ImageMeta):
         image: Source image.
         width: Can be
 
-          * an integer; horizontal dimension of the image, in columns.
+          * a positive integer; horizontal dimension of the image, in columns.
           * a :py:class:`~term_image.image.Size` enum member.
 
         height: Can be
 
-          * an integer; vertical dimension of the image, in lines.
+          * a positive integer; vertical dimension of the image, in lines.
           * a :py:class:`~term_image.image.Size` enum member.
 
     Raises:
@@ -1033,7 +1033,7 @@ class BaseImage(metaclass=ImageMeta):
         height: Union[int, Size, None] = None,
         frame_size: Tuple[int, int] = (0, -2),
     ) -> None:
-        """Sets the image size with extended control.
+        """Sets the image size (with extended control).
 
         Args:
             width: Can be
@@ -1046,33 +1046,26 @@ class BaseImage(metaclass=ImageMeta):
               * a positive integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
-            maxsize: If given, as ``(columns, lines)`` (where *columns* and *lines* are
-              positive integers), it's used instead of the terminal size.
+            frame_size: :term:`Frame size`, ``(columns, lines)``.
+              If *columns* or *lines* is
+
+              * positive, it is **absolute** and used as-is.
+              * non-positive, it is **relative** to the corresponding terminal dimension
+                and equivalent to the absolute dimension
+                ``max(terminal_dimension + frame_dimension, 1)``.
+
+              This is used only when neither *width* nor *height* is an ``int``.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
             ValueError: Both *width* and *height* are specified.
-            ValueError: The :term:`frame size` is too small for
-              :term:`automatic sizing`.
-            term_image.exceptions.InvalidSizeError: *maxsize* is given and the
-              resulting size will not fit into it.
-
-        If neither *width* nor *height* is given (or both are ``None``),
-        :py:attr:`~term_image.image.Size.FIT` applies.
 
         If *width* or *height* is a :py:class:`~term_image.image.Size` enum
         member, :term:`automatic sizing` applies as prescribed by the enum member.
-
-        NOTE:
-           The size is checked to fit in only when *maxsize* is given along with a fixed
-           *width* or *height* because :py:meth:`draw` is generally not the means of
-           drawing such an image and all rendering methods don't perform any sort of
-           size validation.
-
-           If the validation is not desired, specify only one of *maxsize* and
-           *width* or *height*, not both.
+        If neither *width* nor *height* is given (or both are ``None``),
+        :py:attr:`~term_image.image.Size.FIT` applies.
         """
         if width is not None is not height:
             raise ValueError("Cannot specify both width and height")
@@ -1730,7 +1723,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
-        See the description of :py:meth:`set_size` for the parameters.
+        See :py:meth:`set_size` for the description of the parameters.
         """
         ori_width, ori_height = self._original_size
         columns, lines = map(
