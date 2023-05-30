@@ -39,10 +39,10 @@ CURSOR_BACKWARD = f"{CSI}{Ps}D"
 
 # Select Graphic Rendition
 SGR_NORMAL = f"{CSI}m"
-SGR_FG_RGB = f"{CSI}38:2::{Ps}:{Ps}:{Ps}m"
-SGR_FG_RGB_2 = f"{CSI}38;2;{Pm(3)}m"
-SGR_BG_RGB = f"{CSI}48:2::{Ps}:{Ps}:{Ps}m"
-SGR_BG_RGB_2 = f"{CSI}48;2;{Pm(3)}m"
+SGR_FG_RGB = f"{CSI}38;2;{Pm(3)}m"
+SGR_FG_RGB_2 = f"{CSI}38:2::{Ps}:{Ps}:{Ps}m"
+SGR_BG_RGB = f"{CSI}48;2;{Pm(3)}m"
+SGR_BG_RGB_2 = f"{CSI}48:2::{Ps}:{Ps}:{Ps}m"
 
 # DEC Modes
 DECSET = f"{CSI}?{Ps}h"
