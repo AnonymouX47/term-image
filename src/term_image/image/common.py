@@ -733,8 +733,8 @@ class BaseImage(metaclass=ImageMeta):
               * If :py:class:`int`, caching is enabled only if the framecount of the
                 image is less than or equal to the given number.
 
-            check_size: If ``False``, does not perform size validation for
-              non-animations.
+            check_size: If ``False``, rendered size validation is not performed for
+              non-animations. Does not affect padding size validation.
             style: Style-specific render parameters. See each subclass for it's own
               usage.
 
@@ -747,12 +747,14 @@ class BaseImage(metaclass=ImageMeta):
               can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
+        * :term:`padding width` is always validated, if not ``None``.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
 
           * *scroll* is ignored.
-          * Image size and :term:`padding height` are always validated, if set or given.
+          * Image size is always validated, if set.
+          * :term:`Padding height` is always validated, if not ``None``.
           * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
