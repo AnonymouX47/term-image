@@ -774,17 +774,23 @@ class BaseImage(metaclass=ImageMeta):
         if self._is_animated and not isinstance(animate, bool):
             raise arg_type_error("animate", animate)
 
-        if None is not pad_width > get_terminal_size().columns:
-            raise ValueError("'pad_width' is greater than the terminal width")
+        terminal_width, terminal_height = get_terminal_size()
+        if None is not pad_width > terminal_width:
+            raise arg_value_error_range(
+                "pad_width", pad_width, got_extra=f"terminal_width={terminal_width}"
+            )
 
+        animation = not style.get("native") and self._is_animated and animate
         if (
             not style.get("native")
             and self._is_animated
             and animate
-            and None is not pad_height > get_terminal_size().lines
+            and None is not pad_height > terminal_height
         ):
-            raise ValueError(
-                "'pad_height' is greater than the terminal height for an animation"
+            raise arg_value_error_range(
+                "pad_height",
+                pad_height,
+                got_extra=f"terminal_height={terminal_height}, animation={animation}",
             )
 
         for arg in ("scroll", "check_size"):
@@ -824,7 +830,7 @@ class BaseImage(metaclass=ImageMeta):
             render,
             scroll=scroll,
             check_size=check_size,
-            animated=not style.get("native") and self._is_animated and animate,
+            animated=animation,
         )
 
     @classmethod
