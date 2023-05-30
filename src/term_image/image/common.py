@@ -562,10 +562,15 @@ class BaseImage(metaclass=ImageMeta):
     )
 
     @size.setter
-    def size(self, value: Size) -> None:
-        if not isinstance(value, Size):
-            raise arg_type_error("size", value)
-        self._size = value
+    def size(self, size: Size | Tuple[int, int]) -> None:
+        if isinstance(size, Size):
+            self._size = size
+        elif isinstance(size, tuple):
+            if len(size) != 2:
+                raise arg_value_error("size", size)
+            self.set_size(*size)
+        else:
+            raise arg_type_error("size", size)
 
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
@@ -1067,20 +1072,30 @@ class BaseImage(metaclass=ImageMeta):
         If neither *width* nor *height* is given (or both are ``None``),
         :py:attr:`~term_image.image.Size.FIT` applies.
         """
-        if width is not None is not height:
-            raise ValueError("Cannot specify both width and height")
-        for arg_name, arg_value in zip(("width", "height"), (width, height)):
+        width_height = (width, height)
+        for arg_name, arg_value in zip(("width", "height"), width_height):
             if not (arg_value is None or isinstance(arg_value, (Size, int))):
                 raise arg_type_error(arg_name, arg_value)
             if isinstance(arg_value, int) and arg_value <= 0:
                 raise arg_value_error_range(arg_name, arg_value)
+
+        if width is not None is not height:
+            if not all(isinstance(x, int) for x in width_height):
+                width_type = type(width).__name__
+                height_type = type(height).__name__
+                raise TypeError(
+                    "Both 'width' and 'height' are specified but are not both integers "
+                    f"(got: ({width_type}, {height_type}))"
+                )
+
+            self._size = width_height
+            return
 
         if not (
             isinstance(frame_size, tuple)
             and all(isinstance(x, int) for x in frame_size)
         ):
             raise arg_type_error("frame_size", frame_size)
-
         if not len(frame_size) == 2:
             raise arg_value_error("frame_size", frame_size)
 
