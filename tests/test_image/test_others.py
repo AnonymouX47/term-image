@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from term_image.image import AutoImage, BaseImage, ImageSource, from_file
+from term_image.image import AutoImage, BaseImage, ImageSource, Size, from_file
 
 from .test_base import BytesPath, python_image, python_img
 
@@ -13,8 +13,8 @@ class TestConvinience:
             AutoImage(python_image)
 
         # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r"both width and height"):
-            AutoImage(python_img, width=1, height=1)
+        with pytest.raises(TypeError, match="'width' and 'height'"):
+            AutoImage(python_img, width=1, height=Size.FIT)
 
         assert isinstance(AutoImage(python_img), BaseImage)
 
@@ -23,8 +23,8 @@ class TestConvinience:
             from_file(python_img)
 
         # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r"both width and height"):
-            from_file(python_image, width=1, height=1)
+        with pytest.raises(TypeError, match="'width' and 'height'"):
+            from_file(python_image, width=1, height=Size.FIT)
 
         for path in (python_image, Path(python_image), BytesPath(python_image)):
             assert isinstance(from_file(path), BaseImage)

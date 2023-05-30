@@ -56,8 +56,8 @@ class TestConstructor:
                 BlockImage(Image.new("RGB", size))
 
         # Ensure size arguments get through to `set_size()`
-        with pytest.raises(ValueError, match=r".* both width and height"):
-            BlockImage(python_img, width=1, height=1)
+        with pytest.raises(TypeError, match="'width' and 'height'"):
+            BlockImage(python_img, width=1, height=Size.FIT)
 
     def test_init(self):
         image = BlockImage(python_img)
@@ -115,8 +115,8 @@ class TestFromFile:
             BlockImage.from_file("LICENSE")
 
         # Ensure size arguments get through
-        with pytest.raises(ValueError, match=r"both width and height"):
-            BlockImage.from_file(python_image, width=1, height=1)
+        with pytest.raises(TypeError, match="'width' and 'height'"):
+            BlockImage.from_file(python_image, width=1, height=Size.FIT)
 
     def test_filepath(self):
         for path in (python_image, Path(python_image), BytesPath(python_image)):
@@ -296,13 +296,17 @@ class TestProperties:
         image = BlockImage(python_img)
         assert image.size is Size.FIT
 
+        for value in (None, 0, 1, 0.1, "1", [1, 1]):
+            with pytest.raises(TypeError):
+                image.size = value
+
         for value in Size:
             image.size = value
             assert image.size is image.height is image.width is value
 
-        for value in (None, 0, 1, 0.1, "1", (1, 1), [1, 1]):
-            with pytest.raises(TypeError):
-                image.size = value
+        for size in ((1, 1), (100, 50), (50, 100)):
+            image.size = size
+            assert image.size == size
 
     def test_source(self):
         image = BlockImage(python_img)
@@ -435,9 +439,6 @@ class TestSetSize:
     v_image = BlockImage.from_file("tests/images/vert.jpg")  # Vertically-oriented
 
     def test_args_width_height(self):
-        for value in (1, *Size):
-            with pytest.raises(ValueError, match="both width and height"):
-                self.image.set_size(value, value)
         for value in (1.0, "1", (), []):
             with pytest.raises(TypeError, match="'width'"):
                 self.image.set_size(value)
@@ -448,6 +449,9 @@ class TestSetSize:
                 self.image.set_size(value)
             with pytest.raises(ValueError, match="'height'"):
                 self.image.set_size(height=value)
+        for width, height in ((1, Size.FIT), (Size.FIT, 1), (Size.FIT, Size.FIT)):
+            with pytest.raises(TypeError, match="'width' and 'height'"):
+                self.image.set_size(width, height)
 
     def test_args_frame_size(self):
         for value in (None, 1, 1.0, "1", (1.0, 1), (1, 1.0), ("1.0",), [1, 1]):
@@ -456,6 +460,11 @@ class TestSetSize:
         for value in ((), (0,), (1,), (1, 1, 1)):
             with pytest.raises(ValueError, match="'frame_size'"):
                 self.image.set_size(frame_size=value)
+
+    def test_both_width_height(self):
+        for size in ((1, 1), (100, 50), (50, 100)):
+            self.image.set_size(*size)
+            assert self.image.size == size
 
     @reset_cell_size_ratio()
     def test_frame_size_absolute(self):
