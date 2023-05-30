@@ -121,9 +121,9 @@ The output (using :py:func:`print`) should look like:
 Renders the image with:
 
 * **right** :term:`horizontal alignment`
-* **automatic** :term:`padding width` (the current :term:`terminal width` minus :term:`horizontal allowance`)
+* **default** :term:`padding width` (the current :term:`terminal width`)
 * **bottom** :term:`vertical alignment`
-* **automatic** :term:`padding height` (the current :term:`terminal height` minus :term:`vertical allowance`)
+* **default** :term:`padding height` (the current :term:`terminal height` minus two (``2``))
 * transparent background with **0.5** :term:`alpha threshold`
 
 The output (using :py:func:`print`) should look like:
@@ -310,8 +310,10 @@ True
 
 .. important::
 
-   1. The currently set :term:`cell ratio` is also taken into consideration when calculating sizes for images of :ref:`text-based`.
-   2. There is a **default** 2-line :term:`vertical allowance`, to allow for shell prompts or the likes.
+   1. The currently set :term:`cell ratio` is also taken into consideration when
+      calculating sizes for images of :ref:`text-based`.
+   2. There is a **2-line** difference between the **default** :term:`frame size` and
+      the terminal size to allow for shell prompts and the likes.
 
 .. tip::
 

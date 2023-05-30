@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
 - `term_image.utils.get_cell_size()` to the public API ([#87]).
+- Support for terminal size-relative frame sizes ([#89]).
+- Manual sizing ([#89]).
+  - Allows setting both width and height explicitly via:
+    - `BaseImage.set_size()`
+    - `BaseImage.size`
 
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
@@ -15,14 +20,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved terminal cell size computation ([#87]).
 - **(BREAKING!)** `InvalidSizeError` no longer inherits from `ValueError` ([26ea969]).
 - **(BREAKING!)** `UrwidImage` now raises `UrwidImageError` instead of `ValueError` when rendered as a fixed widget ([a612b59]).
+- **(BREAKING!)** Setting image size with `Size.FIT_TO_WIDTH` no longer influences size validation ([#89]).
+- **(BREAKING!)** Redefined `BaseImage.set_size()` ([#89]).
+  - Now allows specifying both *width* and *height* but only as integers.
+    - No longer raises `ValueError`.
+    - Now raises `TypeError` when both *width* and *height* are not `None` but not both are integers.
+  - Redefined the *maxsize* parameter as *frame_size*.
+    - No longer accepts `None`.
+    - Now accepts non-positive integer tuple elements.
+  - No longer raises `ValueError`: Available size too small.
+  - No longer checks if the resulting size fits into a given frame size when *width* or *height* is also given as an integer.
+    - No longer raises `InvalidSizeError`.
 
 ### Removed
 - Image scaling ([#88]).
   - *scale* parameter of `BaseImage`, `BaseImage.from_file()`, `BaseImage.from_url()`, etc.
   - `scale`, `scale_x` and `scale_y` properties of `BaseImage`.
+- Image sizing allowance ([#89]).
+  - *h_allow* and *v_allow* parameters of `BaseImage.set_size()`.
 
 [#87]: https://github.com/AnonymouX47/term-image/pull/87
 [#88]: https://github.com/AnonymouX47/term-image/pull/88
+[#89]: https://github.com/AnonymouX47/term-image/pull/89
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3

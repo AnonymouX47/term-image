@@ -24,7 +24,7 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from functools import wraps
 from math import ceil
-from operator import gt, mul, sub
+from operator import gt, mul
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
 from types import FunctionType, TracebackType
@@ -137,17 +137,17 @@ class Size(Enum):
     """Enumeration for :term:`automatic sizing`."""
 
     #: Equivalent to :py:attr:`ORIGINAL` if it will fit into the
-    #: :term:`available size`, else :py:attr:`FIT`.
+    #: :term:`frame size`, else :py:attr:`FIT`.
     #:
     #: :meta hide-value:
     AUTO = Hidden()
 
-    #: The image size is set to fit optimally **within** the :term:`available size`.
+    #: The image size is set to fit optimally **within** the :term:`frame size`.
     #:
     #: :meta hide-value:
     FIT = Hidden()
 
-    #: The size is set such that the width is exactly the :term:`available width`,
+    #: The size is set such that the width is exactly the :term:`frame width`,
     #: regardless of the :term:`cell ratio`.
     #:
     #: :meta hide-value:
@@ -222,12 +222,12 @@ class BaseImage(metaclass=ImageMeta):
         image: Source image.
         width: Can be
 
-          * an integer; horizontal dimension of the image, in columns.
+          * a positive integer; horizontal dimension of the image, in columns.
           * a :py:class:`~term_image.image.Size` enum member.
 
         height: Can be
 
-          * an integer; vertical dimension of the image, in lines.
+          * a positive integer; vertical dimension of the image, in lines.
           * a :py:class:`~term_image.image.Size` enum member.
 
     Raises:
@@ -241,6 +241,9 @@ class BaseImage(metaclass=ImageMeta):
     NOTE:
         * If neither *width* nor *height* is given (or both are ``None``),
           :py:attr:`~term_image.image.Size.FIT` applies.
+        * If both width and height are not ``None``, they must be positive integers
+          and :term:`manual sizing` applies i.e the image size is set as given without
+          preserving aspect ratio.
         * For animated images, the seek position is initialized to the current seek
           position of the given image.
         * It's allowed to set properties for :term:`animated` images on non-animated
@@ -440,11 +443,6 @@ class BaseImage(metaclass=ImageMeta):
             * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
 
             This results in a :term:`fixed size`.
-
-            .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
-                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -558,27 +556,31 @@ class BaseImage(metaclass=ImageMeta):
               is :term:`dynamic <dynamic size>`.
 
         SET:
-            Sets the image size as prescibed by the given
-            :py:class:`~term_image.image.Size` enum member.
+            If set to a:
 
-            This implies :term:`dynamic sizing` i.e the size is computed whenever the
-            image is :term:`rendered`.
+            * :py:class:`~term_image.image.Size` enum member, the image size is set
+              as prescibed by the given member.
 
-            .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
-                  as defined by :py:meth:`set_size` apply.
+              This results in a :term:`dynamic size` i.e the size is computed whenever
+              the image is :term:`rendered` using the default :term:`frame size`.
+
+            * 2-tuple of integers, ``(width, height)``, the image size set as given.
+
+              This results in a :term:`fixed size` i.e the size will not change until
+              it is re-set.
         """,
     )
 
     @size.setter
-    def size(self, value: Size) -> None:
-        if not isinstance(value, Size):
-            raise arg_type_error("size", value)
-        self._size = value
-        self._fit_to_width = value is Size.FIT_TO_WIDTH
-        self._h_allow = 0
-        self._v_allow = 2  # A 2-line allowance for the shell prompt, etc
+    def size(self, size: Size | Tuple[int, int]) -> None:
+        if isinstance(size, Size):
+            self._size = size
+        elif isinstance(size, tuple):
+            if len(size) != 2:
+                raise arg_value_error("size", size)
+            self.set_size(*size)
+        else:
+            raise arg_type_error("size", size)
 
     source = property(
         _close_validated(lambda self: getattr(self, self._source_type.value)),
@@ -630,11 +632,6 @@ class BaseImage(metaclass=ImageMeta):
             * ``None``; equivalent to :py:attr:`~term_image.image.Size.FIT`.
 
             This results in a :term:`fixed size`.
-
-            .. note::
-                * Default allowances apply.
-                * The same conditions for :py:attr:`Size.FIT_TO_WIDTH` and allowances
-                  as defined by :py:meth:`set_size` apply.
         """,
     )
 
@@ -693,18 +690,17 @@ class BaseImage(metaclass=ImageMeta):
               "right" / ">"). Default: center.
             pad_width: Number of columns within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the
-                :term:`available terminal width <available width>` is used.
+              * A positive integer or ``None``. If ``None``, the :term:`terminal width`
+                is used.
               * Excess columns are filled with spaces.
-              * Must not be greater than the
-                :term:`available terminal width <available width>`.
+              * Must not be greater than the :term:`terminal width`.
 
             v_align: Vertical alignment ("top"/"^", "middle"/"-" or "bottom"/"_").
               Default: middle.
             pad_height: Number of lines within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the
-                :term:`available terminal height <available height>` is used.
+              * A positive integer or ``None``. If ``None``, the :term:`terminal height`
+                is used.
               * Excess lines are filled with spaces.
               * Must not be greater than the :term:`terminal height`,
                 **for animations**.
@@ -723,8 +719,7 @@ class BaseImage(metaclass=ImageMeta):
                 * A hex color e.g ``ffffff``, ``7faa52``.
 
             scroll: Only applies to non-animations. If ``True``, allows the image's
-                :term:`rendered height` to be greater than the
-                :term:`available terminal height <available height>`.
+                :term:`rendered height` to be greater than the :term:`terminal height`.
 
             animate: If ``False``, disable animation i.e draw only the current frame of
               an animated image.
@@ -749,16 +744,9 @@ class BaseImage(metaclass=ImageMeta):
               unexpected/invalid value.
             ValueError: Unable to convert or resize image.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
-              can not fit into the :term:`available terminal size <available size>`.
+              can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
-        * If :py:meth:`set_size` was used to set the image size, the horizontal and
-          vertical allowances (set when :py:meth:`set_size` was called) are taken into
-          consideration during size validation. If the size was set via another means or
-          the size is :term:`dynamic <dynamic size>`, the default allowances apply.
-        * For **non-animations**, if the image size was set with
-          :py:attr:`~term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
-          validated and setting *scroll* is unnecessary.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
@@ -786,14 +774,14 @@ class BaseImage(metaclass=ImageMeta):
         if self._is_animated and not isinstance(animate, bool):
             raise arg_type_error("animate", animate)
 
-        if None is not pad_width > get_terminal_size()[0] - self._h_allow:
-            raise ValueError("'pad_width' is greater than the available terminal width")
+        if None is not pad_width > get_terminal_size().columns:
+            raise ValueError("'pad_width' is greater than the terminal width")
 
         if (
             not style.get("native")
             and self._is_animated
             and animate
-            and None is not pad_height > get_terminal_size()[1]
+            and None is not pad_height > get_terminal_size().lines
         ):
             raise ValueError(
                 "'pad_height' is greater than the terminal height for an animation"
@@ -1058,11 +1046,9 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        h_allow: int = 0,
-        v_allow: int = 2,
-        maxsize: Optional[Tuple[int, int]] = None,
+        frame_size: Tuple[int, int] = (0, -2),
     ) -> None:
-        """Sets the image size with extended control.
+        """Sets the image size (with extended control).
 
         Args:
             width: Can be
@@ -1075,80 +1061,57 @@ class BaseImage(metaclass=ImageMeta):
               * a positive integer; vertical dimension of the image, in lines.
               * a :py:class:`~term_image.image.Size` enum member.
 
-            h_allow: :term:`Horizontal allowance`; a non-negative integer.
-            v_allow: :term:`Vertical allowance`; a non-negative integer.
-            maxsize: If given, as ``(columns, lines)`` (where *columns* and *lines* are
-              positive integers), it's used instead of the terminal size.
+            frame_size: :term:`Frame size`, ``(columns, lines)``.
+              If *columns* or *lines* is
+
+              * positive, it is **absolute** and used as-is.
+              * non-positive, it is **relative** to the corresponding terminal dimension
+                and equivalent to the absolute dimension
+                ``max(terminal_dimension + frame_dimension, 1)``.
+
+              This is used only when neither *width* nor *height* is an ``int``.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: Both *width* and *height* are specified.
-            ValueError: The :term:`available size` is too small for
-              :term:`automatic sizing`.
-            term_image.exceptions.InvalidSizeError: *maxsize* is given and the
-              resulting size will not fit into it.
 
-        If neither *width* nor *height* is given (or both are ``None``),
-        :py:attr:`~term_image.image.Size.FIT` applies.
-
-        If *width* or *height* is a :py:class:`~term_image.image.Size` enum
-        member, :term:`automatic sizing` applies as prescribed by the enum member.
-
-        When :py:attr:`~term_image.image.Size.FIT_TO_WIDTH` is given,
-
-        * size validation operations take it into consideration.
-        * :term:`Vertical allowance` is nullified.
-
-        :term:`Allowances <allowance>` are ignored when *maxsize* is given.
-
-        Render formatting and size validation operations recognize and respect the
-        horizontal and vertical allowances, until the image size is re-set.
-
-        NOTE:
-           The size is checked to fit in only when *maxsize* is given along with a fixed
-           *width* or *height* because :py:meth:`draw` is generally not the means of
-           drawing such an image and all rendering methods don't perform any sort of
-           size validation.
-
-           If the validation is not desired, specify only one of *maxsize* and
-           *width* or *height*, not both.
+        * If both width and height are not ``None``, they must be positive integers
+          and :term:`manual sizing` applies i.e the image size is set as given without
+          preserving aspect ratio.
+        * If *width* or *height* is a :py:class:`~term_image.image.Size` enum
+          member, :term:`automatic sizing` applies as prescribed by the enum member.
+        * If neither *width* nor *height* is given (or both are ``None``),
+          :py:attr:`~term_image.image.Size.FIT` applies.
         """
-        if width is not None is not height:
-            raise ValueError("Cannot specify both width and height")
-        for arg_name, arg_value in zip(("width", "height"), (width, height)):
+        width_height = (width, height)
+        for arg_name, arg_value in zip(("width", "height"), width_height):
             if not (arg_value is None or isinstance(arg_value, (Size, int))):
                 raise arg_type_error(arg_name, arg_value)
             if isinstance(arg_value, int) and arg_value <= 0:
                 raise arg_value_error_range(arg_name, arg_value)
 
-        for arg_name, arg_value in zip(("h_allow", "v_allow"), (h_allow, v_allow)):
-            if not isinstance(arg_value, int):
-                raise arg_type_error(arg_name, arg_value)
-            if arg_value < 0:
-                raise arg_value_error_range(arg_name, arg_value)
+        if width is not None is not height:
+            if not all(isinstance(x, int) for x in width_height):
+                width_type = type(width).__name__
+                height_type = type(height).__name__
+                raise TypeError(
+                    "Both 'width' and 'height' are specified but are not both integers "
+                    f"(got: ({width_type}, {height_type}))"
+                )
 
-        if maxsize is not None:
-            if not (
-                isinstance(maxsize, tuple) and all(isinstance(x, int) for x in maxsize)
-            ):
-                raise arg_type_error("maxsize", maxsize)
+            self._size = width_height
+            return
 
-            if not (len(maxsize) == 2 and all(x > 0 for x in maxsize)):
-                raise arg_value_error("maxsize", maxsize)
+        if not (
+            isinstance(frame_size, tuple)
+            and all(isinstance(x, int) for x in frame_size)
+        ):
+            raise arg_type_error("frame_size", frame_size)
+        if not len(frame_size) == 2:
+            raise arg_value_error("frame_size", frame_size)
 
-        fit_to_width = Size.FIT_TO_WIDTH in (width, height)
-        self._size = self._valid_size(
-            width,
-            height,
-            h_allow,
-            v_allow * (not fit_to_width),
-            maxsize,
-        )
-        self._fit_to_width = fit_to_width
-        self._h_allow = h_allow
-        self._v_allow = v_allow * (not fit_to_width)
+        self._size = self._valid_size(width, height, frame_size)
 
     def tell(self) -> int:
         """Returns the current image frame number.
@@ -1388,7 +1351,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> None:
         """Displays an animated GIF image in the terminal."""
         lines = max(
-            (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
+            (fmt or (None,))[-1] or get_terminal_size().lines,
             self.rendered_height,
         )
         prev_seek_pos = self._seek_position
@@ -1443,7 +1406,7 @@ class BaseImage(metaclass=ImageMeta):
         cols, lines = self.rendered_size
         terminal_size = get_terminal_size()
 
-        width = width or terminal_size[0] - self._h_allow
+        width = width or terminal_size.columns
         if width > cols:
             if h_align == "<":  # left
                 left = ""
@@ -1458,7 +1421,7 @@ class BaseImage(metaclass=ImageMeta):
         else:
             left = right = ""
 
-        height = height or terminal_size[1] - self._v_allow
+        height = height or terminal_size.lines
         if height > lines:
             if v_align == "^":  # top
                 top = 0
@@ -1741,50 +1704,33 @@ class BaseImage(metaclass=ImageMeta):
         Raises:
             term_image.exceptions.InvalidSizeError: *check_size* or *animated* is
               ``True`` and the image's :term:`rendered size` can not fit into the
-              :term:`available terminal size <available size>`.
+              :term:`terminal size`.
             term_image.exceptions.TermImageError: The image has been finalized.
-
-        NOTE:
-            For **non-animations**, if the image size was set with
-            :py:attr:term_image.image.Size.FIT_TO_WIDTH`, the image **height** is not
-            validated and setting *scroll* is unnecessary.
         """
         _size = self._size
         try:
             if isinstance(_size, Size):
                 self.set_size(_size)
             elif check_size or animated:
-                columns, lines = map(
-                    sub,
-                    get_terminal_size(),
-                    # *scroll* nullifies vertical allowance for non-animations
-                    # Makes a difference when terminal height < vertical allowance
-                    (self._h_allow, self._v_allow * (animated or not scroll)),
-                )
-
+                terminal_size = get_terminal_size()
                 if any(
                     map(
                         gt,
-                        # the compared height will be 0 if *_fit_to_width* or *scroll*
-                        # is `True`. So, the height comparison will always be `False`
+                        # The compared height will be 0 if *scroll* is `True`.
+                        # So, the height comparison will always be `False`
                         # since the terminal height should never be < 0.
-                        map(
-                            mul,
-                            self.rendered_size,
-                            (1, not (self._fit_to_width or scroll)),
-                        ),
-                        (columns, lines),
+                        map(mul, self.rendered_size, (1, not scroll)),
+                        terminal_size,
                     )
                 ):
                     raise InvalidSizeError(
                         "The "
                         + ("animation" if animated else "image")
-                        + " cannot fit into the available terminal size"
+                        + " cannot fit into the terminal size"
                     )
 
-                # Reaching here means it's either valid or *_fit_to_width* and/or
-                # *scroll* is/are `True`.
-                if animated and self.rendered_height > lines:
+                # Reaching here means it's either valid or *scroll* is `True`.
+                if animated and self.rendered_height > terminal_size.lines:
                     raise InvalidSizeError(
                         "The rendered height is greater than the terminal height for "
                         "an animation"
@@ -1800,18 +1746,22 @@ class BaseImage(metaclass=ImageMeta):
         self,
         width: Union[int, Size, None] = None,
         height: Union[int, Size, None] = None,
-        h_allow: int = 0,
-        v_allow: int = 2,
-        maxsize: Optional[Tuple[int, int]] = None,
+        frame_size: Tuple[int, int] = (0, -2),
     ) -> Tuple[int, int]:
         """Returns an image size tuple.
 
-        See the description of :py:meth:`set_size` for the parameters.
+        See :py:meth:`set_size` for the description of the parameters.
         """
         ori_width, ori_height = self._original_size
-        columns, lines = maxsize or map(sub, get_terminal_size(), (h_allow, v_allow))
-        max_width = self._pixels_cols(cols=columns)
-        max_height = self._pixels_lines(lines=lines)
+        columns, lines = map(
+            lambda frame_dim, terminal_dim: (
+                frame_dim if frame_dim > 0 else max(terminal_dim + frame_dim, 1)
+            ),
+            frame_size,
+            get_terminal_size(),
+        )
+        frame_width = self._pixels_cols(cols=columns)
+        frame_height = self._pixels_lines(lines=lines)
 
         # As for cell ratio...
         #
@@ -1830,24 +1780,21 @@ class BaseImage(metaclass=ImageMeta):
         # The non-constraining axis is always the one directly adjusted.
 
         if all(not isinstance(x, int) for x in (width, height)):
-            if columns <= 0 or lines <= 0:
-                raise arg_value_error_msg("Available size too small", (columns, lines))
-
             if Size.AUTO in (width, height):
                 width = height = (
                     Size.FIT
                     if (
-                        ori_width > max_width
-                        or round(ori_height * self._pixel_ratio) > max_height
+                        ori_width > frame_width
+                        or round(ori_height * self._pixel_ratio) > frame_height
                     )
                     else Size.ORIGINAL
                 )
             elif Size.FIT_TO_WIDTH in (width, height):
                 return (
-                    self._pixels_cols(pixels=max_width) or 1,
+                    self._pixels_cols(pixels=frame_width) or 1,
                     self._pixels_lines(
                         pixels=round(
-                            self._width_height_px(w=max_width) * self._pixel_ratio
+                            self._width_height_px(w=frame_width) * self._pixel_ratio
                         )
                     )
                     or 1,
@@ -1864,18 +1811,22 @@ class BaseImage(metaclass=ImageMeta):
             # Hence, the axis with the smaller ratio is the constraining axis.
             # Constraining by the axis with the larger ratio will cause the image
             # to not fit into the axis with the smaller ratio.
-            x = max_width / ori_width
-            y = max_height / ori_height
-            _width_px = ori_width * min(x, y)
-            _height_px = ori_height * min(x, y)
+            width_ratio = frame_width / ori_width
+            height_ratio = frame_height / ori_height
+            smaller_ratio = min(width_ratio, height_ratio)
 
-            # The cell ratio should affect the axis with the larger ratio since the axis
-            # the smaller ratio is already fully occupied
+            # Set the dimension on the constraining axis to exactly its corresponding
+            # frame dimension and the dimension on the other axis to the same ratio of
+            # its corresponding original image dimension
+            _width_px = ori_width * smaller_ratio
+            _height_px = ori_height * smaller_ratio
 
-            if x < y:
+            # The cell ratio should directly affect the non-constraining axis since the
+            # constraining axis is already fully occupied at this point
+            if height_ratio > width_ratio:
                 _height_px = _height_px * self._pixel_ratio
                 # If height becomes greater than the max, reduce it to the max
-                height_px = min(_height_px, max_height)
+                height_px = min(_height_px, frame_height)
                 # Calculate the corresponding width
                 width_px = round((height_px / _height_px) * _width_px)
                 # Round the height
@@ -1883,7 +1834,7 @@ class BaseImage(metaclass=ImageMeta):
             else:
                 _width_px = _width_px / self._pixel_ratio
                 # If width becomes greater than the max, reduce it to the max
-                width_px = min(_width_px, max_width)
+                width_px = min(_width_px, frame_width)
                 # Calculate the corresponding height
                 height_px = round((width_px / _width_px) * _height_px)
                 # Round the width
@@ -1904,12 +1855,6 @@ class BaseImage(metaclass=ImageMeta):
                 * self._pixel_ratio
             )
             height = self._pixels_lines(pixels=height_px)
-
-        if maxsize and (width > columns or height > lines):
-            raise InvalidSizeError(
-                f"The resulting size {width, height} will not fit into "
-                f"'maxsize' {maxsize}"
-            )
 
         return (width or 1, height or 1)
 

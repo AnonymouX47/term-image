@@ -16,11 +16,8 @@ Known Issues
      It is neither a fault of this library nor of the terminal emulators, as drawing
      of images and animations works properly with WSL within Windows Terminal.
 
-   * **Solution:** A workaround is to leave some :term:`horizontal allowance` of **at least
-     two columns** to ensure the image never reaches the right edge of the terminal.
-
-     This can be achieved in the library using the *h_allow* parameter of
-     :py:meth:`~term_image.image.BaseImage.set_size`.
+   * **Solution:** A workaround is to leave some columns between the right edge of the
+     image and the right edge of the terminal.
 
 2. Animations with the **kitty** render style on the **Kitty terminal emulator** might
    be glitchy for some images with **high resolution and size** and/or **sparse color

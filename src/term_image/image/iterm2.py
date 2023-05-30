@@ -561,7 +561,7 @@ class ITerm2Image(GraphicsImage):
         else:
             if not mix and self._TERM == "wezterm":
                 lines = max(
-                    (fmt or (None,))[-1] or get_terminal_size()[1] - self._v_allow,
+                    (fmt or (None,))[-1] or get_terminal_size().lines,
                     self.rendered_height,
                 )
                 r_width = self.rendered_width

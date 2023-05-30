@@ -126,7 +126,7 @@ class TestRender:
             size = tuple((x - 2 for x in ori_size))
             upscaled_canv = upscaled.render(size)
             not_upscaled_canv = not_upscaled.render(size)
-            image_size = trans._valid_size(Size.FIT, maxsize=size)
+            image_size = trans._valid_size(Size.FIT, frame_size=size)
 
             self._test_output(upscaled_canv, size, image_size)
             self._test_output(not_upscaled_canv, size, image_size)
@@ -161,7 +161,7 @@ class TestRender:
             size = trans._valid_size(ori_size[0] + 2)
             canv = image_w.render(size)
             lines = canv._ti_lines
-            image_size = trans._valid_size(Size.FIT, maxsize=size)
+            image_size = trans._valid_size(Size.FIT, frame_size=size)
 
             # The image should have no padding; *size* is proportional to image size
             # and sizing is FIT.
@@ -260,7 +260,7 @@ def test_ignore_padding():
         UrwidImage(python_image, fmt).render(_size)._ti_lines
         for fmt in ("", "200.200", "100.50")
     ]
-    python_image.set_size(Size.AUTO, maxsize=_size)
+    python_image.set_size(Size.AUTO, frame_size=_size)
     render = (
         python_image._format_render(
             python_image._renderer(

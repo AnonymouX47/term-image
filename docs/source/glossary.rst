@@ -33,15 +33,6 @@ Below are definitions of terms used across the API, exception messages and the d
 
       .. seealso:: :ref:`alignment`
 
-   allowance
-      The amount of space to be left unused on the terminal screen.
-
-   horizontal allowance
-      The amount of **columns** to be left unused on the terminal screen.
-
-   vertical allowance
-      The amount of **lines** to be left unused on the terminal screen.
-
    alpha threshold
       Alpha ratio/value above which a pixel is taken as **opaque** (applies only to :ref:`text-based`).
 
@@ -52,20 +43,20 @@ Below are definitions of terms used across the API, exception messages and the d
       
       The frames of an animated image are generally meant to be displayed in rapid succession, to give the effect of animation.
 
-   available size
-      The remainder after :term:`allowances <allowance>` are subtracted from the maximum frame size.
-
-   available width
-      The remainder after horizontal allowance is subtracted from the maximum amount of columns.
-
-   available height
-      The remainder after vertical allowance is subtracted from the maximum amount of lines.
-
    cell ratio
       The **aspect ratio** (i.e the ratio of **width to height**) of a **character cell** on a terminal screen.
 
       .. seealso::
          :py:func:`~term_image.get_cell_ratio` and :py:func:`~term_image.set_cell_ratio`
+
+   frame size
+      The dimensions of the area used in :term:`automatic sizing`.
+
+   frame width
+      The width of the area used in :term:`automatic sizing`.
+
+   frame height
+      The height of the area used in :term:`automatic sizing`.
 
    render
    rendered
@@ -142,19 +133,22 @@ Below are definitions of terms used across the API, exception messages and the d
       This form of sizing does not preserve image aspect ratio and can only be used with :term:`fixed sizing`.
 
       .. seealso::
-         :term:`automatic sizing` and :py:meth:`~term_image.image.BaseImage.set_size`
-
-      .. attention: This is yet to be implemented.
+         :term:`automatic sizing`,
+         :py:attr:`~term_image.image.BaseImage.size` and
+         :py:meth:`~term_image.image.BaseImage.set_size`
 
    automatic size
    automatic sizing
-      A form of sizing wherein the image size is computed based on a combination of the :term:`available size`, the image's original size and a given width **or** height.
+      A form of sizing wherein an image's size is computed based on a combination of a
+      :term:`frame size`, the image's original size and a given width **or** height.
 
-      This form of sizing tries to preserve image aspect ratio and can be used with both :term:`fixed sizing` and :term:`dynamic sizing`.
+      This form of sizing tries to preserve image aspect ratio and can be used with both
+      :term:`fixed sizing` and :term:`dynamic sizing`.
 
       .. seealso::
          :term:`manual sizing`,
-         :py:class:`~term_image.image.Size` and
+         :py:class:`~term_image.image.Size`,
+         :py:attr:`~term_image.image.BaseImage.size` and
          :py:meth:`~term_image.image.BaseImage.set_size`
 
    dynamic size

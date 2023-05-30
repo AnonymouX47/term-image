@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 
 import term_image
@@ -26,7 +27,7 @@ def reset_cell_size_ratio():
 
 
 def get_terminal_size():
-    return (80, 30)
+    return os.terminal_size((80, 30))
 
 
 def get_fg_bg_colors(*, hex=False):
