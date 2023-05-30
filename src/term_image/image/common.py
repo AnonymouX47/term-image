@@ -241,6 +241,9 @@ class BaseImage(metaclass=ImageMeta):
     NOTE:
         * If neither *width* nor *height* is given (or both are ``None``),
           :py:attr:`~term_image.image.Size.FIT` applies.
+        * If both width and height are not ``None``, they must be positive integers
+          and :term:`manual sizing` applies i.e the image size is set as given without
+          preserving aspect ratio.
         * For animated images, the seek position is initialized to the current seek
           position of the given image.
         * It's allowed to set properties for :term:`animated` images on non-animated
