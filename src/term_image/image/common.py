@@ -553,11 +553,18 @@ class BaseImage(metaclass=ImageMeta):
               is :term:`dynamic <dynamic size>`.
 
         SET:
-            Sets the image size as prescibed by the given
-            :py:class:`~term_image.image.Size` enum member.
+            If set to a:
 
-            This implies :term:`dynamic sizing` i.e the size is computed whenever the
-            image is :term:`rendered`.
+            * :py:class:`~term_image.image.Size` enum member, the image size is set
+              as prescibed by the given member.
+
+              This results in a :term:`dynamic size` i.e the size is computed whenever
+              the image is :term:`rendered` using the default :term:`frame size`.
+
+            * 2-tuple of integers, ``(width, height)``, the image size set as given.
+
+              This results in a :term:`fixed size` i.e the size will not change until
+              it is re-set.
         """,
     )
 
@@ -1065,12 +1072,14 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: Both *width* and *height* are specified.
 
-        If *width* or *height* is a :py:class:`~term_image.image.Size` enum
-        member, :term:`automatic sizing` applies as prescribed by the enum member.
-        If neither *width* nor *height* is given (or both are ``None``),
-        :py:attr:`~term_image.image.Size.FIT` applies.
+        * If both width and height are not ``None``, they must be positive integers
+          and :term:`manual sizing` applies i.e the image size is set as given without
+          preserving aspect ratio.
+        * If *width* or *height* is a :py:class:`~term_image.image.Size` enum
+          member, :term:`automatic sizing` applies as prescribed by the enum member.
+        * If neither *width* nor *height* is given (or both are ``None``),
+          :py:attr:`~term_image.image.Size.FIT` applies.
         """
         width_height = (width, height)
         for arg_name, arg_value in zip(("width", "height"), width_height):

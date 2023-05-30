@@ -133,9 +133,9 @@ Below are definitions of terms used across the API, exception messages and the d
       This form of sizing does not preserve image aspect ratio and can only be used with :term:`fixed sizing`.
 
       .. seealso::
-         :term:`automatic sizing` and :py:meth:`~term_image.image.BaseImage.set_size`
-
-      .. attention: This is yet to be implemented.
+         :term:`automatic sizing`,
+         :py:attr:`~term_image.image.BaseImage.size` and
+         :py:meth:`~term_image.image.BaseImage.set_size`
 
    automatic size
    automatic sizing
@@ -147,7 +147,8 @@ Below are definitions of terms used across the API, exception messages and the d
 
       .. seealso::
          :term:`manual sizing`,
-         :py:class:`~term_image.image.Size` and
+         :py:class:`~term_image.image.Size`,
+         :py:attr:`~term_image.image.BaseImage.size` and
          :py:meth:`~term_image.image.BaseImage.set_size`
 
    dynamic size
