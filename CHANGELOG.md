@@ -43,14 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image scaling ([#88]).
   - *scale* parameter of `BaseImage`, `BaseImage.from_file()`, `BaseImage.from_url()`, etc.
   - `scale`, `scale_x` and `scale_y` properties of `BaseImage`.
+  - Replaced by manual sizing ([#89]).
 - Image sizing allowance ([#89]).
   - *h_allow* and *v_allow* parameters of `BaseImage.set_size()`.
+  - Replaced by terminal size-relative frame sizes ([#89]) and padding ([#91]).
 - *native* and *stall_native* `iterm2` style-specific render parameters ([#92]).
   - Replaced by the `ANIM` render method.
 
 [#87]: https://github.com/AnonymouX47/term-image/pull/87
 [#88]: https://github.com/AnonymouX47/term-image/pull/88
 [#89]: https://github.com/AnonymouX47/term-image/pull/89
+[#91]: https://github.com/AnonymouX47/term-image/pull/91
 [#92]: https://github.com/AnonymouX47/term-image/pull/92
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
