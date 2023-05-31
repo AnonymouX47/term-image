@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Allows setting both width and height explicitly via:
     - `BaseImage.set_size()`
     - `BaseImage.size`
+- Support for terminal size-relative padding ([#91]).
 
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
@@ -31,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No longer raises `ValueError`: Available size too small.
   - No longer checks if the resulting size fits into a given frame size when *width* or *height* is also given as an integer.
     - No longer raises `InvalidSizeError`.
+- **(BREAKING!)** Redefined *pad_width* and *pad_height* formatting parameters ([#91]).
+  - No longer accept `None`.
+  - Now accept non-positive integers.
+  - Changed default values to `0` and `-2` respectively.
 
 ### Removed
 - Image scaling ([#88]).
