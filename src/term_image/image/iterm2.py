@@ -9,7 +9,6 @@ import sys
 import warnings
 from base64 import standard_b64encode
 from operator import mul
-from threading import Event
 from typing import Any, Dict, Optional, Set, Tuple, Union
 
 import PIL
@@ -33,6 +32,7 @@ from .common import GraphicsImage, ImageSource
 # Constants for render methods
 LINES = "lines"
 WHOLE = "whole"
+ANIM = "anim"
 
 
 class ITerm2Image(GraphicsImage):
@@ -52,17 +52,16 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-       * Good for use cases where it might be required to trim some lines of the
-         image.
+       * Good for use cases where it might be required to trim some lines of the image.
 
        Cons:
 
-       * Image drawing is very slow on iTerm2 due to the terminal emulator's
+       * Image drawing is significantly slower on iTerm2 due to the terminal emulator's
          performance.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
-       line of the :term:`rendered` output, such that the entire image is drawn once
+       line of the :term:`render` output, such that the entire image is drawn once
        by the terminal and still occupies the correct amount of lines and columns.
 
        Pros:
@@ -76,6 +75,21 @@ class ITerm2Image(GraphicsImage):
 
        * This method currently doesn't work well on iTerm2 and WezTerm when the image
          height is greater than the terminal height.
+
+    ANIM
+        Renders an animated image to utilize the protocol's native animation feature
+        [1]_.
+
+        Similar to the **WHOLE** render method, except that the terminal emulator
+        animates the image, provided it supports the feature of the protocol.
+        The animation is completely controled by the terminal emulator.
+
+        .. note::
+            * If the image data size (in bytes) is greater than the value of
+              :py:attr:`native_anim_max_bytes`, a warning is issued.
+            * If used with :py:class:`~term_image.image.ImageIterator` or an animation,
+              the **WHOLE** render method is used instead.
+            * If the image is non-animated, the **WHOLE** render method is used instead.
 
     NOTE:
         The **LINES** method is the default only because it works properly in all cases,
@@ -114,24 +128,6 @@ class ITerm2Image(GraphicsImage):
       * *default* → ``4``
       * Results in a trade-off between render time and data size/draw speed
 
-    * **native** (*bool*) → Native animation policy. [1]_
-
-      * ``True`` → use the protocol's native animation feature
-      * ``False`` → use the normal animation
-      * *default* → ``False``
-      * *alpha*, *repeat*, *cached* and *style* do not apply
-      * Ignored if the image is not animated or *animate* is ``False``
-      * Normal restrictions for sizing of animations do not apply
-      * Uses **WHOLE** render method
-      * The terminal emulator completely controls the animation
-
-    * **stall_native** (*bool*) → Native animation execution control.
-
-      * ``True`` → block until :py:data:`~signal.SIGINT` (``CTRL + C``) is recieved
-        (like non-native animation)
-      * ``False`` → return as soon as the image is transmitted
-      * *default* → ``True``
-
     |
 
     **Format Specification**
@@ -146,8 +142,7 @@ class ITerm2Image(GraphicsImage):
 
       * ``L`` → **LINES** render method (current frame only, for animated images)
       * ``W`` → **WHOLE** render method (current frame only, for animated images)
-      * ``N`` → Native animation [1]_ (ignored when used with non-animated images or
-        :py:class:`~term_image.image.ImageIterator`)
+      * ``A`` → **ANIM** render method [1]_
       * *default* → current effective render method of the instance
 
     * ``m`` → cell content inter-mix policy (**Only supported in WezTerm**, ignored
@@ -183,6 +178,7 @@ class ITerm2Image(GraphicsImage):
         * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
         * `WezTerm <https://wezfurlong.org/wezterm/>`_
 
+
     .. [1] Native animation support:
 
        * Not all animated image formats may be supported by every supported terminal
@@ -194,9 +190,9 @@ class ITerm2Image(GraphicsImage):
     """
 
     _FORMAT_SPEC: Tuple[re.Pattern] = tuple(
-        map(re.compile, "[LWN] m[01] c[0-9]".split(" "))
+        map(re.compile, "[LWA] m[01] c[0-9]".split(" "))
     )
-    _render_methods: Set[str] = {LINES, WHOLE}
+    _render_methods: Set[str] = {LINES, WHOLE, ANIM}
     _default_render_method: str = LINES
     _render_method: str = LINES
     _style_args = {
@@ -229,22 +225,6 @@ class ITerm2Image(GraphicsImage):
                 lambda x: 0 <= x <= 9,
                 "Compression level must be between 0 and 9, both inclusive",
             ),
-        ),
-        "native": (
-            False,
-            (
-                lambda x: isinstance(x, bool),
-                "Native animation policy must be a boolean",
-            ),
-            (lambda _: True, ""),
-        ),
-        "stall_native": (
-            True,
-            (
-                lambda x: isinstance(x, bool),
-                "Native animation execution policy must be a boolean",
-            ),
-            (lambda _: True, ""),
         ),
     }
 
@@ -483,17 +463,6 @@ class ITerm2Image(GraphicsImage):
                 else (ctlseqs.KITTY_DELETE_ALL_b if now else ctlseqs.KITTY_DELETE_ALL)
             )
 
-    def draw(self, *args, **kwargs):
-        # Ignore (and omit) native animation arguments for non-animations
-        if not (self._is_animated and kwargs.get("animate", True)):
-            for arg_name in ("native", "stall_native"):
-                try:
-                    del kwargs[arg_name]
-                except KeyError:
-                    pass
-
-        super().draw(*args, **kwargs)
-
     @classmethod
     def is_supported(cls):
         if cls._supported is None:
@@ -518,10 +487,8 @@ class ITerm2Image(GraphicsImage):
         args = {}
         if parent:
             args.update(super()._check_style_format_spec(parent, original))
-        if method == "N":
-            args["native"] = True
-        elif method:
-            args["method"] = LINES if method == "L" else WHOLE
+        if method:
+            args["method"] = {"L": LINES, "W": WHOLE, "A": ANIM}[method]
         if mix:
             args["mix"] = bool(int(mix[-1]))
         if compress:
@@ -536,55 +503,34 @@ class ITerm2Image(GraphicsImage):
         fmt,
         *args,
         mix: bool = False,
-        native: bool = False,
-        stall_native: bool = True,
         **kwargs,
     ):
-        if native:
-            try:
-                print(
-                    self._format_render(
-                        self._render_image(img, alpha, mix=mix, native=True),
-                        *fmt,
-                    ),
-                    end="",
-                    flush=True,
-                )
-            except (KeyboardInterrupt, Exception):
-                self._handle_interrupted_draw()
-                raise
-            else:
-                try:
-                    stall_native and native_anim.wait()
-                except KeyboardInterrupt:
-                    pass
-        else:
-            if not mix and self._TERM == "wezterm":
-                pad_height = fmt[-1]
-                lines = max(
-                    (
-                        pad_height
-                        if pad_height > 0
-                        else get_terminal_size().lines + pad_height
-                    ),
-                    self.rendered_height,
-                )
-                r_width = self.rendered_width
-                erase_and_move_cursor = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
-                first_frame = self._format_render(
-                    f"{erase_and_move_cursor}\n" * (lines - 1) + erase_and_move_cursor,
-                    *fmt,
-                )
-                print(
-                    first_frame,
-                    "\r",
-                    CURSOR_UP % (lines - 1),
-                    sep="",
-                    end="",
-                    flush=True,
-                )
+        if not mix and self._TERM == "wezterm":
+            pad_height = fmt[-1]
+            lines = max(
+                (
+                    pad_height
+                    if pad_height > 0
+                    else get_terminal_size().lines + pad_height
+                ),
+                self.rendered_height,
+            )
+            r_width = self.rendered_width
+            erase_and_move_cursor = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
+            first_frame = self._format_render(
+                f"{erase_and_move_cursor}\n" * (lines - 1) + erase_and_move_cursor,
+                *fmt,
+            )
+            print(
+                first_frame,
+                "\r",
+                CURSOR_UP % (lines - 1),
+                sep="",
+                end="",
+                flush=True,
+            )
 
-            super()._display_animated(img, alpha, fmt, *args, mix=True, **kwargs)
+        super()._display_animated(img, alpha, fmt, *args, mix=True, **kwargs)
 
     @staticmethod
     def _handle_interrupted_draw():
@@ -609,7 +555,6 @@ class ITerm2Image(GraphicsImage):
         method: Optional[str] = None,
         mix: bool = False,
         compress: int = 4,
-        native: bool = False,
     ) -> str:
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
         # that an image always occupies the correct amount of columns and lines even if
@@ -618,6 +563,7 @@ class ITerm2Image(GraphicsImage):
         # upscaling an image on this end; ensures minimal payload.
 
         r_width, r_height = self.rendered_size
+        render_method = (method or self._render_method).lower()
 
         # Workarounds
         is_on_konsole = self._TERM == "konsole"
@@ -633,7 +579,7 @@ class ITerm2Image(GraphicsImage):
             except (AttributeError, OSError):
                 file_is_readable = False
 
-        if native and self._is_animated and not frame:
+        if render_method == ANIM and self._is_animated and not frame:
             if self._source_type is ImageSource.PIL_IMAGE:
                 if file_is_readable:
                     compressed_image = open(img.filename, "rb")
@@ -686,7 +632,6 @@ class ITerm2Image(GraphicsImage):
                     )
                 )
 
-        render_method = (method or self._render_method).lower()
         width, height = self._get_minimal_render_size(adjust=render_method == LINES)
 
         if (  # Read directly from file when possible and reasonable
@@ -807,5 +752,4 @@ class ITerm2Image(GraphicsImage):
             )
 
 
-native_anim = Event()
 _stdout_write = sys.stdout.write

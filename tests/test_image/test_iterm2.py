@@ -1,7 +1,6 @@
 """ITerm2Image-specific tests"""
 
 import io
-import sys
 from base64 import standard_b64decode
 from contextlib import contextmanager
 
@@ -14,12 +13,11 @@ from PIL.WebPImagePlugin import WebPImageFile
 from term_image import ctlseqs
 from term_image.exceptions import ITerm2ImageError, TermImageWarning
 from term_image.image import iterm2
-from term_image.image.iterm2 import LINES, WHOLE, ITerm2Image
+from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image
 
 from .. import set_fg_bg_colors
 from . import common
 from .common import _size, get_actual_render_size, python_img, setup_common
-from .test_base import clear_stdout, stdout
 
 ITerm2Image.read_from_file = False
 
@@ -450,6 +448,10 @@ def test_set_render_method():
         assert ITerm2Image.set_render_method(WHOLE.lower()) is None
         assert ITerm2Image.set_render_method(LINES.upper()) is None
         assert ITerm2Image.set_render_method(LINES.lower()) is None
+        assert ITerm2Image.set_render_method(ANIM.upper()) is None
+        assert ITerm2Image.set_render_method(ANIM.lower()) is None
+
+        # WHOLE
 
         assert ITerm2Image.set_render_method(WHOLE) is None
         assert ITerm2Image._render_method == WHOLE
@@ -458,8 +460,13 @@ def test_set_render_method():
         assert image.set_render_method(LINES) is None
         assert image._render_method == LINES
 
+        assert image.set_render_method(ANIM) is None
+        assert image._render_method == ANIM
+
         assert image.set_render_method() is None
         assert image._render_method == WHOLE
+
+        # LINES
 
         assert ITerm2Image.set_render_method(LINES) is None
         assert ITerm2Image._render_method == LINES
@@ -468,8 +475,28 @@ def test_set_render_method():
         assert image.set_render_method(WHOLE) is None
         assert image._render_method == WHOLE
 
+        assert image.set_render_method(ANIM) is None
+        assert image._render_method == ANIM
+
         assert image.set_render_method() is None
         assert image._render_method == LINES
+
+        # ANIM
+
+        assert ITerm2Image.set_render_method(ANIM) is None
+        assert ITerm2Image._render_method == ANIM
+        assert image._render_method == ANIM
+
+        assert image.set_render_method(WHOLE) is None
+        assert image._render_method == WHOLE
+
+        assert image.set_render_method(LINES) is None
+        assert image._render_method == LINES
+
+        assert image.set_render_method() is None
+        assert image._render_method == ANIM
+
+        # default
 
         assert ITerm2Image.set_render_method(WHOLE) is None
         assert ITerm2Image._render_method == WHOLE
@@ -487,7 +514,7 @@ def test_style_format_spec():
         " ",
         "x",
         "LW",
-        "WN",
+        "WA",
         "c1m0",
         "0c",
         "m2",
@@ -506,7 +533,7 @@ def test_style_format_spec():
         ("", {}),
         ("L", {"method": LINES}),
         ("W", {"method": WHOLE}),
-        ("N", {"native": True}),
+        ("A", {"method": ANIM}),
         ("m0", {}),
         ("m1", {"mix": True}),
         ("c4", {}),
@@ -531,10 +558,8 @@ class TestStyleArgs:
             with pytest.raises(ValueError):
                 ITerm2Image._check_style_args({"method": value})
 
-        for value in (LINES, WHOLE):
+        for value in (ANIM, LINES, WHOLE):
             assert ITerm2Image._check_style_args({"method": value}) == {"method": value}
-        assert ITerm2Image._check_style_args({"native": False}) == {}
-        assert ITerm2Image._check_style_args({"native": True}) == {"native": True}
 
     def test_mix(self):
         for value in (0, 1.0, (), [], "2"):
@@ -569,7 +594,7 @@ def expand_control_data(control_data):
     return control_codes
 
 
-def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
+def decode_image(data, term="", jpeg=False, anim=False, read_from_file=False):
     fill_1, start, data = data.partition(ctlseqs.ITERM2_START)
     assert start == ctlseqs.ITERM2_START
     if term == "konsole":
@@ -592,11 +617,11 @@ def decode_image(data, term="", jpeg=False, native=False, read_from_file=False):
 
     compressed_image = standard_b64decode(payload.encode())
     img = Image.open(io.BytesIO(compressed_image))
-    if native:
+    if anim:
         assert isinstance(img, (GifImageFile, PngImageFile, WebPImageFile))
         assert img.is_animated
 
-    if read_from_file or native:
+    if read_from_file or anim:
         raw_image = None
     else:
         raw_image = img.tobytes()
@@ -875,22 +900,20 @@ class TestRenderWhole:
         return self.trans._renderer(self.trans._render_image, alpha, mix=m, compress=c)
 
     @staticmethod
-    def _test_image_size(
-        image, term="", jpeg=False, native=False, read_from_file=False
-    ):
+    def _test_image_size(image, term="", jpeg=False, anim=False, read_from_file=False):
         w, h = get_actual_render_size(image)
         cols, lines = image.rendered_size
         size_control_data = f"width={cols},height={lines}"
-        render = f"{image:1.1+N}" if native else str(image)
+        render = f"{image:1.1+A}" if anim else str(image)
 
         assert render.count("\n") + 1 == lines
         control_codes, format, mode, _, raw_image, fill = decode_image(
-            render, term=term, jpeg=jpeg, native=native, read_from_file=read_from_file
+            render, term=term, jpeg=jpeg, anim=anim, read_from_file=read_from_file
         )
         assert (
             code in control_codes for code in expand_control_data(size_control_data)
         )
-        if not (read_from_file or native):
+        if not (read_from_file or anim):
             assert len(raw_image) == w * h * len(mode)
         assert fill.count("\n") + 1 == lines
         *fills, last_fill = fill.split("\n")
@@ -1129,6 +1152,78 @@ class TestRenderWhole:
             del ITerm2Image.jpeg_quality
 
 
+class TestRenderAnim:
+    _test_image_size = staticmethod(TestRenderWhole._test_image_size)
+
+    with open("tests/images/elephant.png", "rb") as f:
+        apng_file = f.read()
+    apng_image = ITerm2Image.from_file("tests/images/elephant.png", height=_size)
+
+    with open("tests/images/lion.gif", "rb") as f:
+        gif_file = f.read()
+    gif_image = ITerm2Image.from_file("tests/images/lion.gif", height=_size)
+
+    with open("tests/images/anim.webp", "rb") as f:
+        webp_file = f.read()
+    webp_image = ITerm2Image.from_file("tests/images/anim.webp", height=_size)
+
+    img = Image.open("tests/images/lion.gif")
+    img_image = ITerm2Image(img, height=_size)
+
+    no_file_img = Image.open(open("tests/images/lion.gif", "rb"))
+    no_file_image = ITerm2Image(no_file_img, height=_size)
+
+    def render_native_anim(self, image):
+        return image._renderer(image._render_image, 0.0, method=ANIM)
+
+    # Reads from file when possible
+    def test_read_from_file(self):
+        for image, file in (
+            (self.apng_image, self.apng_file),
+            (self.webp_image, self.webp_file),
+            (self.gif_image, self.gif_file),
+            (self.img_image, self.gif_file),
+        ):
+            for ITerm2Image._TERM in supported_terminals:
+                assert (
+                    file
+                    == decode_image(
+                        self.render_native_anim(image),
+                        term=ITerm2Image._TERM,
+                        anim=True,
+                    )[3]
+                )
+                self._test_image_size(image, term=ITerm2Image._TERM, anim=True)
+
+    # Re-encodes when image file is not accessible
+    def test_re_encode(self):
+        for ITerm2Image._TERM in supported_terminals:
+            assert (
+                self.gif_file
+                != decode_image(
+                    self.render_native_anim(self.no_file_image),
+                    term=ITerm2Image._TERM,
+                    anim=True,
+                )[3]
+            )
+            self._test_image_size(self.no_file_image, term=ITerm2Image._TERM, anim=True)
+
+    # No image file and unknown format
+    def test_unknown_format(self):
+        self.no_file_img.format = None
+        with pytest.raises(
+            ITerm2ImageError, match="Native animation .* unknown format"
+        ):
+            self.render_native_anim(self.no_file_image)
+
+    # Image data size limit
+    def test_max_bytes(self):
+        ITerm2Image.native_anim_max_bytes = 300000
+        with pytest.warns(TermImageWarning, match="maximum for native animation"):
+            self.render_native_anim(self.apng_image)
+        self.render_native_anim(self.gif_image)
+
+
 def test_read_from_file():
     test_image_size = TestRenderWhole._test_image_size
 
@@ -1188,79 +1283,6 @@ def test_read_from_file():
                 test_image_size(image, term=ITerm2Image._TERM)
     finally:
         ITerm2Image.read_from_file = False
-
-
-def test_native_anim():
-    def render_native(image):
-        return image._renderer(image._render_image, 0.0, native=True)
-
-    test_image_size = TestRenderWhole._test_image_size
-
-    with open("tests/images/elephant.png", "rb") as f:
-        apng_file = f.read()
-    apng_image = ITerm2Image.from_file("tests/images/elephant.png", height=_size)
-
-    with open("tests/images/lion.gif", "rb") as f:
-        gif_file = f.read()
-    gif_image = ITerm2Image.from_file("tests/images/lion.gif", height=_size)
-
-    with open("tests/images/anim.webp", "rb") as f:
-        webp_file = f.read()
-    webp_image = ITerm2Image.from_file("tests/images/anim.webp", height=_size)
-
-    img = Image.open("tests/images/lion.gif")
-    img_image = ITerm2Image(img, height=_size)
-
-    no_file_img = Image.open(open("tests/images/lion.gif", "rb"))
-    no_file_image = ITerm2Image(no_file_img, height=_size)
-
-    # Reads from file when possible
-    for image, file in (
-        (apng_image, apng_file),
-        (webp_image, webp_file),
-        (gif_image, gif_file),
-        (img_image, gif_file),
-    ):
-        for ITerm2Image._TERM in supported_terminals:
-            assert (
-                file
-                == decode_image(
-                    render_native(image), term=ITerm2Image._TERM, native=True
-                )[3]
-            )
-            test_image_size(image, term=ITerm2Image._TERM, native=True)
-
-            # No exception is raised
-            try:
-                sys.stdout = stdout
-                image.draw(native=True, stall_native=False)
-            finally:
-                clear_stdout()
-                sys.stdout = sys.__stdout__
-
-    # Re-encodes when image file is not accessible
-    for ITerm2Image._TERM in supported_terminals:
-        assert (
-            gif_file
-            != decode_image(
-                render_native(no_file_image), term=ITerm2Image._TERM, native=True
-            )[3]
-        )
-        test_image_size(no_file_image, term=ITerm2Image._TERM, native=True)
-
-    # No image file and unknown format
-    no_file_img.format = None
-    with pytest.raises(ITerm2ImageError, match="Native animation .* unknown format"):
-        render_native(no_file_image)
-
-    # Image data size limit
-    ITerm2Image.native_anim_max_bytes = 300000
-    with pytest.warns(TermImageWarning, match="maximum for native animation"):
-        render_native(apng_image)
-    render_native(gif_image)
-
-    img.close()
-    no_file_img.close()
 
 
 class TestClear:
