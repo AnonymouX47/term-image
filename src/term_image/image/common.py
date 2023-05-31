@@ -671,9 +671,9 @@ class BaseImage(metaclass=ImageMeta):
     def draw(
         self,
         h_align: Optional[str] = None,
-        pad_width: Optional[int] = None,
+        pad_width: int = 0,
         v_align: Optional[str] = None,
-        pad_height: Optional[int] = None,
+        pad_height: int = -2,
         alpha: Optional[float, str] = _ALPHA_THRESHOLD,
         *,
         scroll: bool = False,
@@ -777,7 +777,7 @@ class BaseImage(metaclass=ImageMeta):
             raise arg_type_error("animate", animate)
 
         terminal_width, terminal_height = get_terminal_size()
-        if None is not pad_width > terminal_width:
+        if pad_width > terminal_width:
             raise arg_value_error_range(
                 "pad_width", pad_width, got_extra=f"terminal_width={terminal_width}"
             )
@@ -787,7 +787,7 @@ class BaseImage(metaclass=ImageMeta):
             not style.get("native")
             and self._is_animated
             and animate
-            and None is not pad_height > terminal_height
+            and pad_height > terminal_height
         ):
             raise arg_value_error_range(
                 "pad_height",
@@ -1134,10 +1134,10 @@ class BaseImage(metaclass=ImageMeta):
     def _check_format_spec(
         cls, spec: str
     ) -> Tuple[
-        Optional[str],
-        Optional[int],
-        Optional[str],
-        Optional[int],
+        str | None,
+        int,
+        str | None,
+        int,
         Union[None, float, str],
         Dict[str, Any],
     ]:
@@ -1166,7 +1166,10 @@ class BaseImage(metaclass=ImageMeta):
 
         return (
             *cls._check_formatting(
-                h_align, width and int(width), v_align, height and int(height)
+                h_align,
+                int(width) if width else 0,
+                v_align,
+                int(height) if height else -2,
             ),
             (
                 threshold_or_bg
@@ -1184,10 +1187,10 @@ class BaseImage(metaclass=ImageMeta):
     @staticmethod
     def _check_formatting(
         h_align: Optional[str] = None,
-        width: Optional[int] = None,
+        width: int = 0,
         v_align: Optional[str] = None,
-        height: Optional[int] = None,
-    ) -> Tuple[Union[None, str, int]]:
+        height: int = -2,
+    ) -> Tuple[str | None, int, str | None, int]:
         """Validates formatting arguments while also translating literal ones.
 
         Returns:
@@ -1201,10 +1204,8 @@ class BaseImage(metaclass=ImageMeta):
                 raise arg_value_error("h_align", h_align)
             h_align = align
 
-        if not isinstance(width, (type(None), int)):
+        if not isinstance(width, int):
             raise arg_type_error("pad_width", width)
-        if None is not width <= 0:
-            raise arg_value_error_range("pad_width", width)
 
         if not isinstance(v_align, (type(None), str)):
             raise arg_type_error("v_align", v_align)
@@ -1214,10 +1215,8 @@ class BaseImage(metaclass=ImageMeta):
                 raise arg_value_error("v_align", v_align)
             v_align = align
 
-        if not isinstance(height, (type(None), int)):
+        if not isinstance(height, int):
             raise arg_type_error("pad_height", height)
-        if None is not height <= 0:
-            raise arg_value_error_range("pad_height", height)
 
         return h_align, width, v_align, height
 
@@ -1352,14 +1351,15 @@ class BaseImage(metaclass=ImageMeta):
         self,
         img: PIL.Image.Image,
         alpha: Union[None, float, str],
-        fmt: Tuple[Union[None, str, int]],
+        fmt: Tuple[str | None, int, str | None, int],
         repeat: int,
         cached: Union[bool, int],
         **style_args: Any,
     ) -> None:
         """Displays an animated GIF image in the terminal."""
+        pad_height = fmt[-1]
         lines = max(
-            (fmt or (None,))[-1] or get_terminal_size().lines,
+            pad_height if pad_height > 0 else get_terminal_size().lines + pad_height,
             self.rendered_height,
         )
         prev_seek_pos = self._seek_position
@@ -1403,9 +1403,9 @@ class BaseImage(metaclass=ImageMeta):
         self,
         render: str,
         h_align: Optional[str] = None,
-        width: Optional[int] = None,
+        width: int = 0,
         v_align: Optional[str] = None,
-        height: Optional[int] = None,
+        height: int = -2,
     ) -> str:
         """Formats rendered image text.
 
@@ -1414,7 +1414,7 @@ class BaseImage(metaclass=ImageMeta):
         cols, lines = self.rendered_size
         terminal_size = get_terminal_size()
 
-        width = width or terminal_size.columns
+        width = width if width > 0 else max(terminal_size.columns + width, 1)
         if width > cols:
             if h_align == "<":  # left
                 left = ""
@@ -1429,7 +1429,7 @@ class BaseImage(metaclass=ImageMeta):
         else:
             left = right = ""
 
-        height = height or terminal_size.lines
+        height = height if height > 0 else max(terminal_size.lines + height, 1)
         if height > lines:
             if v_align == "^":  # top
                 top = 0
