@@ -690,8 +690,6 @@ class BaseImage(metaclass=ImageMeta):
               "right" / ">"). Default: center.
             pad_width: Number of columns within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the :term:`terminal width`
-                is used.
               * Excess columns are filled with spaces.
               * Must not be greater than the :term:`terminal width`.
 
@@ -699,8 +697,6 @@ class BaseImage(metaclass=ImageMeta):
               Default: middle.
             pad_height: Number of lines within which to align the image.
 
-              * A positive integer or ``None``. If ``None``, the :term:`terminal height`
-                is used.
               * Excess lines are filled with spaces.
               * Must not be greater than the :term:`terminal height`,
                 **for animations**.
@@ -747,14 +743,21 @@ class BaseImage(metaclass=ImageMeta):
               can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
 
-        * :term:`padding width` is always validated, if not ``None``.
+        * If *pad_width* or *pad_height* is:
+
+          * positive, it is **absolute** and used as-is.
+          * non-positive, it is **relative** to the corresponding terminal dimension
+            and equivalent to the absolute dimension
+            ``max(terminal_dimension + frame_dimension, 1)``.
+
+        * :term:`padding width` is always validated.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
           They are simply ignored for non-animated images.
         * For animations (i.e animated images with *animate* set to ``True``):
 
           * *scroll* is ignored.
           * Image size is always validated, if set.
-          * :term:`Padding height` is always validated, if not ``None``.
+          * :term:`Padding height` is always validated.
           * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
@@ -1407,7 +1410,7 @@ class BaseImage(metaclass=ImageMeta):
         v_align: Optional[str] = None,
         height: int = -2,
     ) -> str:
-        """Formats rendered image text.
+        """Pads and aligns a primary render output.
 
         All arguments should be passed through ``_check_formatting()`` first.
         """
