@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `BaseImage.set_size()`
     - `BaseImage.size`
 - Support for terminal size-relative padding ([#91]).
+- `ANIM` render method to the `iterm2` render style ([#92]).
 
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No longer accept `None`.
   - Now accept non-positive integers.
   - Changed default values to `0` and `-2` respectively.
+- Swapped `N` for `A` in the *method* field of the `iterm2` style-speific render format specification ([#92]).
 
 ### Removed
 - Image scaling ([#88]).
@@ -43,10 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `scale`, `scale_x` and `scale_y` properties of `BaseImage`.
 - Image sizing allowance ([#89]).
   - *h_allow* and *v_allow* parameters of `BaseImage.set_size()`.
+- *native* and *stall_native* `iterm2` style-specific render parameters ([#92]).
+  - Replaced by the `ANIM` render method.
 
 [#87]: https://github.com/AnonymouX47/term-image/pull/87
 [#88]: https://github.com/AnonymouX47/term-image/pull/88
 [#89]: https://github.com/AnonymouX47/term-image/pull/89
+[#92]: https://github.com/AnonymouX47/term-image/pull/92
 [08f4e4d]: https://github.com/AnonymouX47/term-image/commit/08f4e4d1514313bbd4278dadde46d21d0b11ed1f
 [fa47742]: https://github.com/AnonymouX47/term-image/commit/fa477424c83474256d4972c4b2cdd4a765bc1cda
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3
