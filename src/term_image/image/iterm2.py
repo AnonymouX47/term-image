@@ -52,17 +52,16 @@ class ITerm2Image(GraphicsImage):
 
        Pros:
 
-       * Good for use cases where it might be required to trim some lines of the
-         image.
+       * Good for use cases where it might be required to trim some lines of the image.
 
        Cons:
 
-       * Image drawing is very slow on iTerm2 due to the terminal emulator's
+       * Image drawing is significantly slower on iTerm2 due to the terminal emulator's
          performance.
 
     WHOLE
        Renders an image all at once i.e the entire image data is encoded into one
-       line of the :term:`rendered` output, such that the entire image is drawn once
+       line of the :term:`render` output, such that the entire image is drawn once
        by the terminal and still occupies the correct amount of lines and columns.
 
        Pros:
@@ -76,6 +75,21 @@ class ITerm2Image(GraphicsImage):
 
        * This method currently doesn't work well on iTerm2 and WezTerm when the image
          height is greater than the terminal height.
+
+    ANIM
+        Renders an animated image to utilize the protocol's native animation feature
+        [1]_.
+
+        Similar to the **WHOLE** render method, except that the terminal emulator
+        animates the image, provided it supports the feature of the protocol.
+        The animation is completely controled by the terminal emulator.
+
+        .. note::
+            * If the image data size (in bytes) is greater than the value of
+              :py:attr:`native_anim_max_bytes`, a warning is issued.
+            * If used with :py:class:`~term_image.image.ImageIterator` or an animation,
+              the **WHOLE** render method is used instead.
+            * If the image is non-animated, the **WHOLE** render method is used instead.
 
     NOTE:
         The **LINES** method is the default only because it works properly in all cases,
@@ -114,24 +128,6 @@ class ITerm2Image(GraphicsImage):
       * *default* → ``4``
       * Results in a trade-off between render time and data size/draw speed
 
-    * **native** (*bool*) → Native animation policy. [1]_
-
-      * ``True`` → use the protocol's native animation feature
-      * ``False`` → use the normal animation
-      * *default* → ``False``
-      * *alpha*, *repeat*, *cached* and *style* do not apply
-      * Ignored if the image is not animated or *animate* is ``False``
-      * Normal restrictions for sizing of animations do not apply
-      * Uses **WHOLE** render method
-      * The terminal emulator completely controls the animation
-
-    * **stall_native** (*bool*) → Native animation execution control.
-
-      * ``True`` → block until :py:data:`~signal.SIGINT` (``CTRL + C``) is recieved
-        (like non-native animation)
-      * ``False`` → return as soon as the image is transmitted
-      * *default* → ``True``
-
     |
 
     **Format Specification**
@@ -146,8 +142,7 @@ class ITerm2Image(GraphicsImage):
 
       * ``L`` → **LINES** render method (current frame only, for animated images)
       * ``W`` → **WHOLE** render method (current frame only, for animated images)
-      * ``N`` → Native animation [1]_ (ignored when used with non-animated images or
-        :py:class:`~term_image.image.ImageIterator`)
+      * ``A`` → **ANIM** render method [1]_
       * *default* → current effective render method of the instance
 
     * ``m`` → cell content inter-mix policy (**Only supported in WezTerm**, ignored
@@ -182,6 +177,7 @@ class ITerm2Image(GraphicsImage):
         * `iTerm2 <https://iterm2.com>`_
         * `Konsole <https://konsole.kde.org>`_ >= 22.04.0
         * `WezTerm <https://wezfurlong.org/wezterm/>`_
+
 
     .. [1] Native animation support:
 

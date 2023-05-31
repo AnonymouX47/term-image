@@ -758,7 +758,6 @@ class BaseImage(metaclass=ImageMeta):
           * *scroll* is ignored.
           * Image size is always validated, if set.
           * :term:`Padding height` is always validated.
-          * **with the exception of native animations provided by some render styles**.
 
         * Animations, **by default**, are infinitely looped and can be terminated
           with :py:data:`~signal.SIGINT` (``CTRL + C``), **without** raising
