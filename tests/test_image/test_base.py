@@ -710,21 +710,13 @@ class TestRenderData:
 # suffice.
 class TestFormatting:
     image = BlockImage(python_img)
-    image.set_size()
-    full_width = image.width
-    image.width //= 2  # To ensure there's padding
+    image._size = (15, 15)
     render = str(image)
     check_formatting = staticmethod(image._check_formatting)
 
-    def check_padding(self, *args, render=None, **kwargs):
-        h_align, width, v_align, height, *_ = args + (None,) * 4
-        for name, value in kwargs.items():
-            exec(f"{name} = {value!r}")
-        width = width or columns
-        height = height or lines
-
+    def check_padding(self, result, *fmt):
+        render = self.image._format_render(self.render, *fmt)
         left, right = [], []
-        render = self.image._format_render(render or self.render, *args, **kwargs)
 
         chunk, _, render = render.partition(ESC)
         top, _, first_left = chunk.rpartition("\n")
@@ -759,22 +751,9 @@ class TestFormatting:
         raise ValueError
         """
 
-        n_left = (
-            0
-            if h_align == "<"
-            else width - self.image.rendered_width
-            if h_align == ">"
-            else (width - self.image.rendered_width) // 2
-        )
-        n_right = width - self.image.rendered_width - n_left
-        n_top = (
-            0
-            if v_align == "^"
-            else height - self.image.rendered_height
-            if v_align == "_"
-            else (height - self.image.rendered_height) // 2
-        )
-        n_bottom = height - self.image.rendered_height - n_top
+        width = fmt[1]
+        width = width if width > 0 else max(columns + width, 1)
+        n_top, n_left, n_bottom, n_right = result
 
         assert len(left) == self.image.rendered_height
         assert all(line == " " * n_left for line in left)
@@ -785,10 +764,7 @@ class TestFormatting:
         assert len(bottom) == n_bottom
         assert all(line == " " * width for line in bottom)
 
-        return left, right, top, bottom
-
     def test_args(self):
-        self.image.set_size()
         for value in (1, 1.0, (), []):
             with pytest.raises(TypeError, match="'h_align'"):
                 self.check_formatting(h_align=value)
@@ -801,74 +777,105 @@ class TestFormatting:
             with pytest.raises(ValueError, match="'v_align'"):
                 self.check_formatting(v_align=value)
 
-        for value in ("1", 1.0, (), []):
+        for value in (None, "1", 1.0, (), []):
             with pytest.raises(TypeError, match="'pad_width'"):
                 self.check_formatting(width=value)
             with pytest.raises(TypeError, match="'pad_height'"):
                 self.check_formatting(height=value)
 
-        for value in (0, -1, -100):
-            with pytest.raises(ValueError, match="'pad_width'"):
-                self.check_formatting(width=value)
-            with pytest.raises(ValueError, match="'pad_height'"):
-                self.check_formatting(height=value)
-
     def test_arg_align_conversion(self):
-        self.image.set_size()
-        assert self.check_formatting() == (None,) * 4
+        assert self.check_formatting() == (None, 0, None, -2)
 
         for value in "<|>":
-            assert self.check_formatting(h_align=value) == (value, None, None, None)
+            assert self.check_formatting(h_align=value) == (value, 0, None, -2)
         for val1, val2 in zip(("left", "center", "right"), "<|>"):
-            assert self.check_formatting(h_align=val1) == (val2, None, None, None)
+            assert self.check_formatting(h_align=val1) == (val2, 0, None, -2)
 
         for value in "^-_":
-            assert self.check_formatting(v_align=value) == (None, None, value, None)
+            assert self.check_formatting(v_align=value) == (None, 0, value, -2)
         for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
-            assert self.check_formatting(v_align=val1) == (None, None, val2, None)
+            assert self.check_formatting(v_align=val1) == (None, 0, val2, -2)
 
     def test_arg_padding_width(self):
-        self.image.set_size()
         for value in (1, _width, columns):
-            assert self.check_formatting(width=value) == (None, value, None, None)
+            assert self.check_formatting(width=value) == (None, value, None, -2)
 
         # Can exceed terminal width
-        assert self.check_formatting(width=columns + 1) == (
-            None,
-            columns + 1,
-            None,
-            None,
-        )
+        assert self.check_formatting(width=columns + 1) == (None, columns + 1, None, -2)
 
     def test_arg_padding_height(self):
-        self.image.set_size()
         for value in (1, _size, lines):
-            assert self.check_formatting(height=value) == (None, None, None, value)
+            assert self.check_formatting(height=value) == (None, 0, None, value)
 
         # Can exceed terminal height
-        assert self.check_formatting(height=lines + 1) == (None, None, None, lines + 1)
+        assert self.check_formatting(height=lines + 1) == (None, 0, None, lines + 1)
 
-    def test_padding_width(self):
-        self.image.width = self.full_width // 2
-        for width in range(self.full_width, columns + 1):
-            self.check_padding("<", width)
-            self.check_padding("|", width)
-            self.check_padding(">", width)
-            self.check_padding(None, width)
+    def test_padding_width_left(self):
+        for width, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (0, 0, 0, 1)),
+            (17, (0, 0, 0, 2)),
+            (29, (0, 0, 0, 14)),
+            (30, (0, 0, 0, 15)),
+        ):
+            self.check_padding(result, "<", width, None, 15)
 
-    def test_padding_height(self):
-        self.image.width = self.full_width // 2
-        for height in range(self.full_width, lines + 1):
-            self.check_padding(None, None, "^", height)
-            self.check_padding(None, None, "-", height)
-            self.check_padding(None, None, "_", height)
-            self.check_padding(None, None, None, height)
+    def test_padding_width_center(self):
+        for width, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (0, 0, 0, 1)),
+            (17, (0, 1, 0, 1)),
+            (29, (0, 7, 0, 7)),
+            (30, (0, 7, 0, 8)),
+        ):
+            self.check_padding(result, "|", width, None, 15)
+            self.check_padding(result, None, width, None, 15)
 
-    def test_align(self):
-        self.image.width = self.full_width // 2
-        self.check_padding("<", columns, "^", lines)
-        self.check_padding("|", columns, "-", lines)
-        self.check_padding(">", columns, "_", lines)
+    def test_padding_width_right(self):
+        for width, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (0, 1, 0, 0)),
+            (17, (0, 2, 0, 0)),
+            (29, (0, 14, 0, 0)),
+            (30, (0, 15, 0, 0)),
+        ):
+            self.check_padding(result, ">", width, None, 15)
+
+    def test_padding_height_top(self):
+        for height, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (0, 0, 1, 0)),
+            (17, (0, 0, 2, 0)),
+            (29, (0, 0, 14, 0)),
+            (30, (0, 0, 15, 0)),
+        ):
+            self.check_padding(result, None, 15, "^", height)
+
+    def test_padding_height_middle(self):
+        for height, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (0, 0, 1, 0)),
+            (17, (1, 0, 1, 0)),
+            (29, (7, 0, 7, 0)),
+            (30, (7, 0, 8, 0)),
+        ):
+            self.check_padding(result, None, 15, "-", height)
+            self.check_padding(result, None, 15, None, height)
+
+    def test_padding_height_bottom(self):
+        for height, result in (
+            (15, (0, 0, 0, 0)),
+            (16, (1, 0, 0, 0)),
+            (17, (2, 0, 0, 0)),
+            (29, (14, 0, 0, 0)),
+            (30, (15, 0, 0, 0)),
+        ):
+            self.check_padding(result, None, 15, "_", height)
+
+    def test_mixed_align(self):
+        self.check_padding((0, 0, 15, 15), "<", 30, "^", 30)
+        self.check_padding((7, 7, 8, 8), "|", 30, "-", 30)
+        self.check_padding((15, 15, 0, 0), ">", 30, "_", 30)
 
     def test_format_spec(self):
         for spec in (
