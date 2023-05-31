@@ -785,13 +785,9 @@ class BaseImage(metaclass=ImageMeta):
                 "pad_width", pad_width, got_extra=f"terminal_width={terminal_width}"
             )
 
-        animation = not style.get("native") and self._is_animated and animate
-        if (
-            not style.get("native")
-            and self._is_animated
-            and animate
-            and pad_height > terminal_height
-        ):
+        animation = self._is_animated and animate
+
+        if animation and pad_height > terminal_height:
             raise arg_value_error_range(
                 "pad_height",
                 pad_height,
@@ -810,7 +806,7 @@ class BaseImage(metaclass=ImageMeta):
             sys.stdout.isatty() and print(HIDE_CURSOR, end="", flush=True)
             try:
                 style_args = self._check_style_args(style)
-                if self._is_animated and animate:
+                if animation:
                     self._display_animated(
                         image, alpha, fmt, repeat, cached, **style_args
                     )
