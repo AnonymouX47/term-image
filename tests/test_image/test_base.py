@@ -841,6 +841,20 @@ class TestFormatting:
         ):
             self.check_padding(result, ">", width, None, 15)
 
+    def test_padding_width_relative(self):
+        # terminal width = 80
+        for relative, width, result in (
+            (0, 80, (0, 65, 0, 0)),
+            (-1, 79, (0, 64, 0, 0)),
+            (-2, 78, (0, 63, 0, 0)),
+            (-64, 16, (0, 1, 0, 0)),
+            (-65, 15, (0, 0, 0, 0)),
+            (-80, 1, (0, 0, 0, 0)),
+            (-100, 1, (0, 0, 0, 0)),
+        ):
+            self.check_padding(result, ">", width, None, 15)
+            self.check_padding(result, ">", relative, None, 15)
+
     def test_padding_height_top(self):
         for height, result in (
             (15, (0, 0, 0, 0)),
@@ -871,6 +885,20 @@ class TestFormatting:
             (30, (15, 0, 0, 0)),
         ):
             self.check_padding(result, None, 15, "_", height)
+
+    def test_padding_height_relative(self):
+        # terminal height = 30
+        for relative, height, result in (
+            (0, 30, (15, 0, 0, 0)),
+            (-1, 29, (14, 0, 0, 0)),
+            (-2, 28, (13, 0, 0, 0)),
+            (-14, 16, (1, 0, 0, 0)),
+            (-15, 15, (0, 0, 0, 0)),
+            (-30, 1, (0, 0, 0, 0)),
+            (-50, 1, (0, 0, 0, 0)),
+        ):
+            self.check_padding(result, None, 15, "_", height)
+            self.check_padding(result, None, 15, "_", relative)
 
     def test_mixed_align(self):
         self.check_padding((0, 0, 15, 15), "<", 30, "^", 30)
