@@ -108,6 +108,10 @@ def width_height(image, *, w=None, h=None):
 
 def get_actual_render_size(image):
     render_size = image._get_render_size()
+
+    if image._render_method != "whole":
+        return render_size
+
     _, r_height = image.rendered_size
     width, height = (
         render_size

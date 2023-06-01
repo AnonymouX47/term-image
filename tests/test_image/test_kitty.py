@@ -275,25 +275,22 @@ class TestRenderLines:
         for line in str(hori).splitlines():
             assert len(decode_image(line)[1]) == bytes_per_line
 
-    def test_minimal_render_size(self):
+    def test_no_minimal_render_size(self):
         image = KittyImage.from_file("tests/images/trans.png")
         image.set_render_method(LINES)
         lines_for_original_height = KittyImage._pixels_lines(
             pixels=image.original_size[1]
         )
 
-        # Using render size
+        # render size < original size; Uses render size
         image.height = lines_for_original_height // 2
         w, h = image._get_render_size()
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
-        # Using original size
+        # render size > original size; Uses render size
         image.height = lines_for_original_height * 2
-        w, h = image._original_size
-        extra = h % (image.height or 1)
-        if extra:
-            h = h - extra + image.height
+        w, h = image._get_render_size()
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
@@ -478,13 +475,13 @@ class TestRenderWhole:
             pixels=image.original_size[1]
         )
 
-        # Using render size
+        # render size < original size; Uses render size
         image.height = lines_for_original_height // 2
         w, h = image._get_render_size()
         assert get_actual_render_size(image) == (w, h)
         self._test_image_size(image)
 
-        # Using original size
+        # render size > original size; Uses original size
         image.height = lines_for_original_height * 2
         w, h = image._original_size
         assert get_actual_render_size(image) == (w, h)
