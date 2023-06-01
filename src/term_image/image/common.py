@@ -37,12 +37,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
 from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
-from ..exceptions import (
-    InvalidSizeError,
-    TermImageError,
-    URLNotFoundError,
-    _style_error,
-)
+from ..exceptions import InvalidSizeError, StyleError, TermImageError, URLNotFoundError
 from ..utils import (
     ClassInstanceMethod,
     ClassProperty,
@@ -1246,8 +1241,9 @@ class BaseImage(metaclass=ImageMeta):
                 for other_cls in cls.__mro__:
                     # less costly than memebership tests on every class' __bases__
                     if other_cls is __class__:
-                        raise _style_error(cls)(
-                            f"Unknown style-specific parameter {name!r}"
+                        raise StyleError(
+                            f"Unknown style-specific render parameter {name!r} for "
+                            f"{cls.__name__!r}"
                         )
 
                     if not issubclass(
@@ -1263,8 +1259,9 @@ class BaseImage(metaclass=ImageMeta):
                     except KeyError:
                         pass
                 else:
-                    raise _style_error(cls)(
-                        f"Unknown style-specific parameter {name!r}"
+                    raise StyleError(
+                        f"Unknown style-specific render parameter {name!r} for "
+                        f"{cls.__name__!r}"
                     )
 
             if not check_type(value):
@@ -1318,8 +1315,9 @@ class BaseImage(metaclass=ImageMeta):
         level of the call chain.
         """
         if spec:
-            raise _style_error(cls)(
-                f"Invalid style-specific format specifier {original!r}"
+            raise StyleError(
+                f"Invalid style-specific format specifier {original!r} "
+                f"for {cls.__name__!r}"
                 + (f", detected at {spec!r}" if spec != original else "")
             )
         return {}
@@ -1630,9 +1628,9 @@ class BaseImage(metaclass=ImageMeta):
 
         parent, invalid = spec[:start], spec[end:]
         if invalid:
-            raise _style_error(cls)(
-                f"Invalid style-specific format specifier {original!r}"
-                f", detected at {invalid!r}"
+            raise StyleError(
+                f"Invalid style-specific format specifier {original!r} "
+                f"for {cls.__name__!r}, detected at {invalid!r}"
             )
 
         return parent, fields
@@ -1909,8 +1907,8 @@ class GraphicsImage(BaseImage):
         # calls `is_supported()` first to set required class attributes, in case
         # support is forced for a style that is actually supported
         if not (cls.is_supported() or cls._forced_support):
-            raise _style_error(cls)(
-                "This render style is not supported in the active terminal"
+            raise StyleError(
+                f"{cls.__name__!r} is not supported in the active terminal"
             )
         return super().__new__(cls)
 

@@ -21,9 +21,6 @@ class InvalidSizeError(TermImageError):
     """Raised for invalid image sizes."""
 
 
-# Style-specific exceptions
-
-
 class StyleError(TermImageError):
     """Baseclass of style-specific exceptions.
 
@@ -39,39 +36,6 @@ class StyleError(TermImageError):
     """
 
 
-class GraphicsImageError(StyleError):
-    """Raised for errors specific to :py:class:`~term_image.image.GraphicsImage`
-    and its subclasses defined outside this package.
-    """
-
-
-class TextImageError(StyleError):
-    """Raised for errors specific to :py:class:`~term_image.image.TextImage`
-    and its subclasses defined outside this package.
-    """
-
-
-class BlockImageError(TextImageError):
-    """Raised for errors specific to :py:class:`~term_image.image.BlockImage`
-    and its subclasses defined outside this package.
-    """
-
-
-class ITerm2ImageError(GraphicsImageError):
-    """Raised for errors specific to :py:class:`~term_image.image.ITerm2Image`
-    and its subclasses defined outside this package.
-    """
-
-
-class KittyImageError(GraphicsImageError):
-    """Raised for errors specific to :py:class:`~term_image.image.KittyImage`
-    and its subclasses defined outside this package.
-    """
-
-
-# Widgets
-
-
 class UrwidImageError(TermImageError):
     """Raised for errors specific to :py:class:`~term_image.widget.UrwidImage`."""
 
@@ -81,10 +45,3 @@ __all__ = ["TermImageWarning"] + [
     for name, obj in vars().items()
     if isinstance(obj, type) and issubclass(obj, TermImageError)
 ]
-BaseImageError = StyleError  # Only to simplify `_style_error()`
-
-
-def _style_error(cls: type):
-    for cls in cls.__mro__:
-        if cls.__module__.startswith("term_image.image"):
-            return globals()[f"{cls.__name__}Error"]
