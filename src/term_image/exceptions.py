@@ -22,18 +22,7 @@ class InvalidSizeError(TermImageError):
 
 
 class StyleError(TermImageError):
-    """Baseclass of style-specific exceptions.
-
-    Never raised for errors pertaining to image classes defined in this package.
-    Instead, the exception subclass specific to each image class is raised.
-
-    Only raised for subclasses of :py:class:`~term_image.image.BaseImage`
-    defined outside this package (which are not subclasses of any other image class
-    defined in this package).
-
-    Being the baseclass of all style-specific exceptions, it can be used be used to
-    handle any style-specific error, regardless of the render style it originated from.
-    """
+    """Raised for errors pertaining to the Style API."""
 
 
 class UrwidImageError(TermImageError):
