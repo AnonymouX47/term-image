@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Now accept non-positive integers.
   - Changed default values to `0` and `-2` respectively.
 - Swapped `N` for `A` in the *method* field of the `iterm2` style-speific render format specification ([#92]).
-- `StyleError` is now raised instead of style-specific exceptions ([#93]).
+- **(BREAKING!)** `term_image.exceptions.StyleError` is now raised instead of style-specific exceptions ([#93]).
 - **(BREAKING!)** `term_image.exceptions.RenderError` is now raised for errors that occur during rendering ([#94]).
 
 ### Removed
