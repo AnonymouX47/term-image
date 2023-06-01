@@ -739,10 +739,11 @@ class BaseImage(metaclass=ImageMeta):
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            ValueError: Unable to convert or resize image.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
+            term_image.exceptions.RenderError: An error occured during
+              :term:`rendering`.
 
         * If *pad_width* or *pad_height* is:
 
