@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Jagged edges with `LINES` render method of kitty and iterm2 render styles ([4d27055]).
+
 ### Added
 - `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
 - `term_image.utils.get_cell_size()` to the public API ([#87]).
@@ -60,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [ed3baa3]: https://github.com/AnonymouX47/term-image/commit/ed3baa38d7621720c007f4662f89d7abadd76ec3
 [26ea969]: https://github.com/AnonymouX47/term-image/commit/26ea969ab7a36994bce6b75ce73ee699a085934e
 [a612b59]: https://github.com/AnonymouX47/term-image/commit/a612b5916778c1dea5d97fa2e7344251e9d8c33c
+[4d27055]: https://github.com/AnonymouX47/term-image/commit/4d27055ab1729cb93bbf4bb4531a0157b8cf513f
 
 
 ## [0.6.1] - 2023-04-30
