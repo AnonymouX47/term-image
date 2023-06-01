@@ -37,7 +37,13 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
 from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
-from ..exceptions import InvalidSizeError, StyleError, TermImageError, URLNotFoundError
+from ..exceptions import (
+    InvalidSizeError,
+    RenderError,
+    StyleError,
+    TermImageError,
+    URLNotFoundError,
+)
 from ..utils import (
     ClassInstanceMethod,
     ClassProperty,
@@ -1502,7 +1508,7 @@ class BaseImage(metaclass=ImageMeta):
                     img = img.convert(mode)
                 # Possible for images in some modes e.g "La"
                 except Exception as e:
-                    raise ValueError("Unable to convert image") from e
+                    raise RenderError("Unable to convert image") from e
                 finally:
                     if frame_img is not prev_img:
                         self._close_image(prev_img)
@@ -1513,7 +1519,7 @@ class BaseImage(metaclass=ImageMeta):
                     img = img.resize(size, Image.Resampling.BOX)
                 # Highly unlikely since render size can never be zero
                 except Exception as e:
-                    raise ValueError("Unable to resize image") from e
+                    raise RenderError("Unable to resize image") from e
                 finally:
                     if frame_img is not prev_img:
                         self._close_image(prev_img)
