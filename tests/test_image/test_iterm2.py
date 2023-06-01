@@ -11,7 +11,7 @@ from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
 from term_image import ctlseqs
-from term_image.exceptions import ITerm2ImageError, TermImageWarning
+from term_image.exceptions import StyleError, TermImageWarning
 from term_image.image import iterm2
 from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image
 
@@ -526,7 +526,7 @@ def test_style_format_spec():
         "m0 ",
         "  m1c3  ",
     ):
-        with pytest.raises(ITerm2ImageError, match="format spec"):
+        with pytest.raises(StyleError, match="format spec"):
             ITerm2Image._check_style_format_spec(spec, spec)
 
     for spec, args in (
@@ -547,7 +547,7 @@ def test_style_format_spec():
 class TestStyleArgs:
     def test_unknown(self):
         for args in ({"c": 1}, {"m": True}, {" ": None}, {"xxxx": True}):
-            with pytest.raises(ITerm2ImageError, match="Unknown style-specific"):
+            with pytest.raises(StyleError, match="Unknown style-specific"):
                 ITerm2Image._check_style_args(args)
 
     def test_method(self):
@@ -1208,9 +1208,7 @@ class TestRenderAnim:
     # No image file and unknown format
     def test_unknown_format(self):
         self.no_file_img.format = None
-        with pytest.raises(
-            ITerm2ImageError, match="Native animation .* unknown format"
-        ):
+        with pytest.raises(StyleError, match="Native animation .* unknown format"):
             self.render_native_anim(self.no_file_image)
 
     # Image data size limit

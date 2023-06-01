@@ -7,8 +7,9 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from term_image import exceptions, set_cell_ratio
+from term_image import set_cell_ratio
 from term_image.ctlseqs import SGR_BG_RGB, SGR_NORMAL
+from term_image.exceptions import StyleError
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 from term_image.utils import get_fg_bg_colors, get_terminal_size
 
@@ -148,7 +149,7 @@ def test_instantiation_Graphics():
         ImageClass._supported = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
         ImageClass._supported = False
-        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        with pytest.raises(StyleError):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original
@@ -174,14 +175,14 @@ def test_forced_support_Graphics():
     original = ImageClass._supported
     try:
         ImageClass._supported = False
-        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        with pytest.raises(StyleError):
             ImageClass(python_img)
 
         ImageClass.forced_support = True
         assert isinstance(ImageClass(python_img), GraphicsImage)
 
         ImageClass.forced_support = False
-        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        with pytest.raises(StyleError):
             ImageClass(python_img)
     finally:
         ImageClass._supported = original
@@ -553,14 +554,14 @@ def test_render_clean_up_All():
 
 def test_style_args_All():
     image = ImageClass(python_img)
-    with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+    with pytest.raises(StyleError):
         image.draw(_=None)
 
 
 def test_style_format_spec_All():
     image = ImageClass(python_img)
     for spec in ("+\t", "20+\r", ".^+\a", "#+\0"):
-        with pytest.raises(getattr(exceptions, f"{ImageClass.__name__}Error")):
+        with pytest.raises(StyleError):
             format(image, spec)
 
 

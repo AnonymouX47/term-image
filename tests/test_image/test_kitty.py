@@ -8,7 +8,7 @@ from zlib import decompress
 import pytest
 
 from term_image import ctlseqs
-from term_image.exceptions import KittyImageError
+from term_image.exceptions import StyleError
 from term_image.image import kitty
 from term_image.image.kitty import LINES, WHOLE, KittyImage
 
@@ -86,7 +86,7 @@ def test_style_format_spec():
         "m0 ",
         "  z1c1  ",
     ):
-        with pytest.raises(KittyImageError, match="format spec"):
+        with pytest.raises(StyleError, match="format spec"):
             KittyImage._check_style_format_spec(spec, spec)
 
     for spec, args in (
@@ -111,7 +111,7 @@ def test_style_format_spec():
 class TestStyleArgs:
     def test_unknown(self):
         for args in ({"z": 1}, {"m": True}, {" ": None}, {"xxxx": True}):
-            with pytest.raises(KittyImageError, match="Unknown style-specific"):
+            with pytest.raises(StyleError, match="Unknown style-specific"):
                 KittyImage._check_style_args(args)
 
     def test_method(self):

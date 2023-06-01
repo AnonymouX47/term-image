@@ -17,7 +17,7 @@ from .. import ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
 from ..ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
-from ..exceptions import TermImageWarning, _style_error
+from ..exceptions import StyleError, TermImageWarning
 from ..utils import (
     ClassInstanceProperty,
     ClassProperty,
@@ -600,9 +600,9 @@ class ITerm2Image(GraphicsImage):
                         img.save(compressed_image, img.format, save_all=True)
                     except ValueError:
                         self._close_image(img)
-                        raise _style_error(type(self))(
+                        raise StyleError(
                             "Native animation not supported: This image was sourced "
-                            "from a PIL image of an unknown format"
+                            "from a PIL image with an unknown format"
                         ) from None
             else:
                 compressed_image = open(self._source, "rb")
