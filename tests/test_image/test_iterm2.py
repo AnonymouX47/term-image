@@ -11,7 +11,7 @@ from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
 from term_image import ctlseqs
-from term_image.exceptions import StyleError, TermImageWarning
+from term_image.exceptions import RenderError, StyleError, TermImageWarning
 from term_image.image import iterm2
 from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image
 
@@ -1208,7 +1208,7 @@ class TestRenderAnim:
     # No image file and unknown format
     def test_unknown_format(self):
         self.no_file_img.format = None
-        with pytest.raises(StyleError, match="Native animation .* unknown format"):
+        with pytest.raises(RenderError, match="native animation .* unknown format"):
             self.render_native_anim(self.no_file_image)
 
     # Image data size limit

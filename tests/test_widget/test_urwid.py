@@ -8,7 +8,7 @@ import urwid
 from PIL import Image
 
 from term_image import ctlseqs
-from term_image.exceptions import UrwidImageError
+from term_image.exceptions import RenderError, UrwidImageError
 from term_image.image import (
     BlockImage,
     GraphicsImage,
@@ -60,7 +60,7 @@ class TestWidget:
         image_w = UrwidImage(image)
         placeholder = urwid.SolidFill("?")
 
-        with pytest.raises(ValueError, match="convert"):
+        with pytest.raises(RenderError, match="convert"):
             image_w.render(_size)
 
         image_w.set_error_placeholder(placeholder)
