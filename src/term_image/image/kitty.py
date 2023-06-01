@@ -421,11 +421,23 @@ class KittyImage(GraphicsImage):
         # Using `c` and `r` ensures that an image always occupies the correct amount
         # of columns and lines even if the cell size has changed when it's drawn.
         # Since we use `c` and `r` control data keys, there's no need upscaling the
-        # image on this end; ensures minimal payload.
+        # image on this end to reduce payload.
+        # Anyways, this also implies that the image(s) have to be resized by the
+        # terminal emulator, thereby leaving various details of resizing in the hands
+        # of the terminal emulator such as the resampling method, etc.
+        # This particularly affects the LINES render method negatively, resulting in
+        # slant/curved edges not lining up across lines (amongst other artifacts
+        # observed on Konsole) supposedly because the terminal emulator resizes each
+        # line separately.
+        # Hence, this optimization is only used for the WHOLE render method.
 
         render_method = (method or self._render_method).lower()
         r_width, r_height = self.rendered_size
-        width, height = self._get_minimal_render_size(adjust=render_method == LINES)
+        width, height = (
+            self._get_minimal_render_size()
+            if render_method == WHOLE
+            else self._get_render_size()
+        )
 
         frame_img = img if frame else None
         img = self._get_render_data(

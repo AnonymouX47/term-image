@@ -1914,7 +1914,7 @@ class GraphicsImage(BaseImage):
             )
         return super().__new__(cls)
 
-    def _get_minimal_render_size(self, *, adjust: bool) -> Tuple[int, int]:
+    def _get_minimal_render_size(self, *, adjust: bool = False) -> Tuple[int, int]:
         render_size = self._get_render_size()
         r_height = self.rendered_height
         width, height = (

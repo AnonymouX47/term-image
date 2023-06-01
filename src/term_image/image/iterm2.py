@@ -556,11 +556,22 @@ class ITerm2Image(GraphicsImage):
         mix: bool = False,
         compress: int = 4,
     ) -> str:
+        # NOTE: It's more efficient to write separate strings to the buffer separately
+        # than concatenate and write together.
+
         # Using `width=<columns>`, `height=<lines>` and `preserveAspectRatio=0` ensures
         # that an image always occupies the correct amount of columns and lines even if
         # the cell size has changed when it's drawn.
         # Since we use `width` and `height` control data keys, there's no need
-        # upscaling an image on this end; ensures minimal payload.
+        # upscaling the image on this end to reduce payload.
+        # Anyways, this also implies that the image(s) have to be resized by the
+        # terminal emulator, thereby leaving various details of resizing in the hands
+        # of the terminal emulator such as the resampling method, etc.
+        # This particularly affects the LINES render method negatively, resulting in
+        # slant/curved edges not lining up across lines (amongst other artifacts
+        # observed on Konsole) supposedly because the terminal emulator resizes each
+        # line separately.
+        # Hence, this optimization is only used for the WHOLE render method.
 
         r_width, r_height = self.rendered_size
         render_method = (method or self._render_method).lower()
@@ -632,7 +643,11 @@ class ITerm2Image(GraphicsImage):
                     )
                 )
 
-        width, height = self._get_minimal_render_size(adjust=render_method == LINES)
+        width, height = (
+            self._get_minimal_render_size()
+            if render_method == WHOLE
+            else self._get_render_size()
+        )
 
         if (  # Read directly from file when possible and reasonable
             self.read_from_file
