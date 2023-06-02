@@ -7,7 +7,7 @@ from term_image.image import AutoImage, BaseImage, ImageSource, Size, from_file
 from .test_base import BytesPath, python_image, python_img
 
 
-class TestConvinience:
+class TestFactoryFunctions:
     def test_auto_image(self):
         with pytest.raises(TypeError, match=r"'image'"):
             AutoImage(python_image)

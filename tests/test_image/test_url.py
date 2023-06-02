@@ -59,7 +59,7 @@ def test_close():
         image._url
 
 
-class TestConvinience:
+class TestFactoryFunction:
     def test_from_url(self):
         with pytest.raises(TypeError, match=r"'url'"):
             from_url(python_img)

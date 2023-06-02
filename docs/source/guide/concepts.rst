@@ -12,7 +12,7 @@ All render style classes are designed to share a common interface (with some hav
 extensions), making the usage of one class directly compatibile with another, except
 when using style-specific features.
 
-Hence, the covenience functions :py:class:`~term_image.image.AutoImage`,
+Hence, the factory functions :py:class:`~term_image.image.AutoImage`,
 :py:class:`~term_image.image.from_file` and :py:class:`~term_image.image.from_url`
 provide a means of render-style-agnostic usage of the library.
 These functions automatically detect the best render style supported by the :term:`active terminal`.
