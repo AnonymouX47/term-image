@@ -24,7 +24,6 @@ from ..utils import (
     arg_type_error,
     arg_value_error_range,
     get_terminal_name_version,
-    get_terminal_size,
     write_tty,
 )
 from .common import GraphicsImage, ImageSource
@@ -506,15 +505,7 @@ class ITerm2Image(GraphicsImage):
         **kwargs,
     ):
         if not mix and self._TERM == "wezterm":
-            pad_height = fmt[-1]
-            lines = max(
-                (
-                    pad_height
-                    if pad_height > 0
-                    else get_terminal_size().lines + pad_height
-                ),
-                self.rendered_height,
-            )
+            lines = max(fmt[-1], self.rendered_height)
             r_width = self.rendered_width
             erase_and_move_cursor = ERASE_CHARS % r_width + CURSOR_FORWARD % r_width
             first_frame = self._format_render(

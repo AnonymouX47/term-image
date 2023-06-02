@@ -1204,9 +1204,6 @@ class BaseImage(metaclass=ImageMeta):
                 raise arg_value_error("h_align", h_align)
             h_align = align
 
-        if not isinstance(width, int):
-            raise arg_type_error("pad_width", width)
-
         if not isinstance(v_align, (type(None), str)):
             raise arg_type_error("v_align", v_align)
         if None is not v_align not in set("^-_"):
@@ -1215,8 +1212,15 @@ class BaseImage(metaclass=ImageMeta):
                 raise arg_value_error("v_align", v_align)
             v_align = align
 
+        terminal_size = get_terminal_size()
+
+        if not isinstance(width, int):
+            raise arg_type_error("pad_width", width)
+        width = width if width > 0 else max(terminal_size.columns + width, 1)
+
         if not isinstance(height, int):
             raise arg_type_error("pad_height", height)
+        height = height if height > 0 else max(terminal_size.lines + height, 1)
 
         return h_align, width, v_align, height
 
@@ -1360,11 +1364,7 @@ class BaseImage(metaclass=ImageMeta):
         **style_args: Any,
     ) -> None:
         """Displays an animated GIF image in the terminal."""
-        pad_height = fmt[-1]
-        lines = max(
-            pad_height if pad_height > 0 else get_terminal_size().lines + pad_height,
-            self.rendered_height,
-        )
+        lines = max(fmt[-1], self.rendered_height)
         prev_seek_pos = self._seek_position
         duration = self._frame_duration
         image_it = ImageIterator(self, repeat, "", cached)
@@ -1405,19 +1405,17 @@ class BaseImage(metaclass=ImageMeta):
     def _format_render(
         self,
         render: str,
-        h_align: Optional[str] = None,
-        width: int = 0,
-        v_align: Optional[str] = None,
-        height: int = -2,
+        h_align: str | None,
+        width: int,
+        v_align: str | None,
+        height: int,
     ) -> str:
         """Pads and aligns a primary render output.
 
         All arguments should be passed through ``_check_formatting()`` first.
         """
         cols, lines = self.rendered_size
-        terminal_size = get_terminal_size()
 
-        width = width if width > 0 else max(terminal_size.columns + width, 1)
         if width > cols:
             if h_align == "<":  # left
                 left = ""
@@ -1432,7 +1430,6 @@ class BaseImage(metaclass=ImageMeta):
         else:
             left = right = ""
 
-        height = height if height > 0 else max(terminal_size.lines + height, 1)
         if height > lines:
             if v_align == "^":  # top
                 top = 0
