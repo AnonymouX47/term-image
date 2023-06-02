@@ -55,7 +55,7 @@
 - [Known Issues](#known-issues)
 - [FAQs](#faqs)
 - [Credits](#credits)
-- [Donate](#donate)
+- [Sponsor This Project](#sponsor-this-project)
 
 
 > ### ⚠️ NOTICE!!! ⚠️
@@ -209,18 +209,19 @@ See the [FAQs](https://term-image.readthedocs.io/en/stable/faqs.html) section of
 ## Credits
 
 The following projects have been (and are still) crucial to the development of this project:
-- [Pillow](https://python-pillow.org)
+- [Pillow](https://python-pillow.org) by [Fredrik Lundh, Jeffrey A. Clark (Alex) and contributors](https://github.com/python-pillow/Pillow/graphs/contributors)
+- [Requests](https://requests.readthedocs.io) by [Kenneth Reitz and others](https://requests.readthedocs.io/en/latest/dev/authors/)
 
-The project logo was composed using resource(s) from the following source(s):
+The logo was composed using resource(s) from the following source(s):
 - [Gallery icons created by Andrean Prabowo - Flaticon](https://www.flaticon.com/free-icons/gallery)
 
-## Donate
+## Sponsor This Project
 
 <a href="https://www.buymeacoffee.com/anonymoux47" target="_blank">
    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
 </a>
 
-Your donation will go a long way in aiding the progress and development of this project.
+Any amount will go a long way in aiding the progress and development of this project.
 Thank you! 💓
 
 
