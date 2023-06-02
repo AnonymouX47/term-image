@@ -677,14 +677,14 @@ class BaseImage(metaclass=ImageMeta):
         pad_height: int = -2,
         alpha: Optional[float, str] = _ALPHA_THRESHOLD,
         *,
-        scroll: bool = False,
         animate: bool = True,
         repeat: int = -1,
         cached: Union[bool, int] = 100,
+        scroll: bool = False,
         check_size: bool = True,
         **style: Any,
     ) -> None:
-        """Draws an image to standard output.
+        """Draws the image to standard output.
 
         Args:
             h_align: Horizontal alignment ("left" / "<", "center" / "|" or
@@ -715,9 +715,6 @@ class BaseImage(metaclass=ImageMeta):
                   undetermined) is used.
                 * A hex color e.g ``ffffff``, ``7faa52``.
 
-            scroll: Only applies to non-animations. If ``True``, allows the image's
-                :term:`rendered height` to be greater than the :term:`terminal height`.
-
             animate: If ``False``, disable animation i.e draw only the current frame of
               an animated image.
             repeat: The number of times to go over all frames of an animated image.
@@ -730,6 +727,8 @@ class BaseImage(metaclass=ImageMeta):
               * If :py:class:`int`, caching is enabled only if the framecount of the
                 image is less than or equal to the given number.
 
+            scroll: Only applies to non-animations. If ``True``, allows the image's
+              :term:`rendered height` to be greater than the :term:`terminal height`.
             check_size: If ``False``, rendered size validation is not performed for
               non-animations. Does not affect padding size validation.
             style: Style-specific render parameters. See each subclass for it's own
@@ -741,7 +740,8 @@ class BaseImage(metaclass=ImageMeta):
               unexpected/invalid value.
             term_image.exceptions.InvalidSizeError: The image's :term:`rendered size`
               can not fit into the :term:`terminal size`.
-            term_image.exceptions.StyleError: Unrecognized style-specific parameter(s).
+            term_image.exceptions.StyleError: Unrecognized style-specific render
+              parameter(s).
             term_image.exceptions.RenderError: An error occured during
               :term:`rendering`.
 
