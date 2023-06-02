@@ -749,8 +749,8 @@ class BaseImage(metaclass=ImageMeta):
 
           * positive, it is **absolute** and used as-is.
           * non-positive, it is **relative** to the corresponding terminal dimension
-            and equivalent to the absolute dimension
-            ``max(terminal_dimension + frame_dimension, 1)``.
+            (**at the point of calling this method**) and equivalent to the absolute
+            dimension ``max(terminal_dimension + frame_dimension, 1)``.
 
         * :term:`padding width` is always validated.
         * *animate*, *repeat* and *cached* apply to :term:`animated` images only.
@@ -1186,12 +1186,12 @@ class BaseImage(metaclass=ImageMeta):
 
     @staticmethod
     def _check_formatting(
-        h_align: Optional[str] = None,
+        h_align: str | None = None,
         width: int = 0,
-        v_align: Optional[str] = None,
+        v_align: str | None = None,
         height: int = -2,
     ) -> Tuple[str | None, int, str | None, int]:
-        """Validates formatting arguments while also translating literal ones.
+        """Validates and transforms formatting arguments.
 
         Returns:
             The respective arguments appropriate for ``_format_render()``.
@@ -1410,9 +1410,11 @@ class BaseImage(metaclass=ImageMeta):
         v_align: str | None,
         height: int,
     ) -> str:
-        """Pads and aligns a primary render output.
+        """Pads and aligns a primary :term:`render` output.
 
-        All arguments should be passed through ``_check_formatting()`` first.
+        NOTE:
+            * All arguments should be passed through ``_check_formatting()`` first.
+            * Only **absolute** padding dimensions are expected.
         """
         cols, lines = self.rendered_size
 
