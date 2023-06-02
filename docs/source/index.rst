@@ -24,7 +24,7 @@ Contents
 
    start/index
    guide/index
-   reference/index
+   api/index
    planned
    issues
    faqs

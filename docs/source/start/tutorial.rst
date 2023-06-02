@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-This is a basic introduction to using the library. Please refer to the :doc:`/reference/index` for detailed description of the features and functionality provided by the library.
+This is a basic introduction to using the library. Please refer to the :doc:`/api/index` for detailed description of the features and functionality provided by the library.
 
 For this tutorial we'll be using the image below:
 
@@ -323,4 +323,4 @@ True
 |
 
 To explore more of the library's features and functionality, check out the
-:doc:`/guide/index` and the :doc:`/reference/index`.
+:doc:`/guide/index` and the :doc:`/api/index`.
