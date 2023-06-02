@@ -715,7 +715,7 @@ class TestFormatting:
     check_formatting = staticmethod(image._check_formatting)
 
     def check_padding(self, result, *fmt):
-        render = self.image._format_render(self.render, *fmt)
+        render = self.image._format_render(self.render, *self.check_formatting(*fmt))
         left, right = [], []
 
         chunk, _, render = render.partition(ESC)
@@ -784,31 +784,47 @@ class TestFormatting:
                 self.check_formatting(height=value)
 
     def test_arg_align_conversion(self):
-        assert self.check_formatting() == (None, 0, None, -2)
+        assert self.check_formatting() == (None, columns, None, lines - 2)
 
         for value in "<|>":
-            assert self.check_formatting(h_align=value) == (value, 0, None, -2)
+            assert self.check_formatting(h_align=value)[0] == value
         for val1, val2 in zip(("left", "center", "right"), "<|>"):
-            assert self.check_formatting(h_align=val1) == (val2, 0, None, -2)
+            assert self.check_formatting(h_align=val1)[0] == val2
 
         for value in "^-_":
-            assert self.check_formatting(v_align=value) == (None, 0, value, -2)
+            assert self.check_formatting(v_align=value)[2] == value
         for val1, val2 in zip(("top", "middle", "bottom"), "^-_"):
-            assert self.check_formatting(v_align=val1) == (None, 0, val2, -2)
+            assert self.check_formatting(v_align=val1)[2] == val2
 
-    def test_arg_padding_width(self):
+    def test_arg_padding_width_absolute(self):
         for value in (1, _width, columns):
-            assert self.check_formatting(width=value) == (None, value, None, -2)
+            assert self.check_formatting(width=value)[1] == value
 
         # Can exceed terminal width
-        assert self.check_formatting(width=columns + 1) == (None, columns + 1, None, -2)
+        assert self.check_formatting(width=columns + 1)[1] == columns + 1
 
-    def test_arg_padding_height(self):
+    def test_arg_padding_width_relative(self):
+        for value in (0, -1, -2, -(columns - 1)):
+            assert self.check_formatting(width=value)[1] == columns + value
+
+        # Out of range
+        for value in (-columns, -(columns + 1), -(columns * 2)):
+            assert self.check_formatting(width=value)[1] == 1
+
+    def test_arg_padding_height_absolute(self):
         for value in (1, _size, lines):
-            assert self.check_formatting(height=value) == (None, 0, None, value)
+            assert self.check_formatting(height=value)[3] == value
 
         # Can exceed terminal height
-        assert self.check_formatting(height=lines + 1) == (None, 0, None, lines + 1)
+        assert self.check_formatting(height=lines + 1)[3] == lines + 1
+
+    def test_arg_padding_height_relative(self):
+        for value in (0, -1, -2, -(lines - 1)):
+            assert self.check_formatting(height=value)[3] == lines + value
+
+        # Out of range
+        for value in (-lines, -(lines + 1), -(lines * 2)):
+            assert self.check_formatting(height=value)[3] == 1
 
     def test_padding_width_left(self):
         for width, result in (

@@ -108,8 +108,10 @@ class TestRender:
                 trans._renderer(
                     trans._render_image, _ALPHA_THRESHOLD, split_cells=True
                 ),
-                width=size[0],
-                height=size[1],
+                None,
+                size[0],
+                None,
+                size[1],
             ).splitlines()
             lines = canv._ti_lines
 
@@ -183,8 +185,10 @@ class TestRender:
                 trans._renderer(
                     trans._render_image, _ALPHA_THRESHOLD, split_cells=True
                 ),
-                width=size[0],
-                height=1,
+                None,
+                size[0],
+                None,
+                1,
             ).splitlines()
             lines = canv._ti_lines
 
@@ -266,8 +270,10 @@ def test_ignore_padding():
             python_image._renderer(
                 python_image._render_image, _ALPHA_THRESHOLD, split_cells=True
             ),
-            width=_size[0],
-            height=_size[1],
+            None,
+            _size[0],
+            None,
+            _size[1],
         )
         .encode()
         .splitlines()

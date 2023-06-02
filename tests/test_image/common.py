@@ -164,7 +164,7 @@ def test_format_All():
     image = ImageClass(python_img)
     image.set_size()
     image.width //= 2  # To ensure there's padding
-    assert format(image) == image._format_render(str(image))
+    assert format(image) == image._format_render(str(image), *image._check_formatting())
 
 
 def test_is_supported_All():
