@@ -11,7 +11,6 @@ __all__ = (
     "from_url",
     "ImageSource",
     "Size",
-    "ImageMeta",
     "BaseImage",
     "TextImage",
     "BlockImage",

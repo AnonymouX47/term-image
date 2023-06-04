@@ -7,7 +7,6 @@ from __future__ import annotations
 __all__ = (
     "ImageSource",
     "Size",
-    "ImageMeta",
     "BaseImage",
     "GraphicsImage",
     "TextImage",

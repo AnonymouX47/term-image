@@ -52,7 +52,6 @@ Image Classes
 Class Hierachy
 ^^^^^^^^^^^^^^
 
-* :py:class:`ImageMeta`
 * :py:class:`BaseImage`
 
   * :py:class:`TextImage`
@@ -73,10 +72,6 @@ The Classes
    :autosummary-no-titles:
    :autosummary-exclude-members: ImageIterator
 
-
-.. autoclass:: ImageMeta
-
-|
 
 .. autoclass:: BaseImage
 
