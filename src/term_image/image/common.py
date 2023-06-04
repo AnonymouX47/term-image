@@ -161,19 +161,9 @@ class Size(Enum):
 
 
 class ImageMeta(ABCMeta):
-    """Type of all render style classes.
-
-    NOTE:
-        | For all render style classes (instances of this class) defined **within** this
-          package, ``str(cls)`` yields the same value as :py:attr:`cls.style <style>`.
-        | For render style classes defined **outside** this package (subclasses of those
-          defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
-    """
+    """Type of all render style classes."""
 
     _forced_support: bool = False
-
-    def __str__(self):
-        return self.style or super().__str__()
 
     forced_support = ClassProperty(
         lambda self: self._forced_support,
@@ -189,47 +179,6 @@ class ImageMeta(ABCMeta):
             raise arg_type_error("forced_support", status)
 
         self._forced_support = status
-
-    style = property(
-        cached(
-            lambda self: (
-                self.__name__[:-5].lower()
-                if self.__module__.startswith("term_image.image")
-                else None
-            )
-        ),
-        doc="""Name of the render style [category].
-
-        :type: Optional[str]
-
-        GET:
-            Returns:
-
-                * The name of the render style [category] implemented by the invoking
-                  class, if defined **within** this package (``term_image``)
-                * ``None``, if the invoking class is defined **outside** this package
-                  (``term_image``)
-
-        **Examples**
-
-        For a class defined within this package:
-
-        >>> from term_image.image import KittyImage
-        >>> KittyImage.style
-        'kitty'
-
-        For a class defined outside this package:
-
-        >>> from term_image.image import KittyImage
-        >>> class MyImage(KittyImage): pass
-        >>> MyImage.style is None
-        True
-
-        HINT:
-            Equivalent to ``str(cls)`` for all render style classes (instances of
-            :py:class:`ImageMeta`) defined **within** this package.
-        """,
-    )
 
 
 class BaseImage(metaclass=ImageMeta):
