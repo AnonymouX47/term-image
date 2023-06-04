@@ -377,10 +377,13 @@ class BaseImage(metaclass=ImageMeta):
         :type: bool
 
         GET:
-            Returns the forced support status of the render style of the invoker.
+            Returns the forced support status of the invoking class or class of the
+            invoking instance.
 
         SET:
-            Forced support is enabled or disabled for the render style of the invoker.
+            Forced support is enabled or disabled for the invoking class.
+
+            Can not be set on an instance.
 
         If forced support is:
 
@@ -389,8 +392,7 @@ class BaseImage(metaclass=ImageMeta):
         * **disabled**, the return value of :py:meth:`is_supported` determines if
           the render style is supported or not.
 
-        By **default**, forced support is **disabled** by the base style class
-        (:py:class:`BaseImage`).
+        By **default**, forced support is **disabled** for all render style classes.
 
         NOTE:
             * This property is :term:`descendant`.

@@ -313,7 +313,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
 
         GET:
             Returns the effective JPEG encoding quality of the invoker
-            (negative if disabled).
+            (class or instance).
 
         SET:
             If invoked via:
@@ -337,9 +337,9 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
         * a **class**, it uses that of its parent *iterm2* style class (if any) or the
           default (disabled), if unset for all parents or the class has no parent
           *iterm2* style class.
-        * an **instance**, it uses that of it's class.
+        * an **instance**, it uses that of its class.
 
-        By **default**, the quality is **unset** i.e JPEG encoding is **disabled** and
+        By **default**, the quality is **unset** (i.e JPEG encoding is **disabled**) and
         images are encoded in the PNG format (when not reading directly from file) but
         in some cases, higher and/or faster compression may be desired.
         JPEG encoding is significantly faster than PNG encoding and produces smaller
@@ -377,24 +377,26 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
             Returns the set value.
 
         SET:
-            A positive integer; the value is set on the *iterm2* render style baseclass
-            (:py:class:`ITerm2Image`).
+            A positive integer; the value is set.
+
+            Can not be set via an instance.
 
         DELETE:
-            The value is unset, thereby resetting it to the default.
+            The value is reset to the default.
+
+            Can not be reset via an instance.
 
         :py:class:`~term_image.exceptions.TermImageWarning` is issued (and shown
-        **only the first time**, except a filter is set to do otherwise) if the
-        image data size for a native animation is above this value.
+        **only the first time**, except the warning filters are modified to do
+        otherwise) if the image data size for a native animation is above this value.
 
         NOTE:
-            This property is :term:`descendant` but is always unset for all subclasses
-            and instances. Hence, setting/resetting it on this class, a subclass or an
-            instance affects this class, all its subclasses and all their instances.
+            This property is a global setting. Hence, setting/resetting it on this
+            class or any subclass affects all classes and their instances.
 
         WARNING:
             This property should be altered with caution to avoid excessive memory
-            usage.
+            usage, particularly on the terminal emulator's end.
         """,
     )
 
@@ -407,7 +409,8 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
         :type: bool
 
         GET:
-            Returns the effective read-from-file policy of the invoker.
+            Returns the effective read-from-file policy of the invoker
+            (class or instance).
 
         SET:
             If invoked via:
@@ -432,7 +435,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
         * a **class**, it uses that of its parent *iterm2* style class (if any) or the
           default (``True``), if unset for all parents or the class has no parent
           *iterm2* style class.
-        * an **instance**, it uses that of it's class.
+        * an **instance**, it uses that of its class.
 
         By **default**, the policy is **unset**, which is equivalent to ``True``
         i.e the optimization is **enabled**.
