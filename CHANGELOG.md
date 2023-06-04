@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Jagged edges with `LINES` render method of kitty and iterm2 render styles ([4d27055]).
 
 ### Added
+- `UrwidImageScreen.clear_images()` ([08f4e4d], [8b895ce]).
 - `term_image.utils.get_cell_size()` to the public API ([#87]).
 - Support for terminal size-relative frame sizes ([#89]).
 - Manual sizing ([#89]).
@@ -20,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `term_image.exceptions.RenderError` ([#94]).
 
 ### Changed
-- `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
 - `KeyboardInterrupt` is no longer raised when `SIGINT` is used to end an animation ([fa47742]).
 - `UrwidImageScreen.clear()` now clears images also ([ed3baa3]).
 - Improved terminal cell size computation ([#87]).
@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **(BREAKING!)** `ITerm2Image.native_anim_max_bytes` can no longer be set or deleted via instances ([#95]).
 
 ### Removed
+- `UrwidImage.clear_all()` ([08f4e4d]) and `UrwidImage.clear()` ([8b895ce]).
+  - Replaced by `UrwidImageScreen.clear_images()`.
 - Image scaling ([#88]).
   - *scale* parameter of `BaseImage`, `BaseImage.from_file()`, `BaseImage.from_url()`, etc.
   - `scale`, `scale_x` and `scale_y` properties of `BaseImage`.
@@ -84,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [4d27055]: https://github.com/AnonymouX47/term-image/commit/4d27055ab1729cb93bbf4bb4531a0157b8cf513f
 [7d673dd]: https://github.com/AnonymouX47/term-image/commit/7d673ddbdf7913ae4d134e98bb81fa3fce9701ff
 [9168d17]: https://github.com/AnonymouX47/term-image/commit/9168d17ace06b09153b0424c52b7052b746f7165
+[8b895ce]: https://github.com/AnonymouX47/term-image/commit/8b895ce80cb1b7b1e692e98afd87ecb8c145f40c
 
 
 ## [0.6.1] - 2023-04-30
