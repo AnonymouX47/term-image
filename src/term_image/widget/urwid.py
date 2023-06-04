@@ -14,7 +14,7 @@ from .. import ctlseqs
 from ..ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
-from ..utils import arg_type_error, lock_tty, write_tty
+from ..utils import arg_type_error, get_terminal_name_version, lock_tty, write_tty
 
 # NOTE: Any new "private" attribute of any subclass of an urwid class should be
 # prepended with "_ti" to prevent clashes with names used by urwid itself.
@@ -102,7 +102,7 @@ class UrwidImage(urwid.Widget):
             # Since Konsole doesn't blend images placed at the same location and
             # z-index, unlike Kitty (and potentially others), `blend=True` is
             # better on Konsole as it reduces/eliminates flicker.
-            if KittyImage._TERM != "konsole":
+            if get_terminal_name_version()[0] != "konsole":
                 # To clear directly overlapped images when urwid redraws a line without
                 # a change in image position
                 style_args["blend"] = False
@@ -405,7 +405,7 @@ class UrwidImageCanvas(urwid.Canvas):
                 * (
                     isinstance(image, KittyImage)
                     or isinstance(image, ITerm2Image)
-                    and ITerm2Image._TERM == "konsole"
+                    and get_terminal_name_version()[0] == "konsole"
                 )
             )
             for line in self._ti_lines[trim_top : -trim_bottom or None]:
@@ -614,10 +614,10 @@ class UrwidImageScreen(urwid.raw_display.Screen):
 
     def _ti_clear_images(self):
         if not (
-            KittyImage._forced_support
+            KittyImage.forced_support
             or KittyImage.is_supported()
             or ITerm2Image.is_supported()
-            and ITerm2Image._TERM == "konsole"
+            and get_terminal_name_version()[0] == "konsole"
         ):
             return
 
@@ -659,7 +659,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                         if (
                             isinstance(widget._ti_image, KittyImage)
                             or isinstance(widget._ti_image, ITerm2Image)
-                            and ITerm2Image._TERM == "konsole"
+                            and get_terminal_name_version()[0] == "konsole"
                         ):
                             image_cviews.add((canv, row, col, *trim, cols, rows))
 
