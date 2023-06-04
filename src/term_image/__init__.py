@@ -28,7 +28,7 @@ from typing import Optional, Union
 from . import utils
 from .exceptions import TermImageError
 
-version_info = (0, 7, 0, "dev")
+version_info = (0, 7, 0)
 
 # Follows https://semver.org/spec/v2.0.0.html
 __version__ = ".".join(map(str, version_info[:3]))
