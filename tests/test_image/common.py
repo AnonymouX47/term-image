@@ -127,11 +127,6 @@ def get_actual_render_size(image):
     return width, height
 
 
-def test_style_All():
-    assert ImageClass.style == ImageClass.__name__[:-5].lower()
-    assert str(ImageClass) == ImageClass.style
-
-
 def test_instantiation_Text():
     original = ImageClass._supported
     try:

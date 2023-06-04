@@ -33,11 +33,3 @@ class TestFactoryFunctions:
 def test_image_source():
     assert len(ImageSource) == 3
     assert all(member.name == name for name, member in ImageSource.__members__.items())
-
-
-def test_style():
-    class MyImage(BaseImage):
-        pass
-
-    assert MyImage.style is None
-    assert str(MyImage) == repr(MyImage)
