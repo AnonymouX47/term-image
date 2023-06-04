@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [0.7.0] - 2023-06-05
 ### Fixed
 - Jagged edges with `LINES` render method of kitty and iterm2 render styles ([4d27055]).
 
@@ -41,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No longer accept `None`.
   - Now accept non-positive integers.
   - Changed default values to `0` and `-2` respectively.
-- Swapped `N` for `A` in the *method* field of the `iterm2` style-speific render format specification ([#92]).
+- **(BREAKING!)** Changed `N` to `A` in the *method* field of the `iterm2` style-speific render format specification ([#92]).
 - **(BREAKING!)** `term_image.exceptions.StyleError` is now raised instead of style-specific exceptions ([#93]).
 - **(BREAKING!)** `term_image.exceptions.RenderError` is now raised for errors that occur during rendering ([#94]).
 - **(BREAKING!)** `BaseImage.forced_support` can no longer be set via instances ([#95]).
@@ -465,7 +468,8 @@ See the commit messages for [0.4.1] for the full logs.
 - First official release
 
 
-[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.7.0
 [0.6.1]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.5.0
