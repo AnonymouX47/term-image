@@ -158,9 +158,20 @@ class TestProperties:
         class C(B):
             pass
 
+        instance = BlockImage(python_img)
+
         for value in (1, 1.0, "1", ()):
             with pytest.raises(TypeError):
                 A.forced_support = value
+
+        with pytest.raises(AttributeError):
+            del BaseImage.forced_support
+
+        with pytest.raises(AttributeError):
+            instance.forced_support = True
+
+        with pytest.raises(AttributeError):
+            del instance.forced_support
 
         assert not A.forced_support
         assert not B.forced_support

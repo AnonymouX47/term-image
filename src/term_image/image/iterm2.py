@@ -26,7 +26,7 @@ from ..utils import (
     get_terminal_name_version,
     write_tty,
 )
-from .common import GraphicsImage, ImageSource
+from .common import GraphicsImage, ImageMeta, ImageSource
 
 # Constants for render methods
 LINES = "lines"
@@ -34,7 +34,80 @@ WHOLE = "whole"
 ANIM = "anim"
 
 
-class ITerm2Image(GraphicsImage):
+class ITerm2ImageMeta(ImageMeta):
+    """Type of iterm2 render style classes."""
+
+    __native_anim_max_bytes = _native_anim_max_bytes = 2 * 2**20  # 2 MiB default
+
+    jpeg_quality = ClassInstanceProperty(
+        lambda self: getattr(self, "_jpeg_quality", -1),
+        doc="""JPEG encoding quality
+
+        See the base instance of this metaclass for the complete description.
+        """,
+    )
+
+    @jpeg_quality.setter
+    def jpeg_quality(self, quality: int) -> None:
+        if not isinstance(quality, int):
+            raise arg_type_error("jpeg_quality", quality)
+        if quality > 95:
+            raise arg_value_error_range("jpeg_quality", quality)
+
+        self._jpeg_quality = quality
+
+    @jpeg_quality.deleter
+    def jpeg_quality(self) -> None:
+        try:
+            del self._jpeg_quality
+        except AttributeError:
+            pass
+
+    native_anim_max_bytes = ClassProperty(
+        lambda self: __class__._native_anim_max_bytes,
+        doc="""Maximum size (in bytes) of image data for native animation
+
+        See the base instance of this metaclass for the complete description.
+        """,
+    )
+
+    @native_anim_max_bytes.setter
+    def native_anim_max_bytes(self, max_bytes: int):
+        if not isinstance(max_bytes, int):
+            raise arg_type_error("native_anim_max_bytes", max_bytes)
+        if max_bytes <= 0:
+            raise arg_value_error_range("native_anim_max_bytes", max_bytes)
+
+        __class__._native_anim_max_bytes = max_bytes
+
+    @native_anim_max_bytes.deleter
+    def native_anim_max_bytes(self):
+        __class__._native_anim_max_bytes = __class__.__native_anim_max_bytes
+
+    read_from_file = ClassInstanceProperty(
+        lambda self: getattr(self, "_read_from_file", True),
+        doc="""Read-from-file optimization
+
+        See the base instance of this metaclass for the complete description.
+        """,
+    )
+
+    @read_from_file.setter
+    def read_from_file(self, policy: bool) -> None:
+        if not isinstance(policy, bool):
+            raise arg_type_error("read_from_file", policy)
+
+        self._read_from_file = policy
+
+    @read_from_file.deleter
+    def read_from_file(self) -> None:
+        try:
+            del self._read_from_file
+        except AttributeError:
+            pass
+
+
+class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
     """A render style using the iTerm2 inline image protocol.
 
     See :py:class:`GraphicsImage` for the complete description of the constructor.
@@ -231,15 +304,16 @@ class ITerm2Image(GraphicsImage):
     _TERM_VERSION: str = ""
 
     jpeg_quality = ClassInstanceProperty(
-        lambda self_or_cls: getattr(self_or_cls, "_jpeg_quality", -1),
-        doc="""
-        JPEG encoding quality
+        ITerm2ImageMeta.jpeg_quality.fget,
+        ITerm2ImageMeta.jpeg_quality.fset,
+        ITerm2ImageMeta.jpeg_quality.fdel,
+        doc="""JPEG encoding quality
 
         :type: int
 
         GET:
             Returns the effective JPEG encoding quality of the invoker
-            (negative if disabled).
+            (class or instance).
 
         SET:
             If invoked via:
@@ -263,9 +337,9 @@ class ITerm2Image(GraphicsImage):
         * a **class**, it uses that of its parent *iterm2* style class (if any) or the
           default (disabled), if unset for all parents or the class has no parent
           *iterm2* style class.
-        * an **instance**, it uses that of it's class.
+        * an **instance**, it uses that of its class.
 
-        By **default**, the quality is **unset** i.e JPEG encoding is **disabled** and
+        By **default**, the quality is **unset** (i.e JPEG encoding is **disabled**) and
         images are encoded in the PNG format (when not reading directly from file) but
         in some cases, higher and/or faster compression may be desired.
         JPEG encoding is significantly faster than PNG encoding and produces smaller
@@ -293,31 +367,9 @@ class ITerm2Image(GraphicsImage):
         """,
     )
 
-    @jpeg_quality.setter
-    def jpeg_quality(self_or_cls, quality: int) -> None:
-        if not isinstance(quality, int):
-            raise arg_type_error("jpeg_quality", quality)
-        if quality > 95:
-            raise arg_value_error_range("jpeg_quality", quality)
-
-        self_or_cls._jpeg_quality = quality
-
-    @jpeg_quality.deleter
-    def jpeg_quality(self_or_cls) -> None:
-        try:
-            del self_or_cls._jpeg_quality
-        except AttributeError:
-            pass
-
-    jpeg_quality = jpeg_quality.cls_getter(jpeg_quality.fget)
-    jpeg_quality = jpeg_quality.cls_setter(jpeg_quality.fset)
-    jpeg_quality = jpeg_quality.cls_deleter(jpeg_quality.fdel)
-
     native_anim_max_bytes = ClassProperty(
-        # 2 MiB default
-        lambda cls: getattr(__class__, "_native_anim_max_bytes", 2 * 2**20),
-        doc="""
-        Maximum size (in bytes) of image data for native animation
+        lambda self: type(self)._native_anim_max_bytes,
+        doc="""Maximum size (in bytes) of image data for native animation
 
         :type: int
 
@@ -325,52 +377,40 @@ class ITerm2Image(GraphicsImage):
             Returns the set value.
 
         SET:
-            A positive integer; the value is set on the *iterm2* render style baseclass
-            (:py:class:`ITerm2Image`).
+            A positive integer; the value is set.
+
+            Can not be set via an instance.
 
         DELETE:
-            The value is unset, thereby resetting it to the default.
+            The value is reset to the default.
+
+            Can not be reset via an instance.
 
         :py:class:`~term_image.exceptions.TermImageWarning` is issued (and shown
-        **only the first time**, except a filter is set to do otherwise) if the
-        image data size for a native animation is above this value.
+        **only the first time**, except the warning filters are modified to do
+        otherwise) if the image data size for a native animation is above this value.
 
         NOTE:
-            This property is :term:`descendant` but is always unset for all subclasses
-            and instances. Hence, setting/resetting it on this class, a subclass or an
-            instance affects this class, all its subclasses and all their instances.
+            This property is a global setting. Hence, setting/resetting it on this
+            class or any subclass affects all classes and their instances.
 
         WARNING:
             This property should be altered with caution to avoid excessive memory
-            usage.
+            usage, particularly on the terminal emulator's end.
         """,
     )
 
-    @native_anim_max_bytes.setter
-    def native_anim_max_bytes(cls, max_bytes: int):
-        if not isinstance(max_bytes, int):
-            raise arg_type_error("native_anim_max_bytes", max_bytes)
-        if max_bytes <= 0:
-            raise arg_value_error_range("native_anim_max_bytes", max_bytes)
-
-        __class__._native_anim_max_bytes = max_bytes
-
-    @native_anim_max_bytes.deleter
-    def native_anim_max_bytes(cls):
-        try:
-            del __class__._native_anim_max_bytes
-        except AttributeError:
-            pass
-
     read_from_file = ClassInstanceProperty(
-        lambda self_or_cls: getattr(self_or_cls, "_read_from_file", True),
-        doc="""
-        Read-from-file optimization policy
+        ITerm2ImageMeta.read_from_file.fget,
+        ITerm2ImageMeta.read_from_file.fset,
+        ITerm2ImageMeta.read_from_file.fdel,
+        doc="""Read-from-file optimization
 
         :type: bool
 
         GET:
-            Returns the effective read-from-file policy of the invoker.
+            Returns the effective read-from-file policy of the invoker
+            (class or instance).
 
         SET:
             If invoked via:
@@ -395,7 +435,7 @@ class ITerm2Image(GraphicsImage):
         * a **class**, it uses that of its parent *iterm2* style class (if any) or the
           default (``True``), if unset for all parents or the class has no parent
           *iterm2* style class.
-        * an **instance**, it uses that of it's class.
+        * an **instance**, it uses that of its class.
 
         By **default**, the policy is **unset**, which is equivalent to ``True``
         i.e the optimization is **enabled**.
@@ -413,23 +453,6 @@ class ITerm2Image(GraphicsImage):
             :py:attr:`jpeg_quality`
         """,
     )
-
-    @read_from_file.setter
-    def read_from_file(self_or_cls, policy: bool) -> None:
-        if not isinstance(policy, bool):
-            raise arg_type_error("read_from_file", policy)
-        self_or_cls._read_from_file = policy
-
-    @read_from_file.deleter
-    def read_from_file(self_or_cls) -> None:
-        try:
-            del self_or_cls._read_from_file
-        except AttributeError:
-            pass
-
-    read_from_file = read_from_file.cls_getter(read_from_file.fget)
-    read_from_file = read_from_file.cls_setter(read_from_file.fset)
-    read_from_file = read_from_file.cls_deleter(read_from_file.fdel)
 
     @classmethod
     def clear(cls, cursor: bool = False, now: bool = False) -> None:

@@ -223,13 +223,19 @@ class TestProperties:
                 with pytest.raises(ValueError):
                     ITerm2Image.native_anim_max_bytes = value
 
+            for instance in (a, b):
+                with pytest.raises(AttributeError):
+                    instance.native_anim_max_bytes = 400
+                with pytest.raises(AttributeError):
+                    del instance.native_anim_max_bytes
+
             A.native_anim_max_bytes = 1
             assert A.native_anim_max_bytes == 1
             assert B.native_anim_max_bytes == 1
             assert a.native_anim_max_bytes == 1
             assert b.native_anim_max_bytes == 1
 
-            del b.native_anim_max_bytes
+            del B.native_anim_max_bytes
             assert A.native_anim_max_bytes == default
             assert B.native_anim_max_bytes == default
             assert a.native_anim_max_bytes == default
@@ -240,30 +246,6 @@ class TestProperties:
             assert B.native_anim_max_bytes == 200
             assert a.native_anim_max_bytes == 200
             assert b.native_anim_max_bytes == 200
-
-            del a.native_anim_max_bytes
-            assert A.native_anim_max_bytes == default
-            assert B.native_anim_max_bytes == default
-            assert a.native_anim_max_bytes == default
-            assert b.native_anim_max_bytes == default
-
-            a.native_anim_max_bytes = 300
-            assert A.native_anim_max_bytes == 300
-            assert B.native_anim_max_bytes == 300
-            assert a.native_anim_max_bytes == 300
-            assert b.native_anim_max_bytes == 300
-
-            del B.native_anim_max_bytes
-            assert A.native_anim_max_bytes == default
-            assert B.native_anim_max_bytes == default
-            assert a.native_anim_max_bytes == default
-            assert b.native_anim_max_bytes == default
-
-            b.native_anim_max_bytes = 400
-            assert A.native_anim_max_bytes == 400
-            assert B.native_anim_max_bytes == 400
-            assert a.native_anim_max_bytes == 400
-            assert b.native_anim_max_bytes == 400
 
             del A.native_anim_max_bytes
             assert A.native_anim_max_bytes == default

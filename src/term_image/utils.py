@@ -24,7 +24,7 @@ from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
-from types import FunctionType, MappingProxyType
+from types import FunctionType
 from typing import Any, Callable, Optional, Tuple, Union
 
 from . import ctlseqs
@@ -74,164 +74,33 @@ class ClassInstanceMethod(classmethod):
 
 
 class ClassPropertyBase(property):
-    """Base class for properties that operate on their **owner**.
-
-    NOTE:
-        For ``__set__()`` and ``__delete__()`` to actually work, the metaclass of the
-        owner must be made to recognize and directly call these methods within it's
-        ``__setattr__()`` and ``__delattr__()``.
-
-        If the owner defines (not inherits) a ``_class_properties_`` attribute, it must
-        be a :py:class:``dict`` and is populated with the names (as in the owner's
-        namespace) of all instances of this class (i.e class properties) mapped to the
-        respective instances.
-
-        For this reason, :py:class:`ClassPropertyMeta` is provided.
+    """Base class for owner properties that also have a counterpart/shadow on the
+    instance.
     """
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
         super().__init__(fget, fset, fdel, doc)
-        # `property` doesn't set `__doc__`, probably cos this class' `__doc__`
+        # `property` doesn't set `__doc__`, probably cos the subclass' `__doc__`
         # attribute overrides its `__doc__` descriptor.
         super().__setattr__("__doc__", doc or fget.__doc__)
 
-    def __set_name__(self, owner, name):
-        self.__objclass__ = owner
-        try:
-            class_properties = owner.__dict__["_class_properties_"]
-        except KeyError:
-            pass
-        else:
-            class_properties[name] = self
-
 
 class ClassInstanceProperty(ClassPropertyBase):
-    """A property which operates on the invoker, be it the owner or an instance."""
+    """A an instance-specific counterpart of a property of the owner.
 
-    def __init__(
-        self,
-        fget=None,
-        fset=None,
-        fdel=None,
-        cls_fget=None,
-        cls_fset=None,
-        cls_fdel=None,
-        doc=None,
-    ):
-        super().__init__(fget, fset, fdel, doc)
-        self.cls_fget = cls_fget
-        self.cls_fset = cls_fset
-        self.cls_fdel = cls_fdel
-
-    def __get__(self, instance, owner=None):
-        return self._invoke("get", instance, owner)
-
-    def __set__(self, obj, value):
-        return (
-            self._invoke("set", obj, None, value)
-            if isinstance(obj, self.__objclass__)
-            else self._invoke("set", None, obj, value)
-        )
-
-    def __delete__(self, obj):
-        return (
-            self._invoke("delete", obj, None)
-            if isinstance(obj, self.__objclass__)
-            else self._invoke("delete", None, obj)
-        )
-
-    def getter(self, fget: Callable) -> ClassInstanceProperty:
-        return self._copy(fget=fget)
-
-    def setter(self, fset: Callable) -> ClassInstanceProperty:
-        return self._copy(fset=fset)
-
-    def deleter(self, fdel: Callable) -> ClassInstanceProperty:
-        return self._copy(fdel=fdel)
-
-    def cls_getter(self, cls_fget: Callable) -> ClassInstanceProperty:
-        return self._copy(cls_fget=cls_fget)
-
-    def cls_setter(self, cls_fset: Callable) -> ClassInstanceProperty:
-        return self._copy(cls_fset=cls_fset)
-
-    def cls_deleter(self, cls_fdel: Callable) -> ClassInstanceProperty:
-        return self._copy(cls_fdel=cls_fdel)
-
-    def _copy(self, **kwargs):
-        return type(self)(
-            self.fget or kwargs.get("fget"),
-            self.fset or kwargs.get("fset"),
-            self.fdel or kwargs.get("fdel"),
-            self.cls_fget or kwargs.get("cls_fget"),
-            self.cls_fset or kwargs.get("cls_fset"),
-            self.cls_fdel or kwargs.get("cls_fdel"),
-            self.__doc__,
-        )
-
-    def _invoke(self, op, instance, owner, *value):
-        if instance:
-            func = getattr(self, f"f{op[:3]}")
-            if func:
-                return func(instance, *value)
-            raise AttributeError(f"can't {op} attribute on instance") from None
-        else:
-            func = getattr(self, f"cls_f{op[:3]}")
-            if func:
-                return func(owner, *value)
-            raise AttributeError(f"can't {op} attribute on owner") from None
+    Operation on the owner is actually implemented by a property defined on the
+    owner's metaclass. This class is only for the sake of ease of documentation
+    without having to bother the user about metaclasses.
+    """
 
 
 class ClassProperty(ClassPropertyBase):
-    """A property which always operates on the owner, even when invoked by an
-    instance.
+    """A read-only shadow of a property of the owner.
+
+    Operation on the owner is actually implemented by a property defined on the
+    owner's metaclass. This class is only for the sake of ease of documentation
+    without having to bother the user about metaclasses.
     """
-
-    def __get__(self, instance, owner=None):
-        return super().__get__(owner, owner)
-
-    def __set__(self, obj, value):
-        super().__set__(type(obj) if isinstance(obj, self.__objclass__) else obj, value)
-
-    def __delete__(self, obj):
-        super().__delete__(type(obj) if isinstance(obj, self.__objclass__) else obj)
-
-
-class ClassPropertyMeta(type):
-    """A metaclass that implements support for modifiable class properties owned by
-    its instances.
-
-    - Takes care of inherited class properties.
-    - Works with both cooperative multiple and multi-level inheritance.
-
-    SEE ALSO:
-        :py:class:`ClassPropertyBase`
-    """
-
-    def __new__(cls, name, bases, dict, **kwds):
-        class_properties = dict["_class_properties_"] = {}
-        for base in bases:
-            if isinstance(base, __class__):
-                class_properties.update(base._class_properties_)
-
-        self = super().__new__(cls, name, bases, dict, **kwds)
-        self._class_properties_ = MappingProxyType(class_properties)
-
-        return self
-
-    def __setattr__(self, name, value):
-        class_property = self._class_properties_.get(name)
-        if class_property:
-            class_property.__set__(self, value)
-        else:
-            super().__setattr__(name, value)
-
-    def __delattr__(self, name):
-        class_property = self._class_properties_.get(name)
-        if class_property:
-            class_property.__delete__(self)
-        else:
-            super().__delattr__(name)
 
 
 # Decorator Functions

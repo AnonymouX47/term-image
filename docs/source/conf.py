@@ -4,6 +4,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 from term_image import __version__, utils
+from term_image.image.common import ImageMeta
+from term_image.image.iterm2 import ITerm2ImageMeta
 
 # -- Path setup --------------------------------------------------------------
 
@@ -100,6 +102,9 @@ def setup(app):
 
 # -- Extras -----------------------------------------------------------
 
-# The overidding `__get__()`s do not return the descriptor itself
-utils.ClassInstanceProperty.__get__ = property.__get__
-utils.ClassProperty.__get__ = property.__get__
+# The properties defined by the metaclass' would be invoked instead of returning the
+# property defined by the class
+for meta in (ImageMeta, ITerm2ImageMeta):
+    for attr, value in tuple(vars(meta).items()):
+        if isinstance(value, utils.ClassPropertyBase):
+            delattr(meta, attr)
