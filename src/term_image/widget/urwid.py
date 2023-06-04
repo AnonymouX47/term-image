@@ -123,18 +123,6 @@ class UrwidImage(urwid.Widget):
         """,
     )
 
-    def clear(self, *, now: bool = False) -> None:
-        """Clears all images drawn by the widget, if the image rendered by the widget
-        is of the :py:class:`kitty <term_image.image.KittyImage>` render style.
-
-        Args:
-            now: If ``True`` the images are cleared immediately. Otherwise they're
-              cleared just before the next screen redraw.
-        """
-        if isinstance(self._ti_image, KittyImage):
-            KittyImage.clear(z_index=self._ti_z_index, now=now)
-            self._ti_disguise_state = (self._ti_disguise_state + 1) % 3
-
     def render(self, size: Tuple[int, int], focus: bool = False) -> urwid.Canvas:
         image = self._ti_image
 
@@ -217,6 +205,10 @@ class UrwidImage(urwid.Widget):
         __class__._ti_next_z_index = -z_index if z_index > 0 else -z_index + 1
 
         return z_index
+
+    def _ti_change_disguise(self) -> None:
+        """See :py:meth`UrwidImageCanvas._ti_change_disguise`."""
+        self._ti_disguise_state = (self._ti_disguise_state + 1) % 3
 
 
 class UrwidImageCanvas(urwid.Canvas):
@@ -521,17 +513,55 @@ class UrwidImageScreen(urwid.raw_display.Screen):
         self.clear_images()
         return super().clear()
 
-    def clear_images(self, *, now: bool = False) -> None:
-        """Clears all on-screen images of :ref:`graphics-based <graphics-based>`
-        styles that support/require such an operation.
+    def clear_images(self, *widgets: UrwidImage, now: bool = False) -> None:
+        """Clears on-screen images of :ref:`graphics-based <graphics-based>`
+        styles **that support/require such an operation**.
 
         Args:
+            widgets: Image widgets to clear.
+
+              All on-screen images rendered by each of the widgets are cleared,
+              provided the widget was initialized with a
+              :py:class:`term_image.image.KittyImage` instance.
+
+              If none is given, all images (of styles **that support/require such an
+              operation**) on-screen are cleared.
+
             now: If ``True`` the images are cleared immediately.
               Otherwise, they're cleared when next the output buffer is flushed,
               such as at the next screen redraw.
         """
         # Also takes care of iterm2 images on Konsole
-        if KittyImage._forced_support or KittyImage.is_supported():
+        if not (KittyImage.forced_support or KittyImage.is_supported()):
+            return
+
+        if widgets:
+            # Better to send the delete commands in a batch than individually
+            kitty_widgets = []
+            for index, widget in enumerate(widgets):
+                if not isinstance(widget, UrwidImage):
+                    raise arg_type_error(f"widgets[{index}]", widget)
+
+                if isinstance(widget._ti_image, KittyImage):
+                    kitty_widgets.append(widget)
+                    widget._ti_change_disguise()
+
+            if kitty_widgets:
+                if now:
+                    write_tty(
+                        b"".join(
+                            ctlseqs.KITTY_DELETE_Z_INDEX_b % widget._ti_z_index
+                            for widget in kitty_widgets
+                        )
+                    )
+                else:
+                    self.write(
+                        "".join(
+                            ctlseqs.KITTY_DELETE_Z_INDEX % widget._ti_z_index
+                            for widget in kitty_widgets
+                        )
+                    )
+        else:
             if now:
                 write_tty(ctlseqs.KITTY_DELETE_ALL_b)
             else:
@@ -650,7 +680,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                 # A single `clear_images()` takes care of all images anyways
                 break
         else:
-            for widget in kitty_widgets:
-                widget.clear()
+            if kitty_widgets:
+                self.clear_images(*kitty_widgets)
 
         self._ti_image_cviews = frozenset(image_cviews)
