@@ -47,7 +47,6 @@ from ..exceptions import (
 from ..utils import (
     ClassInstanceMethod,
     ClassProperty,
-    ClassPropertyMeta,
     arg_type_error,
     arg_value_error,
     arg_value_error_msg,
@@ -161,7 +160,7 @@ class Size(Enum):
     ORIGINAL = Hidden()
 
 
-class ImageMeta(ClassPropertyMeta, ABCMeta):
+class ImageMeta(ABCMeta):
     """Type of all render style classes.
 
     NOTE:
@@ -171,8 +170,25 @@ class ImageMeta(ClassPropertyMeta, ABCMeta):
           defined within this package), ``str(cls)`` is equivalent to ``repr(cls)``.
     """
 
+    _forced_support: bool = False
+
     def __str__(self):
         return self.style or super().__str__()
+
+    forced_support = ClassProperty(
+        lambda self: self._forced_support,
+        doc="""Forced render style support
+
+        See the base instance of this metaclass for the complete description.
+        """,
+    )
+
+    @forced_support.setter
+    def forced_support(self, status: bool):
+        if not isinstance(status, bool):
+            raise arg_type_error("forced_support", status)
+
+        self._forced_support = status
 
     style = property(
         cached(
@@ -355,8 +371,8 @@ class BaseImage(metaclass=ImageMeta):
     )
 
     forced_support = ClassProperty(
-        lambda cls: cls._forced_support,
-        doc="""Render style forced support status
+        lambda self: type(self)._forced_support,
+        doc="""Forced render style support
 
         :type: bool
 
@@ -383,13 +399,6 @@ class BaseImage(metaclass=ImageMeta):
               instantiation of some render style classes.
         """,
     )
-
-    @forced_support.setter
-    def forced_support(cls, status):
-        if not isinstance(status, bool):
-            raise arg_type_error("forced_support", status)
-
-        cls._forced_support = status
 
     frame_duration = property(
         lambda self: self._frame_duration if self._is_animated else None,
