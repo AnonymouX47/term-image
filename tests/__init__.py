@@ -30,6 +30,16 @@ def get_terminal_size():
     return os.terminal_size((80, 30))
 
 
+def get_terminal_name_version():
+    return terminal_name_version
+
+
+def set_terminal_name_version(name: str, version: str = ""):
+    global terminal_name_version
+
+    terminal_name_version = (name, version)
+
+
 def get_fg_bg_colors(*, hex=False):
     return (
         tuple(rgb and "#" + "".join(f"{x:02x}" for x in rgb) for rgb in fg_bg)
@@ -53,6 +63,9 @@ def toggle_is_on_kitty():
 
 
 term_image.utils.get_terminal_size = get_terminal_size
+
+terminal_name_version = ("", "")
+term_image.utils.get_terminal_name_version = get_terminal_name_version
 
 cell_size = None
 term_image.get_cell_size = get_cell_size

@@ -20,6 +20,8 @@ from term_image.image import (
 from term_image.image.common import _ALPHA_THRESHOLD
 from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 
+from .. import get_terminal_name_version, set_terminal_name_version
+
 _size = (30, 15)
 
 python_file = "tests/images/python.png"
@@ -406,9 +408,9 @@ class TestCanvas:
             assert content_line == line.replace(b"\0", b"") + b"\0\0"
 
     def test_disguise_supported(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "konsole"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("konsole")
             for ImageClass in (KittyImage, ITerm2Image):
                 image_w = UrwidImage(ImageClass(python_img))
                 canv = image_w.render(_size)
@@ -422,12 +424,12 @@ class TestCanvas:
                     UrwidImageCanvas._ti_change_disguise()
         finally:
             UrwidImageCanvas._ti_disguise_state = 0
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
 
     def test_disguise_not_supported(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "wezterm"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("wezterm")
             for ImageClass in (BlockImage, ITerm2Image):
                 image_w = UrwidImage(ImageClass(python_img))
                 canv = image_w.render(_size)
@@ -441,7 +443,7 @@ class TestCanvas:
                     UrwidImageCanvas._ti_change_disguise()
         finally:
             UrwidImageCanvas._ti_disguise_state = 0
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
 
 
 def get_trim_render_canv(ImageClass, image_size, h_align, v_align):
@@ -1223,9 +1225,9 @@ class TestScreenAutoClearImages:
         assert isinstance(screen._ti_image_cviews, frozenset)
 
     def test_move_top_widget(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "konsole"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("konsole")
             # Setup
             buf.seek(0)
             buf.truncate()
@@ -1312,14 +1314,14 @@ class TestScreenAutoClearImages:
             }
 
         finally:
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
 
     # FIXME: Figure out why the listbox insets are not scrolling the listbox by the
     # expected number of rows
     def test_scroll_listboxes(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "konsole"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("konsole")
             # Setup
             buf.seek(0)
             buf.truncate()
@@ -1391,12 +1393,12 @@ class TestScreenAutoClearImages:
             }
 
         finally:
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
 
     def test_change_top_widget(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "konsole"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("konsole")
             # Setup
             buf.seek(0)
             buf.truncate()
@@ -1446,12 +1448,12 @@ class TestScreenAutoClearImages:
             assert (*(screen._ti_image_cviews - prev_image_cviews),)[0][1:3] == (6, 11)
 
         finally:
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
 
     def test_iterm2_not_on_konsole(self):
-        _TERM = ITerm2Image._TERM
-        ITerm2Image._TERM = "wezterm"
+        _terminal_name_version = get_terminal_name_version()
         try:
+            set_terminal_name_version("wezterm")
             # Setup
             buf.seek(0)
             buf.truncate()
@@ -1475,4 +1477,4 @@ class TestScreenAutoClearImages:
             }
 
         finally:
-            ITerm2Image._TERM = _TERM
+            set_terminal_name_version(*_terminal_name_version)
