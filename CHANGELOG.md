@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Jagged edges with `LINES` render method of kitty and iterm2 render styles ([4d27055]).
 
 ### Added
-- `UrwidImageScreen.clear()` also clears images ([ed3baa3]).
 - `term_image.utils.get_cell_size()` to the public API ([#87]).
 - Support for terminal size-relative frame sizes ([#89]).
 - Manual sizing ([#89]).
@@ -23,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `UrwidImage.clear_all()` -> `UrwidImageScreen.clear_images()` ([08f4e4d]).
 - `KeyboardInterrupt` is no longer raised when `SIGINT` is used to end an animation ([fa47742]).
+- `UrwidImageScreen.clear()` now clears images also ([ed3baa3]).
 - Improved terminal cell size computation ([#87]).
 - **(BREAKING!)** `InvalidSizeError` no longer inherits from `ValueError` ([26ea969]).
 - **(BREAKING!)** `UrwidImage` now raises `UrwidImageError` instead of `ValueError` when rendered as a fixed widget ([a612b59]).
@@ -63,6 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `BlockImageError`
   - `ITerm2ImageError`
   - `KittyImageError`
+- Render style name property and custom render style class string representation ([7d673dd]).
+  - `<Style>Image.style`
+  - `str(<Style>Image)`
+- `term_image.image.ImageMeta` from the public API ([9168d17]).
 
 [#87]: https://github.com/AnonymouX47/term-image/pull/87
 [#88]: https://github.com/AnonymouX47/term-image/pull/88
@@ -78,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [26ea969]: https://github.com/AnonymouX47/term-image/commit/26ea969ab7a36994bce6b75ce73ee699a085934e
 [a612b59]: https://github.com/AnonymouX47/term-image/commit/a612b5916778c1dea5d97fa2e7344251e9d8c33c
 [4d27055]: https://github.com/AnonymouX47/term-image/commit/4d27055ab1729cb93bbf4bb4531a0157b8cf513f
+[7d673dd]: https://github.com/AnonymouX47/term-image/commit/7d673ddbdf7913ae4d134e98bb81fa3fce9701ff
+[9168d17]: https://github.com/AnonymouX47/term-image/commit/9168d17ace06b09153b0424c52b7052b746f7165
 
 
 ## [0.6.1] - 2023-04-30
