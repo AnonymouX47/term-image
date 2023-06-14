@@ -457,7 +457,7 @@ class KittyImage(GraphicsImage):
         if render_method == LINES:
             cell_height = height // r_height
             bytes_per_line = width * cell_height * (format // 8)
-            vars(control_data).update(dict(v=cell_height, r=1))
+            vars(control_data).update(v=cell_height, r=1)
 
             with io.StringIO() as buffer, io.BytesIO(raw_image) as raw_image:
                 trans = Transmission(
