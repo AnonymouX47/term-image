@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- `AttributeError` in some top-level functions ([497d9b7])
+- Formatting of some `ValueError` exception messages ([d296a31])
+
+
+[497d9b7]: https://github.com/AnonymouX47/term-image/commit/497d9b70dd74605e6589b81bea2fcac22efc684b
+[d296a31]: https://github.com/AnonymouX47/term-image/commit/d296a3110882449f6717959400abbc5fa1bd0891
 
 
 ## [0.7.0] - 2023-06-05
