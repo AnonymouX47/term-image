@@ -284,6 +284,10 @@ def arg_type_error(arg: str, value: Any) -> TypeError:
     return TypeError(f"Invalid type for {arg!r} (got: {type(value).__name__})")
 
 
+def arg_type_error_msg(msg: str, value: Any) -> ValueError:
+    return ValueError(f"{msg} (got: {type(value).__name__})")
+
+
 def arg_value_error(arg: str, value: Any) -> ValueError:
     return ValueError(f"Invalid value for {arg!r} (got: {value!r})")
 
