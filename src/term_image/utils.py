@@ -289,7 +289,7 @@ def arg_value_error(arg: str, value: Any) -> ValueError:
 
 
 def arg_value_error_msg(msg: str, value: Any) -> ValueError:
-    return ValueError(f"{msg!r} (got: {value!r})")
+    return ValueError(f"{msg} (got: {value!r})")
 
 
 def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueError:
