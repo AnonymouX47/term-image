@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `term_image.geometry` submodule ([#96]).
   - `term_image.geometry.Size`.
+
+### Changed
 - `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
 
 
