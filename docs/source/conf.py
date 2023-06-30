@@ -47,7 +47,6 @@ autodoc_default_options = {
     "autosummary-nosignatures": True,
 }
 autodoc_typehints = "description"
-autodoc_typehints_format = "fully-qualified"
 autodoc_typehints_description_target = "documented"
 autodoc_member_order = "bysource"
 autodoc_inherit_docstrings = False
@@ -74,6 +73,12 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
     from enum import EnumMeta
     from types import FunctionType
 
+    # Documented members with only annotations but no value
+    # i.e not in the parent's namespace
+    if name is None:
+        # raise Exception(f"{what=}, {obj=}, {section=}, {parent=}")
+        return
+
     if isinstance(obj, EnumMeta):
         return "Enumerations"
     elif isinstance(obj, type) and issubclass(obj, Warning):
@@ -87,13 +92,19 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
         elif isinstance(obj, property):
             return "Instance Properties"
         elif isinstance(obj, FunctionType):
-            return "Instance Methods"
+            return (
+                "Special Methods"
+                if name.startswith("__") and name.endswith("__")
+                else "Instance Methods"
+            )
         elif isinstance(obj, utils.ClassInstanceMethod):
             return "Class/Instance Methods"
         elif isinstance(obj, classmethod):
             return "Class Methods"
         elif isinstance(obj, staticmethod):
             return "Static Methods"
+        elif name.startswith("__") and name.endswith("__"):
+            return "Special Attributes"
 
 
 def setup(app):
