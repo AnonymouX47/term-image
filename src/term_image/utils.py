@@ -203,14 +203,17 @@ def lock_tty(func: FunctionType) -> FunctionType:
             # logging.debug(f"{func.__name__} acquired TTY lock", stacklevel=3)
             return func(*args, **kwargs)
 
-    if func.__doc__ is not None:
-        lock_tty_wrapper.__doc__ = (
-            func.__doc__.rstrip()
-            + """
+    if func.__module__.startswith("term_image") and func.__doc__ is not None:
+        sync_doc = """
 
-    IMPORTANT:
-        Synchronized with :py:func:`term_image.utils.lock_tty`.
-    """
+        IMPORTANT:
+            Synchronized with :py:func:`~term_image.utils.lock_tty`.
+        """
+
+        last_line = func.__doc__.rpartition("\n")[2]
+        indent = " " * (len(last_line) - len(last_line.lstrip()))
+        lock_tty_wrapper.__doc__ = func.__doc__.rstrip() + "\n".join(
+            line.replace(" " * 8, indent, 1) for line in sync_doc.splitlines()
         )
 
     return lock_tty_wrapper
@@ -642,7 +645,7 @@ def read_tty_all() -> bytes:
         The input read.
 
     IMPORTANT:
-        Synchronized with :py:func:`term_image.utils.lock_tty`.
+        Synchronized with :py:func:`~term_image.utils.lock_tty`.
     """
     return read_tty()
 
