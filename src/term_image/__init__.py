@@ -23,7 +23,7 @@ __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
 from operator import truediv
-from typing import Optional, Union
+from typing import ClassVar, Union
 
 from . import utils
 from .exceptions import TermImageError
@@ -35,19 +35,49 @@ __version__ = ".".join(map(str, version_info[:3]))
 if version_info[3:]:
     __version__ += "-" + ".".join(map(str, version_info[3:]))
 
-#: Default timeout for :ref:`terminal-queries`
-#:
-#: See also: :py:func:`set_query_timeout`
 DEFAULT_QUERY_TIMEOUT: float = utils._query_timeout  # Final[float]
+"""Default timeout for :ref:`terminal-queries`
+
+.. seealso:: :py:func:`set_query_timeout`.
+"""
 
 
 class AutoCellRatio(Enum):
-    """Values for setting :ref:`auto-cell-ratio`."""
+    """:ref:`auto-cell-ratio` enumeration and support status.
 
-    is_supported: Optional[bool]
+    .. seealso:: :py:func:`set_cell_ratio`.
+    """
 
     FIXED = auto()
+    """Fixed cell ratio.
+
+    :meta hide-value:
+    """
+
     DYNAMIC = auto()
+    """Dynamic cell ratio.
+
+    :meta hide-value:
+    """
+
+    is_supported: ClassVar[bool | None]
+    """Auto cell ratio support status. Can be
+
+    :meta hide-value:
+
+    - ``None`` -> support status not yet determined
+    - ``True`` -> supported
+    - ``False`` -> not supported
+
+    Can be explicitly set when using auto cell ratio but want to avoid the support
+    check in a situation where the support status is foreknown. Can help to avoid
+    being wrongly detected as unsupported on a :ref:`queried <terminal-queries>`
+    terminal that doesn't respond on time.
+
+    For instance, when using multiprocessing, if the support status has been
+    determined in the main process, this value can simply be passed on to and set
+    within the child processes.
+    """
 
 
 def disable_queries() -> None:
@@ -117,7 +147,7 @@ def enable_win_size_swap():
 def get_cell_ratio() -> float:
     """Returns the global :term:`cell ratio`.
 
-    See :py:func:`set_cell_ratio`.
+    .. seealso:: :py:func:`set_cell_ratio`.
     """
     # `(1, 2)` is a fallback in case the terminal doesn't respond in time
     return _cell_ratio or truediv(*(utils.get_cell_size() or (1, 2)))
@@ -153,7 +183,7 @@ def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
         :term:`fixed size`. For a change in cell ratio to take effect, the image's
         size has to be re-set.
 
-    ATTENTION:
+    IMPORTANT:
         See :ref:`auto-cell-ratio` for details about the auto modes.
     """
     global _cell_ratio
