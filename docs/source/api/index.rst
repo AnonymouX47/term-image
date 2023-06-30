@@ -22,5 +22,6 @@ API Reference
    toplevel
    image
    widget
+   geometry
    exceptions
    utils
