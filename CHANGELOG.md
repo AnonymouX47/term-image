@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AttributeError` in some top-level functions ([497d9b7])
 - Formatting of some `ValueError` exception messages ([d296a31])
 
+### Added
+- `term_image.geometry` submodule ([#96]).
+  - `term_image.geometry.Size`.
+- `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
 
+
+[#96]: https://github.com/AnonymouX47/term-image/pull/96
 [497d9b7]: https://github.com/AnonymouX47/term-image/commit/497d9b70dd74605e6589b81bea2fcac22efc684b
 [d296a31]: https://github.com/AnonymouX47/term-image/commit/d296a3110882449f6717959400abbc5fa1bd0891
 
