@@ -27,7 +27,9 @@ from time import monotonic
 from types import FunctionType
 from typing import Any, Callable, Optional, Tuple, Union
 
-from . import ctlseqs, geometry
+import term_image
+
+from . import ctlseqs
 from .exceptions import TermImageWarning
 
 # import logging
@@ -341,15 +343,17 @@ def color(
 
 
 @unix_tty_only
-def get_cell_size() -> geometry.Size | None:
+def get_cell_size() -> term_image.geometry.Size | None:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
-        The cell size in pixels or `None` if undetermined.
+        The cell size in pixels or ``None`` if undetermined.
 
     The speed of this implementation is almost entirely dependent on the terminal; the
     method it supports and its response time if it has to be queried.
     """
+    from term_image.geometry import Size
+
     # If a thread reaches this point while the lock is being changed
     # (the old lock has been acquired but hasn't been changed), after the lock has
     # been changed and the former lock is released, the waiting thread will acquire
@@ -361,7 +365,7 @@ def get_cell_size() -> geometry.Size | None:
         ts = get_terminal_size()
         if ts == tuple(_cell_size_cache[:2]):
             size = tuple(_cell_size_cache[2:])
-            return None if 0 in size else geometry.Size(*size)
+            return None if 0 in size else Size(*size)
 
         size = text_area_size = None
 
@@ -408,7 +412,7 @@ def get_cell_size() -> geometry.Size | None:
         )
         _cell_size_cache[:] = ts + size
 
-        return None if 0 in size else geometry.Size(*size)
+        return None if 0 in size else Size(*size)
 
 
 @cached

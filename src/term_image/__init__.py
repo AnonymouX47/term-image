@@ -25,7 +25,6 @@ from enum import Enum, auto
 from operator import truediv
 from typing import ClassVar, Union
 
-from . import geometry  # noqa: F401; # Prevent circular import against `.utils`
 from . import utils
 from .exceptions import TermImageError
 
