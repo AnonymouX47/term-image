@@ -45,6 +45,10 @@ class RenderFormatError(TermImageError):
     """Raised for errors specific to :py:class:`~term_image.renderable.RenderFormat`."""
 
 
+class RenderIteratorError(TermImageError):
+    """Raised for errors specific to :py:class:`~term_image.render.RenderIterator`."""
+
+
 class StyleError(TermImageError):
     """Raised for errors pertaining to the Style API."""
 
