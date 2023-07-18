@@ -6,7 +6,14 @@ from __future__ import annotations
 
 __all__ = ("Size",)
 
+from typing import NamedTuple
+
 from .utils import arg_type_error
+
+
+class _Size(NamedTuple):
+    width: int
+    height: int
 
 
 class Size(tuple):
@@ -33,8 +40,14 @@ class Size(tuple):
 
         return super().__new__(cls, (width, height))
 
-    width = property(lambda self: self[0], "The horizontal dimension")
-    height = property(lambda self: self[1], "The vertical dimension")
+    width: int = _Size.width
+    """The horizontal dimension"""
+
+    height: int = _Size.height
+    """The vertical dimension"""
 
     def __repr__(self):
         return f"{type(self).__name__}{super().__repr__()}"
+
+
+del _Size
