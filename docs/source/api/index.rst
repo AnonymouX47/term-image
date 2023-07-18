@@ -21,6 +21,7 @@ API Reference
 
    toplevel
    renderable
+   render
    image
    widget
    geometry
