@@ -969,7 +969,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 render_data.finalize()
 
     @abstractmethod
-    def _render_(self, render_data: RenderData, render_args: RenderArgs, /) -> Frame:
+    def _render_(self, render_data: RenderData, render_args: RenderArgs) -> Frame:
         """:term:`Renders` a frame.
 
         Args:
