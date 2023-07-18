@@ -64,6 +64,7 @@ pytest := pytest -v
 test-top := tests/test_top_level.py
 test-geometry := tests/test_geometry.py
 test-renderable-renderable := tests/renderable/test_renderable.py
+test-renderable-types := tests/renderable/test_types.py
 test-base := tests/test_image/test_base.py
 test-block := tests/test_image/test_block.py
 test-kitty := tests/test_image/test_kitty.py
@@ -73,7 +74,7 @@ test-others := tests/test_image/test_others.py
 test-iterator := tests/test_iterator.py
 test-urwid := tests/test_widget/test_urwid.py
 
-test-renderable := $(test-renderable-renderable)
+test-renderable := $(test-renderable-renderable) $(test-renderable-types)
 test-text := $(test-block)
 test-graphics := $(test-kitty) $(test-iterm2)
 test-image := $(test-base) $(test-text) $(test-graphics) $(test-others)
