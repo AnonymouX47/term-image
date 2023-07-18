@@ -20,6 +20,7 @@ API Reference
    :caption: Sub-sections:
 
    toplevel
+   renderable
    image
    widget
    geometry
