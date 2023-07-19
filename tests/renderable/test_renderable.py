@@ -391,6 +391,13 @@ class TestRenderParams:
             }
 
 
+class TestRenderArgs:
+    def test_default(self):
+        render_args = RenderArgs(Renderable)
+        assert render_args.render_cls is Renderable
+        assert vars(render_args) == {}
+
+
 class Space(Renderable):
     render_size = Size(1, 1)
 
@@ -1124,39 +1131,17 @@ class TestInitRender:
                 assert render_args.render_cls is Char
                 assert render_args.char == value
 
-        def test_compatibility(self):
-            class A(Renderable):
-                def __init__(self):
-                    super().__init__(1, 1)
+        def test_compatible(self):
+            assert (
+                self.char._init_render_(
+                    lambda *args: args, RenderArgs(Renderable)
+                )[0][1]
+                == RenderArgs(Char)  # fmt: skip
+            )
 
-                render_size = _render_ = None
-
-            class B(A):
-                pass
-
-            class C(A):
-                pass
-
-            # compatible
-            for cls1, cls2 in (
-                (A, Renderable),
-                (A, A),
-                (B, Renderable),
-                (B, A),
-                (B, B),
-                (C, Renderable),
-                (C, A),
-                (C, C),
-            ):
-                (
-                    cls1()._init_render_(lambda *args: args, RenderArgs(cls2))[0][1]
-                    == RenderArgs(cls1)
-                )
-
-            # incompatible
-            for cls1, cls2 in ((A, B), (A, C), (B, C), (C, B)):
-                with pytest.raises(RenderArgsError, match="incompatible"):
-                    cls1()._init_render_(lambda *_: None, RenderArgs(cls2))
+        def test_incompatible(self):
+            with pytest.raises(RenderArgsError, match="incompatible"):
+                self.char._init_render_(lambda *_: None, RenderArgs(Space))
 
     class TestRenderFmt:
         space = Space(1, 1)
