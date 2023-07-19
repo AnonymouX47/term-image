@@ -454,7 +454,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 try:
                     output.write(render)
                     output.flush()
-                except (KeyboardInterrupt, Exception):
+                except KeyboardInterrupt:
                     self._handle_interrupted_draw_(render_data, render_args)
                     raise
         finally:
@@ -588,13 +588,19 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 frame = next(render_iter)
             except StopIteration:  # `INDEFINITE` frame count
                 return
-            write(frame.render)
-            write(cursor_to_top_left)
-            flush()
+
+            try:
+                write(frame.render)
+                write(cursor_to_top_left)
+                flush()
+            except KeyboardInterrupt:
+                self._handle_interrupted_draw_(render_data, render_args)
+                return
 
             # render next frame during current frame's duration
             duration_ms = frame.duration
             start_ns = perf_counter_ns()
+
             for frame in render_iter:  # Render next frame
                 # left-over of current frame's duration
                 sleep(
@@ -603,23 +609,24 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 )
 
                 # draw new frame
-                write(frame.render)
-                write(cursor_to_top_left)
-                flush()
+                try:
+                    write(frame.render)
+                    write(cursor_to_top_left)
+                    flush()
+                except KeyboardInterrupt:
+                    self._handle_interrupted_draw_(render_data, render_args)
+                    return
 
                 # render next frame during current frame's duration
                 start_ns = perf_counter_ns()
                 duration_ms = frame.duration
-        except KeyboardInterrupt:
-            self._handle_interrupted_draw_(render_data, render_args)
-        except Exception:
-            self._handle_interrupted_draw_(render_data, render_args)
-            raise
-        else:
+
             # left-over of last frame's duration
             sleep(
                 max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns)) / 10**9
             )
+        except KeyboardInterrupt:
+            pass
         finally:
             render_iter.close()
             # Move the cursor to the last line to prevent "overlayed" output in a
@@ -840,8 +847,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     def _handle_interrupted_draw_(
         self, render_data: RenderData, render_args: RenderArgs
     ) -> None:
-        """Performs any necessary actions when :py:meth:`draw` or :py:meth:`_animate_`
-        is interrupted.
+        """Performs any necessary actions if :py:class:`KeyboardInterrupt` is raised
+        while writing a frame to the terminal.
 
         Args:
             render_data: Render data.
