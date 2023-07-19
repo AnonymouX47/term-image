@@ -303,7 +303,7 @@ def arg_value_error_msg(msg: str, value: Any) -> ValueError:
 
 def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueError:
     return ValueError(
-        f"{arg!r} out of range (got: {value!r}, {got_extra})"
+        f"{arg!r} out of range (got: {value!r}; {got_extra})"
         if got_extra
         else f"{arg!r} out of range (got: {value!r})"
     )
