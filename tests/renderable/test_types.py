@@ -87,7 +87,7 @@ class Foo(Renderable):
 
 
 class TestRenderArgs:
-    base_args_dict = {}
+    base_render_args_dict = {}
 
     def test_args(self):
         with pytest.raises(TypeError, match="'render_cls'"):
@@ -99,10 +99,11 @@ class TestRenderArgs:
     def test_base(self):
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
-        assert vars(render_args) == self.base_args_dict
+        assert vars(render_args) == self.base_render_args_dict
 
     def test_render_cls(self):
-        assert RenderArgs(Foo).render_cls is Foo
+        render_args = RenderArgs(Foo)
+        assert render_args.render_cls is Foo
 
     class TestRenderArgs:
         class Bar(Renderable):
@@ -125,7 +126,7 @@ class TestRenderArgs:
             }
 
         def test_unknown(self):
-            with pytest.raises(RenderArgsError, match="Unknown"):
+            with pytest.raises(RenderArgsError, match="Unknown .* 'd'"):
                 RenderArgs(self.Bar, d=None)
 
         def test_type_check(self):
@@ -163,7 +164,7 @@ class TestRenderArgs:
         def test_default(self):
             render_args = RenderArgs(self.Bar)
             assert vars(render_args) == dict(
-                **TestRenderArgs.base_args_dict, a=1, b=2, c=3
+                **TestRenderArgs.base_render_args_dict, a=1, b=2, c=3
             )
             assert render_args.a == 1
             assert render_args.b == 2
@@ -172,7 +173,7 @@ class TestRenderArgs:
         def test_non_default(self):
             render_args = RenderArgs(self.Bar, a=Ellipsis, b=10, c=-10.0)
             assert vars(render_args) == dict(
-                **TestRenderArgs.base_args_dict, a=Ellipsis, b=10, c=-10.0
+                **TestRenderArgs.base_render_args_dict, a=Ellipsis, b=10, c=-10.0
             )
             assert render_args.a is Ellipsis
             assert render_args.b == 10
@@ -218,7 +219,7 @@ class TestRenderArgs:
         def test_default(self):
             render_args = RenderArgs(Foo)
             assert vars(render_args) == dict(
-                **TestRenderArgs.base_args_dict, foo="FOO", bar="BAR"
+                **TestRenderArgs.base_render_args_dict, foo="FOO", bar="BAR"
             )
             assert render_args.foo == "FOO"
             assert render_args.bar == "BAR"
@@ -228,7 +229,7 @@ class TestRenderArgs:
             init_render_args = RenderArgs(Foo, foo="bar", bar="foo")
             render_args = RenderArgs(Foo, init_render_args)
             assert vars(render_args) == dict(
-                **TestRenderArgs.base_args_dict, foo="bar", bar="foo"
+                **TestRenderArgs.base_render_args_dict, foo="bar", bar="foo"
             )
             assert render_args.foo == "bar"
             assert render_args.bar == "foo"
@@ -300,7 +301,7 @@ class TestRenderArgs:
 
     def test_getattr(self):
         render_args = RenderArgs(Foo)
-        with pytest.raises(AttributeError, match="Unknown"):
+        with pytest.raises(AttributeError, match="Unknown .* 'baz'"):
             render_args.baz
 
     def test_setattr(self):
