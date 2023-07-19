@@ -290,7 +290,7 @@ def arg_type_error(arg: str, value: Any) -> TypeError:
 
 
 def arg_type_error_msg(msg: str, value: Any) -> ValueError:
-    return ValueError(f"{msg} (got: {type(value).__name__})")
+    return TypeError(f"{msg} (got: {type(value).__name__})")
 
 
 def arg_value_error(arg: str, value: Any) -> ValueError:
@@ -303,7 +303,7 @@ def arg_value_error_msg(msg: str, value: Any) -> ValueError:
 
 def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueError:
     return ValueError(
-        f"{arg!r} out of range (got: {value!r}, {got_extra})"
+        f"{arg!r} out of range (got: {value!r}; {got_extra})"
         if got_extra
         else f"{arg!r} out of range (got: {value!r})"
     )
