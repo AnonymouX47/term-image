@@ -323,8 +323,8 @@ class RenderIterator:
         Raises the same exceptions as the class constructor.
 
         NOTE:
-            *render_data* may be modified by the iterator. Keep this in mind if
-            *finalize* if ``False``.
+            *render_data* may be modified by the iterator or the underlying renderable.
+            Keep this in mind if *finalize* if ``False``.
         """
         if not isinstance(render_data, RenderData):
             raise arg_type_error("render_data", render_data)
