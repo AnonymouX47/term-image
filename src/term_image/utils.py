@@ -290,7 +290,7 @@ def arg_type_error(arg: str, value: Any) -> TypeError:
 
 
 def arg_type_error_msg(msg: str, value: Any) -> ValueError:
-    return ValueError(f"{msg} (got: {type(value).__name__})")
+    return TypeError(f"{msg} (got: {type(value).__name__})")
 
 
 def arg_value_error(arg: str, value: Any) -> ValueError:
