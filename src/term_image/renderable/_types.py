@@ -269,7 +269,8 @@ class RenderArgs(RenderArgsData):
             Like tuples, an instance is hashable if and only if the render argument
             values are hashable.
         """
-        # Keys in instance dictionaries are always in the same order.
+        # Keys in instance dictionaries are always in the same order for instances
+        # associated with the same render class.
         # Hence, there's no need to take the keys into consideration.
         return hash((self.render_cls, tuple(vars(self).values())))
 
