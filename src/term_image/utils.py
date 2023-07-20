@@ -285,20 +285,36 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
 # Non-decorators
 
 
-def arg_type_error(arg: str, value: Any) -> TypeError:
-    return TypeError(f"Invalid type for {arg!r} (got: {type(value).__name__})")
+def arg_type_error(arg: str, value: Any, got_extra: str = "") -> TypeError:
+    return TypeError(
+        f"Invalid type for {arg!r} (got: {type(value).__name__}; {got_extra})"
+        if got_extra
+        else f"Invalid type for {arg!r} (got: {type(value).__name__})"
+    )
 
 
-def arg_type_error_msg(msg: str, value: Any) -> ValueError:
-    return TypeError(f"{msg} (got: {type(value).__name__})")
+def arg_type_error_msg(msg: str, value: Any, got_extra: str = "") -> ValueError:
+    return TypeError(
+        f"{msg} (got: {type(value).__name__}; {got_extra})"
+        if got_extra
+        else f"{msg} (got: {type(value).__name__})"
+    )
 
 
-def arg_value_error(arg: str, value: Any) -> ValueError:
-    return ValueError(f"Invalid value for {arg!r} (got: {value!r})")
+def arg_value_error(arg: str, value: Any, got_extra: str = "") -> ValueError:
+    return ValueError(
+        f"Invalid value for {arg!r} (got: {value!r}; {got_extra})"
+        if got_extra
+        else f"Invalid value for {arg!r} (got: {value!r})"
+    )
 
 
-def arg_value_error_msg(msg: str, value: Any) -> ValueError:
-    return ValueError(f"{msg} (got: {value!r})")
+def arg_value_error_msg(msg: str, value: Any, got_extra: str = "") -> ValueError:
+    return ValueError(
+        f"{msg} (got: {value!r}; {got_extra})"
+        if got_extra
+        else f"{msg} (got: {value!r})"
+    )
 
 
 def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueError:
