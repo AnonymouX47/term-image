@@ -220,16 +220,18 @@ class RenderArgs(RenderArgsData):
                 )
 
             if param.type_check and not param.type_check(render_cls, value):
+                got_extra = f"render_cls={render_cls.__name__}"
                 raise (
-                    arg_type_error_msg(param.type_msg, value)
+                    arg_type_error_msg(param.type_msg, value, got_extra)
                     if param.type_msg
-                    else arg_type_error(name, value)
+                    else arg_type_error(name, value, got_extra)
                 )
             if param.value_check and not param.value_check(render_cls, value):
+                got_extra = f"render_cls={render_cls.__name__}"
                 raise (
-                    arg_value_error_msg(param.value_msg, value)
+                    arg_value_error_msg(param.value_msg, value, got_extra)
                     if param.value_msg
-                    else arg_value_error(name, value)
+                    else arg_value_error(name, value, got_extra)
                 )
             self.__dict__[name] = value
 
