@@ -288,15 +288,13 @@ class RenderArgs(RenderArgsData):
     """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
 
     def copy(self, **render_args: Any) -> RenderArgs:
-        """Creates a copy with some arguments modified.
+        """Creates a shallow copy, possibly with updated render arguments.
 
         Args:
-            render_args: Render arguments (for :py:attr:`render_cls`) to be modified in
-              the returned instance.
+            render_args: Render arguments (for :py:attr:`render_cls`) to be updated.
 
         Returns:
-            A new instance, if any argument is to be modified.
-            Otherwise, the same instance.
+            An instance with the given render arguments updated, if any.
 
         Raises the same exceptions as the constructor, where applicable.
         """
