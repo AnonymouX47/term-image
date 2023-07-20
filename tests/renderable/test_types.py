@@ -43,6 +43,15 @@ class TestFrame:
                 frame = Frame(None, None, None, value)
                 assert frame.render is value
 
+    def test_immutability(self):
+        frame = Frame(None, None, None, None)
+        for attr in ("number", "duration", "size", "render"):
+            with pytest.raises(AttributeError):
+                setattr(frame, attr, Ellipsis)
+
+            with pytest.raises(AttributeError):
+                delattr(frame, attr)
+
     def test_str(self):
         for value in (" ", " " * 10):
             frame = Frame(None, None, None, value)
@@ -90,6 +99,15 @@ class TestRenderParam:
                 assert render_param.value_msg is value
                 render_param = RenderParam(None, value_msg=value)
                 assert render_param.value_msg is value
+
+    def test_immutability(self):
+        render_param = RenderParam(None)
+        for attr in ("default", "type_check", "type_msg", "value_check", "value_msg"):
+            with pytest.raises(AttributeError):
+                setattr(render_param, attr, Ellipsis)
+
+            with pytest.raises(AttributeError):
+                delattr(render_param, attr)
 
 
 class Foo(Renderable):
@@ -267,6 +285,15 @@ class TestRenderArgs:
         assert render_args.b == 20  # from *init_render_args*
         assert render_args.c == 3  # default
 
+    def test_immutability(self):
+        render_args = RenderArgs(Foo)
+        for attr in ("foo", "bar"):
+            with pytest.raises(AttributeError):
+                setattr(render_args, attr, Ellipsis)
+
+            with pytest.raises(AttributeError):
+                delattr(render_args, attr)
+
     def test_equality(self):
         foo_args_default = RenderArgs(Foo)
         assert foo_args_default == foo_args_default
@@ -314,16 +341,6 @@ class TestRenderArgs:
         render_args = RenderArgs(Foo)
         with pytest.raises(AttributeError, match="Unknown .* 'baz'"):
             render_args.baz
-
-    def test_setattr(self):
-        render_args = RenderArgs(Foo)
-        with pytest.raises(AttributeError, match="Can't set"):
-            render_args.foo = Ellipsis
-
-    def test_delattr(self):
-        render_args = RenderArgs(Foo)
-        with pytest.raises(AttributeError, match="Can't delete"):
-            del render_args.foo
 
     def test_copy(self):
         render_args = RenderArgs(Foo, foo="bar")
@@ -467,9 +484,9 @@ class TestRenderData:
 
     def test_finalized(self):
         render_data = RenderData(Foo, **self.foo_render_data_dict)
-        assert not render_data.finalized
+        assert render_data.finalized is False
         render_data.finalize()
-        assert render_data.finalized
+        assert render_data.finalized is True
 
     def test_finalize(self):
         class Bar(Foo):
