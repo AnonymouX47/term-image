@@ -1157,6 +1157,7 @@ class TestInitRender:
                 )[2]
 
                 assert isinstance(render_fmt, RenderFormat)
+                assert render_fmt.relative is False
                 assert render_fmt == RenderFormat(value, value)
 
         def test_terminal_relative(self):
@@ -1166,6 +1167,7 @@ class TestInitRender:
                 )[2]
 
                 assert isinstance(render_fmt, RenderFormat)
+                assert render_fmt.relative is False
                 assert render_fmt == RenderFormat(columns + value, lines + value)
 
         def test_align(self):
