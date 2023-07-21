@@ -167,12 +167,12 @@ class RenderIterator:
             raise
 
     def __repr__(self) -> str:
-        return "{}({!r}, loops={}, cache={}, loop={})".format(
+        return "<{}: renderable={}, loops={}, loop={}, cached={}>".format(
             type(self).__name__,
-            self._renderable,
+            type(self._renderable).__name__,
             self._loops,
-            self._cache,
             self.loop,
+            self._cache,
         )
 
     loop: int
