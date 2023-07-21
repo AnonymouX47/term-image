@@ -145,7 +145,10 @@ class RenderIterator:
         next(self._iterator)
 
     def __del__(self) -> None:
-        self.close()
+        try:
+            self.close()
+        except AttributeError:
+            pass
 
     def __iter__(self) -> RenderIterator:
         return self
@@ -198,16 +201,15 @@ class RenderIterator:
             garbage-collected but it's recommended to call it manually if iteration
             is ended prematurely (i.e before the iterator itself is exhausted),
             especially if frames are cached.
+
+            This method is safe for multiple invokations.
         """
-        try:
+        if not self._closed:
             self._iterator.close()
             del self._iterator
             if self._finalize_data:
                 self._render_data.finalize()
             del self._render_data
-        except AttributeError:
-            pass
-        finally:
             self._closed = True
 
     def seek(self, offset: int) -> None:
