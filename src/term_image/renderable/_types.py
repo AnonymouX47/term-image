@@ -14,7 +14,7 @@ __all__ = (
 
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, NamedTuple, Type
+from typing import Any, Callable, ClassVar, NamedTuple, Type
 
 from .. import geometry
 from ..exceptions import RenderArgsError, RenderDataError, RenderFormatError
@@ -126,7 +126,14 @@ class RenderArgs(RenderArgsData):
 
     __slots__ = ("render_cls",)
 
-    __interned: dict[type[Renderable], RenderArgs] = {}
+    __interned: ClassVar[dict[type[Renderable], RenderArgs]] = {}
+
+    # Instance Attributes
+
+    render_cls: Type[Renderable]
+    """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
+
+    # Special Methods
 
     def __new__(
         cls,
@@ -284,8 +291,7 @@ class RenderArgs(RenderArgsData):
     def __setattr__(self, *_):
         raise AttributeError("Can't set attribute, use the `copy()` method instead")
 
-    render_cls: Type[Renderable]
-    """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
+    # Public Methods
 
     def copy(self, **render_args: Any) -> RenderArgs:
         """Creates a shallow copy, possibly with updated render arguments.
@@ -333,6 +339,16 @@ class RenderData(RenderArgsData):
 
     __slots__ = ("finalized", "render_cls")
 
+    # Instance Attributes
+
+    finalized: bool
+    """Finalization status"""
+
+    render_cls: Type[Renderable]
+    """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
+
+    # Special Methods
+
     def __init__(self, render_cls: type[Renderable], **render_data: Any) -> None:
         super().__setattr__("render_cls", render_cls)
         super().__setattr__("finalized", False)
@@ -372,11 +388,7 @@ class RenderData(RenderArgsData):
             )
         super().__setattr__(attr, value)
 
-    finalized: bool
-    """Finalization status"""
-
-    render_cls: Type[Renderable]
-    """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
+    # Public Methods
 
     def finalize(self) -> None:
         """Finalizes the render data.

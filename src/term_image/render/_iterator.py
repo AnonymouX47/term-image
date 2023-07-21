@@ -74,7 +74,7 @@ class RenderIterator:
           Likewise, the iterator does not modify the underlying renderable's current
           frame number.
         * Changes to the underlying renderable's
-          :py:attr:`~term_image.renderable.Renderable.render_size` does not affect the
+          :py:attr:`~term_image.renderable.Renderable.render_size` does not affect
           an iterator's render outputs, use :py:meth:`set_render_size` instead.
         * Changes to the underlying renderable's
           :py:attr:`~term_image.renderable.Renderable.frame_duration` does not affect
@@ -83,6 +83,21 @@ class RenderIterator:
 
     .. seealso::
         :py:meth:`Renderable.__iter__() <term_image.renderable.Renderable.__iter__>`.
+    """
+
+    loop: int
+    """Iteration loop countdown
+
+    * A negative integer, if iteration is infinite.
+    * Otherwise, the current iteration loop countdown value.
+
+      * Starts from the value of the *loops* constructor argument,
+      * decreases by one upon rendering the first frame of every loop after the
+        first,
+      * and ends at zero after the iterator is exhausted.
+
+    NOTE:
+        Modifying this doesn't affect the iterator.
     """
 
     def __new__(
@@ -177,21 +192,6 @@ class RenderIterator:
             self.loop,
             self._cache,
         )
-
-    loop: int
-    """Iteration loop countdown
-
-    * A negative integer, if iteration is infinite.
-    * Otherwise, the current iteration loop countdown value.
-
-      * Starts from the value of the *loops* constructor argument,
-      * decreases by one upon rendering the first frame of every loop after the
-        first,
-      * and ends at zero after the iterator is exhausted.
-
-    NOTE:
-        Modifying this doesn't affect the iterator.
-    """
 
     def close(self) -> None:
         """Finalizes the iterator and releases resources used.
