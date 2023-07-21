@@ -55,7 +55,8 @@ class RenderIterator:
             caching is disabled.
 
           .. note::
-            If *loops* equals 1 (one), caching is disabled.
+            The value is ignored and taken to be ``False``, if *renderable* has
+            :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
 
     Raises:
         TypeError: An argument is of an inappropriate type.
@@ -115,12 +116,13 @@ class RenderIterator:
 
         new = super().__new__(cls)
 
+        indefinite = renderable.frame_count is FrameCount.INDEFINITE
         new._closed = False
         new._renderable = renderable
-        new._loops = 1 if renderable.frame_count is FrameCount.INDEFINITE else loops
+        new._loops = 1 if indefinite else loops
         new._cache = (
             False
-            if new._loops == 1
+            if indefinite
             else cache
             if isinstance(cache, bool)
             else renderable.frame_count <= cache

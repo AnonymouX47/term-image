@@ -575,7 +575,13 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         lines = max(render_fmt.height, render_data.size.height)
         render_iter = RenderIterator._from_render_data_(
-            self, render_data, render_args, render_fmt, loops, cache, finalize=False
+            self,
+            render_data,
+            render_args,
+            render_fmt,
+            loops,
+            False if loops == 1 else cache,
+            finalize=False,
         )
         cursor_to_top_left = "\r" + CURSOR_UP % (lines - 1)
         cursor_down = CURSOR_DOWN % lines
