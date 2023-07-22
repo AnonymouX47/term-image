@@ -411,6 +411,24 @@ class Space(Renderable):
         )
 
 
+class IndefiniteSpace(Space):
+    _RENDER_DATA_ = frozenset({"frames"})
+
+    def __init__(self, frame_count):
+        super().__init__(FrameCount.INDEFINITE, 1)
+        self.__frame_count = frame_count
+
+    def _render_(self, render_data, render_args):
+        if render_data.iteration:
+            next(render_data.frames)
+        return super()._render_(render_data, render_args)
+
+    def _get_render_data_(self, *, iteration):
+        render_data = super()._get_render_data_(iteration=iteration)
+        render_data["frames"] = iter(range(self.__frame_count)) if iteration else None
+        return render_data
+
+
 class Char(Renderable):
     _RENDER_PARAMS_ = {"char": RenderParam(" ")}
 
@@ -423,23 +441,6 @@ class Char(Renderable):
             render_data.duration,
             render_data.size,
             "\n".join((render_args.char * width,) * height),
-        )
-
-
-class FrameNumberFill(Renderable):
-    render_size = Size(1, 1)
-
-    def __init__(self, size: Size):
-        super().__init__(10, 1)
-        self.render_size = size
-
-    def _render_(self, render_data, render_args):
-        width, height = render_data.size
-        return Frame(
-            render_data.frame,
-            render_data.duration,
-            render_data.size,
-            "\n".join((str(render_data.frame) * width,) * height),
         )
 
 
@@ -762,35 +763,16 @@ class TestDraw:
                         assert stdout.getvalue().endswith("\n")
 
         class TestIndefinite:
-            class IndefiniteSpace(Space):
-                _RENDER_DATA_ = frozenset({"frames"})
-
-                def __init__(self, frame_count):
-                    super().__init__(FrameCount.INDEFINITE, 1)
-                    self.__frame_count = frame_count
-
-                def _render_(self, render_data, render_args):
-                    if render_data.iteration:
-                        next(render_data.frames)
-                    return super()._render_(render_data, render_args)
-
-                def _get_render_data_(self, *, iteration):
-                    render_data = super()._get_render_data_(iteration=iteration)
-                    render_data["frames"] = (
-                        iter(range(self.__frame_count)) if iteration else None
-                    )
-                    return render_data
-
             @capture_stdout()
             def test_default(self):
-                self.IndefiniteSpace(2).draw()
+                IndefiniteSpace(2).draw()
                 assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
                 assert stdout.getvalue().endswith("\n")
 
             def test_loops(self):
                 for loops in (1, 2, 10, -1):
                     with capture_stdout():
-                        self.IndefiniteSpace(2).draw(loops=loops)
+                        IndefiniteSpace(2).draw(loops=loops)
                         assert stdout.getvalue().count("\n") == draw_n_eol(
                             lines - 2, 2, 1
                         )
@@ -799,7 +781,7 @@ class TestDraw:
             def test_frame_count(self):
                 for count in (2, 3, 10):
                     with capture_stdout():
-                        self.IndefiniteSpace(count).draw()
+                        IndefiniteSpace(count).draw()
                         assert stdout.getvalue().count("\n") == draw_n_eol(
                             lines - 2, count, 1
                         )
