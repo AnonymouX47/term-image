@@ -65,6 +65,7 @@ test-top := tests/test_top_level.py
 test-geometry := tests/test_geometry.py
 test-renderable-renderable := tests/renderable/test_renderable.py
 test-renderable-types := tests/renderable/test_types.py
+test-render-iterator := tests/render/test_iterator.py
 test-base := tests/test_image/test_base.py
 test-block := tests/test_image/test_block.py
 test-kitty := tests/test_image/test_kitty.py
@@ -75,16 +76,17 @@ test-iterator := tests/test_iterator.py
 test-urwid := tests/test_widget/test_urwid.py
 
 test-renderable := $(test-renderable-renderable) $(test-renderable-types)
+test-render := $(test-render-iterator)
 test-text := $(test-block)
 test-graphics := $(test-kitty) $(test-iterm2)
 test-image := $(test-base) $(test-text) $(test-graphics) $(test-others)
 test-widget := $(test-urwid)
-test := $(test-top) $(test-geometry) $(test-renderable) $(test-image) $(test-iterator) $(test-widget)
+test := $(test-top) $(test-geometry) $(test-renderable) $(test-render) $(test-image) $(test-iterator) $(test-widget)
 test-all := $(test) $(test-url)
 
 ## Targets
 
-test-all test test-renderable test-text test-graphics test-image test-widget \
+test-all test test-renderable test-render test-text test-graphics test-image test-widget \
 test-top test-geometry test-base test-block test-kitty test-iterm2 test-url test-others test-iterator test-urwid:
 	$(pytest) $($@)
 
