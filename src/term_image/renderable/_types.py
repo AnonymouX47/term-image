@@ -35,6 +35,10 @@ class Frame(NamedTuple):
     NOTE:
         Arguments are not validated since instances are only meant to be created
         internally.
+
+    TIP:
+        - Instances are immutable and hashable.
+        - Instances with equal fields compare equal.
     """
 
     number: int
@@ -116,7 +120,7 @@ class RenderArgs(RenderArgsData):
         * An instance is *compatible* with its associated subclass of
           :py:class:`~term_image.renderable.Renderable` (:py:attr:`render_cls`) and
           its subclasses.
-        * Instances are effectively immutable but modified copies can be created via
+        * Instances are immutable but modified copies can be created via
           :py:meth:`copy`.
 
     TIP:
@@ -431,6 +435,10 @@ class RenderFormat:
         typically translate it to an instance with equivalent **absolute** padding
         dimensions upon reception.
 
+    TIP:
+        - Instances are immutable and hashable.
+        - Instances with equal fields compare equal.
+
     .. seealso:: :doc:`/guide/formatting`.
     """
 
@@ -583,6 +591,10 @@ class RenderParam(NamedTuple):
         Otherwise, :py:class:`~term_image.renderable.RenderArgs`\\ ' contract of
         immutability and/or hashability would be broken and it may also result in
         unexpected behaviour during render operations.
+
+    TIP:
+        - Instances are immutable and hashable.
+        - Instances with equal fields compare equal.
     """
 
     default: Any
