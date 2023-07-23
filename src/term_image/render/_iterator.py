@@ -134,7 +134,7 @@ class RenderIterator:
         indefinite = renderable.frame_count is FrameCount.INDEFINITE
         new._closed = False
         new._renderable = renderable
-        new._loops = 1 if indefinite else loops
+        new.loop = new._loops = 1 if indefinite else loops
         new._cached = (
             False
             if indefinite
@@ -231,7 +231,7 @@ class RenderIterator:
         if self._renderable.frame_count is FrameCount.INDEFINITE:
             if offset:
                 raise arg_value_error_msg(
-                    "Non-zero offset is invalid for a renderable with "
+                    "Non-zero offset is invalid because the underlying renderable has "
                     "INDEFINITE frame count",
                     offset,
                 )
@@ -352,22 +352,24 @@ class RenderIterator:
         render_args: RenderArgs,
     ) -> Generator[Frame, None, None]:
         """Performs the actual render iteration operation."""
-        # complete instance init
-        self.loop = loop = self._loops
+        # Instance init completion
         self._render_data = render_data
         self._render_args = render_args
         self._formatted_size = self._render_fmt.get_formatted_size(render_data.size)
 
+        # Setup
         renderable = self._renderable
         frame_count = renderable.frame_count
         if frame_count is FrameCount.INDEFINITE:
             frame_count = 1
         definite = frame_count > 1
+        loop = self.loop
         cache: tuple[Frame, Size, RenderArgs, RenderFormat] | None
         cache = [(None,) * 4] * frame_count if self._cached else None
 
         yield Frame(0, None, Size(0, 0), "")
 
+        # Render iteration
         frame_no = render_data.frame * definite
         while loop:
             while frame_no < frame_count:
