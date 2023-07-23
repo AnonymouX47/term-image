@@ -531,6 +531,8 @@ class TestDraw:
         for space in (Space(1, 1), Space(2, 1)):
             with pytest.raises(TypeError, match="'render_args'"):
                 space.draw(Ellipsis)
+            with pytest.raises(RenderArgsError, match="incompatible"):
+                space.draw(RenderArgs(Char))
 
             with pytest.raises(TypeError, match="'render_fmt'"):
                 space.draw(render_fmt=Ellipsis)
@@ -794,6 +796,8 @@ class TestRender:
     def test_args(self):
         with pytest.raises(TypeError, match="'render_args'"):
             self.space.render(Ellipsis)
+        with pytest.raises(RenderArgsError, match="incompatible"):
+            self.space.render(RenderArgs(Char))
 
         with pytest.raises(TypeError, match="'render_fmt'"):
             self.space.render(render_fmt=Ellipsis)

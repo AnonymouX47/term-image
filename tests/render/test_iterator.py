@@ -2,7 +2,7 @@ from itertools import zip_longest
 
 import pytest
 
-from term_image.exceptions import RenderIteratorError
+from term_image.exceptions import RenderArgsError, RenderIteratorError
 from term_image.geometry import Size
 from term_image.render import RenderIterator
 from term_image.renderable import (
@@ -83,6 +83,8 @@ def test_args():
 
     with pytest.raises(TypeError, match="'render_args'"):
         RenderIterator(anim_space, Ellipsis)
+    with pytest.raises(RenderArgsError, match="incompatible"):
+        RenderIterator(anim_space, RenderArgs(FrameFill))
 
     with pytest.raises(TypeError, match="'render_fmt'"):
         RenderIterator(anim_space, render_fmt=Ellipsis)
