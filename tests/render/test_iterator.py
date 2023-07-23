@@ -644,3 +644,86 @@ class TestSetRenderFmt:
 
         render_iter.seek(0)
         assert next(render_iter) is new_frame
+
+
+class TestSetRenderSize:
+    anim_char = Char(4, 1)
+
+    def test_args(self):
+        render_iter = RenderIterator(self.anim_char)
+        with pytest.raises(TypeError, match="render_size"):
+            render_iter.set_render_size(Ellipsis)
+        for value in (0, -1):
+            with pytest.raises(ValueError, match="render_size"):
+                render_iter.set_render_size(Size(value, 1))
+            with pytest.raises(ValueError, match="render_size"):
+                render_iter.set_render_size(Size(1, value))
+
+    def test_iteration(self):
+        render_iter = RenderIterator(self.anim_char)
+        frame = next(render_iter)
+        assert frame.size == Size(1, 1)
+        assert frame.render == " "
+
+        render_iter.set_render_size(Size(3, 1))
+        frame = next(render_iter)
+        assert frame.size == Size(3, 1)
+        assert frame.render == "   "
+
+        render_iter.set_render_size(Size(3, 3))
+        frame = next(render_iter)
+        assert frame.size == Size(3, 3)
+        assert frame.render == "   \n   \n   "
+
+        frame = next(render_iter)
+        assert frame.size == Size(3, 3)
+        assert frame.render == "   \n   \n   "
+
+    def test_before_seek(self):
+        for cache in (False, True):
+            print(f"cache={cache}")
+
+            render_iter = RenderIterator(self.anim_char, cache=cache)
+            frame = next(render_iter)
+            assert frame.size == Size(1, 1)
+            assert frame.render == " "
+
+            render_iter.set_render_size(Size(3, 1))
+            render_iter.seek(0)
+            frame = next(render_iter)
+            assert frame.size == Size(3, 1)
+            assert frame.render == "   "
+
+    def test_after_seek(self):
+        for cache in (False, True):
+            print(f"cache={cache}")
+
+            render_iter = RenderIterator(self.anim_char, cache=cache)
+            frame = next(render_iter)
+            assert frame.size == Size(1, 1)
+            assert frame.render == " "
+
+            render_iter.seek(0)
+            render_iter.set_render_size(Size(3, 1))
+            frame = next(render_iter)
+            assert frame.size == Size(3, 1)
+            assert frame.render == "   "
+
+    def test_cache_update(self):
+        render_iter = RenderIterator(self.anim_char, cache=True)
+        old_frame = next(render_iter)
+        assert old_frame.size == Size(1, 1)
+        assert old_frame.render == " "
+
+        render_iter.seek(0)
+        assert next(render_iter) is old_frame
+
+        render_iter.seek(0)
+        render_iter.set_render_size(Size(3, 1))
+        new_frame = next(render_iter)
+        assert new_frame is not old_frame
+        assert new_frame.size == Size(3, 1)
+        assert new_frame.render == "   "
+
+        render_iter.seek(0)
+        assert next(render_iter) is new_frame
