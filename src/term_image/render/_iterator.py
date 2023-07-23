@@ -135,7 +135,7 @@ class RenderIterator:
         new._closed = False
         new._renderable = renderable
         new._loops = 1 if indefinite else loops
-        new._cache = (
+        new._cached = (
             False
             if indefinite
             else cache
@@ -190,7 +190,7 @@ class RenderIterator:
             type(self._renderable).__name__,
             self._loops,
             self.loop,
-            self._cache,
+            self._cached,
         )
 
     def close(self) -> None:
@@ -363,31 +363,43 @@ class RenderIterator:
         if frame_count is FrameCount.INDEFINITE:
             frame_count = 1
         definite = frame_count > 1
-        cache = self._cache and [None] * frame_count
+        cache: tuple[Frame, Size, RenderArgs, RenderFormat] | None
+        cache = [(None,) * 4] * frame_count if self._cached else None
 
         yield Frame(0, None, Size(0, 0), "")
 
         frame_no = render_data.frame * definite
         while loop:
             while frame_no < frame_count:
-                try:
-                    frame = renderable._render_(render_data, self._render_args)
-                except StopIteration:
-                    if not definite:
-                        self.loop = 0
-                        return
-                    raise
-                if self._formatted_size != frame.size:
-                    frame = Frame(
-                        frame.number,
-                        frame.duration,
-                        self._formatted_size,
-                        renderable._format_render_(
-                            frame.render, frame.size, self._render_fmt
-                        ),
-                    )
-                if cache:
-                    cache[frame_no] = frame
+                frame, *frame_details = cache[frame_no] if cache else (None,)
+                if not frame or frame_details != [
+                    render_data.size,
+                    self._render_args,
+                    self._render_fmt,
+                ]:
+                    try:
+                        frame = renderable._render_(render_data, self._render_args)
+                    except StopIteration:
+                        if not definite:
+                            self.loop = 0
+                            return
+                        raise
+                    if self._formatted_size != frame.size:
+                        frame = Frame(
+                            frame.number,
+                            frame.duration,
+                            self._formatted_size,
+                            renderable._format_render_(
+                                frame.render, frame.size, self._render_fmt
+                            ),
+                        )
+                    if cache:
+                        cache[frame_no] = (
+                            frame,
+                            render_data.size,
+                            self._render_args,
+                            self._render_fmt,
+                        )
 
                 if definite:
                     render_data.frame += 1
@@ -400,33 +412,6 @@ class RenderIterator:
                     frame_no = render_data.frame
 
             # INDEFINITE can never reach here
-            frame_no = render_data.frame = 0
-            if loop > 0:  # Avoid infinitely large negative numbers
-                self.loop = loop = loop - 1
-            if cache:
-                break
-
-        # INDEFINITE can never reach here
-        while loop:
-            while frame_no < frame_count:
-                frame = cache[frame_no]
-                if not frame:  # Skipped by seek in uncached loop
-                    frame = renderable._render_(render_data, self._render_args)
-                    if self._formatted_size != frame.size:
-                        frame = Frame(
-                            frame.number,
-                            frame.duration,
-                            self._formatted_size,
-                            renderable._format_render_(
-                                frame.render, frame.size, self._render_fmt
-                            ),
-                        )
-                    cache[frame_no] = frame
-
-                render_data.frame += 1
-                yield frame
-                frame_no = render_data.frame
-
             frame_no = render_data.frame = 0
             if loop > 0:  # Avoid infinitely large negative numbers
                 self.loop = loop = loop - 1
