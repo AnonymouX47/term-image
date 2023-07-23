@@ -1,3 +1,5 @@
+from itertools import zip_longest
+
 import pytest
 
 from term_image.exceptions import RenderIteratorError
@@ -384,19 +386,88 @@ def test_close():
 
 
 class TestSeek:
-    class TestDefinite:
-        def test_absolute(self):
-            pass
+    def test_args(self):
+        render_iter = RenderIterator(anim_space)
+        with pytest.raises(TypeError, match="offset"):
+            render_iter.seek(Ellipsis)
 
-        def test_cached(self):
-            pass
+    class TestDefinite:
+        def test_arg_offset(self):
+            render_iter = RenderIterator(anim_space)
+            for value in (2, -1):
+                with pytest.raises(ValueError, match="offset"):
+                    render_iter.seek(value)
+
+        def test_absolute(self):
+            for cache in (False, True):
+                print(f"cache={cache}")
+
+                render_iter = RenderIterator(frame_fill, cache=cache)
+                assert next(render_iter).number == 0
+
+                render_iter.seek(9)
+                assert next(render_iter).number == 9
+
+                render_iter.seek(6)
+                render_iter.seek(4)
+                assert next(render_iter).number == 4
+                assert next(render_iter).number == 5
+
+                render_iter.seek(3)
+                render_iter.seek(7)
+                assert next(render_iter).number == 7
+                assert next(render_iter).number == 8
+
+                render_iter.seek(0)
+                assert next(render_iter).number == 0
+                assert next(render_iter).number == 1
+
+                render_iter.seek(9)
+                assert next(render_iter).number == 9
+
+                with pytest.raises(StopIteration, match="ended"):
+                    next(render_iter)
 
         def test_uncached(self):
-            pass
+            render_iter = RenderIterator(frame_fill, cache=False)
+            frames = [next(render_iter) for _ in range(10)]
+            render_iter.seek(0)
+            for old_frame, new_frame in zip_longest(frames, render_iter):
+                assert old_frame is not new_frame
+
+        def test_cached(self):
+            render_iter = RenderIterator(frame_fill, cache=True)
+            frames = [next(render_iter) for _ in range(10)]
+            render_iter.seek(0)
+            for old_frame, new_frame in zip_longest(frames, render_iter):
+                assert old_frame is new_frame
+
+        def test_cache_skipped_frame(self):
+            render_iter = RenderIterator(frame_fill, cache=True)
+            render_iter.seek(9)
+            next(render_iter)
+
+            render_iter.seek(5)
+            frame_5 = next(render_iter)
+
+            render_iter.seek(9)
+            next(render_iter)
+
+            render_iter.seek(5)
+            assert next(render_iter) is frame_5
 
     class TestIndefinite:
+        def test_arg_offset(self):
+            render_iter = RenderIterator(indefinite_frame_fill)
+            for value in (1, -1):
+                with pytest.raises(ValueError, match="Non-zero .* INDEFINITE"):
+                    render_iter.seek(value)
+
         def test_absolute(self):
-            pass
+            render_iter = RenderIterator(indefinite_frame_fill)
+            frame = next(render_iter)
+            assert frame.number == 0
+            assert frame.render == "0"
 
     def test_finalized(self):
         render_iter = RenderIterator(anim_space)
