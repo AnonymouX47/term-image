@@ -280,24 +280,24 @@ class RenderIterator:
         self._render_fmt = render_fmt = render_fmt.absolute(get_terminal_size())
         self._formatted_size = render_fmt.get_formatted_size(self._render_data.size)
 
-    def set_render_size(self, size: Size) -> None:
+    def set_render_size(self, render_size: Size) -> None:
         """Sets the frame :term:`render size`, starting with the next rendered frame.
 
         Args:
-            size: Render size.
+            render_size: Render size.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
         """
-        if not isinstance(size, Size):
-            raise arg_type_error("size", size)
-        if not size.width > 0 < size.height:
-            raise arg_value_error_range("size", size)
+        if not isinstance(render_size, Size):
+            raise arg_type_error("render_size", render_size)
+        if not render_size.width > 0 < render_size.height:
+            raise arg_value_error_range("render_size", render_size)
 
-        self._render_data.size = size
-        self._formatted_size = self._render_fmt.get_formatted_size(size)
+        self._render_data.size = render_size
+        self._formatted_size = self._render_fmt.get_formatted_size(render_size)
 
     @classmethod
     def _from_render_data_(
@@ -364,7 +364,6 @@ class RenderIterator:
             frame_count = 1
         definite = frame_count > 1
         loop = self.loop
-        cache: tuple[Frame, Size, RenderArgs, RenderFormat] | None
         cache = [(None,) * 4] * frame_count if self._cached else None
 
         yield Frame(0, None, Size(0, 0), "")
@@ -402,7 +401,6 @@ class RenderIterator:
                             self._render_args,
                             self._render_fmt,
                         )
-
                 if definite:
                     render_data.frame += 1
                 elif render_data.frame:  # reset after seek
