@@ -504,3 +504,64 @@ class TestSeek:
                 next(render_iter)
 
     # See also: TestClose.test_seek
+
+
+class TestSetRenderArgs:
+    anim_char = Char(4, 1)
+
+    def test_args(self):
+        render_iter = RenderIterator(self.anim_char)
+        with pytest.raises(TypeError, match="render_args"):
+            render_iter.set_render_args(Ellipsis)
+        with pytest.raises(RenderArgsError, match="incompatible"):
+            render_iter.set_render_args(RenderArgs(Space))
+
+    def test_iteration(self):
+        render_iter = RenderIterator(self.anim_char)
+        assert next(render_iter).render == " "
+
+        render_iter.set_render_args(RenderArgs(Char, char="#"))
+        assert next(render_iter).render == "#"
+
+        render_iter.set_render_args(RenderArgs(Char, char="$"))
+        assert next(render_iter).render == "$"
+        assert next(render_iter).render == "$"
+
+    def test_before_seek(self):
+        for cache in (False, True):
+            print(f"cache={cache}")
+
+            render_iter = RenderIterator(self.anim_char, cache=cache)
+            assert next(render_iter).render == " "
+
+            render_iter.set_render_args(RenderArgs(Char, char="#"))
+            render_iter.seek(0)
+            assert next(render_iter).render == "#"
+
+    def test_after_seek(self):
+        for cache in (False, True):
+            print(f"cache={cache}")
+
+            render_iter = RenderIterator(self.anim_char, cache=cache)
+            assert next(render_iter).render == " "
+
+            render_iter.seek(0)
+            render_iter.set_render_args(RenderArgs(Char, char="#"))
+            assert next(render_iter).render == "#"
+
+    def test_cache_update(self):
+        render_iter = RenderIterator(self.anim_char, cache=True)
+        old_frame = next(render_iter)
+        assert old_frame.render == " "
+
+        render_iter.seek(0)
+        assert next(render_iter) is old_frame
+
+        render_iter.seek(0)
+        render_iter.set_render_args(RenderArgs(Char, char="#"))
+        new_frame = next(render_iter)
+        assert new_frame is not old_frame
+        assert new_frame.render == "#"
+
+        render_iter.seek(0)
+        assert next(render_iter) is new_frame
