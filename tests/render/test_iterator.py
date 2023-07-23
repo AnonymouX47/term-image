@@ -120,11 +120,20 @@ class TestRenderArgs:
 class TestRenderFmt:
     def test_default(self):
         render_iter = RenderIterator(frame_fill)
-        assert next(render_iter).render == "0"
+        for index, frame in enumerate(render_iter):
+            assert frame.size == Size(1, 1)
+            assert frame.render == str(index)
 
     def test_non_default(self):
         render_iter = RenderIterator(frame_fill, render_fmt=RenderFormat(3, 3))
-        assert next(render_iter).render == "   \n 0 \n   "
+        for index, frame in enumerate(render_iter):
+            assert frame.size == Size(3, 3)
+            assert frame.render == f"   \n {index} \n   "
+
+        render_iter = RenderIterator(FrameFill(Size(5, 5)))
+        for index, frame in enumerate(render_iter):
+            assert frame.size == Size(5, 5)
+            assert frame.render == "\n".join((str(index) * 5,) * 5)
 
 
 class TestLoops:
@@ -226,12 +235,14 @@ class TestFrames:
             print(f"cache={cache}")
             render_iter = RenderIterator(frame_fill, cache=cache)
             for index, frame in enumerate(render_iter):
-                assert frame == Frame(index, 1, self.size, str(index))
+                assert frame.number == index
+                assert frame.render == str(index)
 
     def test_indefinite(self):
         render_iter = RenderIterator(indefinite_frame_fill)
         for index, frame in enumerate(render_iter):
-            assert frame == Frame(0, 1, self.size, str(index))
+            assert frame.number == 0
+            assert frame.render == str(index)
 
 
 def test_repetition():
@@ -244,20 +255,12 @@ def test_repetition():
 class TestLoop:
     class TestDefinite:
         def test_start(self):
-            for cache in (False, True):
-                print(f"cache={cache}")
+            render_iter = RenderIterator(anim_space)
+            assert render_iter.loop == 1
 
-                render_iter = RenderIterator(anim_space)
-                assert render_iter.loop == 1
-
-                render_iter = RenderIterator(anim_space, loops=10, cache=cache)
-                assert render_iter.loop == 10
-
-                render_iter = RenderIterator(anim_space, loops=-1, cache=cache)
-                assert render_iter.loop == -1
-
-                render_iter = RenderIterator(anim_space, loops=-10, cache=cache)
-                assert render_iter.loop == -10
+            for value in (10, -1, -10):
+                render_iter = RenderIterator(anim_space, loops=value)
+                assert render_iter.loop == value
 
         def test_end(self):
             for cache in (False, True):
@@ -299,6 +302,27 @@ class TestLoop:
                         for _ in range(2):
                             next(render_iter)
                             assert render_iter.loop == -1
+
+        def test_after_seek(self):
+            for cache in (False, True):
+                print(f"cache={cache}")
+
+                render_iter = RenderIterator(frame_fill, loops=2, cache=cache)
+
+                render_iter.seek(9)
+                next(render_iter)
+                assert render_iter.loop == 2
+
+                render_iter.seek(0)
+                next(render_iter)
+                assert render_iter.loop == 2
+
+                render_iter.seek(9)
+                next(render_iter)
+                assert render_iter.loop == 2
+
+                next(render_iter)
+                assert render_iter.loop == 1
 
     class TestIndefinite:
         def test_start(self):
@@ -367,22 +391,21 @@ class TestNext:
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
-    def test_finalized(self):
-        render_iter = RenderIterator(anim_space)
-        next(render_iter)
+    # See also: TestClose.test_next
 
+
+class TestClose:
+    def test_next(self):
+        render_iter = RenderIterator(anim_space)
         render_iter.close()
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
-
-def test_close():
-    render_iter = RenderIterator(anim_space)
-    next(render_iter)
-
-    render_iter.close()
-    with pytest.raises(StopIteration, match="finalized"):
-        next(render_iter)
+    def test_seek(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(RenderIteratorError, match="finalized"):
+            render_iter.seek(0)
 
 
 class TestSeek:
@@ -469,10 +492,13 @@ class TestSeek:
             assert frame.number == 0
             assert frame.render == "0"
 
-    def test_finalized(self):
-        render_iter = RenderIterator(anim_space)
-        render_iter.seek(1)
+            for render in "123456789":
+                render_iter.seek(0)
+                frame = next(render_iter)
+                assert frame.number == 0
+                assert frame.render == render
 
-        render_iter.close()
-        with pytest.raises(RenderIteratorError, match="finalized"):
-            render_iter.seek(0)
+            with pytest.raises(StopIteration, match="ended"):
+                next(render_iter)
+
+    # See also: TestClose.test_seek
