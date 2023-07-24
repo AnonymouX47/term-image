@@ -54,7 +54,7 @@ class IndefiniteFrameFill(Renderable):
 
     def _get_render_data_(self, *, iteration):
         render_data = super()._get_render_data_(iteration=iteration)
-        render_data["frames"] = iter(range(self.__frame_count)) if iteration else None
+        render_data.frames = iter(range(self.__frame_count)) if iteration else None
         return render_data
 
 

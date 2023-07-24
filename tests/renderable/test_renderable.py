@@ -425,7 +425,7 @@ class IndefiniteSpace(Space):
 
     def _get_render_data_(self, *, iteration):
         render_data = super()._get_render_data_(iteration=iteration)
-        render_data["frames"] = iter(range(self.__frame_count)) if iteration else None
+        render_data.frames = iter(range(self.__frame_count)) if iteration else None
         return render_data
 
 
@@ -975,34 +975,34 @@ class TestGetRenderData:
 
     def test_all(self):
         render_data = self.anim_space._get_render_data_(iteration=False)
-        assert isinstance(render_data, dict)
-        assert len(render_data) == 4
-        assert render_data.keys() == {"size", "frame", "duration", "iteration"}
+        assert isinstance(render_data, RenderData)
+        assert len(vars(render_data)) == 4
+        assert vars(render_data).keys() == {"size", "frame", "duration", "iteration"}
 
     def test_size(self):
         for value in (2, 10):
             self.anim_space.render_size = render_size = Size(value, value)
-            size = self.anim_space._get_render_data_(iteration=False)["size"]
+            size = self.anim_space._get_render_data_(iteration=False).size
             assert isinstance(size, Size)
             assert size == render_size
 
     def test_frame(self):
         for value in (2, 8):
             self.anim_space.seek(value)
-            frame = self.anim_space._get_render_data_(iteration=False)["frame"]
+            frame = self.anim_space._get_render_data_(iteration=False).frame
             assert isinstance(frame, int)
             assert frame == value
 
     def test_duration(self):
         for value in (2, 100, FrameDuration.DYNAMIC):
             self.anim_space.frame_duration = value
-            duration = self.anim_space._get_render_data_(iteration=False)["duration"]
+            duration = self.anim_space._get_render_data_(iteration=False).duration
             assert isinstance(duration, (int, FrameDuration))
             assert duration == value
 
     def test_iteration(self):
-        self.anim_space._get_render_data_(iteration=False)["iteration"] is False
-        self.anim_space._get_render_data_(iteration=True)["iteration"] is True
+        self.anim_space._get_render_data_(iteration=False).iteration is False
+        self.anim_space._get_render_data_(iteration=True).iteration is True
 
 
 class TestInitRender:
@@ -1075,10 +1075,9 @@ class TestInitRender:
                 self.__value = value
 
             def _get_render_data_(self, *, iteration):
-                return {
-                    **super()._get_render_data_(iteration=iteration),
-                    "foo": self.__value,
-                }
+                render_data = super()._get_render_data_(iteration=iteration)
+                render_data.foo = self.__value
+                return render_data
 
         for value in (None, 1, " ", []):
             render_data = Foo(value)._init_render_(lambda *args: args)[0][0]
