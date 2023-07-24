@@ -288,9 +288,15 @@ class RenderArgs(RenderArgsData):
         return hash((self.render_cls, tuple(vars(self).values())))
 
     def __getattr__(self, attr):
-        raise AttributeError(
-            f"Unknown render parameter {attr!r} for {self.render_cls.__name__!r}"
-        )
+        try:
+            render_cls = self.__getattribute__("render_cls")
+        except AttributeError:
+            pass
+        else:
+            raise AttributeError(
+                f"Unknown render parameter {attr!r} for {render_cls.__name__!r}"
+            )
+        self.__getattribute__(attr)  # fails with the normal exception message
 
     def __setattr__(self, *_):
         raise AttributeError("Can't set attribute, use the `copy()` method instead")
@@ -354,8 +360,8 @@ class RenderData(RenderArgsData):
     # Special Methods
 
     def __init__(self, render_cls: type[Renderable], **render_data: Any) -> None:
-        super().__setattr__("render_cls", render_cls)
         super().__setattr__("finalized", False)
+        super().__setattr__("render_cls", render_cls)
 
         render_params = render_cls._ALL_RENDER_DATA
         difference = render_data.keys() - render_params
@@ -381,9 +387,15 @@ class RenderData(RenderArgsData):
             pass
 
     def __getattr__(self, attr):
-        raise AttributeError(
-            f"Unknown render data {attr!r} for {self.render_cls.__name__!r}"
-        )
+        try:
+            render_cls = self.__getattribute__("render_cls")
+        except AttributeError:
+            pass
+        else:
+            raise AttributeError(
+                f"Unknown render data {attr!r} for {render_cls.__name__!r}"
+            )
+        self.__getattribute__(attr)  # fails with the normal exception message
 
     def __setattr__(self, attr, value):
         if attr not in self.render_cls._ALL_RENDER_DATA:
