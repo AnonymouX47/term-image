@@ -112,11 +112,13 @@ def test_renderable():
 class TestRenderArgs:
     def test_default(self):
         render_iter = RenderIterator(anim_char)
-        assert next(render_iter).render == " "
+        for frame in render_iter:
+            assert frame.render == " "
 
     def test_non_default(self):
         render_iter = RenderIterator(anim_char, RenderArgs(Char, char="#"))
-        assert next(render_iter).render == "#"
+        for frame in render_iter:
+            assert frame.render == "#"
 
 
 class TestRenderFmt:
@@ -126,12 +128,13 @@ class TestRenderFmt:
             assert frame.size == Size(1, 1)
             assert frame.render == str(index)
 
-    def test_non_default(self):
+    def test_greater_than_render_size(self):
         render_iter = RenderIterator(frame_fill, render_fmt=RenderFormat(3, 3))
         for index, frame in enumerate(render_iter):
             assert frame.size == Size(3, 3)
             assert frame.render == f"   \n {index} \n   "
 
+    def test_less_than_render_size(self):
         render_iter = RenderIterator(FrameFill(Size(5, 5)))
         for index, frame in enumerate(render_iter):
             assert frame.size == Size(5, 5)
