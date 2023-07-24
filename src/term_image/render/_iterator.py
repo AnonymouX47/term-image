@@ -328,17 +328,26 @@ class RenderIterator:
 
         NOTE:
             *render_data* may be modified by the iterator or the underlying renderable.
-            Keep this in mind if *finalize* if ``False``.
         """
+        new = cls.__new__(cls, renderable, render_args, render_fmt, *args, **kwargs)
+
         if not isinstance(render_data, RenderData):
             raise arg_type_error("render_data", render_data)
-        if not render_data.iteration:
+        if render_data.render_cls is not type(renderable):
             raise arg_value_error_msg(
-                "Invalid render data for an iterator", render_data
+                "Invalid render data for renderable of type "
+                f"{type(renderable).__name__!r}",
+                render_data,
             )
+        if render_data.finalized:
+            raise ValueError("The render data has been finalized")
+        if not render_data.iteration:
+            raise arg_value_error_msg("Invalid render data for iteration", render_data)
+
+        if not isinstance(finalize, bool):
+            raise arg_type_error("finalize", finalize)
 
         render_args = RenderArgs(type(renderable), render_args)  # Validate and complete
-        new = cls.__new__(cls, renderable, render_args, render_fmt, *args, **kwargs)
         new._render_fmt = render_fmt.absolute(get_terminal_size())
         new._iterator = new._iterate(render_data, render_args)
         new._finalize_data = finalize
