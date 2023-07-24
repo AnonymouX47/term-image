@@ -727,3 +727,121 @@ class TestSetRenderSize:
 
         render_iter.seek(0)
         assert next(render_iter) is new_frame
+
+
+class TestFromRenderData:
+    def test_args(self):
+        render_data = anim_space._get_render_data_(iteration=True)
+        finalized_render_data = anim_space._get_render_data_(iteration=True)
+        finalized_render_data.finalize()
+
+        with pytest.raises(TypeError, match="'renderable'"):
+            RenderIterator._from_render_data_(Ellipsis, render_data)
+        with pytest.raises(ValueError, match="not animated"):
+            RenderIterator._from_render_data_(space, render_data)
+
+        with pytest.raises(TypeError, match="'render_data'"):
+            RenderIterator._from_render_data_(anim_space, Ellipsis)
+        with pytest.raises(ValueError, match="'Space'"):
+            RenderIterator._from_render_data_(
+                anim_space, anim_char._get_render_data_(iteration=True)
+            )
+        with pytest.raises(ValueError, match="iteration"):
+            RenderIterator._from_render_data_(
+                anim_space, anim_space._get_render_data_(iteration=False)
+            )
+        with pytest.raises(ValueError, match="finalized"):
+            RenderIterator._from_render_data_(anim_space, finalized_render_data)
+
+        with pytest.raises(TypeError, match="'render_args'"):
+            RenderIterator._from_render_data_(
+                anim_space, render_data, render_args=Ellipsis
+            )
+        with pytest.raises(RenderArgsError, match="incompatible"):
+            RenderIterator._from_render_data_(
+                anim_space, render_data, render_args=RenderArgs(FrameFill)
+            )
+
+        with pytest.raises(TypeError, match="'render_fmt'"):
+            RenderIterator._from_render_data_(
+                anim_space, render_data, render_fmt=Ellipsis
+            )
+
+        with pytest.raises(TypeError, match="'finalize'"):
+            RenderIterator._from_render_data_(
+                anim_space, render_data, finalize=Ellipsis
+            )
+
+    def test_render_data(self):
+        render_data = anim_space._get_render_data_(iteration=True)
+        assert render_data.frame == 0
+        assert render_data.size == Size(1, 1)
+        assert render_data.duration == 1
+
+        render_data.size = Size(3, 3)
+        render_iter = RenderIterator._from_render_data_(anim_space, render_data)
+        assert next(render_iter).size == Size(3, 3)
+
+        render_data.duration = 100
+        assert next(render_iter).duration == 100
+
+    class TestFinalize:
+        def test_default(self):
+            render_data = anim_space._get_render_data_(iteration=True)
+            render_iter = RenderIterator._from_render_data_(anim_space, render_data)
+            render_iter.close()
+            assert render_data.finalized is True
+
+        def test_non_default(self):
+            for value in (False, True):
+                render_data = anim_space._get_render_data_(iteration=True)
+                render_iter = RenderIterator._from_render_data_(
+                    anim_space, render_data, finalize=value
+                )
+                render_iter.close()
+                assert render_data.finalized is value
+
+    class TestRenderArgs:
+        def test_default(self):
+            render_iter = RenderIterator._from_render_data_(
+                anim_char, anim_char._get_render_data_(iteration=True)
+            )
+            for frame in render_iter:
+                assert frame.render == " "
+
+        def test_non_default(self):
+            render_iter = RenderIterator._from_render_data_(
+                anim_char,
+                anim_char._get_render_data_(iteration=True),
+                RenderArgs(Char, char="#"),
+            )
+            for frame in render_iter:
+                assert frame.render == "#"
+
+    class TestRenderFmt:
+        def test_default(self):
+            render_iter = RenderIterator._from_render_data_(
+                frame_fill, frame_fill._get_render_data_(iteration=True)
+            )
+            for index, frame in enumerate(render_iter):
+                assert frame.size == Size(1, 1)
+                assert frame.render == str(index)
+
+        def test_greater_than_render_size(self):
+            render_iter = RenderIterator._from_render_data_(
+                frame_fill,
+                frame_fill._get_render_data_(iteration=True),
+                render_fmt=RenderFormat(3, 3),
+            )
+            for index, frame in enumerate(render_iter):
+                assert frame.size == Size(3, 3)
+                assert frame.render == f"   \n {index} \n   "
+
+        def test_less_than_render_size(self):
+            frame_fill = FrameFill(Size(5, 5))
+            render_iter = RenderIterator._from_render_data_(
+                frame_fill, frame_fill._get_render_data_(iteration=True)
+            )
+            for index, frame in enumerate(render_iter):
+                assert frame.size == Size(5, 5)
+                assert frame.render == "\n".join((str(index) * 5,) * 5)
