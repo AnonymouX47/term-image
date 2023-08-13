@@ -29,6 +29,7 @@ extensions = [
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
     "sphinx_toolbox.more_autosummary",
+    "sphinx_toolbox.collapse",
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -84,7 +85,18 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
     elif isinstance(obj, type) and issubclass(obj, Warning):
         return "Warnings"
     elif isinstance(parent, type):
-        obj = vars(parent)[name.rpartition(".")[2]]
+        short_name = name.rpartition(".")[2]
+        # Can't use `getattr()` because of data descriptors that may also be defined
+        # on the metaclass (such as with `Class[Instance]Property`)
+        for cls in parent.mro():
+            try:
+                obj = vars(cls)[short_name]
+                break
+            except KeyError as e:
+                err = e
+        else:
+            raise err
+
         if isinstance(obj, utils.ClassProperty):
             return "Class Properties"
         elif isinstance(obj, utils.ClassInstanceProperty):
