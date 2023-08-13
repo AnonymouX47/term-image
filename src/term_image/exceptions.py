@@ -25,11 +25,17 @@ class RenderableError(TermImageError):
     """
 
 
-class RenderArgsError(RenderableError):
+class RenderArgsDataError(RenderableError):
+    """Raised for errors common to both :py:class:`~term_image.renderable.RenderArgs`
+    and :py:class:`~term_image.renderable.RenderData`.
+    """
+
+
+class RenderArgsError(RenderArgsDataError):
     """Raised for errors specific to :py:class:`~term_image.renderable.RenderArgs`."""
 
 
-class RenderDataError(RenderableError):
+class RenderDataError(RenderArgsDataError):
     """Raised for errors specific to :py:class:`~term_image.renderable.RenderData`."""
 
 
