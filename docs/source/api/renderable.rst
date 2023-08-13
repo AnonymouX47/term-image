@@ -112,7 +112,8 @@ Extension API
 
 Renderable
 ^^^^^^^^^^
-.. class:: Renderable
+
+.. py:class:: Renderable
    :noindex:
 
    See :py:class:`Renderable` for the public API.

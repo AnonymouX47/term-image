@@ -558,8 +558,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         *render_fmt* always has **absolute** padding dimensions.
 
         NOTE:
-            Render and padding size validation would've been performed by
-            :py:meth:`draw`.
+            * Render and padding size validation would've been performed by
+              :py:meth:`draw`.
+            * *loops* and *cache* are not validated by :py:meth:`draw`.
         """
         from term_image.render import RenderIterator
 
@@ -700,20 +701,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         :term:`render` output.
 
         Args:
-            render: A render output.
+            render: A render output, which conforms to the form specified to be
+              returned by :py:meth:`_render_`.
             render_size: The size of the render output.
-            render_fmt: Render formatting arguments.
+            render_fmt: Render formatting arguments, with **absolute** padding
+              dimensions.
 
         Returns:
             The formatted render output.
 
             This also conforms to the form specified to be returned by
             :py:meth:`_render_`, provided the given render output does.
-
-        NOTE:
-            * *render* is expected to be in the form specified to be returned by
-              :py:meth:`_render_`.
-            * Only **absolute** padding dimensions are expected.
         """
         render_width, render_height = render_size
         width, height, h_align, v_align, *_ = astuple(render_fmt)
@@ -778,7 +776,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 ``1`` (one) is invalid and may result in unexpected/undefined behaviour
                 across various interfaces defined by this library (and those derived
                 from them), since re-postponing evaluation is unsupported and the
-                renderable has been taken to be animated.
+                renderable would have been taken to be animated.
 
         The base implementation raises :py:class:`NotImplementedError`.
         """
@@ -807,16 +805,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Typically, an overriding method should
 
         * call the overriden method,
-        * update the :py:class`~term_image.renderable.RenderData` instance returned by
+        * update the :py:class:`~term_image.renderable.RenderData` instance returned by
           the overriden method,
-        * return the same :py:class`~term_image.renderable.RenderData` instance.
+        * return the same :py:class:`~term_image.renderable.RenderData` instance.
 
         IMPORTANT:
-            The :py:class`~term_image.renderable.RenderData` instance returned must be
+            The :py:class:`~term_image.renderable.RenderData` instance returned must be
             associated with the type of the renderable on which this method is called
-            i.e ``type(self)``.
-
-            This is always true for the instance returned by the base implementation.
+            i.e ``type(self)``. This is always true for instances returned by the base
+            implementation.
 
         NOTE:
             * The base implementation initializes all render data not defined by
@@ -915,7 +912,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Any exception raised by *renderer* is propagated.
 
-        TIP:
+        IMPORTANT:
             Beyond this method (i.e any context from *renderer* onwards), use of any
             variable state (internal or external) should be avoided if possible.
             Any variable state (internal or external) required for rendering should
@@ -979,16 +976,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Returns:
             The rendered frame.
 
+            * ``render_size`` = ``render_data.size``.
             * The :py:attr:`~term_image.renderable.Frame.render` field holds the
               **primary** :term:`render` output. This string should:
 
-              * contain as many lines as ``render_data.size.height`` i.e
-                exactly ``render_data.size.height - 1`` occurences of ``\\n``
-                (the newline sequence).
-              * occupy exactly ``render_data.size.width`` columns and
-                ``render_data.size.height`` lines when drawn onto a terminal screen,
-                **at least** when the render **size** it not greater than the terminal
-                size on either axis.
+              * contain as many lines as ``render_size.height`` i.e exactly
+                ``render_size.height - 1`` occurences of ``\\n`` (the newline sequence).
+              * occupy exactly ``render_size.width`` columns and ``render_size.height``
+                lines when drawn onto a terminal screen, **at least** when the render
+                **size** it not greater than the terminal size on either axis.
 
                 .. tip::
                   If for any reason, the output behaves differently when the render
