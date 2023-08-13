@@ -68,6 +68,10 @@ Below are definitions of terms used across the API, exception messages and the d
 
       .. seealso:: :py:meth:`Renderable._render_() <term_image.renderable.Renderable._render_>`
 
+   render class
+   render classes
+      :py:class:`~term_image.renderable.Renderable` or a subclass of it.
+
    render size
    rendered size
       The amount of space (columns and lines) that'll be occupied by a :term:`render` output **when drawn (written) onto a terminal screen**.
