@@ -40,6 +40,16 @@ class Frame(NamedTuple):
     TIP:
         - Instances are immutable and hashable.
         - Instances with equal fields compare equal.
+
+    WARNING:
+        Even though this class inherits from :py:class:`tuple`, the class and its
+        instances should not be used as such, because:
+
+        * this is an implementation detail,
+        * the number or order of fields may change.
+
+        Any change to this aspect of the interface may happen without notice and will
+        not be considered a breaking change, even if it technically is.
     """
 
     number: int
