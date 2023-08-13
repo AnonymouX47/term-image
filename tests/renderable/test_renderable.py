@@ -2,7 +2,6 @@ import io
 import sys
 from contextlib import contextmanager
 from itertools import zip_longest
-from types import MappingProxyType
 
 import pytest
 
@@ -18,7 +17,6 @@ from term_image.renderable import (
     RenderArgs,
     RenderData,
     RenderFormat,
-    RenderParam,
     VAlign,
 )
 from term_image.renderable._renderable import RenderableMeta
@@ -51,7 +49,6 @@ class TestClassCreation:
         assert Renderable._ALL_RENDER_DATA == frozenset(
             {"size", "frame", "duration", "iteration"}
         )
-        assert Renderable._ALL_RENDER_PARAMS == {}
 
     def test_not_a_subclass(self):
         with pytest.raises(RenderableError, match="'Foo' is not a subclass"):
@@ -66,7 +63,6 @@ class TestClassCreation:
 
         assert sorted(AttrsOnly._ALL_EXPORTED_ATTRS) == sorted(("_attr", "_desc"))
         assert AttrsOnly._ALL_RENDER_DATA == Renderable._ALL_RENDER_DATA
-        assert AttrsOnly._ALL_RENDER_PARAMS == Renderable._ALL_RENDER_PARAMS
 
     def test_data_only(self):
         class DataOnly(Renderable):
@@ -76,20 +72,6 @@ class TestClassCreation:
         assert DataOnly._ALL_RENDER_DATA == (
             Renderable._ALL_RENDER_DATA | frozenset({"data"})
         )
-        assert DataOnly._ALL_RENDER_PARAMS == Renderable._ALL_RENDER_PARAMS
-
-    def test_params_only(self):
-        render_param = RenderParam(None)
-
-        class ParamsOnly(Renderable):
-            _RENDER_PARAMS_ = {"param": render_param}
-
-        assert sorted(ParamsOnly._ALL_EXPORTED_ATTRS) == []
-        assert ParamsOnly._ALL_RENDER_DATA == Renderable._ALL_RENDER_DATA
-        assert ParamsOnly._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "param": render_param,
-        }
 
 
 class TestExportedAttrs:
@@ -269,133 +251,14 @@ class TestRenderData:
                     pass
 
 
-class TestRenderParams:
-    class A(Renderable):
-        render_param = RenderParam("a")
-        _RENDER_PARAMS_ = {"a": render_param}
-
-    def test_base(self):
-        assert isinstance(Renderable._ALL_RENDER_PARAMS, MappingProxyType)
-        assert Renderable._ALL_RENDER_PARAMS == {}
-
-    def test_cls(self):
-        assert isinstance(self.A._RENDER_PARAMS_, MappingProxyType)
-        assert isinstance(self.A._ALL_RENDER_PARAMS, MappingProxyType)
-        assert self.A._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "a": self.A.render_param,
-        }
-
-    def test_inheritance(self):
-        class B(self.A):
-            render_param = RenderParam("b")
-            _RENDER_PARAMS_ = {"b": render_param}
-
-        assert B._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "a": self.A.render_param,
-            "b": B.render_param,
-        }
-
-        class C(B):
-            render_param = RenderParam("c")
-            _RENDER_PARAMS_ = {"c": render_param}
-
-        assert C._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "a": self.A.render_param,
-            "b": B.render_param,
-            "c": C.render_param,
-        }
-
-    def test_multiple_inheritance(self):
-        class B(Renderable):
-            render_param = RenderParam("b")
-            _RENDER_PARAMS_ = {"b": render_param}
-
-        class C(self.A, B):
-            render_param = RenderParam("c")
-            _RENDER_PARAMS_ = {"c": render_param}
-
-        assert C._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "a": self.A.render_param,
-            "b": B.render_param,
-            "c": C.render_param,
-        }
-
-        class C(B, self.A):
-            render_param = RenderParam("c")
-            _RENDER_PARAMS_ = {"c": render_param}
-
-        assert C._ALL_RENDER_PARAMS == {
-            **Renderable._ALL_RENDER_PARAMS,
-            "b": B.render_param,
-            "a": self.A.render_param,
-            "c": C.render_param,
-        }
-
-    class TestConflict:
-        class A(Renderable):
-            render_param = RenderParam("a")
-            _RENDER_PARAMS_ = {"a": render_param}
-
-        def test_cls_vs_base(self):
-            class B(self.A):
-                render_param = RenderParam("b")
-                _RENDER_PARAMS_ = {"a": render_param}
-
-            assert B._ALL_RENDER_PARAMS == {
-                **Renderable._ALL_RENDER_PARAMS,
-                "a": B.render_param,
-            }
-
-        def test_cls_vs_base_of_base(self):
-            class B(self.A):
-                render_param = RenderParam("b")
-                _RENDER_PARAMS_ = {"b": render_param}
-
-            class C(B):
-                render_param = RenderParam("c")
-                _RENDER_PARAMS_ = {"a": render_param}
-
-            assert C._ALL_RENDER_PARAMS == {
-                **Renderable._ALL_RENDER_PARAMS,
-                "a": C.render_param,
-                "b": B.render_param,
-            }
-
-        def test_base_vs_base(self):
-            class B(Renderable):
-                render_param = RenderParam("b")
-                _RENDER_PARAMS_ = {"a": render_param}
-
-            class C(self.A, B):
-                render_param = RenderParam("c")
-                _RENDER_PARAMS_ = {"c": render_param}
-
-            assert C._ALL_RENDER_PARAMS == {
-                **Renderable._ALL_RENDER_PARAMS,
-                "a": self.A.render_param,
-                "c": C.render_param,
-            }
-
-            class C(B, self.A):
-                render_param = RenderParam("c")
-                _RENDER_PARAMS_ = {"c": render_param}
-
-            assert C._ALL_RENDER_PARAMS == {
-                **Renderable._ALL_RENDER_PARAMS,
-                "a": B.render_param,
-                "c": C.render_param,
-            }
-
-
 class TestRenderArgs:
     def test_default(self):
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
-        assert vars(render_args) == {}
+        assert tuple(render_args) == ()
+
+        with pytest.raises(RenderArgsError):
+            render_args[Renderable]
 
 
 class Space(Renderable):
@@ -430,8 +293,6 @@ class IndefiniteSpace(Space):
 
 
 class Char(Renderable):
-    _RENDER_PARAMS_ = {"char": RenderParam(" ")}
-
     render_size = Size(1, 1)
 
     def _render_(self, render_data, render_args):
@@ -440,8 +301,11 @@ class Char(Renderable):
             render_data.frame,
             render_data.duration,
             render_data.size,
-            "\n".join((render_args.char * width,) * height),
+            "\n".join((render_args[Char].char * width,) * height),
         )
+
+    class Args(RenderArgs.Namespace):
+        char: str = " "
 
 
 class TestInit:
@@ -565,7 +429,7 @@ class TestDraw:
         # The full tests are at `TestInitRender`.
         @capture_stdout()
         def test_render_args(self):
-            self.char.draw(RenderArgs(Char, char="\u2850"))
+            self.char.draw(+Char.Args("\u2850"))
             assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
             assert stdout.getvalue().count("\u2850") == 1
             assert stdout.getvalue().endswith("\n")
@@ -663,7 +527,7 @@ class TestDraw:
         # The full tests are at `TestInitRender`.
         @capture_stdout()
         def test_render_args(self):
-            self.anim_char.draw(RenderArgs(Char, char="\u2850"), loops=1)
+            self.anim_char.draw(+Char.Args("\u2850"), loops=1)
             assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
             assert stdout.getvalue().count("\u2850") == 2
             assert stdout.getvalue().endswith("\n")
@@ -816,7 +680,7 @@ class TestRender:
     def test_render_args(self):
         char = Char(1, 1)
         for value in "123abc":
-            assert char.render(RenderArgs(Char, char=value)).render == value
+            assert char.render(+Char.Args(value)).render == value
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
@@ -863,7 +727,7 @@ class TestFormatRender:
     size = Size(5, 5)
     char = Char(1, 1)
     char.render_size = size
-    char_render_args = RenderArgs(Char, char="#")
+    char_render_args = +Char.Args(char="#")
     render = char.render(char_render_args).render
 
     @staticmethod
@@ -1095,7 +959,7 @@ class TestInitRender:
 
             assert isinstance(render_args, RenderArgs)
             assert render_args.render_cls is Char
-            assert render_args.char == " "
+            assert render_args[Char].char == " "
 
             assert (
                 render_args == self.char._init_render_(lambda *args: args, None)[0][1]
@@ -1109,12 +973,12 @@ class TestInitRender:
         def test_non_default(self):
             for value in "123abc":
                 render_args = self.char._init_render_(
-                    lambda *args: args, RenderArgs(Char, char=value)
+                    lambda *args: args, +Char.Args(value)
                 )[0][1]
 
                 assert isinstance(render_args, RenderArgs)
                 assert render_args.render_cls is Char
-                assert render_args.char == value
+                assert render_args[Char].char == value
 
         def test_compatible(self):
             assert (
