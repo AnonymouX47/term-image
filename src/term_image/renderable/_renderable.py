@@ -35,25 +35,38 @@ from ._types import (
 class RenderableMeta(ABCMeta):
     """Base metaclass of the Renderable API.
 
-    Implements certain aspects of the API such as render parameters.
+    Implements certain internal/private aspects of the API.
     """
 
     def __new__(cls, name, bases, namespace, **kwargs):
-        try:
-            namespace["_RENDER_PARAMS_"] = MappingProxyType(
-                namespace["_RENDER_PARAMS_"]
-            )
-        except KeyError:
-            pass
-
         new_cls = super().__new__(cls, name, bases, namespace)
 
+        try:
+            args_cls = namespace["Args"]
+        except KeyError:
+            args_cls = new_cls.Args = None
+
+        if args_cls is not None:
+            if not isinstance(args_cls, type):
+                raise arg_type_error(f"'{name}.Args'", args_cls)
+            if (
+                not issubclass(args_cls, RenderArgs.Namespace)
+                or args_cls is RenderArgs.Namespace
+            ):
+                raise ValueError(
+                    f"'{name}.Args' is not a strict subclass of 'RenderArgs.Namespace'"
+                )
+            if args_cls._RENDER_CLS:
+                raise RenderableError(
+                    f"'{name}.Args' is already associated with render class "
+                    f"{args_cls._RENDER_CLS.__name__!r}"
+                )
+            args_cls._RENDER_CLS = new_cls
+
         if kwargs.get("_base"):  # Renderable
-            all_render_params = namespace.get("_RENDER_PARAMS_", {})
+            all_default_args = {}
             all_render_data = namespace.get("_RENDER_DATA_", frozenset())
-            all_exported_descendant_attrs = frozenset(
-                namespace.get("_EXPORTED_DESCENDANT_ATTRS_", ())
-            )
+            all_exported_descendant_attrs = frozenset()
         else:
             for base in bases:
                 if issubclass(base, Renderable):
@@ -61,7 +74,7 @@ class RenderableMeta(ABCMeta):
             else:
                 raise RenderableError(f"{name!r} is not a subclass of 'Renderable'")
 
-            all_render_params = {}
+            all_default_args = {}
             all_render_data = set()
             all_cls_render_data = {}
             all_exported_descendant_attrs = set()  # remove duplicates
@@ -70,10 +83,8 @@ class RenderableMeta(ABCMeta):
                 if not issubclass(mro_cls, Renderable):
                     continue
 
-                try:
-                    all_render_params.update(vars(mro_cls)["_RENDER_PARAMS_"])
-                except KeyError:
-                    pass
+                if mro_cls is not new_cls and mro_cls.Args:
+                    all_default_args[mro_cls] = mro_cls._ALL_DEFAULT_ARGS[mro_cls]
 
                 try:
                     cls_render_data = vars(mro_cls)["_RENDER_DATA_"]
@@ -99,12 +110,15 @@ class RenderableMeta(ABCMeta):
 
                 try:
                     all_exported_descendant_attrs.update(
-                        vars(mro_cls)["_EXPORTED_DESCENDANT_ATTRS_"]
+                        mro_cls.__dict__["_EXPORTED_DESCENDANT_ATTRS_"]
                     )
                 except KeyError:
                     pass
 
-        new_cls._ALL_RENDER_PARAMS = MappingProxyType(all_render_params)
+            if args_cls:
+                all_default_args[new_cls] = args_cls()
+
+        new_cls._ALL_DEFAULT_ARGS = MappingProxyType(all_default_args)
         new_cls._ALL_RENDER_DATA = frozenset(all_render_data)
         new_cls._ALL_EXPORTED_ATTRS = tuple(
             all_exported_descendant_attrs.union(namespace.get("_EXPORTED_ATTRS_", ()))
