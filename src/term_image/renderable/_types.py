@@ -434,6 +434,287 @@ class RenderArgs(RenderArgsData):
         """
         return type(self)(self.render_cls, self, **render_args) if render_args else self
 
+    # Inner Classes
+
+    class _NamespaceMeta(RenderArgsData._NamespaceMeta):
+        """Metaclass of render argument namespaces."""
+
+        def __new__(cls, name, bases, namespace, *, _base: bool = False, **kwargs):
+            if not _base:
+                try:
+                    defaults = {
+                        name: namespace.pop(name)
+                        for name in namespace.get("__annotations__", ())
+                    }
+                except KeyError as e:
+                    raise RenderArgsError(
+                        f"Field {e.args[0]!r} has no default value"
+                    ) from None
+
+            new_cls = super().__new__(
+                cls, name, bases, namespace, _base=_base, **kwargs
+            )
+
+            if not _base and "_FIELDS" in new_cls.__dict__:
+                new_cls._FIELDS = MappingProxyType(defaults)
+
+            return new_cls
+
+    class Namespace(RenderArgsData.Namespace, metaclass=_NamespaceMeta, _base=True):
+        """Namespace(*render_args, **render_kwargs)
+
+        :term:`Render class`\\ -specific render argument namespace.
+
+        Args:
+            render_args: Positional render arguments.
+
+              The values are mapped to render argument fields in the order in which
+              the fields were defined.
+
+            render_kwargs: Keyword render arguments.
+
+              The keywords must be names of render argument fields for the
+              associated [#ran1]_ render class.
+
+        Raises:
+            TypeError: The [sub]class being instantiated is not associated [#ran1]_
+              with a render class.
+            TypeError: More positional arguments than there are fields.
+            term_image.exceptions.RenderArgsError: Unknown field name(s).
+            TypeError: Multiple values given for a field.
+
+        If no value is given for a field, its default value is used.
+
+        NOTE:
+            * Render argument fields are exposed as instance attributes.
+            * Instances are immutable but updated copies can be created via
+              :py:meth:`update`.
+            * Each subclass may be associated [#ran1]_ with **only one** render class.
+
+        .. Completed in /docs/source/api/renderable.rst
+        """
+
+        def __init__(self, *render_args: Any, **render_kwargs: Any) -> None:
+            fields = type(self)._FIELDS
+
+            if len(render_args) > len(fields):
+                raise TypeError(
+                    f"{type(self)._RENDER_CLS.__name__!r} defines {len(fields)} "
+                    f"render argument field(s) but {len(render_args)} positional "
+                    "arguments were given"
+                )
+            render_args = dict(zip(fields, render_args))
+
+            unknown = render_kwargs.keys() - fields.keys()
+            if unknown:
+                raise RenderArgsError(
+                    f"Unknown render argument fields {tuple(unknown)} for "
+                    f"{type(self)._RENDER_CLS.__name__!r}"
+                )
+            multiple = render_kwargs.keys() & render_args.keys()
+            if multiple:
+                raise TypeError(
+                    f"Got multiple values for render argument fields "
+                    f"{tuple(multiple)} of {type(self)._RENDER_CLS.__name__!r}"
+                )
+
+            super().__init__({**fields, **render_args, **render_kwargs})
+
+        def __repr__(self) -> str:
+            return "".join(
+                (
+                    f"{type(self)._RENDER_CLS.__name__}.Args(",
+                    ", ".join(
+                        f"{name}={getattr(self, name)!r}" for name in type(self)._FIELDS
+                    ),
+                    ")",
+                )
+            )
+
+        def __getattr__(self, attr):
+            raise AttributeError(
+                f"Unknown render argument field {attr!r} for "
+                f"{type(self)._RENDER_CLS.__name__!r}"
+            )
+
+        def __setattr__(self, *_):
+            raise AttributeError(
+                "Cannot modify render argument fields, use the `update()` method "
+                "of the namespace or the containing `RenderArgs` instance, as "
+                "applicable, instead"
+            )
+
+        def __delattr__(self, _):
+            raise AttributeError("Cannot delete render argument fields")
+
+        def __eq__(self, other: RenderArgs.Namespace) -> bool:
+            """Compares the namespace with another.
+
+            Args:
+                other: Another render argument namespace.
+
+            Returns:
+                ``True`` if both operands are associated with the same
+                :term:`render class` and have equal field values.
+                Otherwise, ``False``.
+            """
+            if type(other) is type(self):
+                return self is other or all(
+                    getattr(self, name) == getattr(other, name)
+                    for name in type(self)._FIELDS
+                )
+
+            return NotImplemented
+
+        def __hash__(self) -> int:
+            """Computes the hash of the namespace.
+
+            Returns:
+                The computed hash.
+
+            IMPORTANT:
+                Like tuples, an instance is hashable if and only if the field values
+                are hashable.
+            """
+            # Field names and their order is the same for all instances associated
+            # with the same render class.
+            return hash(
+                (
+                    type(self)._RENDER_CLS,
+                    tuple([getattr(self, field) for field in type(self)._FIELDS]),
+                )
+            )
+
+        def __or__(self, other: RenderArgs.Namespace | RenderArgs) -> RenderArgs:
+            """Derives a set of render arguments from the combination of both operands.
+
+            Args:
+                other: Another render argument namespace or a set of render arguments.
+
+            Returns:
+                A set of render arguments associated with the **most derived** one
+                of the associated :term:`render classes` of both operands.
+
+            Raises:
+                term_image.exceptions.RenderArgsError: Neither operand is compatible
+                  [#ran2]_ with the associated :term:`render class` of the other.
+
+            NOTE:
+                * If *other* is a render argument namespace associated with the
+                  same :term:`render class` as *self*, *other* takes precedence.
+                * If *other* is a set of render arguments that contains a namespace
+                  associated with the same :term:`render class` as *self*, *self* takes
+                  precedence.
+            """
+            self_render_cls = type(self)._RENDER_CLS
+
+            if isinstance(other, __class__):
+                other_render_cls = type(other)._RENDER_CLS
+                if self_render_cls is other_render_cls:
+                    return RenderArgs(other_render_cls, other)
+                if issubclass(self_render_cls, other_render_cls):
+                    return RenderArgs(self_render_cls, self, other)
+                if issubclass(other_render_cls, self_render_cls):
+                    return RenderArgs(other_render_cls, self, other)
+                raise RenderArgsError(
+                    f"Render argument namespaces for {self_render_cls.__name__!r} "
+                    f"and {other_render_cls.__name__!r} are incompatible with each "
+                    "other."
+                )
+
+            if isinstance(other, RenderArgs):
+                other_render_cls = other.render_cls
+                if issubclass(self_render_cls, other_render_cls):
+                    return RenderArgs(self_render_cls, other, self)
+                if issubclass(other_render_cls, self_render_cls):
+                    return RenderArgs(other_render_cls, other, self)
+                raise RenderArgsError(
+                    f"Render argument namespace for {self_render_cls.__name__!r} "
+                    f"and render arguments for {other_render_cls.__name__!r} are "
+                    "incompatible with each other."
+                )
+
+            return NotImplemented
+
+        def __pos__(self) -> RenderArgs:
+            """Creates a set of render arguments from the namespace.
+
+            Returns:
+                A set of render arguments associated with the same :term:`render class`
+                as the namespace and initialized with the namespace.
+
+            TIP:
+                ``+namespace`` is shorthand for
+                :py:meth:`namespace.to_render_args() <to_render_args>`.
+            """
+            return RenderArgs(type(self)._RENDER_CLS, self)
+
+        def __ror__(self, other: RenderArgs.Namespace | RenderArgs) -> RenderArgs:
+            """Same as :py:meth:`__or__` but with reflected operands.
+
+            NOTE:
+                Unlike :py:meth:`__or__`, if *other* is a render argument namespace
+                associated with the same :term:`render class` as *self*, *self* takes
+                precedence.
+            """
+            # Not commutative
+            if isinstance(other, __class__) and (
+                type(self)._RENDER_CLS is type(other)._RENDER_CLS
+            ):
+                return RenderArgs(type(self)._RENDER_CLS, self)
+
+            return self.__or__(other)  # All other cases are commutative
+
+        def to_render_args(
+            self, render_cls: type[Renderable] | None = None
+        ) -> RenderArgs:
+            """Creates a set of render arguments from the namespace.
+
+            Args:
+                render_cls: A :term:`render class`, with which the namespace is
+                  compatible [#ran2]_.
+
+            Returns:
+                A set of render arguments associated with *render_cls* (or the
+                associated [#ran1]_ render class of the namespace, if ``None``) and
+                initialized with the namespace.
+
+            Propagates exceptions raised by the
+            :py:class:`~term_image.renderable.RenderArgs` constructor, as applicable.
+
+            .. seealso:: :py:meth:`__pos__`.
+            """
+            return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
+
+        def update(self, **render_args: Any) -> RenderArgs.Namespace:
+            """Updates render argument fields.
+
+            Args:
+                render_args: Render arguments.
+
+            Returns:
+                A namespace with the given fields updated.
+
+            Raises:
+                term_image.exceptions.RenderArgsError: Unknown render argument field(s).
+            """
+            if not render_args:
+                return self
+
+            unknown = render_args.keys() - type(self)._FIELDS.keys()
+            if unknown:
+                raise RenderArgsError(
+                    f"Unknown render argument field(s) {tuple(unknown)} for "
+                    f"{type(self)._RENDER_CLS.__name__!r}"
+                )
+
+            new = type(self).__new__(type(self))
+            fields = self.as_dict()
+            fields.update(render_args)
+            super(__class__, new).__init__(fields)
+
+            return new
+
 
 class RenderData(RenderArgsData):
     """Render data.
