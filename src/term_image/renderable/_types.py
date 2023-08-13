@@ -843,19 +843,13 @@ class RenderData(RenderArgsData):
         term_image.exceptions.RenderDataError: Unknown render data for *render_cls*.
         term_image.exceptions.RenderDataError: Incomplete render data for *render_cls*.
 
-    Similar to :py:class:`RenderArgs`, except:
-
-    - it works with :py:attr:`~term_image.renderable.Renderable._RENDER_DATA_`
-      instead of :py:attr:`~term_image.renderable.Renderable._RENDER_PARAMS_`,
-    - render data have no default values,
-    - no argument validation is performed,
-    - instances are mutable and may contain mutable data.
-
     IMPORTANT:
         See :py:class:`~term_image.renderable.Renderable` and its subclasses for the
         names and descriptions of their respective render data.
 
     NOTE:
+        * Works with :py:attr:`~term_image.renderable.Renderable._RENDER_DATA_`.
+        * Instances are mutable and may contain mutable data.
         * Instances shouldn't be copied by any means because finalizing one copy may
           invalidate all other copies.
         * Instances should always be explicitly finalized as soon as they're no longer

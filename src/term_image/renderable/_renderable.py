@@ -11,7 +11,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import astuple
 from time import perf_counter_ns, sleep
 from types import MappingProxyType
-from typing import Any, Callable, ClassVar, Mapping
+from typing import Any, Callable, ClassVar
 
 import term_image
 
@@ -21,15 +21,7 @@ from ..exceptions import InvalidSizeError, RenderableError
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration
-from ._types import (
-    Frame,
-    HAlign,
-    RenderArgs,
-    RenderData,
-    RenderFormat,
-    RenderParam,
-    VAlign,
-)
+from ._types import Frame, HAlign, RenderArgs, RenderData, RenderFormat, VAlign
 
 
 class RenderableMeta(ABCMeta):
@@ -219,22 +211,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
     NOTE:
         Defining this is optional.
-    """
-
-    _RENDER_PARAMS_: ClassVar[Mapping[str, RenderParam]]
-    """Render parameters.
-
-    This specifies arguments that may be accepted by (or attributes of) a
-    :py:class:`~term_image.renderable.RenderArgs` instance associated with the
-    defining class. It maps parameter names to their definitions.
-
-    The render parameters of a class are inherited by its subclasses.
-    Parameter name conflicts are resolved according to the standard Method Resolution
-    Order i.e the parameter definition by the class lowest in order takes precedence.
-
-    NOTE:
-        * Defining this is optional.
-        * If defined, it is replaced with a read-only mapping containing the same items.
     """
 
     # Special Methods
