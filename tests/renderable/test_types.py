@@ -3,7 +3,12 @@ from typing import Any
 
 import pytest
 
-from term_image.exceptions import RenderArgsError, RenderDataError, RenderFormatError
+from term_image.exceptions import (
+    RenderArgsDataError,
+    RenderArgsError,
+    RenderDataError,
+    RenderFormatError,
+)
 from term_image.geometry import Size
 from term_image.renderable import (
     Frame,
@@ -15,6 +20,9 @@ from term_image.renderable import (
     RenderParam,
     VAlign,
 )
+
+# from term_image.renderable._types import RenderArgsData
+RenderArgsData = RenderArgs.__base__
 
 
 class Foo(Renderable):
@@ -117,6 +125,180 @@ class TestRenderParam:
 
             with pytest.raises(AttributeError):
                 delattr(render_param, attr)
+
+
+class TestNamespaceMeta:
+    def test_multiple_namespace_bases(self):
+        class A(RenderArgsData.Namespace):
+            a: None
+
+        class B(RenderArgsData.Namespace):
+            b: None
+
+        with pytest.raises(RenderArgsDataError, match="Multiple .* baseclasses"):
+
+            class C(A, B):
+                pass
+
+    class TestFields:
+        def test_no_field(self):
+            with pytest.raises(RenderArgsDataError, match="No field"):
+
+                class Namespace(RenderArgsData.Namespace):
+                    pass
+
+        def test_define(self):
+            class Namespace(RenderArgsData.Namespace):
+                foo: None
+                bar: None
+
+            assert Namespace.__dict__["__slots__"] == ("foo", "bar")
+            assert Namespace.get_fields() == {"foo": None, "bar": None}
+
+        def test_inherit(self):
+            class A(RenderArgsData.Namespace):
+                a: None
+                b: None
+
+            class B(A):
+                pass
+
+            assert B.__dict__["__slots__"] == ()
+            assert B.get_fields() == {"a": None, "b": None}
+
+        def test_inherit_and_define(self):
+            class A(RenderArgsData.Namespace):
+                a: None
+                b: None
+
+            with pytest.raises(RenderArgsDataError, match="inherit and define"):
+
+                class B(A):
+                    c: None
+                    d: None
+
+        def test_inherit_false(self):
+            class A(RenderArgsData.Namespace):
+                a: None
+                b: None
+
+            class B(A, inherit=False):
+                c: None
+                d: None
+
+            assert B.__dict__["__slots__"] == ("c", "d")
+            assert B.get_fields() == {"c": None, "d": None}
+
+            with pytest.raises(RenderArgsDataError, match="No field"):
+
+                class B(A, inherit=False):
+                    pass
+
+    class TestRenderCls:
+        def test_association(self):
+            class Namespace(RenderArgsData.Namespace):
+                foo: None
+
+            assert Namespace.get_render_cls() is None
+
+            Namespace._RENDER_CLS = Renderable
+            assert Namespace.get_render_cls() is Renderable
+
+        class TestInheritTrue:
+            def test_subclass_before(self):
+                class A(RenderArgsData.Namespace):
+                    a: None
+
+                class B(A):
+                    pass
+
+                assert B.get_render_cls() is None
+
+                A._RENDER_CLS = Renderable
+                assert B.get_render_cls() is Renderable
+
+            def test_subclass_after(self):
+                class A(RenderArgsData.Namespace):
+                    a: None
+
+                A._RENDER_CLS = Renderable
+
+                class B(A):
+                    pass
+
+                assert B.get_render_cls() is Renderable
+
+        class TestInheritFalse:
+            def test_subclass_before(self):
+                class A(RenderArgsData.Namespace):
+                    a: None
+
+                class B(A, inherit=False):
+                    b: None
+
+                assert B.get_render_cls() is None
+
+                A._RENDER_CLS = Renderable
+                assert B.get_render_cls() is None
+
+            def test_subclass_after(self):
+                class A(RenderArgsData.Namespace):
+                    a: None
+
+                A._RENDER_CLS = Renderable
+
+                class B(A, inherit=False):
+                    b: None
+
+                assert B.get_render_cls() is None
+
+    def test_non_optional_constructor_parameters(self):
+        with pytest.raises(TypeError, match="non-optional parameter"):
+
+            class Namespace(RenderArgsData.Namespace):
+                foo: None
+
+                def __init__(self, foo):
+                    super().__init__(foo)
+
+
+class TestNamespace:
+    class Namespace(RenderArgsData.Namespace):
+        _RENDER_CLS = Renderable
+        foo: int
+        bar: int
+
+    def test_cannot_instantiate_unassociated(self):
+        class Namespace(RenderArgsData.Namespace):
+            foo: None
+
+        with pytest.raises(TypeError, match="Cannot instantiate"):
+            Namespace()
+
+    def test_as_dict(self):
+        namespace = self.Namespace(dict(foo=1, bar=2))
+        assert namespace.as_dict() == dict(foo=1, bar=2)
+
+    def test_as_tuple(self):
+        namespace = self.Namespace(dict(foo=1, bar=2))
+        assert namespace.as_tuple() == (1, 2)
+
+    def test_get_fields(self):
+        namespace = self.Namespace(dict(foo=1, bar=2))
+        assert self.Namespace.get_fields() == dict(foo=None, bar=None)
+        assert namespace.get_fields() == dict(foo=None, bar=None)
+
+    def test_get_render_cls(self):
+        class Namespace(RenderArgsData.Namespace):
+            foo: None
+
+        assert Namespace.get_render_cls() is None
+
+        Namespace._RENDER_CLS = Renderable
+        assert Namespace.get_render_cls() is Renderable
+
+        namespace = Namespace(dict(foo=None))
+        assert namespace.get_render_cls() is Renderable
 
 
 class TestRenderArgs:
