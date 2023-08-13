@@ -85,6 +85,124 @@ class RenderArgsData:
             )
         )
 
+    class _NamespaceMeta(type):
+        """Metaclass of render argument/data namespaces."""
+
+        _FIELDS: MappingProxyType[str, Any]
+
+        # Set by `RenderableMeta` for associated instances
+        _RENDER_CLS: type[Renderable] | None = None
+
+        def __new__(
+            cls,
+            name,
+            bases,
+            namespace,
+            *,
+            inherit: bool = True,
+            _base: bool = False,
+            **kwargs,
+        ):
+            if _base:
+                namespace["__slots__"] = ()
+            else:
+                namespace_bases = [cls for cls in bases if isinstance(cls, __class__)]
+                if len(namespace_bases) > 1:
+                    raise RenderArgsDataError("Multiple namespace baseclasses")
+
+                base_has_fields = hasattr(namespace_bases[0], "_FIELDS")
+                inheriting = base_has_fields and inherit
+                fields = namespace.get("__annotations__", ())
+
+                if inheriting:
+                    if fields:
+                        raise RenderArgsDataError(
+                            "Cannot both inherit and define fields"
+                        )
+                else:
+                    if not fields:
+                        raise RenderArgsDataError("No field defined or to inherit")
+
+                    namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
+                    if base_has_fields:
+                        namespace["_RENDER_CLS"] = None
+
+                namespace["__slots__"] = tuple(fields)
+
+            new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
+
+            non_optional = [
+                name
+                for name, parameter in signature(new_cls).parameters.items()
+                if parameter.default is Parameter.empty
+                and (
+                    Parameter.VAR_POSITIONAL
+                    is not parameter.kind
+                    is not Parameter.VAR_KEYWORD
+                )
+            ]
+            if non_optional:
+                raise TypeError(
+                    "The class constructor has non-optional parameter(s): "
+                    f"{', '.join(non_optional)}"
+                )
+
+            return new_cls
+
+    class Namespace(metaclass=_NamespaceMeta, _base=True):
+        """:term:`Render class`\\ -specific argument/data namespace."""
+
+        def __new__(cls, *args, **kwargs):
+            if cls._RENDER_CLS is None:
+                raise TypeError(
+                    "Cannot instantiate a render argument/data namespace class "
+                    "that is not associated with a render class"
+                )
+
+            return super().__new__(cls)
+
+        def __init__(self, fields: Mapping[str, Any]) -> None:
+            for name in type(self)._FIELDS:
+                # Subclass(es) redefine `__setattr__()`
+                __class__.__setattr__(self, name, fields[name])
+
+        def as_dict(self) -> dict[str, Any]:
+            """Converts the namespace to a dictionary.
+
+            Returns:
+                A dictionary mapping field names to their values, in order of
+                definition.
+            """
+            return {name: getattr(self, name) for name in type(self)._FIELDS}
+
+        def as_tuple(self) -> tuple[Any]:
+            """Converts the namespace to a tuple.
+
+            Returns:
+                A tuple containing field values, in order of definition.
+            """
+            return tuple(getattr(self, name) for name in type(self)._FIELDS)
+
+        @classmethod
+        def get_fields(cls) -> Mapping[str, Any]:
+            """Returns the field definitions.
+
+            Returns:
+                A mapping of field names to their default values, in order of
+                definition.
+            """
+            return cls._FIELDS
+
+        @classmethod
+        def get_render_cls(cls) -> Type[Renderable] | None:
+            """Returns the associated :term:`render class`.
+
+            Returns:
+                The associated [#ran1]_ render class, if the namespace class has been
+                associated. Otherwise, ``None``.
+            """
+            return cls._RENDER_CLS
+
 
 class RenderArgs(RenderArgsData):
     """Render arguments.
