@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import pytest
 
@@ -14,6 +15,14 @@ from term_image.renderable import (
     RenderParam,
     VAlign,
 )
+
+
+class Foo(Renderable):
+    _RENDER_DATA_ = frozenset({"foo", "bar"})
+
+    class Args(RenderArgs.Namespace):
+        foo: Any = "FOO"
+        bar: Any = "BAR"
 
 
 class TestFrame:
@@ -110,111 +119,87 @@ class TestRenderParam:
                 delattr(render_param, attr)
 
 
-class Foo(Renderable):
-    _RENDER_PARAMS_ = {"foo": RenderParam("FOO"), "bar": RenderParam("BAR")}
-    _RENDER_DATA_ = frozenset({"foo", "bar"})
-
-
 class TestRenderArgs:
-    base_render_args_dict = {}
-
     def test_args(self):
         with pytest.raises(TypeError, match="'render_cls'"):
             RenderArgs(Ellipsis)
 
-        with pytest.raises(TypeError, match="'init_render_args'"):
+        with pytest.raises(TypeError, match="second argument"):
             RenderArgs(Renderable, Ellipsis)
+
+        with pytest.raises(TypeError, match=r"'namespaces\[0\]'"):
+            RenderArgs(Renderable, RenderArgs(Renderable), Ellipsis)
+
+        with pytest.raises(TypeError, match=r"'namespaces\[1\]'"):
+            RenderArgs(Foo, Foo.Args(), Ellipsis)
 
     def test_base(self):
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
-        assert vars(render_args) == self.base_render_args_dict
+        assert tuple(render_args) == ()
 
     def test_render_cls(self):
         render_args = RenderArgs(Foo)
         assert render_args.render_cls is Foo
 
-    class TestRenderArgs:
-        class Bar(Renderable):
-            _RENDER_PARAMS_ = {
-                "a": RenderParam(1),
-                "b": RenderParam(
-                    2,
-                    lambda cls, val: isinstance(val, int),
-                    None,
-                    lambda cls, val: val > 0,
-                    None,
-                ),
-                "c": RenderParam(
-                    3,
-                    lambda cls, val: isinstance(val, float),
-                    "must be a float",
-                    lambda cls, val: val < 0,
-                    "must be negative",
-                ),
-            }
+    class TestNamespaces:
+        class TestCompatibility:
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    foo: None = None
 
-        def test_unknown(self):
-            with pytest.raises(RenderArgsError, match="Unknown .* 'd'"):
-                RenderArgs(self.Bar, d=None)
+            class B(A):
+                class Args(RenderArgs.Namespace):
+                    foo: None = None
 
-        def test_type_check(self):
-            # valid
-            RenderArgs(self.Bar, b=10, c=-10.0)
-            for value in (Ellipsis, 10, 10.0):
-                RenderArgs(self.Bar, a=value)
+            class C(A):
+                class Args(RenderArgs.Namespace):
+                    foo: None = None
 
-            # invalid
-            with pytest.raises(TypeError, match="Invalid type for 'b'"):
-                RenderArgs(self.Bar, b=10.0)
+            def test_compatible(self):
+                for cls1, cls2 in (
+                    (self.A, self.A),
+                    (self.B, self.A),
+                    (self.B, self.B),
+                    (self.C, self.A),
+                    (self.C, self.C),
+                ):
+                    assert RenderArgs(cls1, cls2.Args()) == RenderArgs(cls1)
 
-        def test_type_msg(self):
-            with pytest.raises(TypeError, match="Invalid type for 'b'"):
-                RenderArgs(self.Bar, b=10.0)
-            with pytest.raises(TypeError, match="must be a float"):
-                RenderArgs(self.Bar, c=10)
-
-        def test_value_check(self):
-            # valid
-            RenderArgs(self.Bar, b=10, c=-10.0)
-            for value in (0, 10, -10, 0.0, 10.0, -10.0):
-                RenderArgs(self.Bar, a=value)
-
-            # invalid
-            with pytest.raises(ValueError, match="Invalid value for 'b'"):
-                RenderArgs(self.Bar, b=0)
-
-        def test_value_msg(self):
-            with pytest.raises(ValueError, match="Invalid value for 'b'"):
-                RenderArgs(self.Bar, b=0)
-            with pytest.raises(ValueError, match="must be negative"):
-                RenderArgs(self.Bar, c=0.0)
+            def test_incompatible(self):
+                for cls1, cls2 in (
+                    (self.A, self.B),
+                    (self.A, self.C),
+                    (self.B, self.C),
+                    (self.C, self.B),
+                ):
+                    with pytest.raises(RenderArgsError, match="incompatible"):
+                        RenderArgs(cls1, cls2.Args())
 
         def test_default(self):
-            render_args = RenderArgs(self.Bar)
-            assert vars(render_args) == dict(
-                **TestRenderArgs.base_render_args_dict, a=1, b=2, c=3
-            )
-            assert render_args.a == 1
-            assert render_args.b == 2
-            assert render_args.c == 3
+            render_args = RenderArgs(Foo)
+            assert render_args[Foo] == Foo.Args()
+            assert render_args[Foo] == Foo.Args("FOO", "BAR")
 
         def test_non_default(self):
-            render_args = RenderArgs(self.Bar, a=Ellipsis, b=10, c=-10.0)
-            assert vars(render_args) == dict(
-                **TestRenderArgs.base_render_args_dict, a=Ellipsis, b=10, c=-10.0
-            )
-            assert render_args.a is Ellipsis
-            assert render_args.b == 10
-            assert render_args.c == -10.0
+            namespace = Foo.Args("bar", "foo")
+            render_args = RenderArgs(Foo, namespace)
+            assert render_args[Foo] is namespace
+
+        def test_multiple_with_same_render_cls(self):
+            namespace_foo = Foo.Args(foo="bar")
+            namespace_bar = Foo.Args(bar="foo")
+
+            render_args = RenderArgs(Foo, namespace_foo, namespace_bar)
+            assert render_args[Foo] is namespace_bar
+
+            render_args = RenderArgs(Foo, namespace_bar, namespace_foo)
+            assert render_args[Foo] is namespace_foo
 
     class TestInitRenderArgs:
         class TestCompatibility:
             class A(Renderable):
-                def __init__(self):
-                    super().__init__(1, 1)
-
-                render_size = _render_ = None
+                pass
 
             class B(A):
                 pass
@@ -237,6 +222,9 @@ class TestRenderArgs:
 
             def test_incompatible(self):
                 for cls1, cls2 in (
+                    (Renderable, self.A),
+                    (Renderable, self.B),
+                    (Renderable, self.C),
                     (self.A, self.B),
                     (self.A, self.C),
                     (self.B, self.C),
@@ -247,114 +235,209 @@ class TestRenderArgs:
 
         def test_default(self):
             render_args = RenderArgs(Foo)
-            assert vars(render_args) == dict(
-                **TestRenderArgs.base_render_args_dict, foo="FOO", bar="BAR"
-            )
-            assert render_args.foo == "FOO"
-            assert render_args.bar == "BAR"
+            assert render_args[Foo] == Foo.Args()
             assert render_args == RenderArgs(Foo, None)
 
         def test_non_default(self):
-            init_render_args = RenderArgs(Foo, foo="bar", bar="foo")
+            init_render_args = RenderArgs(Foo, Foo.Args("bar", "foo"))
             render_args = RenderArgs(Foo, init_render_args)
-            assert vars(render_args) == dict(
-                **TestRenderArgs.base_render_args_dict, foo="bar", bar="foo"
-            )
-            assert render_args.foo == "bar"
-            assert render_args.bar == "foo"
+            assert render_args == init_render_args
+            assert render_args[Foo] == Foo.Args("bar", "foo")
+            assert render_args[Foo] is init_render_args[Foo]
 
-    def test_arg_value_precedence(self):
+    def test_namespace_precedence(self):
         class A(Renderable):
-            _RENDER_PARAMS_ = {"a": RenderParam(1)}
+            class Args(RenderArgs.Namespace):
+                a: int = 1
 
         class B(A):
-            _RENDER_PARAMS_ = {"b": RenderParam(2)}
+            class Args(RenderArgs.Namespace):
+                b: int = 2
 
         class C(B):
-            _RENDER_PARAMS_ = {"c": RenderParam(3)}
+            class Args(RenderArgs.Namespace):
+                c: int = 3
 
-        # default
-        render_args = RenderArgs(C)
-        assert render_args.a == 1
-        assert render_args.b == 2
-        assert render_args.c == 3
+        init_render_args = RenderArgs(B, A.Args(10), B.Args(20))
+        namespace = A.Args(100)
+        render_args = RenderArgs(C, init_render_args, namespace)
 
-        init_render_args = RenderArgs(B, a=10, b=20)
-        render_args = RenderArgs(C, init_render_args, a=100)
-        assert render_args.a == 100  # from *render_args*
-        assert render_args.b == 20  # from *init_render_args*
-        assert render_args.c == 3  # default
+        assert render_args[A] is namespace
+        assert render_args[B] is init_render_args[B]
+        assert render_args[C] is RenderArgs(C)[C]  # default
 
     def test_immutability(self):
         render_args = RenderArgs(Foo)
-        for attr in ("foo", "bar"):
-            with pytest.raises(AttributeError):
-                setattr(render_args, attr, Ellipsis)
-
-            with pytest.raises(AttributeError):
-                delattr(render_args, attr)
+        with pytest.raises(TypeError):
+            render_args[Foo] = Foo.Args()
 
     def test_equality(self):
-        foo_args_default = RenderArgs(Foo)
-        assert foo_args_default == foo_args_default
-        assert foo_args_default == RenderArgs(Foo)
-        assert foo_args_default == RenderArgs(Foo, foo_args_default)
-        assert foo_args_default == RenderArgs(Foo, foo="FOO", bar="BAR")
+        class Bar(Renderable):
+            class Args(RenderArgs.Namespace):
+                bar: str = "BAR"
 
-        foo_args_foo = RenderArgs(Foo, foo="bar")
-        assert foo_args_foo == RenderArgs(Foo, foo="bar")
-        assert foo_args_foo == RenderArgs(Foo, foo="bar", bar="BAR")
-        assert foo_args_foo == RenderArgs(Foo, foo_args_foo)
-        assert foo_args_foo == RenderArgs(Foo, foo_args_foo, bar="BAR")
-        assert foo_args_foo != foo_args_default
+        class Baz(Bar):
+            class Args(RenderArgs.Namespace):
+                baz: str = "BAZ"
 
-        foo_args_bar = RenderArgs(Foo, bar="foo")
-        assert foo_args_bar == RenderArgs(Foo, bar="foo")
-        assert foo_args_bar == RenderArgs(Foo, foo="FOO", bar="foo")
-        assert foo_args_bar == RenderArgs(Foo, foo_args_bar)
-        assert foo_args_bar == RenderArgs(Foo, foo_args_bar, foo="FOO")
-        assert foo_args_bar != foo_args_default
-        assert foo_args_bar != foo_args_foo
+        bar_args = RenderArgs(Bar)
+        assert bar_args == RenderArgs(Bar)
+        assert bar_args == RenderArgs(Bar, Bar.Args())
 
-        foo_args_foo_bar = RenderArgs(Foo, foo="bar", bar="foo")
-        assert foo_args_foo_bar == RenderArgs(Foo, foo="bar", bar="foo")
-        assert foo_args_foo_bar == RenderArgs(Foo, foo_args_foo, bar="foo")
-        assert foo_args_foo_bar == RenderArgs(Foo, foo_args_bar, foo="bar")
-        assert foo_args_foo_bar == RenderArgs(Foo, foo_args_foo_bar)
-        assert foo_args_foo_bar != foo_args_default
-        assert foo_args_foo_bar != foo_args_foo
-        assert foo_args_foo_bar != foo_args_bar
+        bar_args_bar = RenderArgs(Bar, Bar.Args("bar"))
+        assert bar_args_bar == RenderArgs(Bar, Bar.Args("bar"))
+        assert bar_args_bar != bar_args
+
+        baz_args = RenderArgs(Baz)
+        assert baz_args == RenderArgs(Baz)
+        assert baz_args == RenderArgs(Baz, Bar.Args())
+        assert baz_args == RenderArgs(Baz, Baz.Args())
+        assert baz_args == RenderArgs(Baz, Bar.Args(), Baz.Args())
+        assert baz_args == RenderArgs(Baz, Baz.Args(), Bar.Args())
+        assert baz_args != bar_args
+        assert baz_args != bar_args_bar
+
+        baz_args_bar = RenderArgs(Baz, Bar.Args("bar"))
+        assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"))
+        assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"), Baz.Args())
+        assert baz_args_bar == RenderArgs(Baz, Baz.Args(), Bar.Args("bar"))
+        assert baz_args_bar != bar_args
+        assert baz_args_bar != bar_args_bar
+        assert baz_args_bar != baz_args
+
+        baz_args_baz = RenderArgs(Baz, Baz.Args("baz"))
+        assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"))
+        assert baz_args_baz == RenderArgs(Baz, Bar.Args(), Baz.Args("baz"))
+        assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args())
+        assert baz_args_baz != bar_args
+        assert baz_args_baz != bar_args_bar
+        assert baz_args_baz != baz_args
+        assert baz_args_baz != baz_args_bar
+
+        baz_args_bar_baz = RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
+        assert baz_args_bar_baz == RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
+        assert baz_args_bar_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args("bar"))
+        assert baz_args_bar_baz != bar_args
+        assert baz_args_bar_baz != bar_args_bar
+        assert baz_args_bar_baz != baz_args
+        assert baz_args_bar_baz != baz_args_bar
+        assert baz_args_bar_baz != baz_args_baz
+
+    def test_getitem(self):
+        class Bar(Foo):
+            pass
+
+        class Baz(Bar):
+            pass
+
+        render_args = RenderArgs(Bar)
+
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_args[Ellipsis]
+
+        with pytest.raises(RenderArgsError, match="no render arguments"):
+            render_args[Bar]
+
+        with pytest.raises(RenderArgsError, match="'Bar' is not a subclass of 'Baz'"):
+            render_args[Baz]
+
+        assert isinstance(render_args[Foo], Foo.Args)
 
     def test_hash(self):
         foo_args_default = RenderArgs(Foo)
         assert hash(foo_args_default) == hash(RenderArgs(Foo))
 
-        foo_args_foo = RenderArgs(Foo, foo="bar")
-        foo_args_foo_bar = RenderArgs(Foo, foo="bar", bar="foo")
-        assert hash(foo_args_foo_bar) == hash(RenderArgs(Foo, foo_args_foo, bar="foo"))
+        foo_args_foo_bar = RenderArgs(Foo, Foo.Args(foo="bar", bar="foo"))
+        assert hash(foo_args_foo_bar) == hash(
+            RenderArgs(Foo, Foo.Args(foo="bar", bar="foo"))
+        )
 
-        foo_args = RenderArgs(Foo, foo=[])
+        foo_args = RenderArgs(Foo, Foo.Args(foo=[]))
         with pytest.raises(TypeError):
             hash(foo_args)
 
-    def test_getattr(self):
-        render_args = RenderArgs(Foo)
-        with pytest.raises(AttributeError, match="Unknown .* 'baz'"):
-            render_args.baz
+    def test_iter(self):
+        class A(Renderable):
+            class Args(RenderArgs.Namespace):
+                foo: None = None
 
-    def test_copy(self):
-        render_args = RenderArgs(Foo, foo="bar")
+        class B(A):
+            class Args(RenderArgs.Namespace):
+                foo: None = None
 
-        assert render_args.copy() is render_args
+        class C(B):
+            class Args(RenderArgs.Namespace):
+                foo: None = None
 
-        assert render_args.copy(foo="bar") is not render_args
-        assert render_args.copy(foo="bar") == render_args
+        assert [*RenderArgs(A)] == [A.Args()]
+        assert [*RenderArgs(B)] == [A.Args(), B.Args()]
+        assert [*RenderArgs(C)] == [A.Args(), B.Args(), C.Args()]
 
-        assert render_args.copy(foo="foo") != render_args
-        assert render_args.copy(foo="foo") == RenderArgs(Foo, foo="foo")
+    class TestUpdate:
+        def test_args(self):
+            class Bar(Renderable):
+                pass
 
-        assert render_args.copy(bar="foo") != render_args
-        assert render_args.copy(bar="foo") == RenderArgs(Foo, foo="bar", bar="foo")
+            class Baz(Bar):
+                pass
+
+            render_args = RenderArgs(Foo)
+
+            with pytest.raises(TypeError, match="first argument"):
+                render_args.update(Ellipsis)
+
+            with pytest.raises(TypeError, match="positional argument"):
+                render_args.update(Foo, Ellipsis)
+
+            with pytest.raises(TypeError, match="keyword argument"):
+                render_args.update(Foo.Args(), foo=Ellipsis)
+
+            # propagated
+
+            with pytest.raises(TypeError, match=r"'namespaces\[1\]'"):
+                render_args.update(Foo.Args(), Ellipsis)
+
+            with pytest.raises(RenderArgsError, match="not a subclass"):
+                render_args.update(Bar)
+
+            with pytest.raises(RenderArgsError, match="no render arguments"):
+                RenderArgs(Baz).update(Bar)
+
+            with pytest.raises(RenderArgsError, match="Unknown .* field"):
+                render_args.update(Foo, x=Ellipsis)
+
+        def test_namespaces(self):
+            render_args = RenderArgs(Foo)
+            namespace = Foo.Args(foo="bar", bar="foo")
+            assert render_args.update(namespace) == RenderArgs(Foo, namespace)
+            assert render_args.update(namespace)[Foo] is namespace
+
+            render_args = +Foo.Args(foo="bar")
+            namespace = Foo.Args(bar="foo")
+            assert render_args.update(Foo.Args()) == RenderArgs(Foo)
+            assert render_args.update(namespace) == RenderArgs(Foo, namespace)
+            assert render_args.update(namespace)[Foo] is namespace
+
+            render_args = +Foo.Args(bar="foo")
+            namespace = Foo.Args(foo="bar")
+            assert render_args.update(Foo.Args()) == RenderArgs(Foo)
+            assert render_args.update(namespace) == RenderArgs(Foo, namespace)
+            assert render_args.update(namespace)[Foo] is namespace
+
+        def test_multiple_namespaces_with_same_render_cls(self):
+            args_foo = Foo.Args(foo="bar")
+            args_bar = Foo.Args(bar="foo")
+            render_args = RenderArgs(Foo)
+
+            assert render_args.update(args_foo, args_bar)[Foo] is args_bar
+            assert render_args.update(args_bar, args_foo)[Foo] is args_foo
+
+        def test_render_args(self):
+            render_args = +Foo.Args(foo="bar")
+            assert render_args.update(Foo) == render_args
+            assert render_args.update(Foo, foo="bar") == render_args
+            assert render_args.update(Foo, foo="foo") == +Foo.Args(foo="foo")
+            assert render_args.update(Foo, bar="foo") == +Foo.Args(foo="bar", bar="foo")
 
     class TestOptimizations:
         class TestDefaultsInterned:
@@ -373,15 +456,6 @@ class TestRenderArgs:
                 assert render_args is RenderArgs(self.Bar, render_args)
 
             def test_likely_false_positives(self):
-                render_args = RenderArgs(self.Bar)
-
-                assert render_args is not RenderArgs(
-                    self.Bar, RenderArgs(Foo, foo="bar")
-                )
-                assert render_args is not RenderArgs(
-                    self.Bar, RenderArgs(self.Bar, bar="foo")
-                )
-
                 class Baz(Foo):
                     pass
 
@@ -400,26 +474,17 @@ class TestRenderArgs:
                 assert isinstance(render_args, SubRenderArgs)
                 assert render_args is SubRenderArgs(Foo)
 
-        class TestInitRenderArgsWithSameRenderClsAndWithoutRenderArgs:
+        def test_init_render_args_with_same_render_cls_and_without_namespaces(self):
             class Bar(Foo):
                 pass
 
-            def test_true_positives(self):
-                bar_args_foo = RenderArgs(self.Bar, foo="bar")
-                assert RenderArgs(self.Bar, bar_args_foo) is bar_args_foo
+            namespace = Foo.Args(foo="bar", bar="foo")
 
-                bar_args_bar = RenderArgs(self.Bar, bar="foo")
-                assert RenderArgs(self.Bar, bar_args_bar) is bar_args_bar
+            foo_render_args = RenderArgs(Foo, namespace)
+            assert RenderArgs(Foo, foo_render_args) is foo_render_args
 
-                bar_args_foo_bar = RenderArgs(self.Bar, foo="bar", bar="foo")
-                assert RenderArgs(self.Bar, bar_args_foo_bar) is bar_args_foo_bar
-
-            def test_likely_false_positives(self):
-                foo_args_foo = RenderArgs(Foo, foo="bar")
-                bar_args_foo = RenderArgs(self.Bar, foo="bar")
-
-                assert RenderArgs(self.Bar, foo_args_foo) == bar_args_foo
-                assert RenderArgs(self.Bar, foo_args_foo) is not bar_args_foo
+            bar_render_args = RenderArgs(Bar, namespace)
+            assert RenderArgs(Bar, bar_render_args) is bar_render_args
 
 
 class TestRenderData:
