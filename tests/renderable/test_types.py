@@ -669,6 +669,453 @@ class TestRenderArgs:
             assert RenderArgs(Bar, bar_render_args) is bar_render_args
 
 
+class TestArgsNamespaceMeta:
+    class TestFields:
+        def test_no_default(self):
+            with pytest.raises(RenderArgsError, match="'bar' .* no default"):
+
+                class Namespace(RenderArgs.Namespace):
+                    foo: None = None
+                    bar: None
+                    baz: None = None
+
+        def test_defaults(self):
+            class Namespace(RenderArgs.Namespace):
+                foo: str = "FOO"
+                bar: str = "BAR"
+
+            Namespace.get_fields() == dict(foo="FOO", bar="BAR")
+
+
+class TestArgsNamespace:
+    class Bar(Renderable):
+        class Args(RenderArgs.Namespace):
+            foo: str = "FOO"
+            bar: str = "BAR"
+
+    Namespace = Bar.Args
+
+    class TestConstructor:
+        class Bar(Renderable):
+            class Args(RenderArgs.Namespace):
+                foo: str = "FOO"
+                bar: str = "BAR"
+                baz: str = "BAZ"
+
+        Namespace = Bar.Args
+
+        def test_args(self):
+            with pytest.raises(TypeError, match="'Bar' defines 3 .* 4 .* given"):
+                self.Namespace("", "", "", "")
+
+            with pytest.raises(RenderArgsError, match=r"Unknown .* \('dude',\)"):
+                self.Namespace(dude="dude")
+
+            with pytest.raises(TypeError, match=r"Got multiple .* \('foo',\)"):
+                self.Namespace("foo", foo="foo")
+
+        def test_default(self):
+            namespace = self.Namespace()
+            assert namespace.as_dict() == dict(foo="FOO", bar="BAR", baz="BAZ")
+
+        def test_render_args(self):
+            namespace = self.Namespace("foo")
+            assert namespace.as_dict() == dict(foo="foo", bar="BAR", baz="BAZ")
+
+            namespace = self.Namespace("foo", "bar")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="BAZ")
+
+            namespace = self.Namespace("foo", "bar", "baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="baz")
+
+        def test_render_kwargs(self):
+            namespace = self.Namespace(foo="foo")
+            assert namespace.as_dict() == dict(foo="foo", bar="BAR", baz="BAZ")
+
+            namespace = self.Namespace(bar="bar")
+            assert namespace.as_dict() == dict(foo="FOO", bar="bar", baz="BAZ")
+
+            namespace = self.Namespace(baz="baz")
+            assert namespace.as_dict() == dict(foo="FOO", bar="BAR", baz="baz")
+
+            namespace = self.Namespace(foo="foo", bar="bar")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="BAZ")
+
+            namespace = self.Namespace(foo="foo", baz="baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="BAR", baz="baz")
+
+            namespace = self.Namespace(bar="bar", baz="baz")
+            assert namespace.as_dict() == dict(foo="FOO", bar="bar", baz="baz")
+
+            namespace = self.Namespace(foo="foo", bar="bar", baz="baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="baz")
+
+            # Out of order
+            namespace = self.Namespace(bar="bar", baz="baz", foo="foo")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="baz")
+
+        def test_render_args_kwargs(self):
+            namespace = self.Namespace("foo", bar="bar")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="BAZ")
+
+            namespace = self.Namespace("foo", baz="baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="BAR", baz="baz")
+
+            namespace = self.Namespace("foo", bar="bar", baz="baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="baz")
+
+            namespace = self.Namespace("foo", "bar", baz="baz")
+            assert namespace.as_dict() == dict(foo="foo", bar="bar", baz="baz")
+
+    def test_getattr(self):
+        namespace = self.Namespace()
+        with pytest.raises(AttributeError, match="'baz'"):
+            namespace.baz
+
+    def test_setattr(self):
+        namespace = self.Namespace()
+        for attr in ("foo", "bar"):
+            with pytest.raises(AttributeError):
+                setattr(namespace, attr, Ellipsis)
+
+    def test_delattr(self):
+        namespace = self.Namespace()
+        for attr in ("foo", "bar"):
+            with pytest.raises(AttributeError):
+                delattr(namespace, attr)
+
+    def test_equality(self):
+        namespace_default = self.Namespace()
+        assert namespace_default == self.Namespace()
+        assert namespace_default == self.Namespace("FOO", "BAR")
+
+        namespace_foo = self.Namespace(foo="foo")
+        assert namespace_foo == self.Namespace("foo", "BAR")
+        assert namespace_foo == self.Namespace(foo="foo")
+        assert namespace_foo != namespace_default
+
+        namespace_bar = self.Namespace(bar="bar")
+        assert namespace_bar == self.Namespace("FOO", "bar")
+        assert namespace_bar == self.Namespace(bar="bar")
+        assert namespace_bar != namespace_default
+        assert namespace_bar != namespace_foo
+
+        namespace_foo_bar = self.Namespace("foo", "bar")
+        assert namespace_foo_bar == self.Namespace("foo", "bar")
+        assert namespace_foo_bar == self.Namespace(foo="foo", bar="bar")
+        assert namespace_foo_bar != namespace_default
+        assert namespace_foo_bar != namespace_foo
+        assert namespace_foo_bar != namespace_bar
+
+    def test_hash(self):
+        namespace_default = self.Namespace()
+        assert hash(namespace_default) == hash(self.Namespace())
+
+        namespace_foo_bar = self.Namespace("foo", "bar")
+        assert hash(namespace_foo_bar) == hash(self.Namespace("foo", "bar"))
+
+        namespace = self.Namespace([])
+        with pytest.raises(TypeError):
+            hash(namespace)
+
+    class TestOr:
+        class A(Renderable):
+            class Args(RenderArgs.Namespace):
+                a: int = 0
+
+        class B(A):
+            class Args(RenderArgs.Namespace):
+                b: int = 0
+
+        class C(A):
+            class Args(RenderArgs.Namespace):
+                c: int = 0
+
+        def test_invalid_type(self):
+            A = TestArgsNamespace.TestOr.A
+            a = A.Args()
+
+            with pytest.raises(TypeError):
+                a | Ellipsis
+
+        class TestNamespace:
+            def test_same_render_cls(self):
+                A = TestArgsNamespace.TestOr.A
+                a1, a2 = A.Args(1), A.Args(2)
+
+                assert a2 | a1 == RenderArgs(A, a1)
+                assert a1 | a2 == RenderArgs(A, a2)
+
+            # Render class of *other* is a child of that of *self*
+            def test_compatible_child_render_cls(self):
+                A = TestArgsNamespace.TestOr.A
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert a | b == RenderArgs(B, a, b)
+                assert a | c == RenderArgs(C, a, c)
+
+            # Render class of *other* is a parent of that of *self*
+            def test_compatible_parent_render_cls(self):
+                A = TestArgsNamespace.TestOr.A
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert b | a == RenderArgs(B, a, b)
+                assert c | a == RenderArgs(C, a, c)
+
+            def test_incompatible_render_cls(self):
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                b, c = B.Args(2), C.Args(3)
+
+                with pytest.raises(RenderArgsError):
+                    b | c
+
+                with pytest.raises(RenderArgsError):
+                    c | b
+
+        class TestRenderArgs:
+            # Render class of *other* is a child of that of *self*
+            def test_compatible_child_render_cls(self):
+                A = TestArgsNamespace.TestOr.A
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert a | RenderArgs(B, b) == RenderArgs(B, a, b)
+                assert a | RenderArgs(C, c) == RenderArgs(C, a, c)
+
+            # Render class of *other* is a parent of that of *self*
+            def test_compatible_parent_render_cls(self):
+                A = TestArgsNamespace.TestOr.A
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert b | RenderArgs(A, a) == RenderArgs(B, a, b)
+                assert c | RenderArgs(A, a) == RenderArgs(C, a, c)
+
+            def test_incompatible_render_cls(self):
+                B = TestArgsNamespace.TestOr.B
+                C = TestArgsNamespace.TestOr.C
+                b, c = B.Args(2), C.Args(3)
+
+                with pytest.raises(RenderArgsError):
+                    b | RenderArgs(C)
+
+                with pytest.raises(RenderArgsError):
+                    c | RenderArgs(B)
+
+    def test_pos(self):
+        assert +self.Namespace() == RenderArgs(self.Bar)
+        assert +self.Namespace("bar", "foo") == RenderArgs(
+            self.Bar, self.Namespace("bar", "foo")
+        )
+
+    class TestRor:
+        """The reflected operation is invoked if either:
+
+        * type(RHS) is a subclass of type(LHS) and provides a different implementation
+          of the reflected operation, or
+        * type(LHS) does not implement the [non-reflected] operation against type(RHS)
+          i.e `LHS.__non_reflected__(RHS)` returns `NotImplemented`.
+        """
+
+        def test_invalid_type(self):
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    a: int = 0
+
+            a = A.Args()
+            with pytest.raises(TypeError):
+                Ellipsis | a
+
+        class TestNamespace:
+            def test_same_render_cls(self):
+                class A(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        a: int = 0
+
+                    class SubArgs(Args):
+                        def __ror__(self, other):  # See docstring of `TestRor`
+                            return super().__ror__(other)
+
+                a, a_sub = A.Args(1), A.SubArgs(2)
+                assert a | a_sub == RenderArgs(A, a_sub)
+
+            # Render class of *other* is a child of that of *self*
+            def test_compatible_child_render_cls(self):
+                class ArgsC(RenderArgs.Namespace):
+                    c: int = 0
+
+                class ArgsB(ArgsC, inherit=False):
+                    b: int = 0
+
+                class ArgsA(ArgsC, inherit=False):
+                    a: int = 0
+
+                    def __ror__(self, other):  # See docstring of `TestRor`
+                        return super().__ror__(other)
+
+                class A(Renderable):
+                    Args = ArgsA
+
+                class B(A):
+                    Args = ArgsB
+
+                class C(A):
+                    Args = ArgsC
+
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+                assert b | a == RenderArgs(B, a, b)
+                assert c | a == RenderArgs(C, a, c)
+
+            # Render class of *other* is a parent of that of *self*
+            def test_compatible_parent_render_cls(self):
+                class A(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        a: int = 0
+
+                class B(A):
+                    class Args(A.Args, inherit=False):
+                        b: int = 0
+
+                        def __ror__(self, other):  # See docstring of `TestRor`
+                            return super().__ror__(other)
+
+                class C(A):
+                    class Args(A.Args, inherit=False):
+                        c: int = 0
+
+                        def __ror__(self, other):  # See docstring of `TestRor`
+                            return super().__ror__(other)
+
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+                assert a | b == RenderArgs(B, a, b)
+                assert a | c == RenderArgs(C, a, c)
+
+            def test_incompatible_render_cls(self):
+                class B(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        b: int = 0
+
+                class C(Renderable):
+                    class Args(B.Args, inherit=False):
+                        c: int = 0
+
+                        def __ror__(self, other):  # See docstring of `TestRor`
+                            return super().__ror__(other)
+
+                b, c = B.Args(2), C.Args(3)
+                with pytest.raises(RenderArgsError):
+                    b | c
+
+        class TestRenderArgs:
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    a: int = 0
+
+            class B(A):
+                class Args(RenderArgs.Namespace):
+                    b: int = 0
+
+            class C(A):
+                class Args(RenderArgs.Namespace):
+                    c: int = 0
+
+            # Render class of *other* is a child of that of *self*
+            def test_compatible_child_render_cls(self):
+                A, B, C = self.A, self.B, self.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert RenderArgs(B, b) | a == RenderArgs(B, a, b)
+                assert RenderArgs(C, c) | a == RenderArgs(C, a, c)
+
+            # Render class of *other* is a parent of that of *self*
+            def test_compatible_parent_render_cls(self):
+                A, B, C = self.A, self.B, self.C
+                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+
+                assert RenderArgs(A, a) | b == RenderArgs(B, a, b)
+                assert RenderArgs(A, a) | c == RenderArgs(C, a, c)
+
+            def test_incompatible_render_cls(self):
+                B, C = self.B, self.C
+                b, c = B.Args(2), C.Args(3)
+
+                with pytest.raises(RenderArgsError):
+                    RenderArgs(C) | b
+
+                with pytest.raises(RenderArgsError):
+                    RenderArgs(B) | c
+
+    class TestToRenderArgs:
+        class Bar(Foo):
+            class Args(RenderArgs.Namespace):
+                bar: str = "BAR"
+
+        class Baz(Bar):
+            class Args(RenderArgs.Namespace):
+                baz: str = "BAZ"
+
+        args_default = Bar.Args()
+        args = Bar.Args("bar")
+
+        def test_default(self):
+            assert self.args_default.to_render_args() == RenderArgs(self.Bar)
+            assert self.args_default.to_render_args(None) == RenderArgs(self.Bar)
+
+            assert self.args.to_render_args() == RenderArgs(self.Bar, self.args)
+            assert self.args.to_render_args(None) == RenderArgs(self.Bar, self.args)
+
+        def test_compatible(self):
+            assert self.args_default.to_render_args(self.Bar) == RenderArgs(self.Bar)
+            assert self.args_default.to_render_args(self.Baz) == RenderArgs(self.Baz)
+
+            assert self.args.to_render_args(self.Bar) == RenderArgs(self.Bar, self.args)
+            assert self.args.to_render_args(self.Baz) == RenderArgs(self.Baz, self.args)
+
+        def test_incompatible(self):
+            with pytest.raises(
+                RenderArgsError, match=r"'namespaces\[0\]' .* incompatible"
+            ):
+                self.args_default.to_render_args(Foo)
+
+            with pytest.raises(
+                RenderArgsError, match=r"'namespaces\[0\]' .* incompatible"
+            ):
+                self.args.to_render_args(Foo)
+
+    def test_update(self):
+        namespace = self.Namespace()
+        assert namespace.update() == self.Namespace()
+        assert namespace.update(foo="bar") == self.Namespace("bar")
+        assert namespace.update(bar="foo") == self.Namespace(bar="foo")
+        assert namespace.update(foo="bar", bar="foo") == self.Namespace("bar", "foo")
+
+        namespace_foo = self.Namespace("bar")
+        assert namespace_foo.update() == self.Namespace("bar")
+        assert namespace_foo.update(foo="baz") == self.Namespace("baz")
+        assert namespace_foo.update(bar="foo") == self.Namespace("bar", "foo")
+        assert namespace_foo.update(foo="baz", bar="baz") == self.Namespace(
+            "baz", "baz"
+        )
+
+        namespace_bar = self.Namespace(bar="foo")
+        assert namespace_bar.update() == self.Namespace(bar="foo")
+        assert namespace_bar.update(bar="baz") == self.Namespace(bar="baz")
+        assert namespace_bar.update(foo="bar") == self.Namespace("bar", "foo")
+        assert namespace_bar.update(foo="baz", bar="baz") == self.Namespace(
+            "baz", "baz"
+        )
+
+        with pytest.raises(RenderArgsError, match=r"Unknown .* \('baz',\)"):
+            namespace.update(baz=Ellipsis)
+
+
 class TestRenderData:
     base_render_data_dict = dict(
         zip(("size", "frame", "duration", "iteration"), (None,) * 4)
