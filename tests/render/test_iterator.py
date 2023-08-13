@@ -116,7 +116,7 @@ class TestRenderArgs:
             assert frame.render == " "
 
     def test_non_default(self):
-        render_iter = RenderIterator(anim_char, RenderArgs(Char, char="#"))
+        render_iter = RenderIterator(anim_char, +Char.Args(char="#"))
         for frame in render_iter:
             assert frame.render == "#"
 
@@ -523,10 +523,10 @@ class TestSetRenderArgs:
         render_iter = RenderIterator(self.anim_char)
         assert next(render_iter).render == " "
 
-        render_iter.set_render_args(RenderArgs(Char, char="#"))
+        render_iter.set_render_args(+Char.Args(char="#"))
         assert next(render_iter).render == "#"
 
-        render_iter.set_render_args(RenderArgs(Char, char="$"))
+        render_iter.set_render_args(+Char.Args(char="$"))
         assert next(render_iter).render == "$"
         assert next(render_iter).render == "$"
 
@@ -537,7 +537,7 @@ class TestSetRenderArgs:
             render_iter = RenderIterator(self.anim_char, cache=cache)
             assert next(render_iter).render == " "
 
-            render_iter.set_render_args(RenderArgs(Char, char="#"))
+            render_iter.set_render_args(+Char.Args(char="#"))
             render_iter.seek(0)
             assert next(render_iter).render == "#"
 
@@ -549,7 +549,7 @@ class TestSetRenderArgs:
             assert next(render_iter).render == " "
 
             render_iter.seek(0)
-            render_iter.set_render_args(RenderArgs(Char, char="#"))
+            render_iter.set_render_args(+Char.Args(char="#"))
             assert next(render_iter).render == "#"
 
     def test_cache_update(self):
@@ -561,7 +561,7 @@ class TestSetRenderArgs:
         assert next(render_iter) is old_frame
 
         render_iter.seek(0)
-        render_iter.set_render_args(RenderArgs(Char, char="#"))
+        render_iter.set_render_args(+Char.Args(char="#"))
         new_frame = next(render_iter)
         assert new_frame is not old_frame
         assert new_frame.render == "#"
@@ -572,7 +572,7 @@ class TestSetRenderArgs:
 
 class TestSetRenderFmt:
     anim_char = Char(4, 1)
-    render_args = RenderArgs(Char, char="#")
+    render_args = +Char.Args(char="#")
 
     def test_args(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
@@ -816,7 +816,7 @@ class TestFromRenderData:
             render_iter = RenderIterator._from_render_data_(
                 anim_char,
                 anim_char._get_render_data_(iteration=True),
-                RenderArgs(Char, char="#"),
+                +Char.Args(char="#"),
             )
             for frame in render_iter:
                 assert frame.render == "#"
