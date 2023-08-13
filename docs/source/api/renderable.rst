@@ -399,10 +399,6 @@ Other Classes
 
 .. automodulesumm:: term_image.renderable
    :autosummary-no-titles:
-   :autosummary-members: RenderParam, RenderData
+   :autosummary-members: RenderData
 
 .. autoclass:: RenderData
-
-|
-
-.. autoclass:: RenderParam

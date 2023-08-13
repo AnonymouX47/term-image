@@ -9,14 +9,13 @@ __all__ = (
     "RenderArgs",
     "RenderData",
     "RenderFormat",
-    "RenderParam",
 )
 
 import os
 from dataclasses import dataclass
 from inspect import Parameter, signature
 from types import MappingProxyType
-from typing import Any, Callable, ClassVar, Iterator, Mapping, NamedTuple, Type
+from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Type
 
 from .. import geometry
 from ..exceptions import (
@@ -1091,72 +1090,6 @@ class RenderFormat:
             raise arg_value_error_range("render_size", render_size)
 
         return Size(*map(max, (self.width, self.height), render_size))
-
-
-class RenderParam(NamedTuple):
-    """Render parameter definition.
-
-    Args:
-        default: The default value of the render parameter.
-        type_check: Render argument type validator. If
-
-          * ``None``, argument type validation is skipped.
-          * not ``None``, it is called with the class of the renderable for which a
-            render argument is given and the argument itself.
-            If it returns ``False``, ``TypeError(type_msg)`` is raised.
-
-        type_msg: The error message when *type_check* returns ``False`` for a render
-          argument. If `None`, a generic error message is generated.
-        value_check: Render argument value validator. If
-
-          * ``None``, argument value validation is skipped.
-          * not ``None``, it is called with the class of the renderable for which a
-            render argument is given and the argument itself.
-            If it returns ``False``, ``ValueError(value_msg)`` is raised.
-
-        value_msg: The error message when *value_check* returns ``False`` for a render
-          argument. If `None`, a generic error message is generated.
-
-    IMPORTANT:
-        Parameter values (including *default*) should be immutable and hashable.
-        Otherwise, :py:class:`~term_image.renderable.RenderArgs`\\ ' contract of
-        immutability and/or hashability would be broken and it may also result in
-        unexpected behaviour during render operations.
-
-    TIP:
-        - Instances are immutable and hashable.
-        - Instances with equal fields compare equal.
-    """
-
-    default: Any
-    """Default value
-
-    :meta hide-value:
-    """
-
-    type_check: Callable[[type[Renderable], Any], bool] | None = None
-    """Type validator
-
-    :meta hide-value:
-    """
-
-    type_msg: str | None = None
-    """Type error message
-
-    :meta hide-value:
-    """
-
-    value_check: Callable[[type[Renderable], Any], bool] | None = None
-    """Value validator
-
-    :meta hide-value:
-    """
-
-    value_msg: str | None = None
-    """Value error message
-
-    :meta hide-value:
-    """
 
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)

@@ -17,7 +17,6 @@ from term_image.renderable import (
     RenderArgs,
     RenderData,
     RenderFormat,
-    RenderParam,
     VAlign,
 )
 
@@ -73,58 +72,6 @@ class TestFrame:
         for value in (" ", " " * 10):
             frame = Frame(None, None, None, value)
             assert str(frame) is value is frame.render
-
-
-class TestRenderParam:
-    def test_is_tuple(self):
-        render_param = RenderParam(None)
-        assert isinstance(render_param, tuple)
-        assert len(render_param) == 5
-
-    class TestFields:
-        def test_default(self):
-            for value in (None, Ellipsis):
-                render_param = RenderParam(value)
-                assert render_param.default is value
-                render_param = RenderParam(default=value)
-                assert render_param.default is value
-
-        def test_type_check(self):
-            for value in (None, lambda cls, value: True):
-                render_param = RenderParam(None, value)
-                assert render_param.type_check is value
-                render_param = RenderParam(None, type_check=value)
-                assert render_param.type_check is value
-
-        def test_type_msg(self):
-            for value in (None, "invalid type"):
-                render_param = RenderParam(None, None, value)
-                assert render_param.type_msg is value
-                render_param = RenderParam(None, type_msg=value)
-                assert render_param.type_msg is value
-
-        def test_value_check(self):
-            for value in (None, lambda cls, value: True):
-                render_param = RenderParam(None, None, None, value)
-                assert render_param.value_check is value
-                render_param = RenderParam(None, value_check=value)
-                assert render_param.value_check is value
-
-        def test_value_msg(self):
-            for value in (None, "invalid value"):
-                render_param = RenderParam(None, None, None, None, value)
-                assert render_param.value_msg is value
-                render_param = RenderParam(None, value_msg=value)
-                assert render_param.value_msg is value
-
-    def test_immutability(self):
-        render_param = RenderParam(None)
-        for attr in ("default", "type_check", "type_msg", "value_check", "value_msg"):
-            with pytest.raises(AttributeError):
-                setattr(render_param, attr, Ellipsis)
-
-            with pytest.raises(AttributeError):
-                delattr(render_param, attr)
 
 
 class TestNamespaceMeta:
