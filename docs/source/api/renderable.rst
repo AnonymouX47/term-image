@@ -230,6 +230,7 @@ RenderArgs.Namespace
    * Every subclass must **either** define or inherit fields.
    * Every **direct** subclass of this class must define fields.
    * Directly subclassing multiple namespace classes is invalid.
+   * A subclass' constructor must not have required parameters.
 
    .. rubric:: Defining Fields
 
