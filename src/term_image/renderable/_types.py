@@ -150,21 +150,22 @@ class RenderArgsData:
 
             new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
 
-            non_optional = [
-                name
-                for name, parameter in signature(new_cls).parameters.items()
-                if parameter.default is Parameter.empty
-                and (
-                    Parameter.VAR_POSITIONAL
-                    is not parameter.kind
-                    is not Parameter.VAR_KEYWORD
-                )
-            ]
-            if non_optional:
-                raise TypeError(
-                    "The class constructor has non-optional parameter(s): "
-                    f"{', '.join(non_optional)}"
-                )
+            if not _base:
+                for method_name in ("__new__", "__init__"):
+                    method = getattr(new_cls, method_name)
+                    parameters = iter(signature(method).parameters.items())
+
+                    next(parameters)  # skip first parameter (cls, self)
+                    for param_name, param in parameters:
+                        if param.default is Parameter.empty and (
+                            Parameter.VAR_POSITIONAL
+                            is not param.kind
+                            is not Parameter.VAR_KEYWORD
+                        ):
+                            raise TypeError(
+                                f"'{new_cls.__qualname__}.{method_name}' has a "
+                                f"required parameter {param_name!r}"
+                            )
 
             return new_cls
 
