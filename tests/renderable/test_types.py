@@ -24,6 +24,11 @@ from term_image.renderable import (
 RenderArgsData = RenderArgs.__base__
 
 
+class NamespaceBase(RenderArgsData.Namespace, _base=True):
+    def __init__(self, fields=None):
+        super().__init__(fields or {})
+
+
 class Foo(Renderable):
     _RENDER_DATA_ = frozenset({"foo", "bar"})
 
@@ -76,10 +81,10 @@ class TestFrame:
 
 class TestNamespaceMeta:
     def test_multiple_namespace_bases(self):
-        class A(RenderArgsData.Namespace):
+        class A(NamespaceBase):
             a: None
 
-        class B(RenderArgsData.Namespace):
+        class B(NamespaceBase):
             b: None
 
         with pytest.raises(RenderArgsDataError, match="Multiple .* baseclasses"):
@@ -91,11 +96,11 @@ class TestNamespaceMeta:
         def test_no_field(self):
             with pytest.raises(RenderArgsDataError, match="No field"):
 
-                class Namespace(RenderArgsData.Namespace):
+                class Namespace(NamespaceBase):
                     pass
 
         def test_define(self):
-            class Namespace(RenderArgsData.Namespace):
+            class Namespace(NamespaceBase):
                 foo: None
                 bar: None
 
@@ -103,7 +108,7 @@ class TestNamespaceMeta:
             assert Namespace.get_fields() == {"foo": None, "bar": None}
 
         def test_inherit(self):
-            class A(RenderArgsData.Namespace):
+            class A(NamespaceBase):
                 a: None
                 b: None
 
@@ -114,7 +119,7 @@ class TestNamespaceMeta:
             assert B.get_fields() == {"a": None, "b": None}
 
         def test_inherit_and_define(self):
-            class A(RenderArgsData.Namespace):
+            class A(NamespaceBase):
                 a: None
                 b: None
 
@@ -125,7 +130,7 @@ class TestNamespaceMeta:
                     d: None
 
         def test_inherit_false(self):
-            class A(RenderArgsData.Namespace):
+            class A(NamespaceBase):
                 a: None
                 b: None
 
@@ -143,7 +148,7 @@ class TestNamespaceMeta:
 
     class TestRenderCls:
         def test_association(self):
-            class Namespace(RenderArgsData.Namespace):
+            class Namespace(NamespaceBase):
                 foo: None
 
             assert Namespace.get_render_cls() is None
@@ -153,7 +158,7 @@ class TestNamespaceMeta:
 
         class TestInheritTrue:
             def test_subclass_before(self):
-                class A(RenderArgsData.Namespace):
+                class A(NamespaceBase):
                     a: None
 
                 class B(A):
@@ -165,7 +170,7 @@ class TestNamespaceMeta:
                 assert B.get_render_cls() is Renderable
 
             def test_subclass_after(self):
-                class A(RenderArgsData.Namespace):
+                class A(NamespaceBase):
                     a: None
 
                 A._RENDER_CLS = Renderable
@@ -177,7 +182,7 @@ class TestNamespaceMeta:
 
         class TestInheritFalse:
             def test_subclass_before(self):
-                class A(RenderArgsData.Namespace):
+                class A(NamespaceBase):
                     a: None
 
                 class B(A, inherit=False):
@@ -189,7 +194,7 @@ class TestNamespaceMeta:
                 assert B.get_render_cls() is None
 
             def test_subclass_after(self):
-                class A(RenderArgsData.Namespace):
+                class A(NamespaceBase):
                     a: None
 
                 A._RENDER_CLS = Renderable
@@ -199,24 +204,54 @@ class TestNamespaceMeta:
 
                 assert B.get_render_cls() is None
 
-    def test_non_optional_constructor_parameters(self):
-        with pytest.raises(TypeError, match="non-optional parameter"):
+    def test_required_constructor_parameters(self):
+        with pytest.raises(TypeError, match="__init__.* required parameter"):
 
-            class Namespace(RenderArgsData.Namespace):
+            class Namespace(NamespaceBase):
                 foo: None
 
                 def __init__(self, foo):
-                    super().__init__(foo)
+                    pass
+
+        with pytest.raises(TypeError, match="__new__.* required parameter"):
+
+            class Namespace(NamespaceBase):  # noqa: F811
+                foo: None
+
+                def __new__(self, foo):
+                    pass
+
+        with pytest.raises(TypeError, match="__init__.* required parameter"):
+
+            class Namespace(NamespaceBase):  # noqa: F811
+                foo: None
+
+                def __new__(self, *args, **kwargs):
+                    pass
+
+                def __init__(self, foo):
+                    pass
+
+        with pytest.raises(TypeError, match="__new__.* required parameter"):
+
+            class Namespace(NamespaceBase):  # noqa: F811
+                foo: None
+
+                def __new__(self, foo):
+                    pass
+
+                def __init__(self, *args, **kwargs):
+                    pass
 
 
 class TestNamespace:
-    class Namespace(RenderArgsData.Namespace):
+    class Namespace(NamespaceBase):
         _RENDER_CLS = Renderable
         foo: int
         bar: int
 
     def test_cannot_instantiate_unassociated(self):
-        class Namespace(RenderArgsData.Namespace):
+        class Namespace(NamespaceBase):
             foo: None
 
         with pytest.raises(TypeError, match="Cannot instantiate"):
@@ -236,7 +271,7 @@ class TestNamespace:
         assert namespace.get_fields() == dict(foo=None, bar=None)
 
     def test_get_render_cls(self):
-        class Namespace(RenderArgsData.Namespace):
+        class Namespace(NamespaceBase):
             foo: None
 
         assert Namespace.get_render_cls() is None
