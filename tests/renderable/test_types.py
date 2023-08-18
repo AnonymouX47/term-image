@@ -257,6 +257,12 @@ class TestNamespace:
         with pytest.raises(TypeError, match="Cannot instantiate"):
             Namespace()
 
+    def test_delattr(self):
+        namespace = self.Namespace(dict(foo=1, bar=2))
+        for attr in ("foo", "bar"):
+            with pytest.raises(AttributeError, match="Cannot delete"):
+                delattr(namespace, attr)
+
     def test_as_dict(self):
         namespace = self.Namespace(dict(foo=1, bar=2))
         assert namespace.as_dict() == dict(foo=1, bar=2)
@@ -301,6 +307,9 @@ class TestRenderArgs:
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
         assert tuple(render_args) == ()
+
+        with pytest.raises(RenderArgsError, match="no render arguments"):
+            render_args[Renderable]
 
     def test_render_cls(self):
         render_args = RenderArgs(Foo)
@@ -499,6 +508,9 @@ class TestRenderArgs:
         with pytest.raises(TypeError, match="'render_cls'"):
             render_args[Ellipsis]
 
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_args[[]]
+
         with pytest.raises(RenderArgsError, match="no render arguments"):
             render_args[Bar]
 
@@ -596,7 +608,7 @@ class TestRenderArgs:
             assert render_args.update(args_foo, args_bar)[Foo] is args_bar
             assert render_args.update(args_bar, args_foo)[Foo] is args_foo
 
-        def test_render_args(self):
+        def test_fields(self):
             render_args = +Foo.Args(foo="bar")
             assert render_args.update(Foo) == render_args
             assert render_args.update(Foo, foo="bar") == render_args
@@ -751,7 +763,7 @@ class TestArgsNamespace:
 
     def test_getattr(self):
         namespace = self.Namespace()
-        with pytest.raises(AttributeError, match="'baz'"):
+        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
             namespace.baz
 
     def test_setattr(self):
@@ -759,12 +771,6 @@ class TestArgsNamespace:
         for attr in ("foo", "bar"):
             with pytest.raises(AttributeError):
                 setattr(namespace, attr, Ellipsis)
-
-    def test_delattr(self):
-        namespace = self.Namespace()
-        for attr in ("foo", "bar"):
-            with pytest.raises(AttributeError):
-                delattr(namespace, attr)
 
     def test_equality(self):
         namespace_default = self.Namespace()
