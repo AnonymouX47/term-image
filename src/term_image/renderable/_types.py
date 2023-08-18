@@ -146,6 +146,8 @@ class RenderArgsData:
                     if base_has_fields:
                         namespace["_RENDER_CLS"] = None
 
+                for attr in fields:
+                    namespace.pop(attr, None)
                 namespace["__slots__"] = tuple(fields)
 
             new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
@@ -185,6 +187,9 @@ class RenderArgsData:
             for name in type(self)._FIELDS:
                 # Subclass(es) redefine `__setattr__()`
                 __class__.__setattr__(self, name, fields[name])
+
+        def __delattr__(self, _):
+            raise AttributeError("Cannot delete field")
 
         def as_dict(self) -> dict[str, Any]:
             """Converts the namespace to a dictionary.
@@ -554,7 +559,7 @@ class RenderArgs(RenderArgsData):
             if not _base:
                 try:
                     defaults = {
-                        name: namespace.pop(name)
+                        name: namespace[name]
                         for name in namespace.get("__annotations__", ())
                     }
                 except KeyError as e:
@@ -654,9 +659,6 @@ class RenderArgs(RenderArgsData):
                 "of the namespace or the containing `RenderArgs` instance, as "
                 "applicable, instead"
             )
-
-        def __delattr__(self, _):
-            raise AttributeError("Cannot delete render argument fields")
 
         def __eq__(self, other: RenderArgs.Namespace) -> bool:
             """Compares the namespace with another.
