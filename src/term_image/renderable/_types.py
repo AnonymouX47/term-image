@@ -485,10 +485,10 @@ class RenderArgs(RenderArgsData):
         self,
         render_cls_or_namespace: Type[Renderable] | RenderArgs.Namespace,
         *namespaces: RenderArgs.Namespace,
-        **render_args: Any,
+        **fields: Any,
     ) -> RenderArgs:
         """update(namespace, /, *namespaces) -> RenderArgs
-        update(render_cls, /, **render_args) -> RenderArgs
+        update(render_cls, /, **fields) -> RenderArgs
 
         Replaces or updates render argument namespaces.
 
@@ -503,7 +503,7 @@ class RenderArgs(RenderArgsData):
               :py:attr:`render_cls` is a subclass (which may be :py:attr:`render_cls`
               itself) and which defines render arguments.
 
-            render_args: Render arguments.
+            fields: Render argument fields.
 
               The keywords must be names of render argument fields for *render_cls*.
 
@@ -532,7 +532,7 @@ class RenderArgs(RenderArgsData):
                 )
             render_cls = render_cls_or_namespace
         elif isinstance(render_cls_or_namespace, __class__.Namespace):
-            if render_args:
+            if fields:
                 raise TypeError(
                     "No keyword argument is expected when the first argument is "
                     "a render argument namespace"
@@ -547,7 +547,7 @@ class RenderArgs(RenderArgsData):
         return type(self)(
             self.render_cls,
             self,
-            *((self[render_cls].update(**render_args),) if render_cls else namespaces),
+            *((self[render_cls].update(**fields),) if render_cls else namespaces),
         )
 
     # Inner Classes
@@ -577,32 +577,32 @@ class RenderArgs(RenderArgsData):
             return new_cls
 
     class Namespace(RenderArgsData.Namespace, metaclass=_NamespaceMeta, _base=True):
-        """Namespace(*render_args, **render_kwargs)
+        """Namespace(*values, **fields)
 
         :term:`Render class`\\ -specific render argument namespace.
 
         Args:
-            render_args: Positional render arguments.
+            values: Render argument field values.
 
-              The values are mapped to render argument fields in the order in which
-              the fields were defined.
+              The values are mapped to fields in the order in which the fields were
+              defined.
 
-            render_kwargs: Keyword render arguments.
+            fields: Render argument fields.
 
-              The keywords must be names of render argument fields for the
-              associated [#ran1]_ render class.
+              The keywords must be names of render argument fields for the associated
+              [#ran1]_ render class.
 
         Raises:
             TypeError: The [sub]class being instantiated is not associated [#ran1]_
               with a render class.
-            TypeError: More positional arguments than there are fields.
+            TypeError: More values (positional arguments) than there are fields.
             term_image.exceptions.RenderArgsError: Unknown field name(s).
             TypeError: Multiple values given for a field.
 
         If no value is given for a field, its default value is used.
 
         NOTE:
-            * Render argument fields are exposed as instance attributes.
+            * Fields are exposed as instance attributes.
             * Instances are immutable but updated copies can be created via
               :py:meth:`update`.
             * Each subclass may be associated [#ran1]_ with **only one** render class.
@@ -610,31 +610,31 @@ class RenderArgs(RenderArgsData):
         .. Completed in /docs/source/api/renderable.rst
         """
 
-        def __init__(self, *render_args: Any, **render_kwargs: Any) -> None:
-            fields = type(self)._FIELDS
+        def __init__(self, *values: Any, **fields: Any) -> None:
+            default_fields = type(self)._FIELDS
 
-            if len(render_args) > len(fields):
+            if len(values) > len(default_fields):
                 raise TypeError(
-                    f"{type(self)._RENDER_CLS.__name__!r} defines {len(fields)} "
-                    f"render argument field(s) but {len(render_args)} positional "
-                    "arguments were given"
+                    f"{type(self)._RENDER_CLS.__name__!r} defines "
+                    f"{len(default_fields)} render argument field(s) but "
+                    f"{len(values)} values were given"
                 )
-            render_args = dict(zip(fields, render_args))
+            value_fields = dict(zip(default_fields, values))
 
-            unknown = render_kwargs.keys() - fields.keys()
+            unknown = fields.keys() - default_fields.keys()
             if unknown:
                 raise RenderArgsError(
                     f"Unknown render argument fields {tuple(unknown)} for "
                     f"{type(self)._RENDER_CLS.__name__!r}"
                 )
-            multiple = render_kwargs.keys() & render_args.keys()
+            multiple = fields.keys() & value_fields.keys()
             if multiple:
                 raise TypeError(
                     f"Got multiple values for render argument fields "
                     f"{tuple(multiple)} of {type(self)._RENDER_CLS.__name__!r}"
                 )
 
-            super().__init__({**fields, **render_args, **render_kwargs})
+            super().__init__({**default_fields, **value_fields, **fields})
 
         def __repr__(self) -> str:
             return "".join(
@@ -799,22 +799,22 @@ class RenderArgs(RenderArgsData):
             """
             return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
 
-        def update(self, **render_args: Any) -> RenderArgs.Namespace:
+        def update(self, **fields: Any) -> RenderArgs.Namespace:
             """Updates render argument fields.
 
             Args:
-                render_args: Render arguments.
+                fields: Render argument fields.
 
             Returns:
                 A namespace with the given fields updated.
 
             Raises:
-                term_image.exceptions.RenderArgsError: Unknown render argument field(s).
+                term_image.exceptions.RenderArgsError: Unknown field name(s).
             """
-            if not render_args:
+            if not fields:
                 return self
 
-            unknown = render_args.keys() - type(self)._FIELDS.keys()
+            unknown = fields.keys() - type(self)._FIELDS.keys()
             if unknown:
                 raise RenderArgsError(
                     f"Unknown render argument field(s) {tuple(unknown)} for "
@@ -822,9 +822,9 @@ class RenderArgs(RenderArgsData):
                 )
 
             new = type(self).__new__(type(self))
-            fields = self.as_dict()
-            fields.update(render_args)
-            super(__class__, new).__init__(fields)
+            new_fields = self.as_dict()
+            new_fields.update(fields)
+            super(__class__, new).__init__(new_fields)
 
             return new
 
