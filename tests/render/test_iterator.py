@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from itertools import zip_longest
+from typing import Iterator
 
 import pytest
 
@@ -10,6 +13,7 @@ from term_image.renderable import (
     FrameCount,
     Renderable,
     RenderArgs,
+    RenderData,
     RenderFormat,
 )
 
@@ -24,17 +28,16 @@ class FrameFill(Renderable):
         self.render_size = size
 
     def _render_(self, render_data, render_args):
-        width, height = render_data.size
+        size, frame, duration, _ = render_data[Renderable].as_tuple()
         return Frame(
-            render_data.frame,
-            render_data.duration,
-            render_data.size,
-            "\n".join((str(render_data.frame) * width,) * height),
+            frame,
+            duration,
+            size,
+            "\n".join((str(frame) * size.width,) * size.height),
         )
 
 
 class IndefiniteFrameFill(Renderable):
-    _RENDER_DATA_ = frozenset({"frames"})
     render_size = Size(1, 1)
 
     def __init__(self, size: Size):
@@ -43,19 +46,24 @@ class IndefiniteFrameFill(Renderable):
         self.__frame_count = 10
 
     def _render_(self, render_data, render_args):
-        width, height = render_data.size
-        frame_number = next(render_data.frames) if render_data.iteration else 0
+        size, frame, duration, iteration = render_data[Renderable].as_tuple()
+        frame_number = next(render_data[__class__].frames) if iteration else 0
         return Frame(
-            render_data.frame,
-            render_data.duration,
-            render_data.size,
-            "\n".join((str(frame_number) * width,) * height),
+            frame,
+            duration,
+            size,
+            "\n".join((str(frame_number) * size.width,) * size.height),
         )
 
     def _get_render_data_(self, *, iteration):
         render_data = super()._get_render_data_(iteration=iteration)
-        render_data.frames = iter(range(self.__frame_count)) if iteration else None
+        render_data[__class__].frames = (
+            iter(range(self.__frame_count)) if iteration else None
+        )
         return render_data
+
+    class _Data_(RenderData.Namespace):
+        frames: Iterator[int] | None
 
 
 space = Space(1, 1)
@@ -382,7 +390,7 @@ class TestNext:
     def test_error(self):
         class ErrorSpace(Space):
             def _render_(self, render_data, render_args):
-                if render_data.frame == 1:
+                if render_data[Renderable].frame == 1:
                     assert False
                 return super()._render_(render_data, render_args)
 
@@ -777,15 +785,15 @@ class TestFromRenderData:
 
     def test_render_data(self):
         render_data = anim_space._get_render_data_(iteration=True)
-        assert render_data.frame == 0
-        assert render_data.size == Size(1, 1)
-        assert render_data.duration == 1
+        assert render_data[Renderable].frame == 0
+        assert render_data[Renderable].size == Size(1, 1)
+        assert render_data[Renderable].duration == 1
 
-        render_data.size = Size(3, 3)
+        render_data[Renderable].size = Size(3, 3)
         render_iter = RenderIterator._from_render_data_(anim_space, render_data)
         assert next(render_iter).size == Size(3, 3)
 
-        render_data.duration = 100
+        render_data[Renderable].duration = 100
         assert next(render_iter).duration == 100
 
     class TestFinalize:
