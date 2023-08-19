@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import io
 import sys
 from contextlib import contextmanager
 from itertools import zip_longest
+from typing import Any, Iterator
 
 import pytest
 
@@ -46,9 +49,6 @@ def draw_n_eol(height, frame_count, loops):
 class TestClassCreation:
     def test_base(self):
         assert Renderable._ALL_EXPORTED_ATTRS == ()
-        assert Renderable._ALL_RENDER_DATA == frozenset(
-            {"size", "frame", "duration", "iteration"}
-        )
 
     def test_not_a_subclass(self):
         with pytest.raises(RenderableError, match="'Foo' is not a subclass"):
@@ -62,16 +62,6 @@ class TestClassCreation:
             _EXPORTED_DESCENDANT_ATTRS_ = ("_desc",)
 
         assert sorted(AttrsOnly._ALL_EXPORTED_ATTRS) == sorted(("_attr", "_desc"))
-        assert AttrsOnly._ALL_RENDER_DATA == Renderable._ALL_RENDER_DATA
-
-    def test_data_only(self):
-        class DataOnly(Renderable):
-            _RENDER_DATA_ = frozenset({"data"})
-
-        assert sorted(DataOnly._ALL_EXPORTED_ATTRS) == []
-        assert DataOnly._ALL_RENDER_DATA == (
-            Renderable._ALL_RENDER_DATA | frozenset({"data"})
-        )
 
 
 class TestExportedAttrs:
@@ -164,93 +154,6 @@ class TestExportedAttrs:
             assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("A",))
 
 
-class TestRenderData:
-    class A(Renderable):
-        _RENDER_DATA_ = frozenset({"a"})
-
-    def test_base(self):
-        assert isinstance(Renderable._ALL_RENDER_DATA, frozenset)
-        assert Renderable._ALL_RENDER_DATA == frozenset(
-            {"size", "frame", "duration", "iteration"}
-        )
-
-    def test_cls(self):
-        assert isinstance(self.A._ALL_RENDER_DATA, frozenset)
-        assert self.A._ALL_RENDER_DATA == Renderable._ALL_RENDER_DATA | frozenset({"a"})
-
-    def test_inheritance(self):
-        class B(self.A):
-            _RENDER_DATA_ = frozenset({"b"})
-
-        assert B._ALL_RENDER_DATA == Renderable._ALL_RENDER_DATA | frozenset({"a", "b"})
-
-        class C(B):
-            _RENDER_DATA_ = frozenset({"c"})
-
-        assert C._ALL_RENDER_DATA == (
-            Renderable._ALL_RENDER_DATA | frozenset({"a", "b", "c"})
-        )
-
-    def test_multiple_inheritance(self):
-        class B(Renderable):
-            _RENDER_DATA_ = frozenset({"b"})
-
-        class C(self.A, B):
-            _RENDER_DATA_ = frozenset({"c"})
-
-        assert C._ALL_RENDER_DATA == (
-            Renderable._ALL_RENDER_DATA | frozenset({"a", "b", "c"})
-        )
-
-        class C(B, self.A):
-            _RENDER_DATA_ = frozenset({"c"})
-
-        assert C._ALL_RENDER_DATA == (
-            Renderable._ALL_RENDER_DATA | frozenset({"a", "b", "c"})
-        )
-
-    class TestConflict:
-        class A(Renderable):
-            _RENDER_DATA_ = frozenset({"a"})
-
-        def test_cls_vs_renderable(self):
-            with pytest.raises(
-                RenderableError, match="('size',).* 'B'.* conflict.* 'Renderable'"
-            ):
-
-                class B(Renderable):
-                    _RENDER_DATA_ = frozenset({"size"})
-
-        def test_cls_vs_base(self):
-            with pytest.raises(RenderableError, match="('a',).* 'B'.* conflict.* 'A'"):
-
-                class B(self.A):
-                    _RENDER_DATA_ = frozenset({"a"})
-
-        def test_cls_vs_base_of_base(self):
-            class B(self.A):
-                _RENDER_DATA_ = frozenset({"b"})
-
-            with pytest.raises(RenderableError, match="('a',).* 'C'.* conflict.* 'A'"):
-
-                class C(B):
-                    _RENDER_DATA_ = frozenset({"a"})
-
-        def test_base_vs_base(self):
-            class B(Renderable):
-                _RENDER_DATA_ = frozenset({"a"})
-
-            with pytest.raises(RenderableError, match="('a',).* 'B'.* conflict.* 'A'"):
-
-                class C(B, self.A):
-                    pass
-
-            with pytest.raises(RenderableError, match="('a',).* 'A'.* conflict.* 'B'"):
-
-                class C(self.A, B):  # noqa: F811
-                    pass
-
-
 class TestRenderArgs:
     def test_default(self):
         render_args = RenderArgs(Renderable)
@@ -265,43 +168,43 @@ class Space(Renderable):
     render_size = Size(1, 1)
 
     def _render_(self, render_data, render_args):
-        width, height = render_data.size
+        size, frame, duration, _ = render_data[Renderable].as_tuple()
         return Frame(
-            render_data.frame,
-            render_data.duration,
-            render_data.size,
-            "\n".join((" " * width,) * height),
+            frame, duration, size, "\n".join((" " * size.width,) * size.height)
         )
 
 
 class IndefiniteSpace(Space):
-    _RENDER_DATA_ = frozenset({"frames"})
-
     def __init__(self, frame_count):
         super().__init__(FrameCount.INDEFINITE, 1)
         self.__frame_count = frame_count
 
     def _render_(self, render_data, render_args):
-        if render_data.iteration:
-            next(render_data.frames)
+        if render_data[Renderable].iteration:
+            next(render_data[__class__].frames)
         return super()._render_(render_data, render_args)
 
     def _get_render_data_(self, *, iteration):
         render_data = super()._get_render_data_(iteration=iteration)
-        render_data.frames = iter(range(self.__frame_count)) if iteration else None
+        render_data[__class__].frames = (
+            iter(range(self.__frame_count)) if iteration else None
+        )
         return render_data
+
+    class _Data_(RenderData.Namespace):
+        frames: Iterator[int] | None
 
 
 class Char(Renderable):
     render_size = Size(1, 1)
 
     def _render_(self, render_data, render_args):
-        width, height = render_data.size
+        size, frame, duration, _ = render_data[Renderable].as_tuple()
         return Frame(
-            render_data.frame,
-            render_data.duration,
-            render_data.size,
-            "\n".join((render_args[Char].char * width,) * height),
+            frame,
+            duration,
+            size,
+            "\n".join((render_args[Char].char * size.width,) * size.height),
         )
 
     class Args(RenderArgs.Namespace):
@@ -837,36 +740,42 @@ class TestFormatRender:
 class TestGetRenderData:
     anim_space = Space(10, 1)
 
-    def test_all(self):
+    def test_render_data(self):
         render_data = self.anim_space._get_render_data_(iteration=False)
         assert isinstance(render_data, RenderData)
-        assert len(vars(render_data)) == 4
-        assert vars(render_data).keys() == {"size", "frame", "duration", "iteration"}
+        assert render_data.render_cls is Space
+        assert isinstance(render_data[Renderable], Renderable._Data_)
 
     def test_size(self):
         for value in (2, 10):
             self.anim_space.render_size = render_size = Size(value, value)
-            size = self.anim_space._get_render_data_(iteration=False).size
+            render_data = self.anim_space._get_render_data_(iteration=False)
+            size = render_data[Renderable].size
             assert isinstance(size, Size)
             assert size == render_size
 
     def test_frame(self):
         for value in (2, 8):
             self.anim_space.seek(value)
-            frame = self.anim_space._get_render_data_(iteration=False).frame
+            render_data = self.anim_space._get_render_data_(iteration=False)
+            frame = render_data[Renderable].frame
             assert isinstance(frame, int)
             assert frame == value
 
     def test_duration(self):
         for value in (2, 100, FrameDuration.DYNAMIC):
             self.anim_space.frame_duration = value
-            duration = self.anim_space._get_render_data_(iteration=False).duration
+            render_data = self.anim_space._get_render_data_(iteration=False)
+            duration = render_data[Renderable].duration
             assert isinstance(duration, (int, FrameDuration))
             assert duration == value
 
     def test_iteration(self):
-        self.anim_space._get_render_data_(iteration=False).iteration is False
-        self.anim_space._get_render_data_(iteration=True).iteration is True
+        render_data = self.anim_space._get_render_data_(iteration=False)
+        assert render_data[Renderable].iteration is False
+
+        render_data = self.anim_space._get_render_data_(iteration=True)
+        assert render_data[Renderable].iteration is True
 
 
 class TestInitRender:
@@ -931,7 +840,6 @@ class TestInitRender:
     # See also: `TestInitRender.test_iteration`
     def test_render_data(self):
         class Foo(Renderable):
-            _RENDER_DATA_ = frozenset({"foo"})
             render_size = _render_ = None
 
             def __init__(self, value):
@@ -940,16 +848,18 @@ class TestInitRender:
 
             def _get_render_data_(self, *, iteration):
                 render_data = super()._get_render_data_(iteration=iteration)
-                render_data.foo = self.__value
+                render_data[__class__].foo = self.__value
                 return render_data
+
+            class _Data_(RenderData.Namespace):
+                foo: Any
 
         for value in (None, 1, " ", []):
             render_data = Foo(value)._init_render_(lambda *args: args)[0][0]
 
             assert isinstance(render_data, RenderData)
             assert render_data.render_cls is Foo
-            assert "foo" in vars(render_data)
-            assert render_data.foo is value
+            assert render_data[Foo].foo is value
 
     class TestRenderArgs:
         char = Char(1, 1)
@@ -1031,14 +941,14 @@ class TestInitRender:
     def test_iteration(self):
         render_data = self.space._init_render_(lambda *args: args)[0][0]
 
-        assert render_data.iteration is False
+        assert render_data[Renderable].iteration is False
 
         for value in (False, True):
             render_data = self.space._init_render_(  # fmt: skip
                 lambda *args: args, iteration=value
             )[0][0]
 
-            assert render_data.iteration is value
+            assert render_data[Renderable].iteration is value
 
     def test_finalize(self):
         render_data = self.space._init_render_(lambda *args: args)[0][0]
