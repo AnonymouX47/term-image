@@ -942,6 +942,87 @@ class RenderData(RenderArgsData):
             finally:
                 super().__setattr__("finalized", True)
 
+    # Inner Classes
+
+    class Namespace(RenderArgsData.Namespace, _base=True):
+        """Namespace()
+
+        :term:`Render class`\\ -specific render data namespace.
+
+        Raises:
+            TypeError: The [sub]class being instantiated is not associated [#rdn1]_
+              with a render class.
+
+        Subclassing, defining (and inheriting) fields is just as it is for
+        :ref:`args-namespace`, except that values assigned to the class attributes
+        are not used.
+
+        Every field is initialized to ``None``. The fields are expected to be updated
+        by the :py:meth:`~term_image.renderable.Renderable._get_render_data_` method
+        of the render class associated [#rdn1]_ with the namespace, if neccessary.
+
+        NOTE:
+            * Fields are exposed as instance attributes.
+            * Instances are mutable and fields can updated **in-place** either
+              individually by assignment to an attribute reference or in batch via
+              :py:meth:`update`.
+            * An instance shouldn't be copied by any means because finalizing its
+              containing :py:class:`RenderData` instance may invalidate all copies of
+              the namespace.
+            * Each subclass may be associated [#rdn1]_ with **only one** render class.
+
+        .. Completed in /docs/source/api/renderable.rst
+        """
+
+        def __init__(self) -> None:
+            super().__init__(type(self)._FIELDS)
+
+        def __repr__(self) -> str:
+            return "".join(
+                (
+                    f"{type(self)._RENDER_CLS.__name__}._Data_(",
+                    ", ".join(
+                        f"{name}={getattr(self, name)!r}" for name in type(self)._FIELDS
+                    ),
+                    ")",
+                )
+            )
+
+        def __getattr__(self, attr):
+            raise AttributeError(
+                f"Unknown render data field {attr!r} for "
+                f"{type(self)._RENDER_CLS.__name__!r}"
+            )
+
+        def __setattr__(self, attr, value):
+            try:
+                super().__setattr__(attr, value)
+            except AttributeError:
+                raise AttributeError(
+                    f"Unknown render data field {attr!r} for "
+                    f"{type(self)._RENDER_CLS.__name__!r}"
+                ) from None
+
+        def update(self, **fields: Any) -> None:
+            """Updates render data fields.
+
+            Args:
+                fields: Render data fields.
+
+            Raises:
+                term_image.exceptions.RenderDataError: Unknown field name(s).
+            """
+            if fields:
+                unknown = fields.keys() - type(self)._FIELDS.keys()
+                if unknown:
+                    raise RenderDataError(
+                        f"Unknown render data field(s) {tuple(unknown)} for "
+                        f"{type(self)._RENDER_CLS.__name__!r}"
+                    )
+
+                for field in fields.items():
+                    super().__setattr__(*field)
+
 
 @dataclass(frozen=True)
 class RenderFormat:
