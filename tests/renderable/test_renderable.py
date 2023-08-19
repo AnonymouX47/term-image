@@ -22,7 +22,6 @@ from term_image.renderable import (
     RenderFormat,
     VAlign,
 )
-from term_image.renderable._renderable import RenderableMeta
 
 from .. import get_terminal_size
 
@@ -46,22 +45,12 @@ def draw_n_eol(height, frame_count, loops):
     return (height - 1) * frame_count * loops + 1
 
 
-class TestClassCreation:
-    def test_base(self):
-        assert Renderable._ALL_EXPORTED_ATTRS == ()
-
+class TestMeta:
     def test_not_a_subclass(self):
         with pytest.raises(RenderableError, match="'Foo' is not a subclass"):
 
-            class Foo(metaclass=RenderableMeta):
+            class Foo(metaclass=type(Renderable)):
                 pass
-
-    def test_attrs_only(self):
-        class AttrsOnly(Renderable):
-            _EXPORTED_ATTRS_ = ("_attr",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("_desc",)
-
-        assert sorted(AttrsOnly._ALL_EXPORTED_ATTRS) == sorted(("_attr", "_desc"))
 
 
 class TestExportedAttrs:
