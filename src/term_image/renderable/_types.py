@@ -195,8 +195,15 @@ class RenderArgsData:
             """Converts the namespace to a dictionary.
 
             Returns:
-                A dictionary mapping field names to their values, in order of
-                definition.
+                A dictionary mapping field names to their values.
+
+            WARNING:
+                The number and order of fields for any particular subclass should not
+                be relied upon as these details may change with/without notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
             """
             return {name: getattr(self, name) for name in type(self)._FIELDS}
 
@@ -205,8 +212,15 @@ class RenderArgsData:
             """Returns the field definitions.
 
             Returns:
-                A mapping of field names to their default values, in order of
-                definition.
+                A mapping of field names to their default values.
+
+            WARNING:
+                The number and order of fields for any particular subclass should not
+                be relied upon as these details may change with/without notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
             """
             return cls._FIELDS
 
@@ -468,6 +482,14 @@ class RenderArgs(RenderArgsData):
 
         Returns:
             An iterator that yields the constituent namespaces.
+
+        WARNING:
+            The number and order of namespaces for any particular associated [#ra2]_
+            :term:`render class` should not be relied upon as these details may change
+            with/without notice.
+
+            The order is an implementation detail of the Renderable API and the number
+            should be considered alike with respect to the associated render class.
         """
         return iter(self._namespaces.values())
 
