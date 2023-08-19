@@ -122,7 +122,6 @@ Renderable
       :autosummary-members:
         _EXPORTED_ATTRS_,
         _EXPORTED_DESCENDANT_ATTRS_,
-        _RENDER_DATA_,
         _animate_,
         _finalize_render_data_,
         _format_render_,
@@ -131,10 +130,10 @@ Renderable
         _handle_interrupted_draw_,
         _init_render_,
         _render_,
+        _Data_,
 
    .. autoattribute:: _EXPORTED_ATTRS_
    .. autoattribute:: _EXPORTED_DESCENDANT_ATTRS_
-   .. autoattribute:: _RENDER_DATA_
    .. automethod:: _animate_
    .. automethod:: _finalize_render_data_
    .. automethod:: _format_render_
@@ -143,6 +142,8 @@ Renderable
    .. automethod:: _handle_interrupted_draw_
    .. automethod:: _init_render_
    .. automethod:: _render_
+
+.. autoclass:: term_image.renderable.Renderable._Data_
 
 |
 
