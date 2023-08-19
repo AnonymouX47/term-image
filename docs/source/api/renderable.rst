@@ -160,7 +160,8 @@ Renderable.Args
    this attribute.
 
    An instance of this class (``Args``), is contained in any :py:class:`RenderArgs`
-   instance compatible [#ra1]_ with the render class defining this attribute.
+   instance associated [#ra2]_ with the render class defining this attribute or any
+   of its subclasses.
 
    Also, an instance of this class (``Args``) is returned by
    :py:meth:`render_args[render_cls] <RenderArgs.__getitem__>`, where *render_args* is
@@ -211,6 +212,76 @@ Renderable.Args
         creation of the render class.
       * Modifying this attribute after creation of the render class neither associates
         nor disassociates a render argument namespace class.
+
+|
+
+.. _renderable-data:
+
+Renderable._Data_
+"""""""""""""""""
+.. py:attribute:: Renderable._Data_
+   :noindex:
+   :type: typing.ClassVar[type[RenderData.Namespace] | None]
+
+   :term:`Render class`\ -specific render data.
+
+   If this is a class, it defines the render data of the render class defining
+   this attribute.
+
+   An instance of this class (``_Data_``), is contained in any :py:class:`RenderData`
+   instance associated [#rd1]_ with the render class defining this attribute or any
+   of its subclasses.
+
+   Also, an instance of this class (``_Data_``) is returned by
+   :py:meth:`render_data[render_cls] <RenderData.__getitem__>`, where *render_data* is
+   an instance of :py:class:`~term_image.renderable.RenderData` as previously described
+   and *render_cls* is the render class defining this attribute.
+
+   .. collapse:: Example
+
+      >>> class Foo(Renderable):
+      ...     class _Data_(RenderData.Namespace):
+      ...         foo: str | None
+      ...
+      >>> foo_args = Foo._Data_()
+      >>> foo_args
+      Foo._Data_(foo=None)
+      >>> foo_args.foo = "FOO"
+      >>> foo_args
+      Foo._Data_(foo='FOO')
+      >>>
+      >>> render_data = RenderData(Foo)
+      >>> render_data[Foo]
+      Foo._Data_(foo=None)
+      >>> render_data[Foo].foo = "bar"
+      >>> render_data[Foo]
+      Foo._Data_(foo='bar')
+
+   On the other hand, if this is ``None``, it implies the render class defines no
+   render data.
+
+   .. collapse:: Example
+
+      >>> class Bar(Renderable):
+      ...     pass
+      ...
+      >>> assert Bar._Data_ is None
+      >>> render_data = RenderData(Bar)
+      >>> render_data[Bar]
+      Traceback (most recent call last):
+      ...
+      term_image.exceptions.RenderDataError: 'Bar' defines no render data
+
+   .. note::
+
+      * If this attribute is not defined at creation of a render class, it's set to
+        ``None``.
+      * If this attribute is intended to be a class, it must be defined before the
+        creation of the render class.
+      * Modifying this attribute after creation of the render class neither associates
+        nor disassociates a render data namespace class.
+
+   .. seealso:: :py:class:`Renderable._Data_ <term_image.renderable.Renderable._Data_>`.
 
 |
 
@@ -395,11 +466,32 @@ RenderArgs.Namespace
 
 |
 
-Other Classes
-^^^^^^^^^^^^^
-
-.. automodulesumm:: term_image.renderable
-   :autosummary-no-titles:
-   :autosummary-members: RenderData
+RenderData
+^^^^^^^^^^
 
 .. autoclass:: RenderData
+   :autosummary-exclude-members:
+   :special-members: __getitem__
+   :inherited-members: render_cls
+   :exclude-members: Namespace
+
+   .. rubric:: Footnotes
+
+   .. [#rd1]
+      The associated :term:`render class` of an instance is *render_cls*,
+      accessible via :py:attr:`render_cls`.
+
+|
+
+.. autoclass:: term_image.renderable.RenderData.Namespace
+   :inherited-members: as_dict, as_tuple, get_fields, get_render_cls
+
+   .. rubric:: Footnotes
+
+   .. [#rdn1]
+      A subclass, along with its subclasses (that inherit its fields and are not
+      associated with another render class) and their instances, is associated
+      with the :term:`render class` that defines (not inherits) that subclass as
+      its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
+      The render class is accessible via
+      :py:meth:`~term_image.renderable.RenderData.Namespace.get_render_cls`.
