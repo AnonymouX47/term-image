@@ -200,14 +200,6 @@ class RenderArgsData:
             """
             return {name: getattr(self, name) for name in type(self)._FIELDS}
 
-        def as_tuple(self) -> tuple[Any]:
-            """Converts the namespace to a tuple.
-
-            Returns:
-                A tuple containing field values, in order of definition.
-            """
-            return tuple(getattr(self, name) for name in type(self)._FIELDS)
-
         @classmethod
         def get_fields(cls) -> Mapping[str, Any]:
             """Returns the field definitions.

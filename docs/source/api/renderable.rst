@@ -64,7 +64,7 @@ Classes
 
 .. autoclass:: term_image.renderable.RenderArgs.Namespace
    :special-members: __eq__, __hash__, __or__, __pos__, __ror__
-   :inherited-members: as_dict, as_tuple, get_fields, get_render_cls
+   :inherited-members: as_dict, get_fields, get_render_cls
 
    .. seealso:: :ref:`args-namespace`.
 
@@ -485,7 +485,7 @@ RenderData
 |
 
 .. autoclass:: term_image.renderable.RenderData.Namespace
-   :inherited-members: as_dict, as_tuple, get_fields, get_render_cls
+   :inherited-members: as_dict, get_fields, get_render_cls
 
    .. rubric:: Footnotes
 

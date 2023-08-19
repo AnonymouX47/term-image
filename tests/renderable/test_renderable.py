@@ -520,9 +520,10 @@ class Space(Renderable):
     render_size = Size(1, 1)
 
     def _render_(self, render_data, render_args):
-        size, frame, duration, _ = render_data[Renderable].as_tuple()
+        data = render_data[Renderable]
+        width, height = data.size
         return Frame(
-            frame, duration, size, "\n".join((" " * size.width,) * size.height)
+            data.frame, data.duration, data.size, "\n".join((" " * width,) * height)
         )
 
 
@@ -551,12 +552,13 @@ class Char(Renderable):
     render_size = Size(1, 1)
 
     def _render_(self, render_data, render_args):
-        size, frame, duration, _ = render_data[Renderable].as_tuple()
+        data = render_data[Renderable]
+        width, height = data.size
         return Frame(
-            frame,
-            duration,
-            size,
-            "\n".join((render_args[Char].char * size.width,) * size.height),
+            data.frame,
+            data.duration,
+            data.size,
+            "\n".join((render_args[Char].char * width,) * height),
         )
 
     class Args(RenderArgs.Namespace):

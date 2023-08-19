@@ -28,12 +28,13 @@ class FrameFill(Renderable):
         self.render_size = size
 
     def _render_(self, render_data, render_args):
-        size, frame, duration, _ = render_data[Renderable].as_tuple()
+        data = render_data[Renderable]
+        width, height = data.size
         return Frame(
-            frame,
-            duration,
-            size,
-            "\n".join((str(frame) * size.width,) * size.height),
+            data.frame,
+            data.duration,
+            data.size,
+            "\n".join((str(data.frame) * width,) * height),
         )
 
 
@@ -46,13 +47,14 @@ class IndefiniteFrameFill(Renderable):
         self.__frame_count = 10
 
     def _render_(self, render_data, render_args):
-        size, frame, duration, iteration = render_data[Renderable].as_tuple()
-        frame_number = next(render_data[__class__].frames) if iteration else 0
+        data = render_data[Renderable]
+        width, height = data.size
+        frame_number = next(render_data[__class__].frames) if data.iteration else 0
         return Frame(
-            frame,
-            duration,
-            size,
-            "\n".join((str(frame_number) * size.width,) * size.height),
+            data.frame,
+            data.duration,
+            data.size,
+            "\n".join((str(frame_number) * width,) * height),
         )
 
     def _get_render_data_(self, *, iteration):
