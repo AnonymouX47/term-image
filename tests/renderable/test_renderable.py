@@ -4,6 +4,7 @@ import io
 import sys
 from contextlib import contextmanager
 from itertools import zip_longest
+from types import MappingProxyType
 from typing import Any, Iterator
 
 import pytest
@@ -51,6 +52,196 @@ class TestMeta:
 
             class Foo(metaclass=type(Renderable)):
                 pass
+
+    class TestRenderArgs:
+        def test_base(self):
+            assert "_ALL_DEFAULT_ARGS" in Renderable.__dict__
+            assert isinstance(Renderable._ALL_DEFAULT_ARGS, MappingProxyType)
+            assert Renderable._ALL_DEFAULT_ARGS == {}
+
+        def test_invalid_type(self):
+            with pytest.raises(TypeError, match="'Foo.Args'"):
+
+                class Foo(Renderable):
+                    Args = Ellipsis
+
+        def test_not_a_subclass(self):
+            with pytest.raises(
+                RenderableError,
+                match="'Foo.Args' .* subclass of 'RenderArgs.Namespace'",
+            ):
+
+                class Foo(Renderable):
+                    class Args:
+                        pass
+
+        def test_already_associated(self):
+            class Foo(Renderable):
+                class Args(RenderArgs.Namespace):
+                    foo: None = None
+
+            with pytest.raises(
+                RenderableError, match="'Bar.Args' .* associated with .* 'Foo'"
+            ):
+
+                class Bar(Renderable):
+                    class Args(Foo.Args):
+                        pass
+
+        def test_no_args(self):
+            class Foo(Renderable):
+                pass
+
+            assert Foo.Args is None
+            assert "_ALL_DEFAULT_ARGS" in Foo.__dict__
+            assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
+            assert Foo._ALL_DEFAULT_ARGS == Renderable._ALL_DEFAULT_ARGS
+
+        def test_args_none(self):
+            class Foo(Renderable):
+                Args = None
+
+            assert Foo.Args is None
+            assert "_ALL_DEFAULT_ARGS" in Foo.__dict__
+            assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
+            assert Foo._ALL_DEFAULT_ARGS == Renderable._ALL_DEFAULT_ARGS
+
+        def test_has_args(self):
+            class Args(RenderArgs.Namespace):
+                foo: None = None
+
+            Foo = type(Renderable)("Foo", (Renderable,), {"Args": Args})
+
+            assert Foo.Args is Args
+            assert "_ALL_DEFAULT_ARGS" in Foo.__dict__
+            assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
+            assert Foo._ALL_DEFAULT_ARGS == {
+                **Renderable._ALL_DEFAULT_ARGS,
+                Foo: Foo.Args(),
+            }
+
+        def test_association(self):
+            class Args(RenderArgs.Namespace):
+                foo: None = None
+
+            assert Args.get_render_cls() is None
+
+            Foo = type(Renderable)("Foo", (Renderable,), {"Args": Args})
+
+            assert Args.get_render_cls() is Foo
+
+        class TestInheritance:
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    a: None = None
+
+            def test_child_with_no_args(self):
+                class B(self.A):
+                    pass
+
+                assert B._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    self.A: self.A.Args(),
+                }
+
+            def test_parent_with_no_args(self):
+                class B(Renderable):
+                    pass
+
+                class C(B):
+                    class Args(RenderArgs.Namespace):
+                        c: None = None
+
+                assert C._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    C: C.Args(),
+                }
+
+            def test_multi_level(self):
+                class B(self.A):
+                    class Args(RenderArgs.Namespace):
+                        b: None = None
+
+                assert B._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    self.A: self.A.Args(),
+                    B: B.Args(),
+                }
+
+                class C(B):
+                    class Args(RenderArgs.Namespace):
+                        c: None = None
+
+                assert C._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    self.A: self.A.Args(),
+                    B: B.Args(),
+                    C: C.Args(),
+                }
+
+            def test_multiple(self):
+                class B(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        b: None = None
+
+                class C(self.A, B):
+                    class Args(RenderArgs.Namespace):
+                        c: None = None
+
+                assert C._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    self.A: self.A.Args(),
+                    B: B.Args(),
+                    C: C.Args(),
+                }
+
+            def test_complex(self):
+                class B(self.A):
+                    class Args(RenderArgs.Namespace):
+                        b: None = None
+
+                class C(self.A):
+                    class Args(RenderArgs.Namespace):
+                        c: None = None
+
+                class D(B, C):
+                    class Args(RenderArgs.Namespace):
+                        d: None = None
+
+                class E(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        e: None = None
+
+                class F(D, E):
+                    class Args(RenderArgs.Namespace):
+                        f: None = None
+
+                assert F._ALL_DEFAULT_ARGS == {
+                    **Renderable._ALL_DEFAULT_ARGS,
+                    self.A: self.A.Args(),
+                    B: B.Args(),
+                    C: C.Args(),
+                    D: D.Args(),
+                    E: E.Args(),
+                    F: F.Args(),
+                }
+
+    def test_optimization_default_namespaces_interned(self):
+        class A(Renderable):
+            class Args(RenderArgs.Namespace):
+                a: None = None
+
+        class B(A):
+            class Args(RenderArgs.Namespace):
+                b: None = None
+
+        class C(B):
+            class Args(RenderArgs.Namespace):
+                c: None = None
+
+        assert A._ALL_DEFAULT_ARGS[A] is B._ALL_DEFAULT_ARGS[A]
+        assert A._ALL_DEFAULT_ARGS[A] is C._ALL_DEFAULT_ARGS[A]
+        assert B._ALL_DEFAULT_ARGS[B] is C._ALL_DEFAULT_ARGS[B]
 
 
 class TestExportedAttrs:
