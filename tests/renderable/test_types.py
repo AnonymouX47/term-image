@@ -667,6 +667,24 @@ class TestRenderArgs:
             bar_render_args = RenderArgs(Bar, namespace)
             assert RenderArgs(Bar, bar_render_args) is bar_render_args
 
+        # Actually interned by `RenderableMeta`; testing that they're being used
+        def test_default_namespaces_interned(self):
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    a: None = None
+
+            class B(A):
+                class Args(RenderArgs.Namespace):
+                    b: None = None
+
+            class C(B):
+                class Args(RenderArgs.Namespace):
+                    c: None = None
+
+            assert RenderArgs(A)[A] is RenderArgs(B)[A]
+            assert RenderArgs(A)[A] is RenderArgs(C)[A]
+            assert RenderArgs(B)[B] is RenderArgs(C)[B]
+
 
 class TestArgsNamespaceMeta:
     class TestFields:
