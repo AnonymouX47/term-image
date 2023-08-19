@@ -829,46 +829,31 @@ class RenderArgs(RenderArgsData):
             return new
 
 
-class RenderArgsData:
-    def __delattr__(self, _):
-        raise AttributeError("Can't delete attribute")
-
-    def __repr__(self):
-        return "".join(
-            (
-                f"{type(self).__name__}({self.render_cls.__name__}",
-                ", " if self.__dict__ else "",
-                ", ".join(f"{arg}={value!r}" for arg, value in self.__dict__.items()),
-                ")",
-            )
-        )
-
-
 class RenderData(RenderArgsData):
     """Render data.
 
     Args:
-        render_cls: :py:class:`~term_image.renderable.Renderable` or a subclass of it.
-        render_data: Render data for *render_cls*.
+        render_cls: A :term:`render class`.
 
-    Raises:
-        term_image.exceptions.RenderDataError: Unknown render data for *render_cls*.
-        term_image.exceptions.RenderDataError: Incomplete render data for *render_cls*.
-
-    IMPORTANT:
-        See :py:class:`~term_image.renderable.Renderable` and its subclasses for the
-        names and descriptions of their respective render data.
+    An instance of this class is basically a container of render data namespaces
+    (instances of :py:class:`RenderData.Namespace`); one for each :term:`render class`,
+    which defines render data, in the Method Resolution Order of its associated
+    [#rd1]_ render class.
 
     NOTE:
-        * Works with :py:attr:`~term_image.renderable.Renderable._RENDER_DATA_`.
-        * Instances are mutable and may contain mutable data.
-        * Instances shouldn't be copied by any means because finalizing one copy may
-          invalidate all other copies.
+        * Instances are immutable but the constituent namespaces are mutable.
+        * Instances and their contents shouldn't be copied by any means because
+          finalizing an instance may invalidate all other copies.
         * Instances should always be explicitly finalized as soon as they're no longer
           needed.
+
+    TIP:
+        See the ``_Data_`` attribute (subclass of :py:class:`RenderData.Namespace`)
+        of :term:`render classes`, if not ``None``, for their respective render
+        data namespaces.
     """
 
-    __slots__ = ("finalized", "render_cls")
+    __slots__ = ("finalized",)
 
     # Instance Attributes
 
@@ -876,30 +861,16 @@ class RenderData(RenderArgsData):
     """Finalization status"""
 
     render_cls: Type[Renderable]
-    """The associated subclass of :py:class:`~term_image.renderable.Renderable`"""
+    """The associated :term:`render class`"""
 
     # Special Methods
 
-    def __init__(self, render_cls: type[Renderable], **render_data: Any) -> None:
-        super().__setattr__("finalized", False)
-        super().__setattr__("render_cls", render_cls)
-
-        render_params = render_cls._ALL_RENDER_DATA
-        difference = render_data.keys() - render_params
-        if difference:
-            raise RenderDataError(
-                f"Unknown render data for {render_cls.__name__!r} "
-                f"(got: {', '.join(map(repr, difference))})"
-            )
-
-        self.__dict__.update(render_data)
-
-        if len(self.__dict__) < len(render_params):
-            missing = tuple(render_cls._ALL_RENDER_DATA - render_data.keys())
-            raise RenderDataError(
-                f"Incomplete render data for {render_cls.__name__!r} "
-                f"(got: {tuple(render_data)}, missing={missing})"
-            )
+    def __init__(self, render_cls: type[Renderable]) -> None:
+        super().__init__(
+            render_cls,
+            {cls: data_cls() for cls, data_cls in render_cls._RENDER_DATA_MRO.items()},
+        )
+        self.finalized = False
 
     def __del__(self):
         try:
@@ -907,23 +878,39 @@ class RenderData(RenderArgsData):
         except AttributeError:  # Unsuccesful initialization
             pass
 
-    def __getattr__(self, attr):
-        try:
-            render_cls = self.__getattribute__("render_cls")
-        except AttributeError:
-            pass
-        else:
-            raise AttributeError(
-                f"Unknown render data {attr!r} for {render_cls.__name__!r}"
-            )
-        self.__getattribute__(attr)  # fails with the normal exception message
+    def __getitem__(self, render_cls: Type[Renderable]) -> RenderData.Namespace:
+        """Returns a constituent namespace.
 
-    def __setattr__(self, attr, value):
-        if attr not in self.render_cls._ALL_RENDER_DATA:
-            raise AttributeError(
-                f"Unknown render data {attr!r} for {self.render_cls.__name__!r}"
-            )
-        super().__setattr__(attr, value)
+        Args:
+            render_cls: A :term:`render class` of which :py:attr:`render_cls` is a
+              subclass (which may be :py:attr:`render_cls` itself) and which defines
+              render data.
+
+        Returns:
+            The constituent namespace associated with *render_cls*.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            term_image.exceptions.RenderDataError: *render_cls* defines no render
+              data.
+            term_image.exceptions.RenderDataError: :py:attr:`render_cls` is not a
+              subclass of *render_cls*.
+        """
+        try:
+            return self._namespaces[render_cls]
+        except (TypeError, KeyError):
+            if not isinstance(render_cls, RenderableMeta):
+                raise arg_type_error("render_cls", render_cls) from None
+
+            if issubclass(self.render_cls, render_cls):
+                raise RenderDataError(
+                    f"{render_cls.__name__!r} defines no render data"
+                ) from None
+
+            raise RenderDataError(
+                f"{self.render_cls.__name__!r} is not a subclass of "
+                f"{render_cls.__name__!r}"
+            ) from None
 
     # Public Methods
 
@@ -931,7 +918,7 @@ class RenderData(RenderArgsData):
         """Finalizes the render data.
 
         Calls :py:meth:`~term_image.renderable.Renderable._finalize_render_data_`
-        of the associated subclass of :py:class:`~term_image.renderable.Renderable`.
+        of :py:attr:`render_cls`.
 
         NOTE:
             This method is safe for multiple invokations on the same instance.
@@ -940,7 +927,7 @@ class RenderData(RenderArgsData):
             try:
                 self.render_cls._finalize_render_data_(self)
             finally:
-                super().__setattr__("finalized", True)
+                self.finalized = True
 
     # Inner Classes
 
