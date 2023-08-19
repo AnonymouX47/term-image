@@ -416,95 +416,94 @@ class TestMeta:
                     F: F._Data_,
                 }
 
-
-class TestExportedAttrs:
-    class A(Renderable):
-        _EXPORTED_ATTRS_ = ("a",)
-        _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
-
-    def test_base(self):
-        assert isinstance(Renderable._ALL_EXPORTED_ATTRS, tuple)
-        assert Renderable._ALL_EXPORTED_ATTRS == ()
-
-    def test_cls(self):
-        assert isinstance(self.A._ALL_EXPORTED_ATTRS, tuple)
-        assert sorted(self.A._ALL_EXPORTED_ATTRS) == sorted(("a", "A"))
-
-    def test_inheritance(self):
-        class B(self.A):
-            _EXPORTED_ATTRS_ = ("b",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("B",)
-
-        assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("b", "A", "B"))
-
-        class C(B):
-            _EXPORTED_ATTRS_ = ("c",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
-
-        assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
-
-    def test_multiple_inheritance(self):
-        class B(Renderable):
-            _EXPORTED_ATTRS_ = ("b",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("B",)
-
-        class C(self.A, B):
-            _EXPORTED_ATTRS_ = ("c",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
-
-        assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
-
-        class C(B, self.A):
-            _EXPORTED_ATTRS_ = ("c",)
-            _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
-
-        assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
-
-    class TestConflict:
+    class TestExportedAttrs:
         class A(Renderable):
             _EXPORTED_ATTRS_ = ("a",)
             _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
 
-        def test_cls_vs_base(self):
-            class B(self.A):
-                _EXPORTED_ATTRS_ = ("a",)
-                _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+        def test_base(self):
+            assert isinstance(Renderable._ALL_EXPORTED_ATTRS, tuple)
+            assert Renderable._ALL_EXPORTED_ATTRS == ()
 
-            assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("a", "A"))
+        def test_cls(self):
+            assert isinstance(self.A._ALL_EXPORTED_ATTRS, tuple)
+            assert sorted(self.A._ALL_EXPORTED_ATTRS) == sorted(("a", "A"))
 
-        def test_cls_vs_base_of_base(self):
+        def test_inheritance(self):
             class B(self.A):
                 _EXPORTED_ATTRS_ = ("b",)
                 _EXPORTED_DESCENDANT_ATTRS_ = ("B",)
 
+            assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("b", "A", "B"))
+
             class C(B):
-                _EXPORTED_ATTRS_ = ("a",)
-                _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+                _EXPORTED_ATTRS_ = ("c",)
+                _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
 
-            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("a", "A", "B"))
+            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
 
-        def test_base_vs_base(self):
+        def test_multiple_inheritance(self):
             class B(Renderable):
-                _EXPORTED_ATTRS_ = ("a",)
-                _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+                _EXPORTED_ATTRS_ = ("b",)
+                _EXPORTED_DESCENDANT_ATTRS_ = ("B",)
 
             class C(self.A, B):
                 _EXPORTED_ATTRS_ = ("c",)
                 _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
 
-            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "C"))
+            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
 
             class C(B, self.A):
                 _EXPORTED_ATTRS_ = ("c",)
                 _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
 
-            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "C"))
+            assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "B", "C"))
 
-        def test_specific_vs_descendant(self):
-            class B(self.A):
-                _EXPORTED_ATTRS_ = ("A",)
+        class TestConflict:
+            class A(Renderable):
+                _EXPORTED_ATTRS_ = ("a",)
+                _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
 
-            assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("A",))
+            def test_cls_vs_base(self):
+                class B(self.A):
+                    _EXPORTED_ATTRS_ = ("a",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+
+                assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("a", "A"))
+
+            def test_cls_vs_base_of_base(self):
+                class B(self.A):
+                    _EXPORTED_ATTRS_ = ("b",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("B",)
+
+                class C(B):
+                    _EXPORTED_ATTRS_ = ("a",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+
+                assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("a", "A", "B"))
+
+            def test_base_vs_base(self):
+                class B(Renderable):
+                    _EXPORTED_ATTRS_ = ("a",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("A",)
+
+                class C(self.A, B):
+                    _EXPORTED_ATTRS_ = ("c",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
+
+                assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "C"))
+
+                class C(B, self.A):
+                    _EXPORTED_ATTRS_ = ("c",)
+                    _EXPORTED_DESCENDANT_ATTRS_ = ("C",)
+
+                assert sorted(C._ALL_EXPORTED_ATTRS) == sorted(("c", "A", "C"))
+
+            def test_specific_vs_descendant(self):
+                class B(self.A):
+                    _EXPORTED_ATTRS_ = ("A",)
+
+                assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("A",))
 
 
 class TestRenderArgs:
