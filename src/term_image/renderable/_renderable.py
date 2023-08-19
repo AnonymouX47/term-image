@@ -55,9 +55,32 @@ class RenderableMeta(ABCMeta):
                 )
             args_cls._RENDER_CLS = new_cls
 
+        try:
+            data_cls = namespace["_Data_"]
+        except KeyError:
+            data_cls = new_cls._Data_ = None
+
+        if data_cls is not None:
+            if not isinstance(data_cls, type):
+                raise arg_type_error(f"'{name}._Data_'", data_cls)
+            if (
+                not issubclass(data_cls, RenderData.Namespace)
+                or data_cls is RenderData.Namespace
+            ):
+                raise ValueError(
+                    f"'{name}._Data_' is not a strict subclass of "
+                    "'RenderData.Namespace'"
+                )
+            if data_cls._RENDER_CLS:
+                raise RenderableError(
+                    f"'{name}._Data_' is already associated with render class "
+                    f"{data_cls._RENDER_CLS.__name__!r}"
+                )
+            data_cls._RENDER_CLS = new_cls
+
         if kwargs.get("_base"):  # Renderable
             all_default_args = {}
-            all_render_data = namespace.get("_RENDER_DATA_", frozenset())
+            render_data_mro = {new_cls: new_cls._Data_}
             all_exported_descendant_attrs = frozenset()
         else:
             for base in bases:
@@ -67,39 +90,18 @@ class RenderableMeta(ABCMeta):
                 raise RenderableError(f"{name!r} is not a subclass of 'Renderable'")
 
             all_default_args = {}
-            all_render_data = set()
-            all_cls_render_data = {}
+            render_data_mro = {}
             all_exported_descendant_attrs = set()  # remove duplicates
 
             for mro_cls in reversed(new_cls.mro()):
                 if not issubclass(mro_cls, Renderable):
                     continue
 
-                if mro_cls is not new_cls and mro_cls.Args:
-                    all_default_args[mro_cls] = mro_cls._ALL_DEFAULT_ARGS[mro_cls]
-
-                try:
-                    cls_render_data = vars(mro_cls)["_RENDER_DATA_"]
-                except KeyError:
-                    pass
-                else:
-                    intersect = all_render_data & cls_render_data
-                    if intersect:
-                        for (
-                            other_cls,
-                            other_cls_render_data,
-                        ) in all_cls_render_data.items():
-                            intersect = cls_render_data & other_cls_render_data
-                            if intersect:
-                                break
-                        raise RenderableError(
-                            f"Render data {tuple(intersect)!r} of "
-                            f"{mro_cls.__name__!r} conflict(s) with that/those of "
-                            f"{other_cls.__name__!r}"
-                        )
-                    all_render_data.update(cls_render_data)
-                    all_cls_render_data[mro_cls] = cls_render_data
-
+                if mro_cls is not new_cls:
+                    if mro_cls.Args:
+                        all_default_args[mro_cls] = mro_cls._ALL_DEFAULT_ARGS[mro_cls]
+                    if mro_cls._Data_:
+                        render_data_mro[mro_cls] = mro_cls._RENDER_DATA_MRO[mro_cls]
                 try:
                     all_exported_descendant_attrs.update(
                         mro_cls.__dict__["_EXPORTED_DESCENDANT_ATTRS_"]
@@ -109,9 +111,11 @@ class RenderableMeta(ABCMeta):
 
             if args_cls:
                 all_default_args[new_cls] = args_cls()
+            if data_cls:
+                render_data_mro[new_cls] = data_cls
 
         new_cls._ALL_DEFAULT_ARGS = MappingProxyType(all_default_args)
-        new_cls._ALL_RENDER_DATA = frozenset(all_render_data)
+        new_cls._RENDER_DATA_MRO = MappingProxyType(render_data_mro)
         new_cls._ALL_EXPORTED_ATTRS = tuple(
             all_exported_descendant_attrs.union(namespace.get("_EXPORTED_ATTRS_", ()))
         )
@@ -193,24 +197,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     TIP:
         This can be used to export "private" :term:`descendant` attributes of the
         class across subprocesses.
-    """
-
-    _RENDER_DATA_: ClassVar[frozenset[str]] = frozenset(
-        {"size", "frame", "duration", "iteration"}
-    )
-    """Render data.
-
-    This specifies keyword arguments expected by
-    :py:class:`~term_image.renderable.RenderData` for the defining class.
-    They are also attributes of any :py:class:`~term_image.renderable.RenderData`
-    instance associated with the defining class.
-
-    The render data of a class are inherited by its subclasses.
-    In the case of name conflicts, :py:class:`~term_image.exceptions.RenderableError`
-    is raised during class creation.
-
-    NOTE:
-        Defining this is optional.
     """
 
     # Special Methods
@@ -564,7 +550,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         from term_image.render import RenderIterator
 
-        lines = max(render_fmt.height, render_data.size.height)
+        lines = max(render_fmt.height, render_data[__class__].size.height)
         render_iter = RenderIterator._from_render_data_(
             self,
             render_data,
@@ -829,14 +815,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             :py:meth:`_finalize_render_data_`,
             :py:meth:`~term_image.renderable.Renderable._init_render_`.
         """
-        data = dict.fromkeys(type(self)._ALL_RENDER_DATA)
-        data.update(
+        render_data = RenderData(type(self))
+        render_data[__class__].update(
             size=self.render_size,
             frame=self.tell(),
             duration=self.frame_duration,
             iteration=iteration,
         )
-        return RenderData(type(self), **data)
+
+        return render_data
 
     def _handle_interrupted_draw_(
         self, render_data: RenderData, render_args: RenderArgs
@@ -935,7 +922,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 render_fmt = render_fmt.absolute(terminal_size)
 
             if check_size or animation:
-                width, height = render_data.size
+                width, height = render_data[__class__].size
                 terminal_width, terminal_height = terminal_size
 
                 if width > terminal_width:
@@ -960,7 +947,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                             f"Padding height out of range (got: {render_fmt.height}, "
                             f"terminal_height={terminal_height}, animation={animation})"
                         )
-            return renderer(render_data, render_args), render_data.size, render_fmt
+            return (
+                renderer(render_data, render_args),
+                render_data[__class__].size,
+                render_fmt,
+            )
         finally:
             if finalize:
                 render_data.finalize()
@@ -1010,6 +1001,59 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             ``render_data.iteration`` is ``True``. Otherwise, it would be out of place.
         """
         raise NotImplementedError
+
+    # Inner classes
+
+    class _Data_(RenderData.Namespace):
+        """_Data_()
+
+        Render data namespace for :py:class:`~term_image.renderable.Renderable`.
+
+        .. seealso::
+
+           :ref:`renderable-data`,
+           :py:meth:`~term_image.renderable.Renderable._render_`.
+        """
+
+        size: geometry.Size
+        """:term:`Render size`
+
+        See :py:meth:`~term_image.renderable.Renderable._render_`.
+        """
+
+        frame: int
+        """Frame number
+
+        If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
+        renderable (that generated the data) is:
+
+        * definite (i.e an integer), the value of this field is a **non-negative**
+          integer **less than the frame count**, denoting the frame to be rendered.
+        * :py:class:`~term_image.renderable.FrameCount.INDEFINITE`, the value of this
+          field is zero but the interpretation depends on the value of
+          :py:attr:`iteration`.
+
+          If :py:attr:`iteration` is:
+
+          * ``False``, anything (such as a placeholder frame) may be rendered, as
+            renderables with :py:class:`~term_image.renderable.FrameCount.INDEFINITE`
+            frame count are typically meant for iteration/animation.
+          * ``True``, the next frame on the stream should be rendered.
+        """
+
+        duration: int | FrameDuration | None
+        """Frame duration
+
+        See :py:meth:`~term_image.renderable.Renderable._render_`.
+        """
+
+        iteration: bool
+        """:term:`Render` operation kind
+
+        ``True`` if the render is part of a render operation involving a sequence of
+        renders, possibly of different frames. Otherwise, ``False`` i.e it's a one-off
+        render.
+        """
 
 
 _types.Renderable = Renderable
