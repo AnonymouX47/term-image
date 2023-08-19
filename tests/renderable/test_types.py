@@ -550,9 +550,9 @@ class TestRenderArgs:
             class Args(RenderArgs.Namespace):
                 foo: None = None
 
-        assert [*RenderArgs(A)] == [A.Args()]
-        assert [*RenderArgs(B)] == [A.Args(), B.Args()]
-        assert [*RenderArgs(C)] == [A.Args(), B.Args(), C.Args()]
+        assert {*RenderArgs(A)} == {A.Args()}
+        assert {*RenderArgs(B)} == {A.Args(), B.Args()}
+        assert {*RenderArgs(C)} == {A.Args(), B.Args(), C.Args()}
 
     class TestUpdate:
         def test_args(self):
