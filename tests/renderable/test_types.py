@@ -19,9 +19,7 @@ from term_image.renderable import (
     RenderFormat,
     VAlign,
 )
-
-# from term_image.renderable._types import RenderArgsData
-RenderArgsData = RenderArgs.__base__
+from term_image.renderable._types import RenderArgsData
 
 
 class NamespaceBase(RenderArgsData.Namespace, _base=True):
@@ -30,11 +28,18 @@ class NamespaceBase(RenderArgsData.Namespace, _base=True):
 
 
 class Foo(Renderable):
-    _RENDER_DATA_ = frozenset({"foo", "bar"})
+    @classmethod
+    def _finalize_render_data_(cls, render_data):
+        render_data[__class__].bar = render_data[__class__].foo
+        super()._finalize_render_data_(render_data)
 
     class Args(RenderArgs.Namespace):
         foo: Any = "FOO"
         bar: Any = "BAR"
+
+    class _Data_(RenderData.Namespace):
+        foo: Any
+        bar: Any
 
 
 class TestFrame:
@@ -1105,92 +1110,65 @@ class TestArgsNamespace:
 
 
 class TestRenderData:
-    base_render_data_dict = dict(
-        zip(("size", "frame", "duration", "iteration"), (None,) * 4)
-    )
-    foo_render_data_dict = dict(**base_render_data_dict, foo="FOO", bar="BAR")
-    foo_render_data = RenderData(Foo, **foo_render_data_dict)
-
-    def test_args(self):
-        with pytest.raises(TypeError, match="'render_cls'"):
-            RenderArgs(Ellipsis)
+    foo_render_data = RenderData(Foo)
 
     def test_base(self):
-        render_data = RenderData(Renderable, **self.base_render_data_dict)
+        render_data = RenderData(Renderable)
         assert render_data.render_cls is Renderable
-        assert vars(render_data) == self.base_render_data_dict
-        assert render_data.size is None
-        assert render_data.frame is None
-        assert render_data.duration is None
-        assert render_data.iteration is None
+        assert isinstance(render_data[Renderable], Renderable._Data_)
 
     def test_render_cls(self):
         assert self.foo_render_data.render_cls is Foo
 
-    def test_unknown(self):
-        with pytest.raises(RenderDataError, match="Unknown .* 'baz'"):
-            RenderData(Foo, baz=None)
-
-    def test_incomplete(self):
-        with pytest.raises(RenderDataError, match="Incomplete"):
-            RenderData(Renderable)
-        with pytest.raises(RenderDataError, match="Incomplete"):
-            RenderData(Foo, **self.base_render_data_dict)
-        with pytest.raises(RenderDataError, match="Incomplete"):
-            RenderData(Foo, **self.base_render_data_dict, foo=None)
-        with pytest.raises(RenderDataError, match="Incomplete"):
-            RenderData(Foo, **self.base_render_data_dict, bar=None)
-
-    def test_attrs(self):
-        assert vars(self.foo_render_data) == self.foo_render_data_dict
-        assert self.foo_render_data.foo == "FOO"
-        assert self.foo_render_data.bar == "BAR"
-
-    def test_getattr(self):
-        with pytest.raises(AttributeError, match="Unknown .* 'baz'"):
-            self.foo_render_data.baz
-
-    def test_setattr(self):
-        render_data = RenderData(Foo, **self.foo_render_data_dict)
-
-        with pytest.raises(AttributeError, match="Unknown .* 'baz'"):
-            render_data.baz = "BAZ"
-
-        render_data.foo = "bar"
-        assert render_data.foo == "bar"
-
-    def test_delattr(self):
-        render_data = RenderData(Foo, **self.foo_render_data_dict)
-        with pytest.raises(AttributeError, match="Can't delete"):
-            del render_data.foo
-
     def test_finalized(self):
-        render_data = RenderData(Foo, **self.foo_render_data_dict)
+        render_data = RenderData(Foo)
         assert render_data.finalized is False
         render_data.finalize()
         assert render_data.finalized is True
 
-    def test_finalize(self):
+    def test_getitem(self):
         class Bar(Foo):
-            @classmethod
-            def _finalize_render_data_(cls, render_data):
-                render_data.bar = render_data.foo
+            pass
 
-        render_data = RenderData(Bar, **self.foo_render_data_dict)
-        assert render_data.foo == "FOO"
-        assert render_data.bar == "BAR"
+        class Baz(Bar):
+            pass
+
+        render_data = RenderData(Bar)
+
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_data[Ellipsis]
+
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_data[[]]
+
+        with pytest.raises(RenderDataError, match="no render data"):
+            render_data[Bar]
+
+        with pytest.raises(RenderDataError, match="'Bar' is not a subclass of 'Baz'"):
+            render_data[Baz]
+
+        assert isinstance(render_data[Foo], Foo._Data_)
+        assert isinstance(render_data[Renderable], Renderable._Data_)
+
+    def test_finalize(self):
+        render_data = RenderData(Foo)
+        render_data[Foo].update(foo="FOO", bar="BAR")
+        assert render_data[Foo].foo == "FOO"
+        assert render_data[Foo].bar == "BAR"
 
         render_data.finalize()
-
-        assert render_data.foo == "FOO"
-        assert render_data.bar == "FOO"
+        assert render_data[Foo].foo == "FOO"
+        assert render_data[Foo].bar == "FOO"
 
         # Calls `_finalize_render_data_` only the first time
 
-        render_data.foo = "bar"
+        render_data[Foo].foo = "bar"
+        assert render_data[Foo].foo == "bar"
+        assert render_data[Foo].bar == "FOO"
 
-        assert render_data.foo == "bar"
-        assert render_data.bar == "FOO"
+        render_data.finalize()
+        assert render_data[Foo].foo == "bar"
+        assert render_data[Foo].bar == "FOO"
 
 
 class TestRenderFormat:
