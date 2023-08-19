@@ -243,6 +243,179 @@ class TestMeta:
         assert A._ALL_DEFAULT_ARGS[A] is C._ALL_DEFAULT_ARGS[A]
         assert B._ALL_DEFAULT_ARGS[B] is C._ALL_DEFAULT_ARGS[B]
 
+    class TestRenderData:
+        def test_base(self):
+            assert "_RENDER_DATA_MRO" in Renderable.__dict__
+            assert isinstance(Renderable._RENDER_DATA_MRO, MappingProxyType)
+            assert Renderable._RENDER_DATA_MRO == {Renderable: Renderable._Data_}
+
+        def test_invalid_type(self):
+            with pytest.raises(TypeError, match="'Foo._Data_'"):
+
+                class Foo(Renderable):
+                    _Data_ = Ellipsis
+
+        def test_not_a_subclass(self):
+            with pytest.raises(
+                RenderableError,
+                match="'Foo._Data_' .* subclass of 'RenderData.Namespace'",
+            ):
+
+                class Foo(Renderable):
+                    class _Data_:
+                        pass
+
+        def test_already_associated(self):
+            class Foo(Renderable):
+                class _Data_(RenderData.Namespace):
+                    foo: None = None
+
+            with pytest.raises(
+                RenderableError, match="'Bar._Data_' .* associated with .* 'Foo'"
+            ):
+
+                class Bar(Renderable):
+                    class _Data_(Foo._Data_):
+                        pass
+
+        def test_no_data(self):
+            class Foo(Renderable):
+                pass
+
+            assert Foo._Data_ is None
+            assert "_RENDER_DATA_MRO" in Foo.__dict__
+            assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
+            assert Foo._RENDER_DATA_MRO == Renderable._RENDER_DATA_MRO
+
+        def test_data_none(self):
+            class Foo(Renderable):
+                _Data_ = None
+
+            assert Foo._Data_ is None
+            assert "_RENDER_DATA_MRO" in Foo.__dict__
+            assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
+            assert Foo._RENDER_DATA_MRO == Renderable._RENDER_DATA_MRO
+
+        def test_has_data(self):
+            class _Data_(RenderData.Namespace):
+                foo: None = None
+
+            Foo = type(Renderable)("Foo", (Renderable,), {"_Data_": _Data_})
+
+            assert Foo._Data_ is _Data_
+            assert "_RENDER_DATA_MRO" in Foo.__dict__
+            assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
+            assert Foo._RENDER_DATA_MRO == {
+                **Renderable._RENDER_DATA_MRO,
+                Foo: Foo._Data_,
+            }
+
+        def test_association(self):
+            class _Data_(RenderData.Namespace):
+                foo: None = None
+
+            assert _Data_.get_render_cls() is None
+
+            Foo = type(Renderable)("Foo", (Renderable,), {"_Data_": _Data_})
+
+            assert _Data_.get_render_cls() is Foo
+
+        class TestInheritance:
+            class A(Renderable):
+                class _Data_(RenderData.Namespace):
+                    a: None = None
+
+            def test_child_with_no_data(self):
+                class B(self.A):
+                    pass
+
+                assert B._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    self.A: self.A._Data_,
+                }
+
+            def test_parent_with_no_data(self):
+                class B(Renderable):
+                    pass
+
+                class C(B):
+                    class _Data_(RenderData.Namespace):
+                        c: None = None
+
+                assert C._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    C: C._Data_,
+                }
+
+            def test_multi_level(self):
+                class B(self.A):
+                    class _Data_(RenderData.Namespace):
+                        b: None = None
+
+                assert B._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    self.A: self.A._Data_,
+                    B: B._Data_,
+                }
+
+                class C(B):
+                    class _Data_(RenderData.Namespace):
+                        c: None = None
+
+                assert C._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    self.A: self.A._Data_,
+                    B: B._Data_,
+                    C: C._Data_,
+                }
+
+            def test_multiple(self):
+                class B(Renderable):
+                    class _Data_(RenderData.Namespace):
+                        b: None = None
+
+                class C(self.A, B):
+                    class _Data_(RenderData.Namespace):
+                        c: None = None
+
+                assert C._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    self.A: self.A._Data_,
+                    B: B._Data_,
+                    C: C._Data_,
+                }
+
+            def test_complex(self):
+                class B(self.A):
+                    class _Data_(RenderData.Namespace):
+                        b: None = None
+
+                class C(self.A):
+                    class _Data_(RenderData.Namespace):
+                        c: None = None
+
+                class D(B, C):
+                    class _Data_(RenderData.Namespace):
+                        d: None = None
+
+                class E(Renderable):
+                    class _Data_(RenderData.Namespace):
+                        e: None = None
+
+                class F(D, E):
+                    class _Data_(RenderData.Namespace):
+                        f: None = None
+
+                assert F._RENDER_DATA_MRO == {
+                    **Renderable._RENDER_DATA_MRO,
+                    self.A: self.A._Data_,
+                    B: B._Data_,
+                    C: C._Data_,
+                    D: D._Data_,
+                    E: E._Data_,
+                    F: F._Data_,
+                }
+
 
 class TestExportedAttrs:
     class A(Renderable):
