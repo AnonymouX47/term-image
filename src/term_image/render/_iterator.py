@@ -241,7 +241,7 @@ class RenderIterator:
             )
 
         try:
-            self._render_data.frame = offset
+            self._render_data[Renderable].frame = offset
         except AttributeError:
             if self._closed:
                 raise RenderIteratorError("This iterator has been finalized") from None
@@ -278,7 +278,9 @@ class RenderIterator:
             raise arg_type_error("render_fmt", render_fmt)
 
         self._render_fmt = render_fmt = render_fmt.absolute(get_terminal_size())
-        self._formatted_size = render_fmt.get_formatted_size(self._render_data.size)
+        self._formatted_size = render_fmt.get_formatted_size(
+            self._render_data[Renderable].size
+        )
 
     def set_render_size(self, render_size: Size) -> None:
         """Sets the frame :term:`render size`, starting with the next rendered frame.
@@ -296,7 +298,7 @@ class RenderIterator:
         if not render_size.width > 0 < render_size.height:
             raise arg_value_error_range("render_size", render_size)
 
-        self._render_data.size = render_size
+        self._render_data[Renderable].size = render_size
         self._formatted_size = self._render_fmt.get_formatted_size(render_size)
 
     @classmethod
@@ -341,7 +343,7 @@ class RenderIterator:
             )
         if render_data.finalized:
             raise ValueError("The render data has been finalized")
-        if not render_data.iteration:
+        if not render_data[Renderable].iteration:
             raise arg_value_error_msg("Invalid render data for iteration", render_data)
 
         if not isinstance(finalize, bool):
@@ -364,7 +366,8 @@ class RenderIterator:
         # Instance init completion
         self._render_data = render_data
         self._render_args = render_args
-        self._formatted_size = self._render_fmt.get_formatted_size(render_data.size)
+        renderable_data = render_data[Renderable]
+        self._formatted_size = self._render_fmt.get_formatted_size(renderable_data.size)
 
         # Setup
         renderable = self._renderable
@@ -378,12 +381,12 @@ class RenderIterator:
         yield Frame(0, None, Size(0, 0), "")
 
         # Render iteration
-        frame_no = render_data.frame * definite
+        frame_no = renderable_data.frame * definite
         while loop:
             while frame_no < frame_count:
                 frame, *frame_details = cache[frame_no] if cache else (None,)
                 if not frame or frame_details != [
-                    render_data.size,
+                    renderable_data.size,
                     self._render_args,
                     self._render_fmt,
                 ]:
@@ -406,21 +409,21 @@ class RenderIterator:
                     if cache:
                         cache[frame_no] = (
                             frame,
-                            render_data.size,
+                            renderable_data.size,
                             self._render_args,
                             self._render_fmt,
                         )
                 if definite:
-                    render_data.frame += 1
-                elif render_data.frame:  # reset after seek
-                    render_data.frame = 0
+                    renderable_data.frame += 1
+                elif renderable_data.frame:  # reset after seek
+                    renderable_data.frame = 0
 
                 yield frame
 
                 if definite:
-                    frame_no = render_data.frame
+                    frame_no = renderable_data.frame
 
             # INDEFINITE can never reach here
-            frame_no = render_data.frame = 0
+            frame_no = renderable_data.frame = 0
             if loop > 0:  # Avoid infinitely large negative numbers
                 self.loop = loop = loop - 1
