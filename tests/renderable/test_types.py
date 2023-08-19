@@ -1171,6 +1171,57 @@ class TestRenderData:
         assert render_data[Foo].bar == "FOO"
 
 
+class TestDataNamespace:
+    class Bar(Renderable):
+        class _Data_(RenderData.Namespace):
+            foo: str
+            bar: str
+
+    Namespace = Bar._Data_
+
+    def test_getattr(self):
+        namespace = self.Namespace()
+        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
+            namespace.baz
+
+    def test_setattr(self):
+        namespace = self.Namespace()
+        assert namespace.foo is None
+        assert namespace.bar is None
+
+        namespace.foo = "FOO"
+        namespace.bar = "BAR"
+        assert namespace.foo == "FOO"
+        assert namespace.bar == "BAR"
+
+        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
+            namespace.baz = Ellipsis
+
+    def test_update(self):
+        namespace = self.Namespace()
+        assert namespace.foo is None
+        assert namespace.bar is None
+
+        namespace.update()
+        assert namespace.foo is None
+        assert namespace.bar is None
+
+        namespace.update(foo="FOO")
+        assert namespace.foo == "FOO"
+        assert namespace.bar is None
+
+        namespace.update(bar="BAR")
+        assert namespace.foo == "FOO"
+        assert namespace.bar == "BAR"
+
+        namespace.update(foo="bar", bar="foo")
+        assert namespace.foo == "bar"
+        assert namespace.bar == "foo"
+
+        with pytest.raises(RenderDataError, match=r"Unknown .* \('baz',\)"):
+            namespace.update(baz=Ellipsis)
+
+
 class TestRenderFormat:
     def test_args(self):
         with pytest.raises(TypeError, match="'width'"):
