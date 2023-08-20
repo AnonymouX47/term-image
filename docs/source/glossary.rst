@@ -19,17 +19,17 @@ Below are definitions of terms used across the API, exception messages and the d
       .. seealso:: :ref:`active-terminal`
 
    alignment
-      The position of a primary :term:`render` output within its :term:`padding`.
+      The position of a primary :term:`render output` within its :term:`padding`.
 
       .. seealso:: :ref:`alignment`
 
    horizontal alignment
-      The horizontal position of a primary :term:`render` output within its :term:`padding width`.
+      The horizontal position of a primary :term:`render output` within its :term:`padding width`.
 
       .. seealso:: :ref:`alignment`
 
    vertical alignment
-      The vertical position of a primary :term:`render` output within its :term:`padding height`.
+      The vertical position of a primary :term:`render output` within its :term:`padding height`.
 
       .. seealso:: :ref:`alignment`
 
@@ -49,6 +49,19 @@ Below are definitions of terms used across the API, exception messages and the d
       .. seealso::
          :py:func:`~term_image.get_cell_ratio` and :py:func:`~term_image.set_cell_ratio`
 
+   format
+   formats
+   formatted
+   formatting
+   render formatting
+      The process of :term:`aligning <alignment>` a :term:`render output` within a given :term:`padding size` and :term:`padding` it to fill up any excess space.
+     
+      Any excess lines and columns around the primary render output is filled with blanks.
+
+      .. seealso::
+         :doc:`/guide/formatting`,
+         :py:meth:`~term_image.renderable.Renderable._format_render_`
+
    frame size
       The dimensions of the area used in :term:`automatic sizing`.
 
@@ -62,59 +75,66 @@ Below are definitions of terms used across the API, exception messages and the d
    renders
    rendered
    rendering
-      The process of encoding visual/textual data into a byte/character **string** (possibly including terminal control sequences).
+      The process of encoding visual/textual data into a byte/character **string** (possibly including terminal control sequences), the result of which is called a :term:`render output`.
 
-      This string is called the **primary** render output and **excludes** formatting (:term:`padding`, :term:`alignment` etc).
-
-      .. seealso:: :py:meth:`Renderable._render_() <term_image.renderable.Renderable._render_>`
+      .. seealso:: :py:meth:`~term_image.renderable.Renderable._render_`
 
    render class
    render classes
       :py:class:`~term_image.renderable.Renderable` or a subclass of it.
 
+   render output
+   render outputs
+      A **string** produced by :term:`rendering` or render :term:`formatting`.
+
+      ..
+         In the context of :term:`rendering`, there are two kinds:
+
+         * **uncropped**: the output produced by
+           :py:meth:`~term_image.renderable.Renderable._render_` when
+           :py:attr:`render_args[Renderable].crop
+           <term_image.renderable.Renderable.Args.crop>` is ``None``.
+         * **cropped**: the output(s) produced by
+           :py:meth:`~term_image.renderable.Renderable._render_` when
+           :py:attr:`render_args[Renderable].crop
+           <term_image.renderable.Renderable.Args.crop>` is **not** ``None``.
+
+      In the context of render :term:`formatting`, there are two kinds:
+
+      * **primary**: the input string to be formatted.
+      * **formatted**: the output string after formatting.
+
    render size
    rendered size
-      The amount of space (columns and lines) that'll be occupied by a :term:`render` output **when drawn (written) onto a terminal screen**.
+      The amount of space (columns and lines) that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**.
 
-      .. seealso:: :py:attr:`~term_image.renderable.Renderable.render_size`
+      Every kind of :term:`render output` has a corresponding kind of render size,
+      within the same contexts.
 
    render width
    rendered width
-      The amount of **columns** that'll be occupied by a :term:`render` output **when drawn (written) onto a terminal screen**.
-
-      .. seealso::
-         The :py:attr:`~term_image.geometry.Size.width` attribute of
-         :py:attr:`~term_image.renderable.Renderable.render_size`
+      The amount of **columns** that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**. Also the horizontal component of a :term:`render size`.
 
    render height
    rendered height
-      The amount of **lines** that'll be occupied by a :term:`render` output **when drawn (written) onto a terminal screen**.
-
-      .. seealso::
-         The :py:attr:`~term_image.geometry.Size.height` attribute of
-         :py:attr:`~term_image.renderable.Renderable.render_size`
+      The amount of **lines** that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**. Also the vertical component of a :term:`render size`.
 
    padding
-      Extra space around a primary :term:`render` output when it's formatted.
-
-      This extra space (depending on the :term:`alignment`) will be filled with spaces.
+      The filling around a primary :term:`render output` after it's :term:`formatted`.
 
       .. seealso:: :ref:`padding`
 
    padding size
-      Amount of lines and columns within which to align a primary :term:`render` output.
-
-      .. seealso:: :term:`padding`
+      The amount of lines and columns within which to align a primary :term:`render output`
+      during :term:`formatting`.
 
    padding width
-      Amount of **columns** within which to align a primary :term:`render` output.
-
-      .. seealso:: :term:`padding`
+      The amount of **columns** within which to align a primary :term:`render output`
+      during :term:`formatting`.
 
    padding height
-      Amount of **lines** within which to align a primary :term:`render` output.
-
-      .. seealso:: :term:`padding`
+      The amount of **lines** within which to align a primary :term:`render output`
+      during :term:`formatting`.
 
    pixel ratio
       The aspect ratio with which one rendered pixel is drawn/displayed on the terminal screen.
