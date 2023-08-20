@@ -472,7 +472,7 @@ RenderData
 
 .. autoclass:: RenderData
    :autosummary-exclude-members:
-   :special-members: __getitem__
+   :special-members: __getitem__, __iter__
    :inherited-members: render_cls
    :exclude-members: Namespace
 

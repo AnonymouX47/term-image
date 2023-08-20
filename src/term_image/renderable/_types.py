@@ -926,6 +926,22 @@ class RenderData(RenderArgsData):
                 f"{render_cls.__name__!r}"
             ) from None
 
+    def __iter__(self) -> Iterator[RenderData.Namespace]:
+        """Returns an iterator that yields the constituent namespaces.
+
+        Returns:
+            An iterator that yields the constituent namespaces.
+
+        WARNING:
+            The number and order of namespaces for any particular associated [#rd1]_
+            :term:`render class` should not be relied upon as these details may change
+            with/without notice.
+
+            The order is an implementation detail of the Renderable API and the number
+            should be considered alike with respect to the associated render class.
+        """
+        return iter(self._namespaces.values())
+
     # Public Methods
 
     def finalize(self) -> None:
