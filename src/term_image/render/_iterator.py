@@ -34,8 +34,7 @@ class RenderIterator:
     Args:
         renderable: An animated renderable.
         render_args: Render arguments.
-        render_fmt: Render formatting arguments. Same as for
-          :py:meth:`Renderable.render() <term_image.renderable.Renderable.render>`.
+        render_fmt: Render :term:`formatting` arguments.
         loops: The number of times to go over all frames.
 
           * ``< 0`` -> loop infinitely.
@@ -74,7 +73,7 @@ class RenderIterator:
           Likewise, the iterator does not modify the underlying renderable's current
           frame number.
         * Changes to the underlying renderable's :term:`render size` does not affect
-          an iterator's render outputs, use :py:meth:`set_render_size` instead.
+          an iterator's :term:`render outputs`, use :py:meth:`set_render_size` instead.
         * Changes to the underlying renderable's
           :py:attr:`~term_image.renderable.Renderable.frame_duration` does not affect
           the value yiedled by an iterator, the value when initializing the iterator
@@ -266,11 +265,10 @@ class RenderIterator:
         self._render_args = RenderArgs(type(self._renderable), render_args)
 
     def set_render_fmt(self, render_fmt: RenderFormat) -> None:
-        """Sets the render formatting arguments.
+        """Sets the render :term:`formatting` arguments.
 
         Args:
-            render_fmt: Render formatting arguments. Same as for
-              :py:meth:`Renderable.render() <term_image.renderable.Renderable.render>`.
+            render_fmt: Render formatting arguments.
 
         Raises:
             TypeError: An argument is of an inappropriate type.

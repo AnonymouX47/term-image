@@ -70,10 +70,10 @@ class Frame(NamedTuple):
     """Frame :term:`render size`"""
 
     render: str
-    """Frame :term:`render` output"""
+    """Frame :term:`render output`"""
 
     def __str__(self) -> str:
-        """Returns the frame render output.
+        """Returns the frame :term:`render output`.
 
         Returns:
             The frame render output, :py:attr:`render`.
@@ -1043,7 +1043,7 @@ class RenderData(RenderArgsData):
 
 @dataclass(frozen=True)
 class RenderFormat:
-    """Render formatting arguments.
+    """Render :term:`formatting` arguments.
 
     Args:
         width: :term:`Padding width`.
@@ -1167,14 +1167,15 @@ class RenderFormat:
         return type(self)(width, height, self.h_align, self.v_align)
 
     def get_formatted_size(self, render_size: Size) -> Size:
-        """Computes the expected size of a formated render output.
+        """Computes an expected formatted :term:`render size`.
 
         Args:
             render_size: Primary :term:`render size`.
 
         Returns:
-            The size of the formatted render output that would be produced using
-            this set of formatting arguments on a render output with the given size.
+            The size of the formatted :term:`render output` that would be produced
+            using this set of render :term:`formatting` arguments on a primary render
+            output with the given size.
 
         Raises:
             term_image.exceptions.RenderFormatError: Relative padding dimension(s).

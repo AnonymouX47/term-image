@@ -247,10 +247,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         )
 
     def __str__(self) -> str:
-        """:term:`Renders` the current frame with default arguments and no formatting.
+        """:term:`Renders` the current frame with default arguments and no
+        :term:`formatting`.
 
         Returns:
-            The primary (unformatted) frame render output.
+            The frame :term:`render output`.
 
         Raises:
             term_image.exceptions.RenderError: An error occured during
@@ -340,9 +341,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Args:
             render_args: Render arguments.
-            render_fmt: Render formatting arguments.
-
-              Same as for :py:meth:`render`, except:
+            render_fmt: Render :term:`formatting` arguments.
 
               * :term:`Padding width` must not be greater than the
                 :term:`terminal width`.
@@ -445,12 +444,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Args:
             render_args: Render arguments.
-            render_fmt: Render formatting arguments.
-
-              * Lines and columns surrounding the primary render output, within the
-                padding size, are filled with spaces.
-              * If the absolute equivalent of a padding dimension is less than the
-                corresponding render dimension, it has no effect.
+            render_fmt: Render :term:`formatting` arguments.
 
         Returns:
             The rendered frame.
@@ -622,7 +616,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Args:
             render_data: Render data.
             render_args: Render arguments.
-            render_region: The region occupied by the primary render output,
+            render_region: The region occupied by the primary :term:`render output`,
               relative to the cursor position at the point of calling this method.
 
         Called by the base implementation of :py:meth:`_animate_` just before drawing
@@ -681,21 +675,20 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         render_size: geometry.Size,
         render_fmt: RenderFormat,
     ) -> str:
-        """Formats (:term:`pads <padding>`, :term:`aligns <alignment>`, etc) a
-        :term:`render` output.
+        """:term:`Formats` a :term:`render output`.
 
         Args:
-            render: A render output, which conforms to the form specified to be
-              returned by :py:meth:`_render_`.
-            render_size: The size of the render output.
-            render_fmt: Render formatting arguments, with **absolute** padding
+            render: The primary render output, which is expected to conform the form
+              specified to be returned by :py:meth:`_render_`.
+            render_size: The primary :term:`render size`.
+            render_fmt: Render :term:`formatting` arguments, with **absolute** padding
               dimensions.
 
         Returns:
             The formatted render output.
 
             This also conforms to the form specified to be returned by
-            :py:meth:`_render_`, provided the given render output does.
+            :py:meth:`_render_`, provided the primary render output (*render*) does.
         """
         render_width, render_height = render_size
         width, height, h_align, v_align, *_ = astuple(render_fmt)
@@ -826,7 +819,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """Returns the renderable's :term:`render size`.
 
         Returns:
-            The size of the renderable's :term:`render` output.
+            The size of the renderable's :term:`render output`.
 
         The base implementation raises :py:class:`NotImplementedError`.
 
@@ -848,8 +841,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         The base implementation does nothing.
 
         HINT:
-            For a renderable that uses SGR sequences in its render output, this method
-            may write ``CSI 0 m`` to standard output.
+            For a renderable that uses SGR sequences in its :term:`render output`,
+            this method may write ``CSI 0 m`` to standard output.
         """
 
     def _init_render_(
@@ -870,7 +863,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             renderer: Performs a render operation or extracts render data and arguments
               for a render operation to be performed later on.
             render_args: Render arguments.
-            render_fmt: Render formatting arguments.
+            render_fmt: Render :term:`formatting` arguments.
             iteration: ``True`` if the render operation involves a sequence of renders,
               possibly of different frames. Otherwise, ``False`` i.e it's a one-off
               render.
@@ -975,7 +968,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             * *render_size* = :py:attr:`render_data.size
               <term_image.renderable.Renderable._Data_.size>`.
             * The :py:attr:`~term_image.renderable.Frame.render` field holds the
-              **primary** :term:`render` output. This string should:
+              :term:`render output`. This string should:
 
               * contain as many lines as :py:attr:`render_size.height
                 <term_image.geometry.Size.height>` i.e exactly
