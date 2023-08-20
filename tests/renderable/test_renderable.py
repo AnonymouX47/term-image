@@ -1141,35 +1141,25 @@ class TestInitRender:
             return_value = self.space._init_render_(lambda *_: None)
 
             assert isinstance(return_value, tuple)
-            assert len(return_value) == 3
+            assert len(return_value) == 2
 
-            renderer_return, render_size, render_fmt = return_value
+            renderer_return, render_fmt = return_value
 
             assert renderer_return is None
-            assert isinstance(render_size, Size)
             assert render_fmt is None
 
         def test_renderer_return(self):
             for value in (None, 2, "", (), []):
                 assert self.space._init_render_(lambda *_: value)[0] is value
 
-        def test_render_size(self):
-            space = Space(1, 1)
-            for value in (1, 100):
-                space.render_size = Size(value, value)
-                render_size = space._init_render_(lambda *_: None)[1]
-
-                assert isinstance(render_size, Size)
-                assert render_size == Size(value, value)
-
         # See also: `TestInitRender.TestRenderFmt`
         def test_render_fmt(self):
-            assert self.space._init_render_(lambda *_: None)[2] is None
-            assert self.space._init_render_(lambda *_: None, render_fmt=None)[2] is None
+            assert self.space._init_render_(lambda *_: None)[1] is None
+            assert self.space._init_render_(lambda *_: None, render_fmt=None)[1] is None
             assert isinstance(
                 self.space._init_render_(
                     lambda *_: None, render_fmt=RenderFormat(1, 1)
-                )[2],
+                )[1],
                 RenderFormat,
             )
 
@@ -1257,14 +1247,14 @@ class TestInitRender:
         space = Space(1, 1)
 
         def test_default(self):
-            assert self.space._init_render_(lambda *_: None)[2] is None
-            assert self.space._init_render_(lambda *_: None, render_fmt=None)[2] is None
+            assert self.space._init_render_(lambda *_: None)[1] is None
+            assert self.space._init_render_(lambda *_: None, render_fmt=None)[1] is None
 
         def test_absolute(self):
             for value in (1, 100):
                 render_fmt = self.space._init_render_(
                     lambda *_: None, render_fmt=RenderFormat(value, value)
-                )[2]
+                )[1]
 
                 assert isinstance(render_fmt, RenderFormat)
                 assert render_fmt.relative is False
@@ -1274,7 +1264,7 @@ class TestInitRender:
             for value in (0, -10):
                 render_fmt = self.space._init_render_(
                     lambda *_: None, render_fmt=RenderFormat(value, value)
-                )[2]
+                )[1]
 
                 assert isinstance(render_fmt, RenderFormat)
                 assert render_fmt.relative is False
@@ -1284,7 +1274,7 @@ class TestInitRender:
             for h_align, v_align in zip(HAlign, VAlign):
                 render_fmt = self.space._init_render_(
                     lambda *_: None, render_fmt=RenderFormat(1, 1, h_align, v_align)
-                )[2]
+                )[1]
 
                 assert isinstance(render_fmt, RenderFormat)
                 assert render_fmt == RenderFormat(1, 1, h_align, v_align)
