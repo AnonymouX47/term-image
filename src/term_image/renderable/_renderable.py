@@ -243,7 +243,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         return "<{}: animated={}, render_size={}>".format(
             type(self).__name__,
             self.animated,
-            self.render_size,
+            self._get_render_size_(),
         )
 
     def __str__(self) -> str:
@@ -322,16 +322,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             raise arg_type_error("frame_duration", duration)
 
         self.__frame_duration = duration
-
-    @property
-    @abstractmethod
-    def render_size(self) -> geometry.Size:
-        """:term:`Render size`
-
-        GET:
-            Returns the size of the renderable's primary render output.
-        """
-        raise NotImplementedError
 
     # Public Methods
 
@@ -823,13 +813,27 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         render_data = RenderData(type(self))
         render_data[__class__].update(
-            size=self.render_size,
+            size=self._get_render_size_(),
             frame=self.tell(),
             duration=self.frame_duration,
             iteration=iteration,
         )
 
         return render_data
+
+    @abstractmethod
+    def _get_render_size_(self) -> geometry.Size:
+        """Returns the renderable's :term:`render size`.
+
+        Returns:
+            The size of the renderable's :term:`render` output.
+
+        The base implementation raises :py:class:`NotImplementedError`.
+
+        IMPORTANT:
+            Both dimensions are expected to be positive.
+        """
+        raise NotImplementedError
 
     def _handle_interrupted_draw_(
         self, render_data: RenderData, render_args: RenderArgs
