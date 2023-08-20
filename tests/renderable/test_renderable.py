@@ -517,6 +517,9 @@ class TestRenderArgs:
 class Space(Renderable):
     render_size = Size(1, 1)
 
+    def _get_render_size_(self):
+        return self.render_size
+
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
         width, height = data.size
@@ -548,6 +551,9 @@ class IndefiniteSpace(Space):
 
 class Char(Renderable):
     render_size = Size(1, 1)
+
+    def _get_render_size_(self):
+        return self.render_size
 
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
@@ -1181,7 +1187,10 @@ class TestInitRender:
     # See also: `TestInitRender.test_iteration`
     def test_render_data(self):
         class Foo(Renderable):
-            render_size = _render_ = None
+            _render_ = None
+
+            def _get_render_size_(self):
+                pass
 
             def __init__(self, value):
                 super().__init__(1, 1)

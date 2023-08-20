@@ -23,6 +23,9 @@ from ..renderable.test_renderable import Char, IndefiniteSpace, Space
 class FrameFill(Renderable):
     render_size = Size(1, 1)
 
+    def _get_render_size_(self):
+        return self.render_size
+
     def __init__(self, size: Size):
         super().__init__(10, 1)
         self.render_size = size
@@ -40,6 +43,9 @@ class FrameFill(Renderable):
 
 class IndefiniteFrameFill(Renderable):
     render_size = Size(1, 1)
+
+    def _get_render_size_(self):
+        return self.render_size
 
     def __init__(self, size: Size):
         super().__init__(FrameCount.INDEFINITE, 1)
