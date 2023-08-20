@@ -154,7 +154,7 @@ class RenderIterator:
         cache: bool | int = 100,
     ) -> None:
         self._init(renderable, render_args, render_fmt, loops, cache)
-        self._iterator, _, self._render_fmt = renderable._init_render_(
+        self._iterator, self._render_fmt = renderable._init_render_(
             self._iterate, render_args, render_fmt, iteration=True, finalize=False
         )
         self._finalize_data = True

@@ -404,7 +404,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         output = sys.stdout
 
         # Validate size and get render data
-        (render_data, render_args), render_size, render_fmt = self._init_render_(
+        (render_data, render_args), render_fmt = self._init_render_(
             lambda *args: args,
             render_args,
             render_fmt,
@@ -422,10 +422,16 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             if animation:
                 self._animate_(render_data, render_args, render_fmt, loops, cache)
             else:
-                render = self._format_render_(
-                    self._render_(render_data, render_args).render,
-                    render_size,
-                    render_fmt,
+                frame = self._render_(render_data, render_args)
+                formatted_size = render_fmt.get_formatted_size(frame.size)
+                render = (
+                    frame.render
+                    if frame.size == formatted_size
+                    else self._format_render_(
+                        frame.render,
+                        frame.size,
+                        render_fmt,
+                    )
                 )
                 try:
                     output.write(render)
@@ -470,19 +476,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         if not isinstance(render_fmt, RenderFormat):
             raise arg_type_error("render_fmt", render_fmt)
 
-        frame, render_size, render_fmt = self._init_render_(
-            self._render_, render_args, render_fmt
-        )
-        formatted_size = render_fmt.get_formatted_size(render_size)
+        frame, render_fmt = self._init_render_(self._render_, render_args, render_fmt)
+        formatted_size = render_fmt.get_formatted_size(frame.size)
 
         return (
             frame
-            if render_size == formatted_size
+            if frame.size == formatted_size
             else Frame(
                 frame.number,
                 frame.duration,
                 formatted_size,
-                self._format_render_(frame.render, render_size, render_fmt),
+                self._format_render_(frame.render, frame.size, render_fmt),
             )
         )
 
@@ -855,7 +859,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         check_size: bool = False,
         scroll: bool = False,
         animation: bool = False,
-    ) -> tuple[Any, geometry.Size, RenderFormat | None]:
+    ) -> tuple[Any, RenderFormat | None]:
         """Initiates a render operation.
 
         Args:
@@ -881,7 +885,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             A tuple containing
 
             * The return value of *renderer*
-            * The :term:`render size`
             * Render formatting arguments with equivalent **absolute** padding
               dimensions, if *render_fmt* is given and not ``None``.
               Otherwise, ``None``.
@@ -949,11 +952,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                             f"Padding height out of range (got: {render_fmt.height}, "
                             f"terminal_height={terminal_height}, animation={animation})"
                         )
-            return (
-                renderer(render_data, render_args),
-                render_data[__class__].size,
-                render_fmt,
-            )
+            return renderer(render_data, render_args), render_fmt
         finally:
             if finalize:
                 render_data.finalize()
