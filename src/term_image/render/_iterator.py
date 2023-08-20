@@ -73,8 +73,7 @@ class RenderIterator:
           does not affect an iterator, use :py:meth:`RenderIterator.seek` instead.
           Likewise, the iterator does not modify the underlying renderable's current
           frame number.
-        * Changes to the underlying renderable's
-          :py:attr:`~term_image.renderable.Renderable.render_size` does not affect
+        * Changes to the underlying renderable's :term:`render size` does not affect
           an iterator's render outputs, use :py:meth:`set_render_size` instead.
         * Changes to the underlying renderable's
           :py:attr:`~term_image.renderable.Renderable.frame_duration` does not affect
@@ -249,8 +248,7 @@ class RenderIterator:
             raise
 
     def set_render_args(self, render_args: RenderArgs) -> None:
-        """Sets the render arguments used to render frames,
-        starting with the next rendered frame.
+        """Sets the render arguments.
 
         Args:
             render_args: Render arguments.
@@ -258,6 +256,9 @@ class RenderIterator:
         Raises:
             TypeError: An argument is of an inappropriate type.
             term_image.exceptions.RenderArgsError: Incompatible render arguments.
+
+        NOTE:
+            Takes effect from the next rendered frame.
         """
         if not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
@@ -265,8 +266,7 @@ class RenderIterator:
         self._render_args = RenderArgs(type(self._renderable), render_args)
 
     def set_render_fmt(self, render_fmt: RenderFormat) -> None:
-        """Sets the render formatting arguments used to format frame render outputs,
-        starting with the next rendered frame.
+        """Sets the render formatting arguments.
 
         Args:
             render_fmt: Render formatting arguments. Same as for
@@ -274,6 +274,9 @@ class RenderIterator:
 
         Raises:
             TypeError: An argument is of an inappropriate type.
+
+        NOTE:
+            Takes effect from the next rendered frame.
         """
         if not isinstance(render_fmt, RenderFormat):
             raise arg_type_error("render_fmt", render_fmt)
@@ -284,7 +287,7 @@ class RenderIterator:
         )
 
     def set_render_size(self, render_size: Size) -> None:
-        """Sets the frame :term:`render size`, starting with the next rendered frame.
+        """Sets the :term:`render size`.
 
         Args:
             render_size: Render size.
@@ -293,6 +296,9 @@ class RenderIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
+
+        NOTE:
+            Takes effect from the next rendered frame.
         """
         if not isinstance(render_size, Size):
             raise arg_type_error("render_size", render_size)
