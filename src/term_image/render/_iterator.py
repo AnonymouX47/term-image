@@ -100,14 +100,18 @@ class RenderIterator:
         Modifying this doesn't affect the iterator.
     """
 
-    def __new__(
-        cls,
+    def _init(
+        self,
         renderable: Renderable,
         render_args: RenderArgs | None = None,
         render_fmt: RenderFormat = RenderFormat(1, 1),
         loops: int = 1,
         cache: bool | int = 100,
     ) -> None:
+        """Partially initializes an instance.
+
+        Performs the part of the initialization common to all constructors.
+        """
         if not isinstance(renderable, Renderable):
             raise arg_type_error("renderable", renderable)
         if not renderable.animated:
@@ -129,21 +133,17 @@ class RenderIterator:
         if False is not cache <= 0:
             raise arg_value_error_range("cache", cache)
 
-        new = super().__new__(cls)
-
         indefinite = renderable.frame_count is FrameCount.INDEFINITE
-        new._closed = False
-        new._renderable = renderable
-        new.loop = new._loops = 1 if indefinite else loops
-        new._cached = (
+        self._closed = False
+        self._renderable = renderable
+        self.loop = self._loops = 1 if indefinite else loops
+        self._cached = (
             False
             if indefinite
             else cache
             if isinstance(cache, bool)
             else renderable.frame_count <= cache
         )
-
-        return new
 
     def __init__(
         self,
@@ -153,6 +153,7 @@ class RenderIterator:
         loops: int = 1,
         cache: bool | int = 100,
     ) -> None:
+        self._init(renderable, render_args, render_fmt, loops, cache)
         self._iterator, _, self._render_fmt = renderable._init_render_(
             self._iterate, render_args, render_fmt, iteration=True, finalize=False
         )
@@ -331,7 +332,8 @@ class RenderIterator:
         NOTE:
             *render_data* may be modified by the iterator or the underlying renderable.
         """
-        new = cls.__new__(cls, renderable, render_args, render_fmt, *args, **kwargs)
+        new = cls.__new__(cls)
+        new._init(renderable, render_args, render_fmt, *args, **kwargs)
 
         if not isinstance(render_data, RenderData):
             raise arg_type_error("render_data", render_data)
