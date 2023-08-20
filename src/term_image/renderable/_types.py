@@ -229,7 +229,7 @@ class RenderArgsData:
             """Returns the associated :term:`render class`.
 
             Returns:
-                The associated [#ran1]_ render class, if the namespace class has been
+                The associated render class, if the namespace class has been
                 associated. Otherwise, ``None``.
             """
             return cls._RENDER_CLS

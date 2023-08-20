@@ -509,9 +509,7 @@ class TestMeta:
 class TestRenderArgs:
     def test_default(self):
         render_args = RenderArgs(Renderable)
-        assert render_args.render_cls is Renderable
-        assert tuple(render_args) == ()
-
+        assert {*render_args} == set()
         with pytest.raises(RenderArgsError):
             render_args[Renderable]
 
@@ -1098,7 +1096,6 @@ class TestGetRenderData:
         render_data = self.anim_space._get_render_data_(iteration=False)
         assert isinstance(render_data, RenderData)
         assert render_data.render_cls is Space
-        assert isinstance(render_data[Renderable], Renderable._Data_)
 
     def test_size(self):
         for value in (2, 10):

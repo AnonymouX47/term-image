@@ -270,6 +270,7 @@ class TestNamespace:
 
     def test_as_dict(self):
         namespace = self.Namespace(dict(foo=1, bar=2))
+        assert isinstance(namespace.as_dict(), dict)
         assert namespace.as_dict() == dict(foo=1, bar=2)
 
     def test_get_fields(self):
