@@ -308,7 +308,7 @@ class TestRenderArgs:
     def test_base(self):
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
-        assert tuple(render_args) == ()
+        assert set(render_args) == set()
 
         with pytest.raises(RenderArgsError, match="no render arguments"):
             render_args[Renderable]

@@ -506,14 +506,6 @@ class TestMeta:
                 assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("A",))
 
 
-class TestRenderArgs:
-    def test_default(self):
-        render_args = RenderArgs(Renderable)
-        assert {*render_args} == set()
-        with pytest.raises(RenderArgsError):
-            render_args[Renderable]
-
-
 class Space(Renderable):
     render_size = Size(1, 1)
 
