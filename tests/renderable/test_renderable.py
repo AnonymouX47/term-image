@@ -29,6 +29,66 @@ from .. import get_terminal_size
 stdout = io.StringIO()
 columns, lines = get_terminal_size()
 
+# ========================== Render classes ==========================
+
+
+class Space(Renderable):
+    render_size = Size(1, 1)
+
+    def _get_render_size_(self):
+        return self.render_size
+
+    def _render_(self, render_data, render_args):
+        data = render_data[Renderable]
+        width, height = data.size
+        return Frame(
+            data.frame, data.duration, data.size, "\n".join((" " * width,) * height)
+        )
+
+
+class IndefiniteSpace(Space):
+    def __init__(self, frame_count):
+        super().__init__(FrameCount.INDEFINITE, 1)
+        self.__frame_count = frame_count
+
+    def _render_(self, render_data, render_args):
+        if render_data[Renderable].iteration:
+            next(render_data[__class__].frames)
+        return super()._render_(render_data, render_args)
+
+    def _get_render_data_(self, *, iteration):
+        render_data = super()._get_render_data_(iteration=iteration)
+        render_data[__class__].frames = (
+            iter(range(self.__frame_count)) if iteration else None
+        )
+        return render_data
+
+    class _Data_(RenderData.Namespace):
+        frames: Iterator[int] | None
+
+
+class Char(Renderable):
+    render_size = Size(1, 1)
+
+    def _get_render_size_(self):
+        return self.render_size
+
+    def _render_(self, render_data, render_args):
+        data = render_data[Renderable]
+        width, height = data.size
+        return Frame(
+            data.frame,
+            data.duration,
+            data.size,
+            "\n".join((render_args[Char].char * width,) * height),
+        )
+
+    class Args(RenderArgs.Namespace):
+        char: str = " "
+
+
+# ========================== Utils ==========================
+
 
 @contextmanager
 def capture_stdout():
@@ -44,6 +104,9 @@ def capture_stdout():
 
 def draw_n_eol(height, frame_count, loops):
     return (height - 1) * frame_count * loops + 1
+
+
+# ========================== Tests ==========================
 
 
 class TestMeta:
@@ -226,22 +289,22 @@ class TestMeta:
                     F: F.Args(),
                 }
 
-    def test_optimization_default_namespaces_interned(self):
-        class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                a: None = None
+        def test_optimization_default_namespaces_interned(self):
+            class A(Renderable):
+                class Args(RenderArgs.Namespace):
+                    a: None = None
 
-        class B(A):
-            class Args(RenderArgs.Namespace):
-                b: None = None
+            class B(A):
+                class Args(RenderArgs.Namespace):
+                    b: None = None
 
-        class C(B):
-            class Args(RenderArgs.Namespace):
-                c: None = None
+            class C(B):
+                class Args(RenderArgs.Namespace):
+                    c: None = None
 
-        assert A._ALL_DEFAULT_ARGS[A] is B._ALL_DEFAULT_ARGS[A]
-        assert A._ALL_DEFAULT_ARGS[A] is C._ALL_DEFAULT_ARGS[A]
-        assert B._ALL_DEFAULT_ARGS[B] is C._ALL_DEFAULT_ARGS[B]
+            assert A._ALL_DEFAULT_ARGS[A] is B._ALL_DEFAULT_ARGS[A]
+            assert A._ALL_DEFAULT_ARGS[A] is C._ALL_DEFAULT_ARGS[A]
+            assert B._ALL_DEFAULT_ARGS[B] is C._ALL_DEFAULT_ARGS[B]
 
     class TestRenderData:
         def test_base(self):
@@ -504,61 +567,6 @@ class TestMeta:
                     _EXPORTED_ATTRS_ = ("A",)
 
                 assert sorted(B._ALL_EXPORTED_ATTRS) == sorted(("A",))
-
-
-class Space(Renderable):
-    render_size = Size(1, 1)
-
-    def _get_render_size_(self):
-        return self.render_size
-
-    def _render_(self, render_data, render_args):
-        data = render_data[Renderable]
-        width, height = data.size
-        return Frame(
-            data.frame, data.duration, data.size, "\n".join((" " * width,) * height)
-        )
-
-
-class IndefiniteSpace(Space):
-    def __init__(self, frame_count):
-        super().__init__(FrameCount.INDEFINITE, 1)
-        self.__frame_count = frame_count
-
-    def _render_(self, render_data, render_args):
-        if render_data[Renderable].iteration:
-            next(render_data[__class__].frames)
-        return super()._render_(render_data, render_args)
-
-    def _get_render_data_(self, *, iteration):
-        render_data = super()._get_render_data_(iteration=iteration)
-        render_data[__class__].frames = (
-            iter(range(self.__frame_count)) if iteration else None
-        )
-        return render_data
-
-    class _Data_(RenderData.Namespace):
-        frames: Iterator[int] | None
-
-
-class Char(Renderable):
-    render_size = Size(1, 1)
-
-    def _get_render_size_(self):
-        return self.render_size
-
-    def _render_(self, render_data, render_args):
-        data = render_data[Renderable]
-        width, height = data.size
-        return Frame(
-            data.frame,
-            data.duration,
-            data.size,
-            "\n".join((render_args[Char].char * width,) * height),
-        )
-
-    class Args(RenderArgs.Namespace):
-        char: str = " "
 
 
 class TestInit:
