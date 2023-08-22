@@ -551,6 +551,62 @@ class TestRenderArgs:
         assert {*RenderArgs(B)} == {A.Args(), B.Args()}
         assert {*RenderArgs(C)} == {A.Args(), B.Args(), C.Args()}
 
+    class TestConvert:
+        class A(Renderable):
+            class Args(RenderArgs.Namespace):
+                a: str = "a"
+
+        class B(Renderable):
+            class Args(RenderArgs.Namespace):
+                b: str = "b"
+
+        class C(A, B):
+            class Args(RenderArgs.Namespace):
+                c: str = "c"
+
+        class D(C):
+            class Args(RenderArgs.Namespace):
+                d: str = "d"
+
+        args = (A.Args("1"), B.Args("2"), C.Args("3"), D.Args("4"))
+
+        def test_args(self):
+            render_args = RenderArgs(Foo)
+            with pytest.raises(TypeError, match="'render_cls'"):
+                render_args.convert(Ellipsis)
+
+        def test_same_render_cls(self):
+            render_args = RenderArgs(Foo, Foo.Args("bar", "foo"))
+            assert render_args.convert(Foo) is render_args
+
+        def test_child(self):
+            render_args_a = RenderArgs(self.A, self.args[0])
+            render_args_b = RenderArgs(self.B, self.args[1])
+            render_args_c = RenderArgs(self.C, *self.args[:3])
+
+            assert render_args_a.convert(self.D) == RenderArgs(self.D, self.args[0])
+            assert render_args_b.convert(self.D) == RenderArgs(self.D, self.args[1])
+            assert render_args_c.convert(self.D) == RenderArgs(self.D, *self.args[:3])
+
+        def test_parent(self):
+            render_args = RenderArgs(self.D, *self.args)
+            assert render_args.convert(self.A) == RenderArgs(self.A, self.args[0])
+            assert render_args.convert(self.B) == RenderArgs(self.B, self.args[1])
+            assert render_args.convert(self.C) == RenderArgs(self.C, *self.args[:3])
+
+        def test_non_parent_child(self):
+            render_args = RenderArgs(self.A)
+            with pytest.raises(
+                RenderArgsError, match="'B' is not a parent or child of 'A'"
+            ):
+                render_args.convert(self.B)
+
+            render_args = RenderArgs(self.B)
+            with pytest.raises(
+                RenderArgsError, match="'A' is not a parent or child of 'B'"
+            ):
+                render_args.convert(self.A)
+
     class TestUpdate:
         def test_args(self):
             class Bar(Renderable):
