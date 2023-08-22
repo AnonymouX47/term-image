@@ -81,29 +81,29 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
 
     if isinstance(obj, EnumMeta):
         return "Enumerations"
-    elif isinstance(obj, type) and issubclass(obj, Warning):
+    if isinstance(obj, type) and issubclass(obj, Warning):
         return "Warnings"
-    elif isinstance(parent, type):
+    if isinstance(parent, type):
         obj = vars(parent)[name.rpartition(".")[2]]
         if isinstance(obj, utils.ClassProperty):
             return "Class Properties"
-        elif isinstance(obj, utils.ClassInstanceProperty):
+        if isinstance(obj, utils.ClassInstanceProperty):
             return "Class/Instance Properties"
-        elif isinstance(obj, property):
+        if isinstance(obj, property):
             return "Instance Properties"
-        elif isinstance(obj, FunctionType):
+        if isinstance(obj, FunctionType):
             return (
                 "Special Methods"
                 if name.startswith("__") and name.endswith("__")
                 else "Instance Methods"
             )
-        elif isinstance(obj, utils.ClassInstanceMethod):
+        if isinstance(obj, utils.ClassInstanceMethod):
             return "Class/Instance Methods"
-        elif isinstance(obj, classmethod):
+        if isinstance(obj, classmethod):
             return "Class Methods"
-        elif isinstance(obj, staticmethod):
+        if isinstance(obj, staticmethod):
             return "Static Methods"
-        elif name.startswith("__") and name.endswith("__"):
+        if name.startswith("__") and name.endswith("__"):
             return "Special Attributes"
 
 
