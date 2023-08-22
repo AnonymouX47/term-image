@@ -198,8 +198,11 @@ class RenderArgsData:
                 A dictionary mapping field names to their values.
 
             WARNING:
-                The number and order of fields for any particular subclass should not
-                be relied upon as these details may change with/without notice.
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
 
                 The order is an implementation detail of the Render Arguments/Data API
                 and the number should be considered an implementation detail of the
@@ -215,8 +218,11 @@ class RenderArgsData:
                 A mapping of field names to their default values.
 
             WARNING:
-                The number and order of fields for any particular subclass should not
-                be relied upon as these details may change with/without notice.
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
 
                 The order is an implementation detail of the Render Arguments/Data API
                 and the number should be considered an implementation detail of the
@@ -484,9 +490,10 @@ class RenderArgs(RenderArgsData):
             An iterator that yields the constituent namespaces.
 
         WARNING:
-            The number and order of namespaces for any particular associated [#ra2]_
-            :term:`render class` should not be relied upon as these details may change
-            with/without notice.
+            The number and order of namespaces is guaranteed to be the same across all
+            instances associated [#ra2]_ with the same :term:`render class` but beyond
+            this, should not be relied upon as the details (such as the specific
+            number or order) may change without notice.
 
             The order is an implementation detail of the Renderable API and the number
             should be considered alike with respect to the associated render class.
@@ -558,7 +565,6 @@ class RenderArgs(RenderArgsData):
             render_cls (Type[Renderable]): A :term:`render class` of which
               :py:attr:`render_cls` is a subclass (which may be :py:attr:`render_cls`
               itself) and which defines render arguments.
-
             fields: Render argument fields.
 
               The keywords must be names of render argument fields for *render_cls*.
@@ -975,9 +981,10 @@ class RenderData(RenderArgsData):
             An iterator that yields the constituent namespaces.
 
         WARNING:
-            The number and order of namespaces for any particular associated [#rd1]_
-            :term:`render class` should not be relied upon as these details may change
-            with/without notice.
+            The number and order of namespaces is guaranteed to be the same across all
+            instances associated [#rd1]_ with the same :term:`render class` but beyond
+            this, should not be relied upon as the details (such as the specific
+            number or order) may change without notice.
 
             The order is an implementation detail of the Renderable API and the number
             should be considered alike with respect to the associated render class.
