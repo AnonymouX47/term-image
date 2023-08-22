@@ -495,6 +495,48 @@ class RenderArgs(RenderArgsData):
 
     # Public Methods
 
+    def convert(self, render_cls: Type[Renderable]) -> RenderArgs:
+        """Converts the set of render arguments to one for a related render class.
+
+        Args:
+            render_cls: A :term:`render class` of which :py:attr:`render_cls` is a
+              parent or child (which may be :py:attr:`render_cls` itself).
+
+        Returns:
+            A set of render arguments associated [#ra2]_ with *render_cls* and
+            initialized with all constituent namespaces (of this set of render
+            arguments, *self*) that are compatible [#ran2]_ with *render_cls*.
+
+        Raises:
+            TypeError: An argument is of an inappropriate type.
+            RenderArgsError: *render_cls* is not a parent or child of
+              :py:attr:`render_cls`.
+        """
+        if render_cls is self.render_cls:
+            return self
+
+        if not isinstance(render_cls, RenderableMeta):
+            raise arg_type_error("render_cls", render_cls)
+
+        if issubclass(render_cls, self.render_cls):
+            return type(self)(render_cls, self)
+
+        if issubclass(self.render_cls, render_cls):
+            render_cls_args_mro = render_cls._ALL_DEFAULT_ARGS
+            return type(self)(
+                render_cls,
+                *[
+                    namespace
+                    for cls, namespace in self._namespaces.items()
+                    if cls in render_cls_args_mro
+                ],
+            )
+
+        raise RenderArgsError(
+            f"{render_cls.__name__!r} is not a parent or child of "
+            f"{self.render_cls.__name__!r}"
+        )
+
     def update(
         self,
         render_cls_or_namespace: Type[Renderable] | RenderArgs.Namespace,
