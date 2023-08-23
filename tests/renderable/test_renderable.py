@@ -33,10 +33,10 @@ columns, lines = get_terminal_size()
 
 
 class Space(Renderable):
-    render_size = Size(1, 1)
+    size = Size(1, 1)
 
     def _get_render_size_(self):
-        return self.render_size
+        return self.size
 
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
@@ -68,10 +68,10 @@ class IndefiniteSpace(Space):
 
 
 class Char(Renderable):
-    render_size = Size(1, 1)
+    size = Size(1, 1)
 
     def _get_render_size_(self):
-        return self.render_size
+        return self.size
 
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
@@ -728,7 +728,7 @@ class TestDraw:
             @capture_stdout()
             def test_check_size(self):
                 space = Space(1, 1)
-                space.render_size = Size(columns + 1, 1)
+                space.size = Size(columns + 1, 1)
                 render_fmt = RenderFormat(columns + 1, 1)
 
                 # Default
@@ -750,7 +750,7 @@ class TestDraw:
             @capture_stdout()
             def test_scroll(self):
                 space = Space(1, 1)
-                space.render_size = Size(1, lines + 1)
+                space.size = Size(1, lines + 1)
                 render_fmt = RenderFormat(1, lines + 1)
 
                 # Default
@@ -822,7 +822,7 @@ class TestDraw:
             @capture_stdout()
             def test_check_size(self):
                 anim_space = Space(2, 1)
-                anim_space.render_size = Size(columns + 1, 1)
+                anim_space.size = Size(columns + 1, 1)
                 render_fmt = RenderFormat(columns + 1, 1)
 
                 # Default
@@ -846,7 +846,7 @@ class TestDraw:
             @capture_stdout()
             def test_scroll(self):
                 anim_space = Space(2, 1)
-                anim_space.render_size = Size(1, lines + 1)
+                anim_space.size = Size(1, lines + 1)
                 render_fmt = RenderFormat(1, lines + 1)
 
                 # Default
@@ -987,7 +987,7 @@ class TestSeekTell:
 class TestFormatRender:
     size = Size(5, 5)
     char = Char(1, 1)
-    char.render_size = size
+    char.size = size
     char_render_args = +Char.Args(char="#")
     render = char.render(char_render_args).render
 
@@ -1084,7 +1084,7 @@ class TestFormatRender:
             (Size(1, 2), (9, 9, 9, 10)),
             (Size(14, 11), (4, 3, 5, 3)),
         ):
-            char.render_size = size
+            char.size = size
             render = char.render(self.char_render_args).render
             self.check_padding(
                 char._format_render_(render, size, render_fmt),
@@ -1105,7 +1105,7 @@ class TestGetRenderData:
 
     def test_size(self):
         for value in (2, 10):
-            self.anim_space.render_size = render_size = Size(value, value)
+            self.anim_space.size = render_size = Size(value, value)
             render_data = self.anim_space._get_render_data_(iteration=False)
             size = render_data[Renderable].size
             assert isinstance(size, Size)
@@ -1321,11 +1321,11 @@ class TestInitRender:
                     anim_space = Space(2, 1)
 
                     # in range
-                    anim_space.render_size = Size(columns, 1)
+                    anim_space.size = Size(columns, 1)
                     anim_space._init_render_(lambda *_: None, check_size=True)
 
                     # out of range
-                    anim_space.render_size = Size(columns + 1, 1)
+                    anim_space.size = Size(columns + 1, 1)
 
                     # # Default
                     anim_space._init_render_(lambda *_: None)
@@ -1376,13 +1376,13 @@ class TestInitRender:
                     anim_space = Space(2, 1)
 
                     # in range
-                    anim_space.render_size = Size(1, lines)
+                    anim_space.size = Size(1, lines)
                     anim_space._init_render_(
                         lambda *_: None, check_size=True, scroll=False
                     )
 
                     # out of range
-                    anim_space.render_size = Size(1, lines + 1)
+                    anim_space.size = Size(1, lines + 1)
 
                     # # Default
                     with pytest.raises(InvalidSizeError, match="Render height"):
@@ -1454,7 +1454,7 @@ class TestInitRender:
         class TestAnimationTrue:
             def test_check_size(self):
                 anim_space = Space(2, 1)
-                anim_space.render_size = Size(columns + 1, 1)
+                anim_space.size = Size(columns + 1, 1)
 
                 with pytest.raises(InvalidSizeError, match="Render width"):
                     anim_space._init_render_(
@@ -1463,7 +1463,7 @@ class TestInitRender:
 
             def test_scroll(self):
                 anim_space = Space(2, 1)
-                anim_space.render_size = Size(1, lines + 1)
+                anim_space.size = Size(1, lines + 1)
 
                 with pytest.raises(InvalidSizeError, match="Render height"):
                     anim_space._init_render_(

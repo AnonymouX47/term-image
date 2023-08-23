@@ -21,14 +21,14 @@ from ..renderable.test_renderable import Char, IndefiniteSpace, Space
 
 
 class FrameFill(Renderable):
-    render_size = Size(1, 1)
+    size = Size(1, 1)
 
     def _get_render_size_(self):
-        return self.render_size
+        return self.size
 
     def __init__(self, size: Size):
         super().__init__(10, 1)
-        self.render_size = size
+        self.size = size
 
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
@@ -42,14 +42,14 @@ class FrameFill(Renderable):
 
 
 class IndefiniteFrameFill(Renderable):
-    render_size = Size(1, 1)
+    size = Size(1, 1)
 
     def _get_render_size_(self):
-        return self.render_size
+        return self.size
 
     def __init__(self, size: Size):
         super().__init__(FrameCount.INDEFINITE, 1)
-        self.render_size = size
+        self.size = size
         self.__frame_count = 10
 
     def _render_(self, render_data, render_args):
