@@ -615,25 +615,31 @@ class TestProperties:
         for value in (2, FrameCount.INDEFINITE):
             assert PostponedSpace(value).frame_count == value
 
-    def test_frame_duration(self):
-        for value in (1, 2, 100, FrameDuration.DYNAMIC):
-            assert Space(1, value).frame_duration is None
+    class TestFrameDuration:
+        def test_get(self):
+            for value in (1, 2, 100, FrameDuration.DYNAMIC):
+                assert Space(1, value).frame_duration is None
+                assert Space(2, value).frame_duration == value
 
-        for value in (1, 2, 100, FrameDuration.DYNAMIC):
-            assert Space(2, value).frame_duration == value
+        class TestSet:
+            def test_non_animated(self):
+                space = Space(1, 1)
+                with pytest.raises(RenderableError, match="non-animated"):
+                    space.frame_duration = Ellipsis
 
-        space = Space(2, 1)
+            def test_animated(self):
+                anim_space = Space(2, 1)
 
-        with pytest.raises(TypeError, match="'frame_duration'"):
-            space.frame_duration = Ellipsis
+                with pytest.raises(TypeError, match="'frame_duration'"):
+                    anim_space.frame_duration = Ellipsis
 
-        for value in (0, -1, -100):
-            with pytest.raises(ValueError, match="'frame_duration'"):
-                space.frame_duration = value
+                for value in (0, -1, -100):
+                    with pytest.raises(ValueError, match="'frame_duration'"):
+                        anim_space.frame_duration = value
 
-        for value in (1, 2, 100, FrameDuration.DYNAMIC):
-            space.frame_duration = value
-            assert space.frame_duration == value
+                for value in (1, 2, 100, FrameDuration.DYNAMIC):
+                    anim_space.frame_duration = value
+                    assert anim_space.frame_duration == value
 
     def test_render_size(self):
         space = Space(1, 1)
