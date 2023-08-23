@@ -832,8 +832,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         The base implementation raises :py:class:`NotImplementedError`.
 
-        IMPORTANT:
+        NOTE:
             Both dimensions are expected to be positive.
+
+        .. seealso:: :py:attr:`render_size`
         """
         raise NotImplementedError
 

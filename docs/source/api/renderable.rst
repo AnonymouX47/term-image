@@ -139,6 +139,7 @@ Renderable
    .. automethod:: _format_render_
    .. automethod:: _get_frame_count_
    .. automethod:: _get_render_data_
+   .. automethod:: _get_render_size_
    .. automethod:: _handle_interrupted_draw_
    .. automethod:: _init_render_
    .. automethod:: _render_
