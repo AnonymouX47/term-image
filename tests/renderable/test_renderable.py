@@ -635,6 +635,13 @@ class TestProperties:
             space.frame_duration = value
             assert space.frame_duration == value
 
+    def test_render_size(self):
+        space = Space(1, 1)
+        assert space.render_size == Size(1, 1)
+
+        space.size = Size(100, 100)
+        assert space.render_size == Size(100, 100)
+
 
 def test_iter():
     space = Space(1, 1)

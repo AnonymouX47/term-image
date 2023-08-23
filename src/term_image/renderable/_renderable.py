@@ -324,6 +324,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         self.__frame_duration = duration
 
+    @property
+    def render_size(self) -> geometry.Size:
+        """:term:`Render size`
+
+        GET:
+            Returns the size of the renderable's :term:`render output`.
+        """
+        return self._get_render_size_()
+
     # Public Methods
 
     def draw(
