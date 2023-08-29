@@ -1,24 +1,46 @@
 import pytest
 
-from term_image.geometry import Size
+from term_image.geometry import RawSize, Size
+
+
+class TestRawSize:
+    @pytest.mark.parametrize("width", [1, 0, -1])
+    def test_width(self, width):
+        size = RawSize(width, 1)
+        assert size.width == width
+
+    @pytest.mark.parametrize("height", [1, 0, -1])
+    def test_height(self, height):
+        size = RawSize(1, height)
+        assert size.height == height
+
+    def test_is_tuple(self):
+        size = RawSize(1, -1)
+        assert isinstance(size, tuple)
+        assert len(size) == 2
+        assert size == (1, -1)
+        assert size[0] == 1
+        assert size[1] == -1
 
 
 class TestSize:
-    def test_args(self):
-        with pytest.raises(TypeError, match="'width'"):
-            Size(2.0, 1)
-        with pytest.raises(TypeError, match="'height'"):
-            Size(1, 2.0)
-
-    def test_tuple(self):
-        size = Size(1, 1)
-        assert isinstance(size, tuple)
-        assert len(size) == 2
+    @pytest.mark.parametrize("value", [0, -1])
+    def test_positive_dimensions_only(self, value):
+        with pytest.raises(ValueError, match="'width'"):
+            Size(value, 1)
+        with pytest.raises(ValueError, match="'height'"):
+            Size(1, value)
 
     def test_width(self):
-        size = Size(1, -1)
-        assert size[0] == 1 == size.width
+        assert Size(10, 1).width == 10
 
     def test_height(self):
-        size = Size(1, -1)
-        assert size[1] == -1 == size.height
+        assert Size(1, 10).height == 10
+
+    def test_is_tuple(self):
+        size = Size(1, 10)
+        assert isinstance(size, tuple)
+        assert len(size) == 2
+        assert size == (1, 10)
+        assert size[0] == 1
+        assert size[1] == 10

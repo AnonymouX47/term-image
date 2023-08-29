@@ -4,50 +4,48 @@
 
 from __future__ import annotations
 
-__all__ = ("Size",)
+__all__ = ("RawSize", "Size")
 
 from typing import NamedTuple
 
-from .utils import arg_type_error
+from .utils import arg_value_error_range
 
 
-class _Size(NamedTuple):
-    width: int
-    height: int
-
-
-class Size(tuple):
+class RawSize(NamedTuple):
     """The dimensions of a rectangular region.
 
     Args:
         width: The horizontal dimension
         height: The vertical dimension
 
-    Raises:
-        TypeError: An argument is of an inappropriate type.
-
     NOTE:
-        * The meaning of a negative dimension is determined by the recieving interface.
+        * A dimension may be non-positive but the validity and meaning would be
+          determined by the recieving interface.
         * This is a subclass of :py:class:`tuple`. Hence, instances can be used anyway
           and anywhere tuples can.
     """
 
-    def __new__(cls, width: int, height: int):
-        if not isinstance(width, int):
-            raise arg_type_error("width", width)
-        if not isinstance(height, int):
-            raise arg_type_error("height", height)
-
-        return super().__new__(cls, (width, height))
-
-    width: int = _Size.width
+    width: int
     """The horizontal dimension"""
 
-    height: int = _Size.height
+    height: int
     """The vertical dimension"""
 
-    def __repr__(self):
-        return f"{type(self).__name__}{super().__repr__()}"
 
+class Size(RawSize):
+    """The dimensions of a rectangular region.
 
-del _Size
+    Raises:
+        ValueError: Either dimension is non-positive.
+
+    Same as :py:class:`RawSize`, except that both dimensions must be **positive**.
+    """
+
+    def __new__(cls, width: int, height: int):
+        if width < 1:
+            raise arg_value_error_range("width", width)
+        if height < 1:
+            raise arg_value_error_range("height", height)
+
+        # Using `tuple` directly instead of `super()` for performance
+        return tuple.__new__(cls, (width, height))  # type: ignore
