@@ -293,7 +293,7 @@ def arg_type_error(arg: str, value: Any, got_extra: str = "") -> TypeError:
     )
 
 
-def arg_type_error_msg(msg: str, value: Any, got_extra: str = "") -> ValueError:
+def arg_type_error_msg(msg: str, value: Any, got_extra: str = "") -> TypeError:
     return TypeError(
         f"{msg} (got: {type(value).__name__}; {got_extra})"
         if got_extra
