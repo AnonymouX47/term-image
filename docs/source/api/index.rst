@@ -24,6 +24,7 @@ API Reference
    render
    image
    widget
+   padding
    geometry
    exceptions
    utils
