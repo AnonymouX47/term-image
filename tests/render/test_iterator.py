@@ -672,11 +672,6 @@ class TestSetRenderSize:
         render_iter = RenderIterator(self.anim_char)
         with pytest.raises(TypeError, match="render_size"):
             render_iter.set_render_size(Ellipsis)
-        for value in (0, -1):
-            with pytest.raises(ValueError, match="render_size"):
-                render_iter.set_render_size(Size(value, 1))
-            with pytest.raises(ValueError, match="render_size"):
-                render_iter.set_render_size(Size(1, value))
 
     def test_iteration(self):
         render_iter = RenderIterator(self.anim_char)

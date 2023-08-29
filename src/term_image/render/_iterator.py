@@ -300,8 +300,6 @@ class RenderIterator:
         """
         if not isinstance(render_size, Size):
             raise arg_type_error("render_size", render_size)
-        if not render_size.width > 0 < render_size.height:
-            raise arg_value_error_range("render_size", render_size)
 
         self._render_data[Renderable].size = render_size
         self._formatted_size = self._render_fmt.get_formatted_size(render_size)
@@ -384,7 +382,7 @@ class RenderIterator:
         loop = self.loop
         cache = [(None,) * 4] * frame_count if self._cached else None
 
-        yield Frame(0, None, Size(0, 0), "")
+        yield Frame(0, None, Size(1, 1), " ")
 
         # Render iteration
         frame_no = renderable_data.frame * definite
