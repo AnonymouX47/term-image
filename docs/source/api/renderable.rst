@@ -110,6 +110,8 @@ Extension API
    In the same vein, return values of any of these interfaces will not be validated by
    the callers before use.
 
+.. _renderable-ext-api:
+
 Renderable
 ^^^^^^^^^^
 

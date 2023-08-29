@@ -150,6 +150,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
+
+    ATTENTION:
+        This is an abstract base class. Hence, only **concrete** subclasses can be
+        instantiated.
+
+    .. seealso::
+
+       :ref:`renderable-ext-api`
+          :py:class:`Renderable`\\ 's Extension API.
     """
 
     # Class Attributes

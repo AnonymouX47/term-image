@@ -15,6 +15,8 @@ Extension API
 
    Everything required for normal usage should typically be exposed in the public API.
 
+.. _render-iterator-ext-api:
+
 RenderIterator
 ^^^^^^^^^^^^^^
 .. class:: RenderIterator

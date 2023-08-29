@@ -48,7 +48,7 @@ class Frame(NamedTuple):
         * the number or order of fields may change.
 
         Any change to this aspect of the interface may happen without notice and will
-        not be considered a breaking change, even if it technically is.
+        not be considered a breaking change.
     """
 
     number: int
