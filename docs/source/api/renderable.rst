@@ -126,7 +126,6 @@ Renderable
         _EXPORTED_DESCENDANT_ATTRS_,
         _animate_,
         _finalize_render_data_,
-        _format_render_,
         _get_frame_count_,
         _get_render_data_,
         _handle_interrupted_draw_,
@@ -138,7 +137,6 @@ Renderable
    .. autoattribute:: _EXPORTED_DESCENDANT_ATTRS_
    .. automethod:: _animate_
    .. automethod:: _finalize_render_data_
-   .. automethod:: _format_render_
    .. automethod:: _get_frame_count_
    .. automethod:: _get_render_data_
    .. automethod:: _get_render_size_

@@ -8,7 +8,6 @@ __all__ = ("Renderable",)
 
 import sys
 from abc import ABCMeta, abstractmethod
-from dataclasses import astuple
 from time import perf_counter_ns, sleep
 from types import MappingProxyType
 from typing import Any, Callable, ClassVar
@@ -22,7 +21,7 @@ from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration
-from ._types import Frame, HAlign, RenderArgs, RenderData, VAlign
+from ._types import Frame, RenderArgs, RenderData
 
 
 class RenderableMeta(ABCMeta):
@@ -685,78 +684,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             <term_image.renderable.RenderData.finalize>`,
             the *finalize* parameter of :py:meth:`_init_render_`.
         """
-
-    @staticmethod
-    def _format_render_(
-        render: str,
-        render_size: geometry.Size,
-        render_fmt: RenderFormat,
-    ) -> str:
-        """:term:`Formats` a :term:`render output`.
-
-        Args:
-            render: The primary render output, which is expected to conform the form
-              specified to be returned by :py:meth:`_render_`.
-            render_size: The primary :term:`render size`.
-            render_fmt: Render :term:`formatting` arguments, with **absolute** padding
-              dimensions.
-
-        Returns:
-            The formatted render output.
-
-            This also conforms to the form specified to be returned by
-            :py:meth:`_render_`, provided the primary render output (*render*) does.
-        """
-        render_width, render_height = render_size
-        width, height, h_align, v_align, *_ = astuple(render_fmt)
-        width = max(width, render_width)
-        height = max(height, render_height)
-        horizontal = width > render_width
-        vertical = height > render_height
-
-        if horizontal:
-            if h_align is HAlign.LEFT:
-                left = 0
-                right = width - render_width
-            elif h_align is HAlign.RIGHT:
-                left = width - render_width
-                right = 0
-            else:  # CENTER
-                left = (width - render_width) // 2
-                right = width - render_width - left
-            left = " " * left
-            right = " " * right
-        else:
-            left = right = ""
-
-        if vertical:
-            if v_align is VAlign.TOP:
-                top = 0
-                bottom = height - render_height
-            elif v_align is VAlign.BOTTOM:
-                top = height - render_height
-                bottom = 0
-            else:  # MIDDLE
-                top = (height - render_height) // 2
-                bottom = height - render_height - top
-            top = f"{' ' * width}\n" * top if top else ""
-            bottom = f"\n{' ' * width}" * bottom if bottom else ""
-        else:
-            top = bottom = ""
-
-        return (
-            "".join(
-                (
-                    top,
-                    left,
-                    render.replace("\n", f"{right}\n{left}") if horizontal else render,
-                    right,
-                    bottom,
-                )
-            )
-            if horizontal or vertical
-            else render
-        )
 
     def _get_frame_count_(self) -> int | FrameCount:
         """Implements :py:attr:`~term_image.renderable.FrameCount.POSTPONED` frame
