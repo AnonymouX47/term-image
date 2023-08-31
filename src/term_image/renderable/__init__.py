@@ -11,8 +11,40 @@ __all__ = (
     "RenderArgs",
     "RenderData",
     "Frame",
+    "RenderableError",
+    "IndefiniteSeekError",
+    "RenderError",
+    "RenderSizeOutofRangeError",
+    "RenderArgsDataError",
+    "RenderArgsError",
+    "RenderDataError",
+    "IncompatibleArgsNamespaceError",
+    "IncompatibleRenderArgsError",
+    "NoArgsNamespaceError",
+    "NoDataNamespaceError",
+    "UnknownArgsFieldError",
+    "UnknownDataFieldError",
 )
 
 from ._enum import FrameCount, FrameDuration
+from ._exceptions import (
+    IndefiniteSeekError,
+    RenderableError,
+    RenderError,
+    RenderSizeOutofRangeError,
+)
 from ._renderable import Renderable
-from ._types import Frame, RenderArgs, RenderData
+from ._types import (
+    Frame,
+    IncompatibleArgsNamespaceError,
+    IncompatibleRenderArgsError,
+    NoArgsNamespaceError,
+    NoDataNamespaceError,
+    RenderArgs,
+    RenderArgsDataError,
+    RenderArgsError,
+    RenderData,
+    RenderDataError,
+    UnknownArgsFieldError,
+    UnknownDataFieldError,
+)
