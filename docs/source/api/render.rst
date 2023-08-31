@@ -1,7 +1,31 @@
 ``render`` Module
 =================
 
-.. automodule:: term_image.render
+.. module:: term_image.render
+
+Classes
+-------
+
+.. automodulesumm:: term_image.render
+   :autosummary-sections: Classes
+   :autosummary-no-titles:
+
+
+.. autoclass:: RenderIterator
+
+|
+
+
+Exceptions
+----------
+
+.. automodulesumm:: term_image.render
+   :autosummary-sections: Exceptions
+   :autosummary-no-titles:
+
+
+.. autoexception:: RenderIteratorError
+.. autoexception:: FinalizedIteratorError
 
 |
 

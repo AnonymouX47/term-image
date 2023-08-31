@@ -55,7 +55,7 @@ class RenderIterator:
         TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
-        term_image.exceptions.RenderArgsError: Incompatible render arguments.
+        IncompatibleRenderArgsError: Incompatible render arguments.
 
     The iterator yields a :py:class:`~term_image.renderable.Frame` instance on every
     iteration.
@@ -255,7 +255,7 @@ class RenderIterator:
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.RenderArgsError: Incompatible render arguments.
+            IncompatibleRenderArgsError: Incompatible render arguments.
 
         NOTE:
             Takes effect from the next rendered frame.
@@ -295,8 +295,6 @@ class RenderIterator:
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument is of an appropriate type but has an
-              unexpected/invalid value.
 
         NOTE:
             Takes effect from the next rendered frame.

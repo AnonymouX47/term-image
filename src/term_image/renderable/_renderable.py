@@ -262,8 +262,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             The frame :term:`render output`.
 
         Raises:
-            term_image.exceptions.RenderError: An error occured during
-              :term:`rendering`.
+            RenderError: An error occured during :term:`rendering`.
         """
         return self._init_render_(self._render_)[0].render
 
@@ -372,11 +371,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.InvalidSizeError: The padded :term:`render size`
-              can not fit into the :term:`terminal size`.
-            term_image.exceptions.RenderArgsError: Incompatible render arguments.
-            term_image.exceptions.RenderError: An error occured during
-              :term:`rendering`.
+            RenderSizeOutofRangeError: The padded :term:`render size` can not fit into
+              the :term:`terminal size`.
+            IncompatibleRenderArgsError: Incompatible render arguments.
+            RenderError: An error occured during :term:`rendering`.
 
         If *check_size* is ``True`` (the default) or it's an animation,
 
@@ -464,9 +462,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.RenderArgsError: Incompatible render arguments.
-            term_image.exceptions.RenderError: An error occured during
-              :term:`rendering`.
+            IncompatibleRenderArgsError: Incompatible render arguments.
+            RenderError: An error occured during :term:`rendering`.
         """
         if render_args and not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
@@ -824,7 +821,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               :py:class:`~term_image.padding.AlignedPadding`).
 
         Raises:
-            term_image.exceptions.RenderArgsError: Incompatible render arguments.
+            IncompatibleRenderArgsError: Incompatible render arguments.
             RenderSizeOutofRangeError: *check_size* or *animation* is ``True`` and the
               [padded] :term:`render size` cannot fit into the :term:`terminal size`.
 
@@ -927,7 +924,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Raises:
             StopIteration: End of iteration for an animated renderable with
               :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
-            term_image.exceptions.RenderError: An error occured while rendering.
+            RenderError: An error occured while rendering.
 
         NOTE:
             :py:class:`StopIteration` may be raised if and only if

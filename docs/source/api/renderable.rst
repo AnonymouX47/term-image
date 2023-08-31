@@ -79,6 +79,31 @@ Classes
 |
 
 
+Exceptions
+----------
+
+.. automodulesumm:: term_image.renderable
+   :autosummary-sections: Exceptions
+   :autosummary-no-titles:
+
+
+.. autoexception:: RenderableError
+.. autoexception:: IndefiniteSeekError
+.. autoexception:: RenderError
+.. autoexception:: RenderSizeOutofRangeError
+.. autoexception:: RenderArgsDataError
+.. autoexception:: RenderArgsError
+.. autoexception:: RenderDataError
+.. autoexception:: IncompatibleArgsNamespaceError
+.. autoexception:: IncompatibleRenderArgsError
+.. autoexception:: NoArgsNamespaceError
+.. autoexception:: NoDataNamespaceError
+.. autoexception:: UnknownArgsFieldError
+.. autoexception:: UnknownDataFieldError
+
+|
+
+
 Extension API
 -------------
 
