@@ -8,7 +8,6 @@ from typing import Any, Iterator
 
 import pytest
 
-from term_image.exceptions import InvalidSizeError, RenderableError, RenderArgsError
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
 from term_image.render import RenderIterator
@@ -16,9 +15,13 @@ from term_image.renderable import (
     Frame,
     FrameCount,
     FrameDuration,
+    IndefiniteSeekError,
     Renderable,
+    RenderableError,
     RenderArgs,
+    RenderArgsError,
     RenderData,
+    RenderSizeOutofRangeError,
 )
 
 from .. import get_terminal_size
@@ -742,15 +745,23 @@ class TestDraw:
                 padding = AlignedPadding(columns + 1, 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     space.draw()
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     self.space.draw(padding=padding)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     space.draw(check_size=True)
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     self.space.draw(padding=padding, check_size=True)
 
                 # False
@@ -764,15 +775,23 @@ class TestDraw:
                 padding = AlignedPadding(1, lines + 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     space.draw()
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     self.space.draw(padding=padding)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     space.draw(scroll=False)
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     self.space.draw(padding=padding, scroll=False)
 
                 # True
@@ -836,21 +855,33 @@ class TestDraw:
                 padding = AlignedPadding(columns + 1, 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     anim_space.draw()
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     self.anim_space.draw(padding=padding)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     anim_space.draw(check_size=True)
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     self.anim_space.draw(padding=padding, check_size=True)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     anim_space.draw(check_size=False)
-                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
                     self.anim_space.draw(padding=padding, check_size=False)
 
             @capture_stdout()
@@ -860,21 +891,33 @@ class TestDraw:
                 padding = AlignedPadding(1, lines + 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     anim_space.draw()
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     self.anim_space.draw(padding=padding)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     anim_space.draw(scroll=False)
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     self.anim_space.draw(padding=padding, scroll=False)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     anim_space.draw(scroll=True)
-                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
                     self.anim_space.draw(padding=padding, scroll=True)
 
         class TestDefinite:
@@ -984,7 +1027,7 @@ class TestSeekTell:
         assert space.tell() == 0
 
         for value in (0, 1):
-            with pytest.raises(RenderableError):
+            with pytest.raises(IndefiniteSeekError):
                 space.seek(value)
 
         assert space.tell() == 0
@@ -1225,7 +1268,7 @@ class TestInitRender:
                     anim_space._init_render_(lambda *_: None, check_size=False)
 
                     # # True
-                    with pytest.raises(InvalidSizeError, match="Render width"):
+                    with pytest.raises(RenderSizeOutofRangeError, match="Render width"):
                         anim_space._init_render_(lambda *_: None, check_size=True)
 
                 def test_padded_width(self):
@@ -1255,7 +1298,9 @@ class TestInitRender:
                     )
 
                     # # True
-                    with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    with pytest.raises(
+                        RenderSizeOutofRangeError, match="Padded render width"
+                    ):
                         anim_space._init_render_(
                             lambda *_: None,
                             padding=padding,
@@ -1276,11 +1321,15 @@ class TestInitRender:
                     anim_space.size = Size(1, lines + 1)
 
                     # # Default
-                    with pytest.raises(InvalidSizeError, match="Render height"):
+                    with pytest.raises(
+                        RenderSizeOutofRangeError, match="Render height"
+                    ):
                         anim_space._init_render_(lambda *_: None, check_size=True)
 
                     # # False
-                    with pytest.raises(InvalidSizeError, match="Render height"):
+                    with pytest.raises(
+                        RenderSizeOutofRangeError, match="Render height"
+                    ):
                         anim_space._init_render_(
                             lambda *_: None, check_size=True, scroll=False
                         )
@@ -1310,7 +1359,9 @@ class TestInitRender:
                     padding = AlignedPadding(1, lines + 1)
 
                     # # Default
-                    with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    with pytest.raises(
+                        RenderSizeOutofRangeError, match="Padded render height"
+                    ):
                         anim_space._init_render_(
                             lambda *_: None,
                             padding=padding,
@@ -1318,7 +1369,9 @@ class TestInitRender:
                         )
 
                     # # False
-                    with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    with pytest.raises(
+                        RenderSizeOutofRangeError, match="Padded render height"
+                    ):
                         anim_space._init_render_(
                             lambda *_: None,
                             padding=padding,
@@ -1347,7 +1400,7 @@ class TestInitRender:
                 anim_space = Space(2, 1)
                 anim_space.size = Size(columns + 1, 1)
 
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(RenderSizeOutofRangeError, match="Render width"):
                     anim_space._init_render_(
                         lambda *_: None, animation=True, check_size=False
                     )
@@ -1356,7 +1409,7 @@ class TestInitRender:
                 anim_space = Space(2, 1)
                 anim_space.size = Size(1, lines + 1)
 
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(RenderSizeOutofRangeError, match="Render height"):
                     anim_space._init_render_(
                         lambda *_: None, animation=True, check_size=True, scroll=True
                     )

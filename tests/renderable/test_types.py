@@ -2,9 +2,21 @@ from typing import Any
 
 import pytest
 
-from term_image.exceptions import RenderArgsDataError, RenderArgsError, RenderDataError
 from term_image.geometry import Size
-from term_image.renderable import Frame, Renderable, RenderArgs, RenderData
+from term_image.renderable import (
+    Frame,
+    IncompatibleArgsNamespaceError,
+    IncompatibleRenderArgsError,
+    NoArgsNamespaceError,
+    NoDataNamespaceError,
+    Renderable,
+    RenderArgs,
+    RenderArgsDataError,
+    RenderArgsError,
+    RenderData,
+    UnknownArgsFieldError,
+    UnknownDataFieldError,
+)
 from term_image.renderable._types import RenderArgsData
 
 
@@ -296,7 +308,7 @@ class TestRenderArgs:
         assert render_args.render_cls is Renderable
         assert set(render_args) == set()
 
-        with pytest.raises(RenderArgsError, match="no render arguments"):
+        with pytest.raises(NoArgsNamespaceError):
             render_args[Renderable]
 
     def test_render_cls(self):
@@ -334,7 +346,7 @@ class TestRenderArgs:
                     (self.B, self.C),
                     (self.C, self.B),
                 ):
-                    with pytest.raises(RenderArgsError, match="incompatible"):
+                    with pytest.raises(IncompatibleArgsNamespaceError):
                         RenderArgs(cls1, cls2.Args())
 
         def test_default(self):
@@ -391,8 +403,9 @@ class TestRenderArgs:
                     (self.B, self.C),
                     (self.C, self.B),
                 ):
-                    with pytest.raises(RenderArgsError, match="incompatible"):
-                        RenderArgs(cls1, RenderArgs(cls2))
+                    init_render_args = RenderArgs(cls2)
+                    with pytest.raises(IncompatibleRenderArgsError):
+                        RenderArgs(cls1, init_render_args)
 
         def test_default(self):
             render_args = RenderArgs(Foo)
@@ -499,10 +512,10 @@ class TestRenderArgs:
         with pytest.raises(TypeError, match="'render_cls'"):
             render_args[[]]
 
-        with pytest.raises(RenderArgsError, match="no render arguments"):
+        with pytest.raises(NoArgsNamespaceError):
             render_args[Bar]
 
-        with pytest.raises(RenderArgsError, match="'Bar' is not a subclass of 'Baz'"):
+        with pytest.raises(ValueError, match="'Bar' is not a subclass of 'Baz'"):
             render_args[Baz]
 
         assert isinstance(render_args[Foo], Foo.Args)
@@ -582,15 +595,11 @@ class TestRenderArgs:
 
         def test_non_parent_child(self):
             render_args = RenderArgs(self.A)
-            with pytest.raises(
-                RenderArgsError, match="'B' is not a parent or child of 'A'"
-            ):
+            with pytest.raises(ValueError, match="'B' is not a parent or child of 'A'"):
                 render_args.convert(self.B)
 
             render_args = RenderArgs(self.B)
-            with pytest.raises(
-                RenderArgsError, match="'A' is not a parent or child of 'B'"
-            ):
+            with pytest.raises(ValueError, match="'A' is not a parent or child of 'B'"):
                 render_args.convert(self.A)
 
     class TestUpdate:
@@ -617,13 +626,13 @@ class TestRenderArgs:
             with pytest.raises(TypeError, match=r"'namespaces\[1\]'"):
                 render_args.update(Foo.Args(), Ellipsis)
 
-            with pytest.raises(RenderArgsError, match="not a subclass"):
+            with pytest.raises(ValueError, match="not a subclass"):
                 render_args.update(Bar)
 
-            with pytest.raises(RenderArgsError, match="no render arguments"):
+            with pytest.raises(NoArgsNamespaceError):
                 RenderArgs(Baz).update(Bar)
 
-            with pytest.raises(RenderArgsError, match="Unknown .* field"):
+            with pytest.raises(UnknownArgsFieldError, match="'x'"):
                 render_args.update(Foo, x=Ellipsis)
 
         def test_namespaces(self):
@@ -679,7 +688,7 @@ class TestRenderArgs:
                 class Baz(Foo):
                     pass
 
-                with pytest.raises(RenderArgsError, match="incompatible"):
+                with pytest.raises(IncompatibleRenderArgsError):
                     RenderArgs(self.Bar, RenderArgs(Baz))
 
             def test_subclass(self):
@@ -764,7 +773,7 @@ class TestArgsNamespace:
             with pytest.raises(TypeError, match="'Bar' defines 3 .* 4 .* given"):
                 self.Namespace("", "", "", "")
 
-            with pytest.raises(RenderArgsError, match=r"Unknown .* \('dude',\)"):
+            with pytest.raises(UnknownArgsFieldError, match="'dude'"):
                 self.Namespace(dude="dude")
 
             with pytest.raises(TypeError, match=r"Got multiple .* \('foo',\)"):
@@ -825,7 +834,7 @@ class TestArgsNamespace:
 
     def test_getattr(self):
         namespace = self.Namespace()
-        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
+        with pytest.raises(UnknownArgsFieldError, match="'baz' for 'Bar'"):
             namespace.baz
 
     def test_setattr(self):
@@ -921,10 +930,10 @@ class TestArgsNamespace:
                 C = TestArgsNamespace.TestOr.C
                 b, c = B.Args(2), C.Args(3)
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleArgsNamespaceError):
                     b | c
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleArgsNamespaceError):
                     c | b
 
         class TestRenderArgs:
@@ -953,10 +962,10 @@ class TestArgsNamespace:
                 C = TestArgsNamespace.TestOr.C
                 b, c = B.Args(2), C.Args(3)
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleRenderArgsError):
                     b | RenderArgs(C)
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleRenderArgsError):
                     c | RenderArgs(B)
 
     def test_pos(self):
@@ -1060,7 +1069,7 @@ class TestArgsNamespace:
                             return super().__ror__(other)
 
                 b, c = B.Args(2), C.Args(3)
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleArgsNamespaceError):
                     b | c
 
         class TestRenderArgs:
@@ -1096,10 +1105,10 @@ class TestArgsNamespace:
                 B, C = self.B, self.C
                 b, c = B.Args(2), C.Args(3)
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleRenderArgsError):
                     RenderArgs(C) | b
 
-                with pytest.raises(RenderArgsError):
+                with pytest.raises(IncompatibleRenderArgsError):
                     RenderArgs(B) | c
 
     class TestToRenderArgs:
@@ -1129,14 +1138,10 @@ class TestArgsNamespace:
             assert self.args.to_render_args(self.Baz) == RenderArgs(self.Baz, self.args)
 
         def test_incompatible(self):
-            with pytest.raises(
-                RenderArgsError, match=r"'namespaces\[0\]' .* incompatible"
-            ):
+            with pytest.raises(IncompatibleArgsNamespaceError):
                 self.args_default.to_render_args(Foo)
 
-            with pytest.raises(
-                RenderArgsError, match=r"'namespaces\[0\]' .* incompatible"
-            ):
+            with pytest.raises(IncompatibleArgsNamespaceError):
                 self.args.to_render_args(Foo)
 
     def test_update(self):
@@ -1162,7 +1167,7 @@ class TestArgsNamespace:
             "baz", "baz"
         )
 
-        with pytest.raises(RenderArgsError, match=r"Unknown .* \('baz',\)"):
+        with pytest.raises(UnknownArgsFieldError, match="'baz'"):
             namespace.update(baz=Ellipsis)
 
 
@@ -1198,10 +1203,10 @@ class TestRenderData:
         with pytest.raises(TypeError, match="'render_cls'"):
             render_data[[]]
 
-        with pytest.raises(RenderDataError, match="no render data"):
+        with pytest.raises(NoDataNamespaceError):
             render_data[Bar]
 
-        with pytest.raises(RenderDataError, match="'Bar' is not a subclass of 'Baz'"):
+        with pytest.raises(ValueError, match="'Bar' is not a subclass of 'Baz'"):
             render_data[Baz]
 
         assert isinstance(render_data[Foo], Foo._Data_)
@@ -1238,7 +1243,7 @@ class TestDataNamespace:
 
     def test_getattr(self):
         namespace = self.Namespace()
-        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
+        with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
             namespace.baz
 
     def test_setattr(self):
@@ -1251,7 +1256,7 @@ class TestDataNamespace:
         assert namespace.foo == "FOO"
         assert namespace.bar == "BAR"
 
-        with pytest.raises(AttributeError, match="'baz' for 'Bar'"):
+        with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
             namespace.baz = Ellipsis
 
     def test_update(self):
@@ -1275,5 +1280,5 @@ class TestDataNamespace:
         assert namespace.foo == "bar"
         assert namespace.bar == "foo"
 
-        with pytest.raises(RenderDataError, match=r"Unknown .* \('baz',\)"):
+        with pytest.raises(UnknownDataFieldError, match=r"'baz'"):
             namespace.update(baz=Ellipsis)
