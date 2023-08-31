@@ -10,14 +10,8 @@ from typing import Generator
 
 from ..exceptions import RenderIteratorError
 from ..geometry import Size
-from ..renderable import (
-    Frame,
-    FrameCount,
-    Renderable,
-    RenderArgs,
-    RenderData,
-    RenderFormat,
-)
+from ..padding import AlignedPadding, ExactPadding, Padding
+from ..renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData
 from ..utils import (
     arg_type_error,
     arg_value_error,
@@ -34,7 +28,7 @@ class RenderIterator:
     Args:
         renderable: An animated renderable.
         render_args: Render arguments.
-        render_fmt: Render :term:`formatting` arguments.
+        padding: :term:`Render output` padding.
         loops: The number of times to go over all frames.
 
           * ``< 0`` -> loop infinitely.
@@ -107,7 +101,7 @@ class RenderIterator:
         self,
         renderable: Renderable,
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat = RenderFormat(1, 1),
+        padding: Padding = ExactPadding(),
         loops: int = 1,
         cache: bool | int = 100,
     ) -> None:
@@ -123,8 +117,8 @@ class RenderIterator:
         if render_args and not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
 
-        if not isinstance(render_fmt, RenderFormat):
-            raise arg_type_error("render_fmt", render_fmt)
+        if not isinstance(padding, Padding):
+            raise arg_type_error("padding", padding)
 
         if not isinstance(loops, int):
             raise arg_type_error("loops", loops)
@@ -152,13 +146,13 @@ class RenderIterator:
         self,
         renderable: Renderable,
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat = RenderFormat(1, 1),
+        padding: Padding = ExactPadding(),
         loops: int = 1,
         cache: bool | int = 100,
     ) -> None:
-        self._init(renderable, render_args, render_fmt, loops, cache)
-        self._iterator, self._render_fmt = renderable._init_render_(
-            self._iterate, render_args, render_fmt, iteration=True, finalize=False
+        self._init(renderable, render_args, padding, loops, cache)
+        self._iterator, self._padding = renderable._init_render_(
+            self._iterate, render_args, padding, iteration=True, finalize=False
         )
         self._finalize_data = True
         next(self._iterator)
@@ -269,11 +263,11 @@ class RenderIterator:
 
         self._render_args = RenderArgs(type(self._renderable), render_args)
 
-    def set_render_fmt(self, render_fmt: RenderFormat) -> None:
-        """Sets the render :term:`formatting` arguments.
+    def set_padding(self, padding: Padding) -> None:
+        """Sets the :term:`render output` padding.
 
         Args:
-            render_fmt: Render formatting arguments.
+            padding: Render output padding.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -281,13 +275,15 @@ class RenderIterator:
         NOTE:
             Takes effect from the next rendered frame.
         """
-        if not isinstance(render_fmt, RenderFormat):
-            raise arg_type_error("render_fmt", render_fmt)
+        if not isinstance(padding, Padding):
+            raise arg_type_error("padding", padding)
 
-        self._render_fmt = render_fmt = render_fmt.absolute(get_terminal_size())
-        self._formatted_size = render_fmt.get_formatted_size(
-            self._render_data[Renderable].size
+        self._padding = (
+            padding.resolve(get_terminal_size())
+            if isinstance(padding, AlignedPadding) and padding.relative
+            else padding
         )
+        self._padded_size = padding.get_padded_size(self._render_data[Renderable].size)
 
     def set_render_size(self, render_size: Size) -> None:
         """Sets the :term:`render size`.
@@ -307,7 +303,7 @@ class RenderIterator:
             raise arg_type_error("render_size", render_size)
 
         self._render_data[Renderable].size = render_size
-        self._formatted_size = self._render_fmt.get_formatted_size(render_size)
+        self._padded_size = self._padding.get_padded_size(render_size)
 
     @classmethod
     def _from_render_data_(
@@ -315,7 +311,7 @@ class RenderIterator:
         renderable: Renderable,
         render_data: RenderData,
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat = RenderFormat(1, 1),
+        padding: Padding = ExactPadding(),
         *args,
         finalize: bool = True,
         **kwargs,
@@ -340,7 +336,7 @@ class RenderIterator:
             *render_data* may be modified by the iterator or the underlying renderable.
         """
         new = cls.__new__(cls)
-        new._init(renderable, render_args, render_fmt, *args, **kwargs)
+        new._init(renderable, render_args, padding, *args, **kwargs)
 
         if not isinstance(render_data, RenderData):
             raise arg_type_error("render_data", render_data)
@@ -359,7 +355,11 @@ class RenderIterator:
             raise arg_type_error("finalize", finalize)
 
         render_args = RenderArgs(type(renderable), render_args)  # Validate and complete
-        new._render_fmt = render_fmt.absolute(get_terminal_size())
+        new._padding = (
+            padding.resolve(get_terminal_size())
+            if isinstance(padding, AlignedPadding) and padding.relative
+            else padding
+        )
         new._iterator = new._iterate(render_data, render_args)
         new._finalize_data = finalize
         next(new._iterator)
@@ -376,7 +376,7 @@ class RenderIterator:
         self._render_data = render_data
         self._render_args = render_args
         renderable_data = render_data[Renderable]
-        self._formatted_size = self._render_fmt.get_formatted_size(renderable_data.size)
+        self._padded_size = self._padding.get_padded_size(renderable_data.size)
 
         # Setup
         renderable = self._renderable
@@ -397,7 +397,7 @@ class RenderIterator:
                 if not frame or frame_details != [
                     renderable_data.size,
                     self._render_args,
-                    self._render_fmt,
+                    self._padding,
                 ]:
                     try:
                         frame = renderable._render_(render_data, self._render_args)
@@ -406,21 +406,19 @@ class RenderIterator:
                             self.loop = 0
                             return
                         raise
-                    if self._formatted_size != frame.size:
+                    if self._padded_size != frame.size:
                         frame = Frame(
                             frame.number,
                             frame.duration,
-                            self._formatted_size,
-                            renderable._format_render_(
-                                frame.render, frame.size, self._render_fmt
-                            ),
+                            self._padded_size,
+                            self._padding.pad(frame.render, frame.size),
                         )
                     if cache:
                         cache[frame_no] = (
                             frame,
                             renderable_data.size,
                             self._render_args,
-                            self._render_fmt,
+                            self._padding,
                         )
                 if definite:
                     renderable_data.frame += 1
