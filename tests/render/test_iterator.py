@@ -5,11 +5,17 @@ from typing import Iterator
 
 import pytest
 
-from term_image.exceptions import RenderArgsError, RenderIteratorError
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding
-from term_image.render import RenderIterator
-from term_image.renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData
+from term_image.render import FinalizedIteratorError, RenderIterator
+from term_image.renderable import (
+    Frame,
+    FrameCount,
+    Renderable,
+    RenderArgs,
+    RenderArgsError,
+    RenderData,
+)
 
 from ..renderable.test_renderable import Char, IndefiniteSpace, Space
 
@@ -408,21 +414,22 @@ class TestNext:
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
-    # See also: TestClose.test_next
-
-
-class TestClose:
-    def test_next(self):
+    def test_finalized(self):
         render_iter = RenderIterator(anim_space)
         render_iter.close()
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
-    def test_seek(self):
-        render_iter = RenderIterator(anim_space)
-        render_iter.close()
-        with pytest.raises(RenderIteratorError, match="finalized"):
-            render_iter.seek(0)
+
+def test_close():
+    render_iter = RenderIterator(anim_space)
+    render_data = render_iter._render_data
+    assert render_data.finalized is False
+
+    render_iter.close()
+
+    assert not hasattr(render_iter, "_render_data")
+    assert render_data.finalized is True
 
 
 class TestSeek:
@@ -518,7 +525,11 @@ class TestSeek:
             with pytest.raises(StopIteration, match="ended"):
                 next(render_iter)
 
-    # See also: TestClose.test_seek
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.seek(0)
 
 
 class TestSetRenderArgs:
@@ -580,6 +591,12 @@ class TestSetRenderArgs:
 
         render_iter.seek(0)
         assert next(render_iter) is new_frame
+
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.set_render_args(RenderArgs(Space))
 
 
 class TestSetPadding:
@@ -660,6 +677,12 @@ class TestSetPadding:
         render_iter.seek(0)
         assert next(render_iter) is new_frame
 
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.set_padding(ExactPadding())
+
 
 class TestSetRenderSize:
     anim_char = Char(4, 1)
@@ -737,6 +760,12 @@ class TestSetRenderSize:
 
         render_iter.seek(0)
         assert next(render_iter) is new_frame
+
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.set_render_size(Size(1, 1))
 
 
 class TestFromRenderData:
