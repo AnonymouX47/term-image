@@ -257,8 +257,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         )
 
     def __str__(self) -> str:
-        """:term:`Renders` the current frame with default arguments and no
-        :term:`formatting`.
+        """:term:`Renders` the current frame with default arguments and no padding.
 
         Returns:
             The frame :term:`render output`.
@@ -363,38 +362,38 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Args:
             render_args: Render arguments.
-            render_fmt: Render :term:`formatting` arguments.
-
-              * :term:`Padding width` must not be greater than the
-                :term:`terminal width`.
-              * :term:`Padding height` must not be greater than the
-                :term:`terminal height`, for **animations**.
-
+            padding: :term:`Render output` padding.
             animate: If ``False``, disable animation i.e draw only the current frame.
               Applies to :term:`animated` renderables only.
             loops: Applies to animations only.
               See :py:class:`~term_image.render.RenderIterator`.
             cache: Applies to animations only.
               See :py:class:`~term_image.render.RenderIterator`.
-            check_size: If ``False``, :term:`render size` and :term:`padding size` are
-              not validated, for **non-animations**.
-            scroll: If ``True``, :term:`render height` and :term:`padding height` are
-              not validated, for **non-animations**. Ignored if *check_size* is
-              ``False``.
+            check_size: If ``False``, the padded :term:`render size` is not validated,
+              for **non-animations**.
+            scroll: If ``True``, the padded :term:`render height` is not validated,
+              for **non-animations**. Ignored if *check_size* is ``False``.
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.InvalidSizeError: The :term:`render size` and/or
-              :term:`padding size` can not fit into the :term:`terminal size`.
+            term_image.exceptions.InvalidSizeError: The padded :term:`render size`
+              can not fit into the :term:`terminal size`.
             term_image.exceptions.RenderArgsError: Incompatible render arguments.
             term_image.exceptions.RenderError: An error occured during
               :term:`rendering`.
 
+        If *check_size* is ``True`` (the default) or it's an animation,
+
+        * the padded :term:`render width` must not be greater than the
+          :term:`terminal width`.
+        * and *scroll* is ``False`` (the default) or it's an animation, the padded
+          :term:`render height` must not be greater than the :term:`terminal height`.
+
         NOTE:
             * For animations (i.e animated renderables with *animate* set to ``True``),
-              :term:`render size` and :term:`padding size` are always validated.
+              the padded :term:`render size` is always validated.
             * Animations with **definite** frame count, **by default**, are infinitely
-              looped and can be terminated with :py:data:`~signal.SIGINT`
+              looped but can be terminated with :py:data:`~signal.SIGINT`
               (``CTRL + C``), **without** raising :py:class:`KeyboardInterrupt`.
         """
         if render_args and not isinstance(render_args, RenderArgs):
@@ -462,7 +461,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Args:
             render_args: Render arguments.
-            render_fmt: Render :term:`formatting` arguments.
+            padding: :term:`Render output` padding.
 
         Returns:
             The rendered frame.
@@ -547,11 +546,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Called by :py:meth:`draw` for animations.
 
         All other parameters are the same as for :py:meth:`draw`, except that
-        *render_fmt* always has **absolute** padding dimensions.
+        *padding* always has **absolute** dimensions if it's an instance of
+        :py:class:`~term_image.padding.AlignedPadding`.
 
         NOTE:
-            * Render and padding size validation would've been performed by
-              :py:meth:`draw`.
+            * Render size validation would've been performed by :py:meth:`draw`.
             * *loops* and *cache* are not validated by :py:meth:`draw`.
         """
         from term_image.render import RenderIterator
@@ -883,34 +882,32 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             renderer: Performs a render operation or extracts render data and arguments
               for a render operation to be performed later on.
             render_args: Render arguments.
-            render_fmt: Render :term:`formatting` arguments.
+            padding: :term:`Render output` padding.
             iteration: ``True`` if the render operation involves a sequence of renders,
               possibly of different frames. Otherwise, ``False`` i.e it's a one-off
               render.
             finalize: If ``True``, the render data passed to *renderer* is finalized
               immediately *renderer* returns. Otherwise, finalizing the render data is
               left to the caller of this method.
-            check_size: If ``False``, :term:`render size` and :term:`padding size` are
-              not validated, for **non-animations**.
-            scroll: If ``True``, :term:`render height` and :term:`padding height` are
-              not validated, for **non-animations**. Applies only if *check_size* is
-              ``True``.
-            animation: If ``True``, *check_size* and *scroll* are ignored;
-              :term:`render size` and :term:`padding size` are validated.
+            check_size: If ``False``, the [padded] :term:`render size` is not
+              validated, for **non-animations**.
+            scroll: If ``True``, the [padded] :term:`render height` is not validated,
+              for **non-animations**. Ignored if *check_size* is ``False``.
+            animation: If ``True``, *check_size* and *scroll* are ignored and the
+              [padded] :term:`render size` is validated.
 
         Returns:
             A tuple containing
 
-            * The return value of *renderer*
-            * Render formatting arguments with equivalent **absolute** padding
-              dimensions, if *render_fmt* is given and not ``None``.
-              Otherwise, ``None``.
+            * The return value of *renderer*.
+            * *padding* (with equivalent **absolute** dimensions if it's an instance of
+              :py:class:`~term_image.padding.AlignedPadding`).
 
         Raises:
             term_image.exceptions.RenderArgsError: Incompatible render arguments.
             term_image.exceptions.InvalidSizeError: *check_size* or *animation* is
-              ``True`` and the :term:`render size` and/or :term:`padding size` cannot
-              fit into the :term:`terminal size`.
+              ``True`` and the [padded] :term:`render size` cannot fit into the
+              :term:`terminal size`.
 
         After preparing render data and processing arguments, *renderer* is called with
         the following positional arguments:
