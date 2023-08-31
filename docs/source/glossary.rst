@@ -19,19 +19,9 @@ Below are definitions of terms used across the API, exception messages and the d
       .. seealso:: :ref:`active-terminal`
 
    alignment
-      The position of a primary :term:`render output` within its :term:`padding`.
-
-      .. seealso:: :ref:`alignment`
-
    horizontal alignment
-      The horizontal position of a primary :term:`render output` within its :term:`padding width`.
-
-      .. seealso:: :ref:`alignment`
-
    vertical alignment
-      The vertical position of a primary :term:`render output` within its :term:`padding height`.
-
-      .. seealso:: :ref:`alignment`
+      ...
 
    alpha threshold
       Alpha ratio/value above which a pixel is taken as **opaque** (applies only to :ref:`text-based`).
@@ -48,19 +38,6 @@ Below are definitions of terms used across the API, exception messages and the d
 
       .. seealso::
          :py:func:`~term_image.get_cell_ratio` and :py:func:`~term_image.set_cell_ratio`
-
-   format
-   formats
-   formatted
-   formatting
-   render formatting
-      The process of :term:`aligning <alignment>` a :term:`render output` within a given :term:`padding size` and :term:`padding` it to fill up any excess space.
-     
-      Any excess lines and columns around the primary render output is filled with blanks.
-
-      .. seealso::
-         :doc:`/guide/formatting`,
-         :py:meth:`~term_image.renderable.Renderable._format_render_`
 
    frame size
       The dimensions of the area used in :term:`automatic sizing`.
@@ -85,24 +62,9 @@ Below are definitions of terms used across the API, exception messages and the d
 
    render output
    render outputs
-      A **string** produced by :term:`rendering` or render :term:`formatting`.
+      A **string** produced by :term:`rendering` or by padding another render output.
 
-      ..
-         In the context of :term:`rendering`, there are two kinds:
-
-         * **uncropped**: the output produced by
-           :py:meth:`~term_image.renderable.Renderable._render_` when
-           :py:attr:`render_args[Renderable].crop
-           <term_image.renderable.Renderable.Args.crop>` is ``None``.
-         * **cropped**: the output(s) produced by
-           :py:meth:`~term_image.renderable.Renderable._render_` when
-           :py:attr:`render_args[Renderable].crop
-           <term_image.renderable.Renderable.Args.crop>` is **not** ``None``.
-
-      In the context of render :term:`formatting`, there are two kinds:
-
-      * **primary**: the input string to be formatted.
-      * **formatted**: the output string after formatting.
+      .. seealso:: :py:attr:`Frame.render <term_image.renderable.Frame.render>`
 
    render size
    rendered size
@@ -110,6 +72,8 @@ Below are definitions of terms used across the API, exception messages and the d
 
       Every kind of :term:`render output` has a corresponding kind of render size,
       within the same contexts.
+
+      .. seealso:: :py:attr:`Frame.size <term_image.renderable.Frame.size>`
 
    render width
    rendered width
@@ -120,21 +84,10 @@ Below are definitions of terms used across the API, exception messages and the d
       The amount of **lines** that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**. Also the vertical component of a :term:`render size`.
 
    padding
-      The filling around a primary :term:`render output` after it's :term:`formatted`.
-
-      .. seealso:: :ref:`padding`
-
    padding size
-      The amount of lines and columns within which to align a primary :term:`render output`
-      during :term:`formatting`.
-
    padding width
-      The amount of **columns** within which to align a primary :term:`render output`
-      during :term:`formatting`.
-
    padding height
-      The amount of **lines** within which to align a primary :term:`render output`
-      during :term:`formatting`.
+      ...
 
    pixel ratio
       The aspect ratio with which one rendered pixel is drawn/displayed on the terminal screen.
