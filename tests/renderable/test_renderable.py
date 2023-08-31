@@ -3,7 +3,6 @@ from __future__ import annotations
 import io
 import sys
 from contextlib import contextmanager
-from itertools import zip_longest
 from types import MappingProxyType
 from typing import Any, Iterator
 
@@ -11,17 +10,15 @@ import pytest
 
 from term_image.exceptions import InvalidSizeError, RenderableError, RenderArgsError
 from term_image.geometry import Size
+from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
 from term_image.render import RenderIterator
 from term_image.renderable import (
     Frame,
     FrameCount,
     FrameDuration,
-    HAlign,
     Renderable,
     RenderArgs,
     RenderData,
-    RenderFormat,
-    VAlign,
 )
 
 from .. import get_terminal_size
@@ -672,8 +669,8 @@ class TestDraw:
             with pytest.raises(RenderArgsError, match="incompatible"):
                 space.draw(RenderArgs(Char))
 
-            with pytest.raises(TypeError, match="'render_fmt'"):
-                space.draw(render_fmt=Ellipsis)
+            with pytest.raises(TypeError, match="'padding'"):
+                space.draw(padding=Ellipsis)
 
             with pytest.raises(TypeError, match="'check_size'"):
                 space.draw(check_size=Ellipsis)
@@ -711,8 +708,8 @@ class TestDraw:
         # Just ensures the argument is passed on and used appropriately.
         # The full tests are at `TestInitRender`.
         @capture_stdout()
-        def test_render_fmt(self):
-            self.space.draw(render_fmt=RenderFormat(3, 3))
+        def test_padding(self):
+            self.space.draw(padding=AlignedPadding(3, 3))
             assert stdout.getvalue().count("\n") == draw_n_eol(3, 1, 1)
             assert stdout.getvalue().endswith("\n")
 
@@ -742,45 +739,45 @@ class TestDraw:
             def test_check_size(self):
                 space = Space(1, 1)
                 space.size = Size(columns + 1, 1)
-                render_fmt = RenderFormat(columns + 1, 1)
+                padding = AlignedPadding(columns + 1, 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
                     space.draw()
-                with pytest.raises(InvalidSizeError, match="Padding width"):
-                    self.space.draw(render_fmt=render_fmt)
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    self.space.draw(padding=padding)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
                     space.draw(check_size=True)
-                with pytest.raises(InvalidSizeError, match="Padding width"):
-                    self.space.draw(render_fmt=render_fmt, check_size=True)
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    self.space.draw(padding=padding, check_size=True)
 
                 # False
                 space.draw(check_size=False)
-                self.space.draw(render_fmt=render_fmt, check_size=False)
+                self.space.draw(padding=padding, check_size=False)
 
             @capture_stdout()
             def test_scroll(self):
                 space = Space(1, 1)
                 space.size = Size(1, lines + 1)
-                render_fmt = RenderFormat(1, lines + 1)
+                padding = AlignedPadding(1, lines + 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
                     space.draw()
-                with pytest.raises(InvalidSizeError, match="Padding height"):
-                    self.space.draw(render_fmt=render_fmt)
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    self.space.draw(padding=padding)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
                     space.draw(scroll=False)
-                with pytest.raises(InvalidSizeError, match="Padding height"):
-                    self.space.draw(render_fmt=render_fmt, scroll=False)
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    self.space.draw(padding=padding, scroll=False)
 
                 # True
                 self.space.draw(scroll=True)
-                self.space.draw(render_fmt=render_fmt, scroll=True)
+                self.space.draw(padding=padding, scroll=True)
 
     class TestAnimation:
         anim_space = Space(2, 1)
@@ -809,8 +806,8 @@ class TestDraw:
         # Just ensures the argument is passed on and used appropriately.
         # The full tests are at `TestInitRender`.
         @capture_stdout()
-        def test_render_fmt(self):
-            self.anim_space.draw(render_fmt=RenderFormat(3, 3), loops=1)
+        def test_padding(self):
+            self.anim_space.draw(padding=AlignedPadding(3, 3), loops=1)
             assert stdout.getvalue().count("\n") == draw_n_eol(3, 2, 1)
             assert stdout.getvalue().endswith("\n")
 
@@ -836,49 +833,49 @@ class TestDraw:
             def test_check_size(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(columns + 1, 1)
-                render_fmt = RenderFormat(columns + 1, 1)
+                padding = AlignedPadding(columns + 1, 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
                     anim_space.draw()
-                with pytest.raises(InvalidSizeError, match="Padding width"):
-                    self.anim_space.draw(render_fmt=render_fmt)
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    self.anim_space.draw(padding=padding)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
                     anim_space.draw(check_size=True)
-                with pytest.raises(InvalidSizeError, match="Padding width"):
-                    self.anim_space.draw(render_fmt=render_fmt, check_size=True)
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    self.anim_space.draw(padding=padding, check_size=True)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Render width"):
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
                     anim_space.draw(check_size=False)
-                with pytest.raises(InvalidSizeError, match="Padding width"):
-                    self.anim_space.draw(render_fmt=render_fmt, check_size=False)
+                with pytest.raises(InvalidSizeError, match="Padded render width"):
+                    self.anim_space.draw(padding=padding, check_size=False)
 
             @capture_stdout()
             def test_scroll(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(1, lines + 1)
-                render_fmt = RenderFormat(1, lines + 1)
+                padding = AlignedPadding(1, lines + 1)
 
                 # Default
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
                     anim_space.draw()
-                with pytest.raises(InvalidSizeError, match="Padding height"):
-                    self.anim_space.draw(render_fmt=render_fmt)
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    self.anim_space.draw(padding=padding)
 
                 # False
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
                     anim_space.draw(scroll=False)
-                with pytest.raises(InvalidSizeError, match="Padding height"):
-                    self.anim_space.draw(render_fmt=render_fmt, scroll=False)
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    self.anim_space.draw(padding=padding, scroll=False)
 
                 # True
-                with pytest.raises(InvalidSizeError, match="Render height"):
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
                     anim_space.draw(scroll=True)
-                with pytest.raises(InvalidSizeError, match="Padding height"):
-                    self.anim_space.draw(render_fmt=render_fmt, scroll=True)
+                with pytest.raises(InvalidSizeError, match="Padded render height"):
+                    self.anim_space.draw(padding=padding, scroll=True)
 
         class TestDefinite:
             # Can't test the default for definite frame count since it loops infinitely
@@ -937,31 +934,27 @@ class TestRender:
         with pytest.raises(RenderArgsError, match="incompatible"):
             self.space.render(RenderArgs(Char))
 
-        with pytest.raises(TypeError, match="'render_fmt'"):
-            self.space.render(render_fmt=Ellipsis)
+        with pytest.raises(TypeError, match="'padding'"):
+            self.space.render(padding=Ellipsis)
 
     def test_default(self):
-        assert (
-            self.space.render().render
-            == " "
-            == str(self.space)
-            == self.space.render(None).render
-            == self.space.render(render_fmt=RenderFormat(1, 1)).render
-        )
+        render = self.space.render().render
+        assert render == " "
+        assert render == str(self.space)
+        assert render == self.space.render(None).render
+        assert render == self.space.render(padding=ExactPadding()).render
+        assert render == self.space.render(padding=AlignedPadding(1, 1)).render
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
     def test_render_args(self):
         char = Char(1, 1)
-        for value in "123abc":
-            assert char.render(+Char.Args(value)).render == value
+        assert char.render(+Char.Args("\u2850")).render == "\u2850"
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
-    def test_render_fmt(self):
-        assert (
-            self.space.render(render_fmt=RenderFormat(3, 3)).render == "   \n   \n   "
-        )
+    def test_padding(self):
+        assert self.space.render(padding=AlignedPadding(3, 3)).render == "   \n   \n   "
 
 
 class TestSeekTell:
@@ -1051,24 +1044,22 @@ class TestInitRender:
             assert isinstance(return_value, tuple)
             assert len(return_value) == 2
 
-            renderer_return, render_fmt = return_value
+            renderer_return, padding = return_value
 
             assert renderer_return is None
-            assert render_fmt is None
+            assert padding is None
 
         def test_renderer_return(self):
             for value in (None, 2, "", (), []):
                 assert self.space._init_render_(lambda *_: value)[0] is value
 
-        # See also: `TestInitRender.TestRenderFmt`
-        def test_render_fmt(self):
+        # See also: `TestInitRender.TestPadding`
+        def test_padding(self):
             assert self.space._init_render_(lambda *_: None)[1] is None
-            assert self.space._init_render_(lambda *_: None, render_fmt=None)[1] is None
+            assert self.space._init_render_(lambda *_: None, padding=None)[1] is None
             assert isinstance(
-                self.space._init_render_(
-                    lambda *_: None, render_fmt=RenderFormat(1, 1)
-                )[1],
-                RenderFormat,
+                self.space._init_render_(lambda *_: None, padding=ExactPadding())[1],
+                ExactPadding,
             )
 
     def test_renderer(self):
@@ -1154,41 +1145,39 @@ class TestInitRender:
             with pytest.raises(RenderArgsError, match="incompatible"):
                 self.char._init_render_(lambda *_: None, RenderArgs(Space))
 
-    class TestRenderFmt:
+    class TestPadding:
         space = Space(1, 1)
 
         def test_default(self):
             assert self.space._init_render_(lambda *_: None)[1] is None
-            assert self.space._init_render_(lambda *_: None, render_fmt=None)[1] is None
+            assert self.space._init_render_(lambda *_: None, padding=None)[1] is None
 
-        def test_absolute(self):
-            for value in (1, 100):
-                render_fmt = self.space._init_render_(
-                    lambda *_: None, render_fmt=RenderFormat(value, value)
-                )[1]
+        def test_exact(self):
+            orig_padding = ExactPadding(1, 2, 3, 4)
+            padding = self.space._init_render_(lambda *_: None, padding=orig_padding)[1]
+            assert padding is orig_padding
 
-                assert isinstance(render_fmt, RenderFormat)
-                assert render_fmt.relative is False
-                assert render_fmt == RenderFormat(value, value)
+        def test_aligned_absolute(self):
+            orig_padding = AlignedPadding(2, 3)
+            padding = self.space._init_render_(lambda *_: None, padding=orig_padding)[1]
+            assert padding is orig_padding
 
-        def test_terminal_relative(self):
-            for value in (0, -10):
-                render_fmt = self.space._init_render_(
-                    lambda *_: None, render_fmt=RenderFormat(value, value)
-                )[1]
+        def test_aligned_relative(self):
+            orig_padding = AlignedPadding(0, -1)
+            padding = self.space._init_render_(lambda *_: None, padding=orig_padding)[1]
+            assert padding == orig_padding.resolve(get_terminal_size())
 
-                assert isinstance(render_fmt, RenderFormat)
-                assert render_fmt.relative is False
-                assert render_fmt == RenderFormat(columns + value, lines + value)
-
-        def test_align(self):
-            for h_align, v_align in zip(HAlign, VAlign):
-                render_fmt = self.space._init_render_(
-                    lambda *_: None, render_fmt=RenderFormat(1, 1, h_align, v_align)
-                )[1]
-
-                assert isinstance(render_fmt, RenderFormat)
-                assert render_fmt == RenderFormat(1, 1, h_align, v_align)
+        @pytest.mark.parametrize(
+            "orig_padding",
+            [
+                AlignedPadding(1, 2, HAlign.LEFT, VAlign.BOTTOM),
+                AlignedPadding(0, -1, HAlign.RIGHT, VAlign.TOP),
+            ],
+        )
+        def test_aligned_alignment(self, orig_padding):
+            padding = self.space._init_render_(lambda *_: None, padding=orig_padding)[1]
+            assert padding.h_align is orig_padding.h_align
+            assert padding.v_align is orig_padding.v_align
 
     def test_iteration(self):
         render_data = self.space._init_render_(lambda *args: args)[0][0]
@@ -1239,37 +1228,37 @@ class TestInitRender:
                     with pytest.raises(InvalidSizeError, match="Render width"):
                         anim_space._init_render_(lambda *_: None, check_size=True)
 
-                def test_padding_width(self):
+                def test_padded_width(self):
                     anim_space = Space(2, 1)
 
                     # in range
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=RenderFormat(columns, 1),
+                        padding=AlignedPadding(columns, 1),
                         check_size=True,
                     )
 
                     # out of range
-                    render_fmt = RenderFormat(columns + 1, 1)
+                    padding = AlignedPadding(columns + 1, 1)
 
                     # # Default
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=render_fmt,
+                        padding=padding,
                     )
 
                     # # False
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=render_fmt,
+                        padding=padding,
                         check_size=False,
                     )
 
                     # # True
-                    with pytest.raises(InvalidSizeError, match="Padding width"):
+                    with pytest.raises(InvalidSizeError, match="Padded render width"):
                         anim_space._init_render_(
                             lambda *_: None,
-                            render_fmt=render_fmt,
+                            padding=padding,
                             check_size=True,
                         )
 
@@ -1306,33 +1295,33 @@ class TestInitRender:
                         lambda *_: None, check_size=False, scroll=False
                     )
 
-                def test_padding_height(self):
+                def test_padded_height(self):
                     anim_space = Space(2, 1)
 
                     # in range
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=RenderFormat(1, lines),
+                        padding=AlignedPadding(1, lines),
                         check_size=True,
                         scroll=False,
                     )
 
                     # out of range
-                    render_fmt = RenderFormat(1, lines + 1)
+                    padding = AlignedPadding(1, lines + 1)
 
                     # # Default
-                    with pytest.raises(InvalidSizeError, match="Padding height"):
+                    with pytest.raises(InvalidSizeError, match="Padded render height"):
                         anim_space._init_render_(
                             lambda *_: None,
-                            render_fmt=render_fmt,
+                            padding=padding,
                             check_size=True,
                         )
 
                     # # False
-                    with pytest.raises(InvalidSizeError, match="Padding height"):
+                    with pytest.raises(InvalidSizeError, match="Padded render height"):
                         anim_space._init_render_(
                             lambda *_: None,
-                            render_fmt=render_fmt,
+                            padding=padding,
                             check_size=True,
                             scroll=False,
                         )
@@ -1340,7 +1329,7 @@ class TestInitRender:
                     # # True
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=render_fmt,
+                        padding=padding,
                         check_size=True,
                         scroll=True,
                     )
@@ -1348,13 +1337,13 @@ class TestInitRender:
                     # # ignored when check_size is False
                     anim_space._init_render_(
                         lambda *_: None,
-                        render_fmt=render_fmt,
+                        padding=padding,
                         check_size=False,
                         scroll=False,
                     )
 
         class TestAnimationTrue:
-            def test_check_size(self):
+            def test_check_size_is_ignored(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(columns + 1, 1)
 
@@ -1363,7 +1352,7 @@ class TestInitRender:
                         lambda *_: None, animation=True, check_size=False
                     )
 
-            def test_scroll(self):
+            def test_scroll_is_ignored(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(1, lines + 1)
 
