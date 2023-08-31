@@ -18,10 +18,11 @@ import term_image
 from .. import geometry
 from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SHOW_CURSOR
 from ..exceptions import InvalidSizeError, RenderableError
+from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration
-from ._types import Frame, HAlign, RenderArgs, RenderData, RenderFormat, VAlign
+from ._types import Frame, HAlign, RenderArgs, RenderData, VAlign
 
 
 class RenderableMeta(ABCMeta):
@@ -350,7 +351,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     def draw(
         self,
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat = RenderFormat(0, -2),
+        padding: Padding = AlignedPadding(0, -2),
         *,
         animate: bool = True,
         loops: int = -1,
@@ -398,8 +399,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         if render_args and not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
-        if not isinstance(render_fmt, RenderFormat):
-            raise arg_type_error("render_fmt", render_fmt)
+        if not isinstance(padding, Padding):
+            raise arg_type_error("padding", padding)
         if self.animated and not isinstance(animate, bool):
             raise arg_type_error("animate", animate)
 
@@ -414,10 +415,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         output = sys.stdout
 
         # Validate size and get render data
-        (render_data, render_args), render_fmt = self._init_render_(
+        (render_data, render_args), padding = self._init_render_(
             lambda *args: args,
             render_args,
-            render_fmt,
+            padding,
             iteration=animation,
             finalize=False,
             check_size=check_size,
@@ -430,18 +431,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 output.write(HIDE_CURSOR)
 
             if animation:
-                self._animate_(render_data, render_args, render_fmt, loops, cache)
+                self._animate_(render_data, render_args, padding, loops, cache)
             else:
                 frame = self._render_(render_data, render_args)
-                formatted_size = render_fmt.get_formatted_size(frame.size)
+                padded_size = padding.get_padded_size(frame.size)
                 render = (
                     frame.render
-                    if frame.size == formatted_size
-                    else self._format_render_(
-                        frame.render,
-                        frame.size,
-                        render_fmt,
-                    )
+                    if frame.size == padded_size
+                    else padding.pad(frame.render, frame.size)
                 )
                 try:
                     output.write(render)
@@ -459,7 +456,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     def render(
         self,
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat = RenderFormat(1, 1),
+        padding: Padding = ExactPadding(),
     ) -> Frame:
         """:term:`Renders` the current frame.
 
@@ -478,20 +475,20 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         if render_args and not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
-        if not isinstance(render_fmt, RenderFormat):
-            raise arg_type_error("render_fmt", render_fmt)
+        if not isinstance(padding, Padding):
+            raise arg_type_error("padding", padding)
 
-        frame, render_fmt = self._init_render_(self._render_, render_args, render_fmt)
-        formatted_size = render_fmt.get_formatted_size(frame.size)
+        frame, padding = self._init_render_(self._render_, render_args, padding)
+        padded_size = padding.get_padded_size(frame.size)
 
         return (
             frame
-            if frame.size == formatted_size
+            if frame.size == padded_size
             else Frame(
                 frame.number,
                 frame.duration,
-                formatted_size,
-                self._format_render_(frame.render, frame.size, render_fmt),
+                padded_size,
+                padding.pad(frame.render, frame.size),
             )
         )
 
@@ -537,7 +534,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         self,
         render_data: RenderData,
         render_args: RenderArgs,
-        render_fmt: RenderFormat,
+        padding: Padding,
         loops: int,
         cache: bool | int,
     ) -> None:
@@ -559,18 +556,18 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         from term_image.render import RenderIterator
 
-        lines = max(render_fmt.height, render_data[__class__].size.height)
+        padded_height = padding.get_padded_size(render_data[__class__].size).height
         render_iter = RenderIterator._from_render_data_(
             self,
             render_data,
             render_args,
-            render_fmt,
+            padding,
             loops,
             False if loops == 1 else cache,
             finalize=False,
         )
-        cursor_to_top_left = "\r" + CURSOR_UP % (lines - 1)
-        cursor_down = CURSOR_DOWN % lines
+        cursor_to_top_left = "\r" + CURSOR_UP % (padded_height - 1)
+        cursor_down = CURSOR_DOWN % padded_height
         write = sys.stdout.write
         flush = sys.stdout.flush
 
@@ -872,14 +869,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         self,
         renderer: Callable[[RenderData, RenderArgs], Any],
         render_args: RenderArgs | None = None,
-        render_fmt: RenderFormat | None = None,
+        padding: Padding | None = None,
         *,
         iteration: bool = False,
         finalize: bool = True,
         check_size: bool = False,
         scroll: bool = False,
         animation: bool = False,
-    ) -> tuple[Any, RenderFormat | None]:
+    ) -> tuple[Any, Padding | None]:
         """Initiates a render operation.
 
         Args:
@@ -943,36 +940,29 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         terminal_size = get_terminal_size()
         render_data = self._get_render_data_(iteration=iteration)
         try:
-            if render_fmt:
-                render_fmt = render_fmt.absolute(terminal_size)
+            if padding and isinstance(padding, AlignedPadding) and padding.relative:
+                padding = padding.resolve(terminal_size)
 
             if check_size or animation:
-                width, height = render_data[__class__].size
+                render_size = render_data[__class__].size
+                width, height = (
+                    padding.get_padded_size(render_size) if padding else render_size
+                )
                 terminal_width, terminal_height = terminal_size
 
                 if width > terminal_width:
                     raise InvalidSizeError(
-                        "Render width out of range "
-                        f"(got: {width}, terminal_width={terminal_width})"
+                        f"{'Padded render' if padding else 'Render'} width out of "
+                        f"range (got: {width}; terminal_width={terminal_width})"
                     )
-                if render_fmt and render_fmt.width > terminal_width:
+                if (animation or not scroll) and height > terminal_height:
                     raise InvalidSizeError(
-                        "Padding width out of range "
-                        f"(got: {render_fmt.width}, terminal_width={terminal_width})"
+                        f"{'Padded render' if padding else 'Render'} height out of "
+                        f"range (got: {height}; terminal_height={terminal_height}, "
+                        f"animation={animation})"
                     )
 
-                if animation or not scroll:
-                    if height > terminal_height:
-                        raise InvalidSizeError(
-                            f"Render height out of range (got: {height}, "
-                            f"terminal_height={terminal_height}, animation={animation})"
-                        )
-                    if render_fmt and render_fmt.height > terminal_height:
-                        raise InvalidSizeError(
-                            f"Padding height out of range (got: {render_fmt.height}, "
-                            f"terminal_height={terminal_height}, animation={animation})"
-                        )
-            return renderer(render_data, render_args), render_fmt
+            return renderer(render_data, render_args), padding
         finally:
             if finalize:
                 render_data.finalize()
