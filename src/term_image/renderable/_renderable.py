@@ -16,12 +16,11 @@ import term_image
 
 from .. import geometry
 from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SHOW_CURSOR
-from ..exceptions import InvalidSizeError
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration
-from ._exceptions import RenderableError
+from ._exceptions import IndefiniteSeekError, RenderableError, RenderSizeOutofRangeError
 from ._types import Frame, RenderArgs, RenderData
 
 
@@ -495,14 +494,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             offset: Frame number; ``0`` <= *offset* < :py:attr:`frame_count`.
 
         Raises:
+            IndefiniteSeekError: The renderable has
+              :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.RenderableError: The renderable has
-              :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
         """
         if self.frame_count is FrameCount.INDEFINITE:
-            raise RenderableError(
+            raise IndefiniteSeekError(
                 "A renderable with INDEFINITE frame count is not seekable"
             )
         if not isinstance(offset, int):
@@ -826,9 +825,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Raises:
             term_image.exceptions.RenderArgsError: Incompatible render arguments.
-            term_image.exceptions.InvalidSizeError: *check_size* or *animation* is
-              ``True`` and the [padded] :term:`render size` cannot fit into the
-              :term:`terminal size`.
+            RenderSizeOutofRangeError: *check_size* or *animation* is ``True`` and the
+              [padded] :term:`render size` cannot fit into the :term:`terminal size`.
 
         After preparing render data and processing arguments, *renderer* is called with
         the following positional arguments:
@@ -869,12 +867,12 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 terminal_width, terminal_height = terminal_size
 
                 if width > terminal_width:
-                    raise InvalidSizeError(
+                    raise RenderSizeOutofRangeError(
                         f"{'Padded render' if padding else 'Render'} width out of "
                         f"range (got: {width}; terminal_width={terminal_width})"
                     )
                 if (animation or not scroll) and height > terminal_height:
-                    raise InvalidSizeError(
+                    raise RenderSizeOutofRangeError(
                         f"{'Padded render' if padding else 'Render'} height out of "
                         f"range (got: {height}; terminal_height={terminal_height}, "
                         f"animation={animation})"
