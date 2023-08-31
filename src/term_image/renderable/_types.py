@@ -15,8 +15,11 @@ from types import MappingProxyType
 from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Type
 
 from .. import geometry
-from ..exceptions import RenderArgsDataError, RenderArgsError, RenderDataError
 from ..utils import arg_type_error, arg_type_error_msg
+from ._exceptions import RenderableError
+
+
+# ==================== Classes ====================
 
 
 class Frame(NamedTuple):
@@ -1078,6 +1081,26 @@ class RenderData(RenderArgsData):
 
                 for field in fields.items():
                     super().__setattr__(*field)
+
+
+# ==================== Exceptions ====================
+
+
+class RenderArgsDataError(RenderableError):
+    """Raised for errors common to both :py:class:`~term_image.renderable.RenderArgs`
+    and :py:class:`~term_image.renderable.RenderData`.
+    """
+
+
+class RenderArgsError(RenderArgsDataError):
+    """Raised for errors specific to :py:class:`~term_image.renderable.RenderArgs`."""
+
+
+class RenderDataError(RenderArgsDataError):
+    """Raised for errors specific to :py:class:`~term_image.renderable.RenderData`."""
+
+
+# ==================== Variables ====================
 
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)

@@ -16,11 +16,12 @@ import term_image
 
 from .. import geometry
 from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SHOW_CURSOR
-from ..exceptions import InvalidSizeError, RenderableError
+from ..exceptions import InvalidSizeError
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration
+from ._exceptions import RenderableError
 from ._types import Frame, RenderArgs, RenderData
 
 

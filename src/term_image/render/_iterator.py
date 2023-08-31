@@ -8,7 +8,7 @@ __all__ = ("RenderIterator",)
 
 from typing import Generator
 
-from ..exceptions import RenderIteratorError
+from ..exceptions import TermImageError
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData
@@ -434,3 +434,7 @@ class RenderIterator:
             frame_no = renderable_data.frame = 0
             if loop > 0:  # Avoid infinitely large negative numbers
                 self.loop = loop = loop - 1
+
+
+class RenderIteratorError(TermImageError):
+    """Raised for errors specific to :py:class:`~term_image.render.RenderIterator`."""
