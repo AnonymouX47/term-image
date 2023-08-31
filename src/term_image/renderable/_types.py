@@ -8,6 +8,15 @@ __all__ = (
     "Frame",
     "RenderArgs",
     "RenderData",
+    "RenderArgsDataError",
+    "RenderArgsError",
+    "RenderDataError",
+    "IncompatibleArgsNamespaceError",
+    "IncompatibleRenderArgsError",
+    "NoArgsNamespaceError",
+    "NoDataNamespaceError",
+    "UnknownArgsFieldError",
+    "UnknownDataFieldError",
 )
 
 from inspect import Parameter, signature
@@ -17,7 +26,6 @@ from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Type
 from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
 from ._exceptions import RenderableError
-
 
 # ==================== Classes ====================
 
@@ -255,10 +263,9 @@ class RenderArgs(RenderArgsData):
 
     Raises:
         TypeError: An argument is of an inappropriate type.
-        term_image.exceptions.RenderArgsError: *init_render_args* is incompatible
-          [#ra1]_ with *render_cls*.
-        term_image.exceptions.RenderArgsError: Incompatible [#ran2]_ render argument
-          namespace.
+        IncompatibleRenderArgsError: *init_render_args* is incompatible [#ra1]_ with
+          *render_cls*.
+        IncompatibleArgsNamespaceError: Incompatible [#ran2]_ render argument namespace.
 
     A set of render arguments (an instance of this class) is basically a container of
     render argument namespaces (instances of :py:class:`RenderArgs.Namespace`); one for
@@ -317,9 +324,10 @@ class RenderArgs(RenderArgsData):
                 raise arg_type_error("render_cls", render_cls)
 
             if not issubclass(render_cls, init_render_args.render_cls):
-                raise RenderArgsError(
-                    f"'init_render_args' is incompatible with {render_cls.__name__!r} "
-                    f"(got: {init_render_args!r})"
+                raise IncompatibleRenderArgsError(
+                    f"'init_render_args' (associated with "
+                    f"{init_render_args.render_cls.__name__!r}) is incompatible with "
+                    f"{render_cls.__name__!r} "
                 )
 
         # has default values only
@@ -394,9 +402,10 @@ class RenderArgs(RenderArgsData):
             if not isinstance(namespace, __class__.Namespace):
                 raise arg_type_error(f"namespaces[{index}]", namespace)
             if namespace._RENDER_CLS not in render_cls._ALL_DEFAULT_ARGS:
-                raise RenderArgsError(
-                    f"'namespaces[{index}]' is incompatible with "
-                    f"{render_cls.__name__!r} (got: {namespace!r})"
+                raise IncompatibleArgsNamespaceError(
+                    f"'namespaces[{index}]' (associated with "
+                    f"{namespace._RENDER_CLS.__name__!r}) is incompatible with "
+                    f"{render_cls.__name__!r} "
                 )
             namespaces_dict[namespace._RENDER_CLS] = namespace
 
@@ -441,10 +450,8 @@ class RenderArgs(RenderArgsData):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.RenderArgsError: *render_cls* defines no render
-              arguments.
-            term_image.exceptions.RenderArgsError: :py:attr:`render_cls` is not a
-              subclass of *render_cls*.
+            ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
+            NoArgsNamespaceError: *render_cls* defines no render arguments.
         """
         try:
             return self._namespaces[render_cls]
@@ -453,11 +460,11 @@ class RenderArgs(RenderArgsData):
                 raise arg_type_error("render_cls", render_cls) from None
 
             if issubclass(self.render_cls, render_cls):
-                raise RenderArgsError(
+                raise NoArgsNamespaceError(
                     f"{render_cls.__name__!r} defines no render arguments"
                 ) from None
 
-            raise RenderArgsError(
+            raise ValueError(
                 f"{self.render_cls.__name__!r} is not a subclass of "
                 f"{render_cls.__name__!r}"
             ) from None
@@ -509,8 +516,7 @@ class RenderArgs(RenderArgsData):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            RenderArgsError: *render_cls* is not a parent or child of
-              :py:attr:`render_cls`.
+            ValueError: *render_cls* is not a parent or child of :py:attr:`render_cls`.
         """
         if render_cls is self.render_cls:
             return self
@@ -532,7 +538,7 @@ class RenderArgs(RenderArgsData):
                 ],
             )
 
-        raise RenderArgsError(
+        raise ValueError(
             f"{render_cls.__name__!r} is not a parent or child of "
             f"{self.render_cls.__name__!r}"
         )
@@ -651,7 +657,7 @@ class RenderArgs(RenderArgsData):
             TypeError: The [sub]class being instantiated is not associated [#ran1]_
               with a render class.
             TypeError: More values (positional arguments) than there are fields.
-            term_image.exceptions.RenderArgsError: Unknown field name(s).
+            UnknownArgsFieldError: Unknown field name(s).
             TypeError: Multiple values given for a field.
 
         If no value is given for a field, its default value is used.
@@ -678,7 +684,7 @@ class RenderArgs(RenderArgsData):
 
             unknown = fields.keys() - default_fields.keys()
             if unknown:
-                raise RenderArgsError(
+                raise UnknownArgsFieldError(
                     f"Unknown render argument fields {tuple(unknown)} for "
                     f"{type(self)._RENDER_CLS.__name__!r}"
                 )
@@ -703,7 +709,7 @@ class RenderArgs(RenderArgsData):
             )
 
         def __getattr__(self, attr):
-            raise AttributeError(
+            raise UnknownArgsFieldError(
                 f"Unknown render argument field {attr!r} for "
                 f"{type(self)._RENDER_CLS.__name__!r}"
             )
@@ -764,8 +770,12 @@ class RenderArgs(RenderArgsData):
                 of the associated :term:`render classes` of both operands.
 
             Raises:
-                term_image.exceptions.RenderArgsError: Neither operand is compatible
-                  [#ran2]_ with the associated :term:`render class` of the other.
+                IncompatibleArgsNamespaceError: *other* is a render argument namespace
+                  and neither operand is compatible [#ra1]_ [#ran2]_ with the
+                  associated :term:`render class` of the other.
+                IncompatibleRenderArgsError: *other* is a set of render arguments
+                  and neither operand is compatible [#ra1]_ [#ran2]_ with the
+                  associated :term:`render class` of the other.
 
             NOTE:
                 * If *other* is a render argument namespace associated with the
@@ -784,10 +794,10 @@ class RenderArgs(RenderArgsData):
                     return RenderArgs(self_render_cls, self, other)
                 if issubclass(other_render_cls, self_render_cls):
                     return RenderArgs(other_render_cls, self, other)
-                raise RenderArgsError(
-                    f"Render argument namespaces for {self_render_cls.__name__!r} "
-                    f"and {other_render_cls.__name__!r} are incompatible with each "
-                    "other."
+                raise IncompatibleArgsNamespaceError(
+                    f"A render argument namespace for {other_render_cls.__name__!r} "
+                    "cannot be combined with a render argument namespace for "
+                    f"{self_render_cls.__name__!r}."
                 )
 
             if isinstance(other, RenderArgs):
@@ -796,10 +806,10 @@ class RenderArgs(RenderArgsData):
                     return RenderArgs(self_render_cls, other, self)
                 if issubclass(other_render_cls, self_render_cls):
                     return RenderArgs(other_render_cls, other, self)
-                raise RenderArgsError(
-                    f"Render argument namespace for {self_render_cls.__name__!r} "
-                    f"and render arguments for {other_render_cls.__name__!r} are "
-                    "incompatible with each other."
+                raise IncompatibleRenderArgsError(
+                    f"A set of render arguments for {other_render_cls.__name__!r} "
+                    "cannot be combined with a render argument namespace for "
+                    f"{self_render_cls.__name__!r}."
                 )
 
             return NotImplemented
@@ -864,14 +874,14 @@ class RenderArgs(RenderArgsData):
                 A namespace with the given fields updated.
 
             Raises:
-                term_image.exceptions.RenderArgsError: Unknown field name(s).
+                UnknownArgsFieldError: Unknown field name(s).
             """
             if not fields:
                 return self
 
             unknown = fields.keys() - type(self)._FIELDS.keys()
             if unknown:
-                raise RenderArgsError(
+                raise UnknownArgsFieldError(
                     f"Unknown render argument field(s) {tuple(unknown)} for "
                     f"{type(self)._RENDER_CLS.__name__!r}"
                 )
@@ -946,10 +956,8 @@ class RenderData(RenderArgsData):
 
         Raises:
             TypeError: An argument is of an inappropriate type.
-            term_image.exceptions.RenderDataError: *render_cls* defines no render
-              data.
-            term_image.exceptions.RenderDataError: :py:attr:`render_cls` is not a
-              subclass of *render_cls*.
+            ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
+            NoDataNamespaceError: *render_cls* defines no render data.
         """
         try:
             return self._namespaces[render_cls]
@@ -958,11 +966,11 @@ class RenderData(RenderArgsData):
                 raise arg_type_error("render_cls", render_cls) from None
 
             if issubclass(self.render_cls, render_cls):
-                raise RenderDataError(
+                raise NoDataNamespaceError(
                     f"{render_cls.__name__!r} defines no render data"
                 ) from None
 
-            raise RenderDataError(
+            raise ValueError(
                 f"{self.render_cls.__name__!r} is not a subclass of "
                 f"{render_cls.__name__!r}"
             ) from None
@@ -1048,7 +1056,7 @@ class RenderData(RenderArgsData):
             )
 
         def __getattr__(self, attr):
-            raise AttributeError(
+            raise UnknownDataFieldError(
                 f"Unknown render data field {attr!r} for "
                 f"{type(self)._RENDER_CLS.__name__!r}"
             )
@@ -1057,7 +1065,7 @@ class RenderData(RenderArgsData):
             try:
                 super().__setattr__(attr, value)
             except AttributeError:
-                raise AttributeError(
+                raise UnknownDataFieldError(
                     f"Unknown render data field {attr!r} for "
                     f"{type(self)._RENDER_CLS.__name__!r}"
                 ) from None
@@ -1069,12 +1077,12 @@ class RenderData(RenderArgsData):
                 fields: Render data fields.
 
             Raises:
-                term_image.exceptions.RenderDataError: Unknown field name(s).
+                UnknownDataFieldError: Unknown field name(s).
             """
             if fields:
                 unknown = fields.keys() - type(self)._FIELDS.keys()
                 if unknown:
-                    raise RenderDataError(
+                    raise UnknownDataFieldError(
                         f"Unknown render data field(s) {tuple(unknown)} for "
                         f"{type(self)._RENDER_CLS.__name__!r}"
                     )
@@ -1087,17 +1095,60 @@ class RenderData(RenderArgsData):
 
 
 class RenderArgsDataError(RenderableError):
-    """Raised for errors common to both :py:class:`~term_image.renderable.RenderArgs`
-    and :py:class:`~term_image.renderable.RenderData`.
+    """Base exception class for errors specific to :py:class:`RenderArgs` and
+    :py:class:`RenderData`.
+
+    Raised for errors that occur during the creation of render argument/data
+    namespace classes.
     """
 
 
 class RenderArgsError(RenderArgsDataError):
-    """Raised for errors specific to :py:class:`~term_image.renderable.RenderArgs`."""
+    """Base exception class for errors specific to :py:class:`RenderArgs`.
+
+    Raised for errors that occur during the creation of render argument namespace
+    classes.
+    """
 
 
 class RenderDataError(RenderArgsDataError):
-    """Raised for errors specific to :py:class:`~term_image.renderable.RenderData`."""
+    """Base exception class for errors specific to :py:class:`RenderData`."""
+
+
+class IncompatibleArgsNamespaceError(RenderArgsError):
+    """Raised when a given render argument namespace is incompatible [#ran2]_ with a
+    certain :term:`render class`.
+    """
+
+
+class IncompatibleRenderArgsError(RenderArgsError):
+    """Raised when a given set of render arguments is incompatible [#ra1]_ with a
+    certain :term:`render class`.
+    """
+
+
+class NoArgsNamespaceError(RenderArgsError):
+    """Raised when an attempt is made to get a render argument namespace for a
+    :term:`render class` that defines no render arguments.
+    """
+
+
+class NoDataNamespaceError(RenderDataError):
+    """Raised when an attempt is made to get a render data namespace for a
+    :term:`render class` that defines no render data.
+    """
+
+
+class UnknownArgsFieldError(RenderArgsError, AttributeError):
+    """Raised when an attempt is made to access or modify an unknown render argument
+    field.
+    """
+
+
+class UnknownDataFieldError(RenderDataError, AttributeError):
+    """Raised when an attempt is made to access or modify an unknown render data
+    field.
+    """
 
 
 # ==================== Variables ====================
