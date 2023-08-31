@@ -44,11 +44,11 @@ Classes
    .. rubric:: Footnotes
 
    .. [#ra1]
-      An instance is compatible with its associated [#ra2]_ :term:`render class`
-      and its subclasses.
+      An set of render arguments (an instance of this class) is compatible with its
+      associated [#ra2]_ :term:`render class` and its subclasses.
    .. [#ra2]
-      The associated :term:`render class` of an instance is *render_cls*,
-      accessible via :py:attr:`render_cls`.
+      The associated :term:`render class` of a set of render arguments (an instance of
+      this class) is *render_cls*, accessible via :py:attr:`render_cls`.
 
 |
 
@@ -61,15 +61,15 @@ Classes
    .. rubric:: Footnotes
 
    .. [#ran1]
-      A subclass, along with its subclasses (that inherit its fields and are not
-      associated with another render class) and their instances, is associated
-      with the :term:`render class` that defines (not inherits) that subclass as
-      its :ref:`Args <renderable-args>` attribute **at its creation**.
+      A render argument namespace class, along with its subclasses (that inherit its
+      fields and are not associated with another render class) and their instances,
+      is associated with the :term:`render class` that defines (not inherits) that
+      subclass as its :ref:`Args <renderable-args>` attribute **at its creation**.
       The render class is accessible via
       :py:meth:`~term_image.renderable.RenderArgs.Namespace.get_render_cls`.
    .. [#ran2]
-      An instance is compatible with its associated [#ran1]_ :term:`render class`
-      and its subclasses.
+      A render argument namespace is compatible with its associated [#ran1]_
+      :term:`render class` and the subclasses thereof.
 
 |
 
@@ -491,8 +491,8 @@ RenderData
    .. rubric:: Footnotes
 
    .. [#rd1]
-      The associated :term:`render class` of an instance is *render_cls*,
-      accessible via :py:attr:`render_cls`.
+      The associated :term:`render class` of a set of render data (an instance of this
+      class) is *render_cls*, accessible via :py:attr:`render_cls`.
 
 |
 
@@ -502,9 +502,9 @@ RenderData
    .. rubric:: Footnotes
 
    .. [#rdn1]
-      A subclass, along with its subclasses (that inherit its fields and are not
-      associated with another render class) and their instances, is associated
-      with the :term:`render class` that defines (not inherits) that subclass as
-      its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
+      A render data namespace class, along with its subclasses (that inherit its fields
+      and are not associated with another render class) and their instances, is
+      associated with the :term:`render class` that defines (not inherits) that
+      subclass as its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
       The render class is accessible via
       :py:meth:`~term_image.renderable.RenderData.Namespace.get_render_cls`.
