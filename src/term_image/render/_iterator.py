@@ -75,11 +75,11 @@ class RenderIterator:
 
     .. seealso::
 
-       :py:meth:`Renderable.__iter__() <term_image.renderable.Renderable.__iter__>`.
-          Renderables are iterable.
+       :py:meth:`Renderable.__iter__() <term_image.renderable.Renderable.__iter__>`
+          Renderables are iterable
 
        :ref:`render-iterator-ext-api`
-          :py:class:`RenderIterator`\\ 's Extension API.
+          :py:class:`RenderIterator`\\ 's Extension API
     """
 
     loop: int

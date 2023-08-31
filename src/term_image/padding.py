@@ -116,7 +116,7 @@ class Padding(metaclass=ABCMeta):
     .. seealso::
 
        :ref:`padding-ext-api`
-          :py:class:`Padding`\\ 's Extension API.
+          :py:class:`Padding`\\ 's Extension API
     """
 
     __slots__ = ("fill",)

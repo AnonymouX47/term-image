@@ -158,7 +158,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     .. seealso::
 
        :ref:`renderable-ext-api`
-          :py:class:`Renderable`\\ 's Extension API.
+          :py:class:`Renderable`\\ 's Extension API
     """
 
     # Class Attributes
@@ -286,7 +286,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             Returns either
 
             * the number of frames the renderable has, or
-            * :py:class:`~term_image.renderable.FrameCount.INDEFINITE`.
+            * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`.
         """
         if self.__frame_count is FrameCount.POSTPONED:
             self.__frame_count = self._get_frame_count_()
@@ -492,7 +492,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Raises:
             IndefiniteSeekError: The renderable has
-              :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
+              :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
@@ -515,7 +515,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Returns:
             Zero, if the renderable is non-animated or has
-            :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
+            :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
             Otherwise, the current frame number.
         """
         return self.__frame
@@ -963,14 +963,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         * definite (i.e an integer), the value of this field is a **non-negative**
           integer **less than the frame count**, denoting the frame to be rendered.
-        * :py:class:`~term_image.renderable.FrameCount.INDEFINITE`, the value of this
+        * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`, the value of this
           field is zero but the interpretation depends on the value of
           :py:attr:`iteration`.
 
           If :py:attr:`iteration` is:
 
           * ``False``, anything (such as a placeholder frame) may be rendered, as
-            renderables with :py:class:`~term_image.renderable.FrameCount.INDEFINITE`
+            renderables with :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`
             frame count are typically meant for iteration/animation.
           * ``True``, the next frame on the stream should be rendered.
         """

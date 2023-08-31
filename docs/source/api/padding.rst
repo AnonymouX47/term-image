@@ -51,11 +51,8 @@ Exceptions
    :autosummary-no-titles:
 
 
-.. autoclass:: PaddingError
-
-|
-
-.. autoclass:: RelativePaddingDimensionError
+.. autoexception:: PaddingError
+.. autoexception:: RelativePaddingDimensionError
 
 |
 
