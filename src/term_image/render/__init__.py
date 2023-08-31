@@ -4,6 +4,6 @@
 
 from __future__ import annotations
 
-__all__ = ("RenderIterator",)
+__all__ = ("RenderIterator", "RenderIteratorError", "FinalizedIteratorError")
 
-from ._iterator import RenderIterator
+from ._iterator import FinalizedIteratorError, RenderIterator, RenderIteratorError

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("RenderIterator",)
+__all__ = ("RenderIterator", "RenderIteratorError", "FinalizedIteratorError")
 
 from typing import Generator
 
@@ -222,7 +222,7 @@ class RenderIterator:
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            term_image.exceptions.RenderIteratorError: The iterator has been finalized.
+            FinalizedIteratorError: The iterator has been finalized.
         """
         if not isinstance(offset, int):
             raise arg_type_error("offset", offset)
@@ -242,7 +242,9 @@ class RenderIterator:
             self._render_data[Renderable].frame = offset
         except AttributeError:
             if self._closed:
-                raise RenderIteratorError("This iterator has been finalized") from None
+                raise FinalizedIteratorError(
+                    "This iterator has been finalized"
+                ) from None
             raise
 
     def set_render_args(self, render_args: RenderArgs) -> None:
@@ -437,4 +439,8 @@ class RenderIterator:
 
 
 class RenderIteratorError(TermImageError):
-    """Raised for errors specific to :py:class:`~term_image.render.RenderIterator`."""
+    """Base exception class for errors specific to :py:class:`RenderIterator`."""
+
+
+class FinalizedIteratorError(RenderIteratorError):
+    """Raised if certain operations are attempted on a finalized itterator."""
