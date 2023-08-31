@@ -7,15 +7,9 @@ import pytest
 
 from term_image.exceptions import RenderArgsError, RenderIteratorError
 from term_image.geometry import Size
+from term_image.padding import AlignedPadding, ExactPadding
 from term_image.render import RenderIterator
-from term_image.renderable import (
-    Frame,
-    FrameCount,
-    Renderable,
-    RenderArgs,
-    RenderData,
-    RenderFormat,
-)
+from term_image.renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData
 
 from ..renderable.test_renderable import Char, IndefiniteSpace, Space
 
@@ -102,8 +96,8 @@ def test_args():
     with pytest.raises(RenderArgsError, match="incompatible"):
         RenderIterator(anim_space, RenderArgs(FrameFill))
 
-    with pytest.raises(TypeError, match="'render_fmt'"):
-        RenderIterator(anim_space, render_fmt=Ellipsis)
+    with pytest.raises(TypeError, match="'padding'"):
+        RenderIterator(anim_space, padding=Ellipsis)
 
     with pytest.raises(TypeError, match="'loops'"):
         RenderIterator(anim_space, loops=Ellipsis)
@@ -137,21 +131,23 @@ class TestRenderArgs:
             assert frame.render == "#"
 
 
-class TestRenderFmt:
+class TestPadding:
     def test_default(self):
         render_iter = RenderIterator(frame_fill)
         for index, frame in enumerate(render_iter):
             assert frame.size == Size(1, 1)
             assert frame.render == str(index)
 
-    def test_greater_than_render_size(self):
-        render_iter = RenderIterator(frame_fill, render_fmt=RenderFormat(3, 3))
+    def test_padded(self):
+        render_iter = RenderIterator(frame_fill, padding=ExactPadding(1, 1, 1, 1))
         for index, frame in enumerate(render_iter):
             assert frame.size == Size(3, 3)
             assert frame.render == f"   \n {index} \n   "
 
-    def test_less_than_render_size(self):
-        render_iter = RenderIterator(FrameFill(Size(5, 5)))
+    def test_unpadded(self):
+        render_iter = RenderIterator(
+            FrameFill(Size(5, 5)), padding=ExactPadding(0, 0, 0, 0)
+        )
         for index, frame in enumerate(render_iter):
             assert frame.size == Size(5, 5)
             assert frame.render == "\n".join((str(index) * 5,) * 5)
@@ -586,14 +582,14 @@ class TestSetRenderArgs:
         assert next(render_iter) is new_frame
 
 
-class TestSetRenderFmt:
+class TestSetPadding:
     anim_char = Char(4, 1)
     render_args = +Char.Args(char="#")
 
     def test_args(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
-        with pytest.raises(TypeError, match="render_fmt"):
-            render_iter.set_render_fmt(Ellipsis)
+        with pytest.raises(TypeError, match="padding"):
+            render_iter.set_padding(Ellipsis)
 
     def test_iteration(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
@@ -601,12 +597,12 @@ class TestSetRenderFmt:
         assert frame.size == Size(1, 1)
         assert frame.render == "#"
 
-        render_iter.set_render_fmt(RenderFormat(3, 1))
+        render_iter.set_padding(AlignedPadding(3, 1))
         frame = next(render_iter)
         assert frame.size == Size(3, 1)
         assert frame.render == " # "
 
-        render_iter.set_render_fmt(RenderFormat(3, 3))
+        render_iter.set_padding(ExactPadding(1, 1, 1, 1))
         frame = next(render_iter)
         assert frame.size == Size(3, 3)
         assert frame.render == "   \n # \n   "
@@ -624,7 +620,7 @@ class TestSetRenderFmt:
             assert frame.size == Size(1, 1)
             assert frame.render == "#"
 
-            render_iter.set_render_fmt(RenderFormat(3, 1))
+            render_iter.set_padding(AlignedPadding(3, 1))
             render_iter.seek(0)
             frame = next(render_iter)
             assert frame.size == Size(3, 1)
@@ -640,7 +636,7 @@ class TestSetRenderFmt:
             assert frame.render == "#"
 
             render_iter.seek(0)
-            render_iter.set_render_fmt(RenderFormat(3, 1))
+            render_iter.set_padding(AlignedPadding(3, 1))
             frame = next(render_iter)
             assert frame.size == Size(3, 1)
             assert frame.render == " # "
@@ -655,7 +651,7 @@ class TestSetRenderFmt:
         assert next(render_iter) is old_frame
 
         render_iter.seek(0)
-        render_iter.set_render_fmt(RenderFormat(3, 1))
+        render_iter.set_padding(AlignedPadding(3, 1))
         new_frame = next(render_iter)
         assert new_frame is not old_frame
         assert new_frame.size == Size(3, 1)
@@ -776,10 +772,8 @@ class TestFromRenderData:
                 anim_space, render_data, render_args=RenderArgs(FrameFill)
             )
 
-        with pytest.raises(TypeError, match="'render_fmt'"):
-            RenderIterator._from_render_data_(
-                anim_space, render_data, render_fmt=Ellipsis
-            )
+        with pytest.raises(TypeError, match="'padding'"):
+            RenderIterator._from_render_data_(anim_space, render_data, padding=Ellipsis)
 
         with pytest.raises(TypeError, match="'finalize'"):
             RenderIterator._from_render_data_(
@@ -832,7 +826,7 @@ class TestFromRenderData:
             for frame in render_iter:
                 assert frame.render == "#"
 
-    class TestRenderFmt:
+    class TestPadding:
         def test_default(self):
             render_iter = RenderIterator._from_render_data_(
                 frame_fill, frame_fill._get_render_data_(iteration=True)
@@ -841,20 +835,22 @@ class TestFromRenderData:
                 assert frame.size == Size(1, 1)
                 assert frame.render == str(index)
 
-        def test_greater_than_render_size(self):
+        def test_padded(self):
             render_iter = RenderIterator._from_render_data_(
                 frame_fill,
                 frame_fill._get_render_data_(iteration=True),
-                render_fmt=RenderFormat(3, 3),
+                padding=ExactPadding(1, 1, 1, 1),
             )
             for index, frame in enumerate(render_iter):
                 assert frame.size == Size(3, 3)
                 assert frame.render == f"   \n {index} \n   "
 
-        def test_less_than_render_size(self):
+        def test_unpadded(self):
             frame_fill = FrameFill(Size(5, 5))
             render_iter = RenderIterator._from_render_data_(
-                frame_fill, frame_fill._get_render_data_(iteration=True)
+                frame_fill,
+                frame_fill._get_render_data_(iteration=True),
+                padding=ExactPadding(0, 0, 0, 0),
             )
             for index, frame in enumerate(render_iter):
                 assert frame.size == Size(5, 5)
