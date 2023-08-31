@@ -621,8 +621,8 @@ class TestProperties:
         class TestSet:
             def test_non_animated(self):
                 space = Space(1, 1)
-                with pytest.raises(RenderableError, match="non-animated"):
-                    space.frame_duration = Ellipsis
+                space.frame_duration = 100
+                assert space.frame_duration is None
 
             def test_animated(self):
                 anim_space = Space(2, 1)
