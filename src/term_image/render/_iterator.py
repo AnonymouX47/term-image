@@ -219,13 +219,17 @@ class RenderIterator:
               <term_image.renderable.Renderable.frame_count>`.
 
         Raises:
+            FinalizedIteratorError: The iterator has been finalized.
             TypeError: An argument is of an inappropriate type.
             ValueError: An argument is of an appropriate type but has an
               unexpected/invalid value.
-            FinalizedIteratorError: The iterator has been finalized.
         """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
         if not isinstance(offset, int):
             raise arg_type_error("offset", offset)
+
         if self._renderable.frame_count is FrameCount.INDEFINITE:
             if offset:
                 raise arg_value_error_msg(
@@ -238,14 +242,7 @@ class RenderIterator:
                 "offset", offset, f"frame_count={self._renderable.frame_count}"
             )
 
-        try:
-            self._render_data[Renderable].frame = offset
-        except AttributeError:
-            if self._closed:
-                raise FinalizedIteratorError(
-                    "This iterator has been finalized"
-                ) from None
-            raise
+        self._render_data[Renderable].frame = offset
 
     def set_render_args(self, render_args: RenderArgs) -> None:
         """Sets the render arguments.
@@ -254,12 +251,16 @@ class RenderIterator:
             render_args: Render arguments.
 
         Raises:
+            FinalizedIteratorError: The iterator has been finalized.
             TypeError: An argument is of an inappropriate type.
             IncompatibleRenderArgsError: Incompatible render arguments.
 
         NOTE:
             Takes effect from the next rendered frame.
         """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
         if not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
 
@@ -272,11 +273,15 @@ class RenderIterator:
             padding: Render output padding.
 
         Raises:
+            FinalizedIteratorError: The iterator has been finalized.
             TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next rendered frame.
         """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
         if not isinstance(padding, Padding):
             raise arg_type_error("padding", padding)
 
@@ -294,11 +299,15 @@ class RenderIterator:
             render_size: Render size.
 
         Raises:
+            FinalizedIteratorError: The iterator has been finalized.
             TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next rendered frame.
         """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
         if not isinstance(render_size, Size):
             raise arg_type_error("render_size", render_size)
 
