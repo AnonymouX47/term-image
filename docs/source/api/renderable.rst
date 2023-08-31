@@ -21,23 +21,13 @@ Enumerations
 
 |
 
-.. autoclass:: HAlign
-   :autosummary-sections: None
-
-|
-
-.. autoclass:: VAlign
-   :autosummary-sections: None
-
-|
-
 
 Classes
 -------
 
 .. automodulesumm:: term_image.renderable
    :autosummary-no-titles:
-   :autosummary-members: Renderable, RenderArgs, RenderFormat, Frame
+   :autosummary-members: Renderable, RenderArgs, Frame
 
 
 .. autoclass:: Renderable
@@ -80,10 +70,6 @@ Classes
    .. [#ran2]
       An instance is compatible with its associated [#ran1]_ :term:`render class`
       and its subclasses.
-
-|
-
-.. autoclass:: RenderFormat
 
 |
 

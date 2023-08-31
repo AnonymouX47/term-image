@@ -8,25 +8,15 @@ __all__ = (
     "Frame",
     "RenderArgs",
     "RenderData",
-    "RenderFormat",
 )
 
-import os
-from dataclasses import dataclass
 from inspect import Parameter, signature
 from types import MappingProxyType
 from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Type
 
 from .. import geometry
-from ..exceptions import (
-    RenderArgsDataError,
-    RenderArgsError,
-    RenderDataError,
-    RenderFormatError,
-)
-from ..geometry import Size
-from ..utils import arg_type_error, arg_type_error_msg, arg_value_error_range
-from ._enum import HAlign, VAlign
+from ..exceptions import RenderArgsDataError, RenderArgsError, RenderDataError
+from ..utils import arg_type_error, arg_type_error_msg
 
 
 class Frame(NamedTuple):
@@ -1088,159 +1078,6 @@ class RenderData(RenderArgsData):
 
                 for field in fields.items():
                     super().__setattr__(*field)
-
-
-@dataclass(frozen=True)
-class RenderFormat:
-    """Render :term:`formatting` arguments.
-
-    Args:
-        width: :term:`Padding width`.
-        height: :term:`Padding height`.
-        h_align: :term:`Horizontal alignment`.
-        v_align: :term:`Vertical alignment`.
-
-    Raises:
-        TypeError: An argument is of an inappropriate type.
-
-    If *width* or *height* is:
-
-    * positive, it is **absolute** and used as-is.
-    * non-positive, it is **relative** to the corresponding terminal dimension
-      (**at the point of resolution**) and equivalent to the absolute dimension
-      ``max(terminal_dimension + dimension, 1)``.
-
-    NOTE:
-        Public interfaces receiving an instance with **relative** dimensions should
-        typically translate it to an instance with equivalent **absolute** padding
-        dimensions upon reception.
-
-    TIP:
-        - Instances are immutable and hashable.
-        - Instances with equal fields compare equal.
-
-    .. seealso:: :doc:`/guide/formatting`.
-    """
-
-    __slots__ = ("width", "height", "h_align", "v_align", "relative", "_size")
-
-    width: int
-    """:term:`Padding width`"""
-
-    height: int
-    """:term:`Padding height`"""
-
-    h_align: HAlign
-    """:term:`Horizontal alignment`"""
-
-    v_align: VAlign
-    """:term:`Vertical alignment`"""
-
-    relative: bool
-    """``True`` if either or both padding dimension(s) is/are relative i.e non-positive.
-    Otherwise, ``False``.
-    """
-
-    def __init__(
-        self,
-        width: int,
-        height: int,
-        h_align: HAlign = HAlign.CENTER,
-        v_align: VAlign = VAlign.MIDDLE,
-    ):
-        if not isinstance(width, int):
-            raise arg_type_error("width", width)
-        if not isinstance(height, int):
-            raise arg_type_error("height", height)
-        if not isinstance(h_align, HAlign):
-            raise arg_type_error("h_align", h_align)
-        if not isinstance(v_align, VAlign):
-            raise arg_type_error("v_align", v_align)
-
-        super().__setattr__("width", width)
-        super().__setattr__("height", height)
-        super().__setattr__("h_align", h_align)
-        super().__setattr__("v_align", v_align)
-        super().__setattr__("relative", not width > 0 < height)
-
-    def __repr__(self) -> str:
-        return "{}(width={}, height={}, h_align={}, v_align={}, relative={})".format(
-            type(self).__name__,
-            self.width,
-            self.height,
-            self.h_align.name,
-            self.v_align.name,
-            self.relative,
-        )
-
-    @property
-    def size(self) -> Size:
-        """:term:`Padding size`
-
-        GET:
-            Returns the padding dimensions.
-        """
-        try:
-            return self._size
-        except AttributeError:
-            size = Size(self.width, self.height)
-            super().__setattr__("_size", size)
-            return size
-
-    def absolute(self, terminal_size: os.terminal_size) -> RenderFormat:
-        """Resolves **relative** padding dimensions.
-
-        Args:
-            terminal_size: The terminal size against which to resolve relative padding
-              dimensions.
-
-        Returns:
-            An instance with equivalent **absolute** padding dimensions.
-
-        Raises:
-            TypeError: An argument is of an inappropriate type.
-        """
-        if not self.relative:
-            return self
-
-        if not isinstance(terminal_size, os.terminal_size):
-            raise arg_type_error("terminal_size", terminal_size)
-
-        width, height = self.width, self.height
-        terminal_width, terminal_height = terminal_size
-        if width <= 0:
-            width = max(terminal_width + width, 1)
-        if height <= 0:
-            height = max(terminal_height + height, 1)
-
-        return type(self)(width, height, self.h_align, self.v_align)
-
-    def get_formatted_size(self, render_size: Size) -> Size:
-        """Computes an expected formatted :term:`render size`.
-
-        Args:
-            render_size: Primary :term:`render size`.
-
-        Returns:
-            The size of the formatted :term:`render output` that would be produced
-            using this set of render :term:`formatting` arguments on a primary render
-            output with the given size.
-
-        Raises:
-            term_image.exceptions.RenderFormatError: Relative padding dimension(s).
-            TypeError: An argument is of an inappropriate type.
-            ValueError: An argument is of an appropriate type but has an
-              unexpected/invalid value.
-        """
-        if self.relative:
-            raise RenderFormatError("Relative padding dimension(s)")
-
-        if not isinstance(render_size, Size):
-            raise arg_type_error("render_size", render_size)
-        if not render_size.width > 0 < render_size.height:
-            raise arg_value_error_range("render_size", render_size)
-
-        return Size(*map(max, (self.width, self.height), render_size))
 
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)

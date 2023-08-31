@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("FrameCount", "FrameDuration", "HAlign", "VAlign")
+__all__ = ("FrameCount", "FrameDuration")
 
 from enum import Enum, auto
 
@@ -49,50 +49,6 @@ class FrameDuration(Enum):
     """Dynamic frame duration
 
     The duration of each frame is determined at render-time.
-
-    :meta hide-value:
-    """
-
-
-class HAlign(Enum):
-    """Horizontal alignment enumeration"""
-
-    LEFT = auto()
-    """Left horizontal alignment
-
-    :meta hide-value:
-    """
-
-    CENTER = auto()
-    """Center horizontal alignment
-
-    :meta hide-value:
-    """
-
-    RIGHT = auto()
-    """Right horizontal alignment
-
-    :meta hide-value:
-    """
-
-
-class VAlign(Enum):
-    """Vertical alignment enumeration"""
-
-    TOP = auto()
-    """Top vertical alignment
-
-    :meta hide-value:
-    """
-
-    MIDDLE = auto()
-    """Middle vertical alignment
-
-    :meta hide-value:
-    """
-
-    BOTTOM = auto()
-    """Bottom vertical alignment
 
     :meta hide-value:
     """
