@@ -316,17 +316,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
               enum member's description.
 
-            If the renderable is not animated,
-            :py:class:`~term_image.exceptions.RenderableError` is raised.
+            If the renderable is not animated, nothing is done.
         """
         return self.__frame_duration
 
     @frame_duration.setter
     def frame_duration(self, duration: int | FrameDuration) -> None:
         if not self.animated:
-            raise RenderableError(
-                "Cannot set frame duration for non-animated renderable"
-            )
+            return
 
         if isinstance(duration, int):
             if duration <= 0:
