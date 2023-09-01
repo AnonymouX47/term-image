@@ -3,25 +3,6 @@
 
 .. module:: term_image.renderable
 
-Enumerations
-------------
-
-.. automodulesumm:: term_image.renderable
-   :autosummary-sections: Enumerations
-   :autosummary-no-titles:
-
-
-.. autoclass:: FrameCount
-   :autosummary-sections: None
-
-|
-
-.. autoclass:: FrameDuration
-   :autosummary-sections: None
-
-|
-
-
 Classes
 -------
 
@@ -78,6 +59,23 @@ Classes
 
 |
 
+Enumerations
+------------
+
+.. automodulesumm:: term_image.renderable
+   :autosummary-sections: Enumerations
+   :autosummary-no-titles:
+
+
+.. autoclass:: FrameCount
+   :autosummary-sections: None
+
+|
+
+.. autoclass:: FrameDuration
+   :autosummary-sections: None
+
+|
 
 Exceptions
 ----------
@@ -102,7 +100,6 @@ Exceptions
 .. autoexception:: UnknownDataFieldError
 
 |
-
 
 Extension API
 -------------
