@@ -244,28 +244,6 @@ class RenderIterator:
 
         self._render_data[Renderable].frame = offset
 
-    def set_render_args(self, render_args: RenderArgs) -> None:
-        """Sets the render arguments.
-
-        Args:
-            render_args: Render arguments.
-
-        Raises:
-            FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
-            IncompatibleRenderArgsError: Incompatible render arguments.
-
-        NOTE:
-            Takes effect from the next rendered frame.
-        """
-        if self._closed:
-            raise FinalizedIteratorError("This iterator has been finalized") from None
-
-        if not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-
-        self._render_args = RenderArgs(type(self._renderable), render_args)
-
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
 
@@ -291,6 +269,28 @@ class RenderIterator:
             else padding
         )
         self._padded_size = padding.get_padded_size(self._render_data[Renderable].size)
+
+    def set_render_args(self, render_args: RenderArgs) -> None:
+        """Sets the render arguments.
+
+        Args:
+            render_args: Render arguments.
+
+        Raises:
+            FinalizedIteratorError: The iterator has been finalized.
+            TypeError: An argument is of an inappropriate type.
+            IncompatibleRenderArgsError: Incompatible render arguments.
+
+        NOTE:
+            Takes effect from the next rendered frame.
+        """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
+        if not isinstance(render_args, RenderArgs):
+            raise arg_type_error("render_args", render_args)
+
+        self._render_args = RenderArgs(type(self._renderable), render_args)
 
     def set_render_size(self, render_size: Size) -> None:
         """Sets the :term:`render size`.
