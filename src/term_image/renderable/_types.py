@@ -185,9 +185,10 @@ class RenderArgsData:
             return super().__new__(cls)
 
         def __init__(self, fields: Mapping[str, Any]) -> None:
+            setattr_ = __class__.__setattr__
             for name in type(self)._FIELDS:
                 # Subclass(es) redefine `__setattr__()`
-                __class__.__setattr__(self, name, fields[name])
+                setattr_(self, name, fields[name])
 
         def __delattr__(self, _):
             raise AttributeError("Cannot delete field")
@@ -1087,8 +1088,9 @@ class RenderData(RenderArgsData):
                         f"{type(self)._RENDER_CLS.__name__!r}"
                     )
 
+                setattr_ = super().__setattr__
                 for field in fields.items():
-                    super().__setattr__(*field)
+                    setattr_(*field)
 
 
 # ==================== Exceptions ====================
