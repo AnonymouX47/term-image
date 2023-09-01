@@ -589,13 +589,14 @@ class TestInit:
         Space(1, Ellipsis)
 
 
+def test_animated():
+    assert not Space(1, 1).animated
+
+    for value in (2, *FrameCount):
+        assert Space(value, 1).animated
+
+
 class TestProperties:
-    def test_animated(self):
-        assert not Space(1, 1).animated
-
-        for value in (2, FrameCount.INDEFINITE, FrameCount.POSTPONED):
-            assert Space(value, 1).animated
-
     def test_frame_count(self):
         class PostponedSpace(Space):
             def __init__(self, frame_count):

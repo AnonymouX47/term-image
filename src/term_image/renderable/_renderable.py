@@ -208,6 +208,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         class across subprocesses.
     """
 
+    # Instance Attributes
+
+    animated: bool
+    """``True`` if the renderable is :term:`animated`. Otherwise, ``False``."""
+
     # Special Methods
 
     def __init__(
@@ -232,6 +237,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
             self.__frame_duration = frame_duration
 
+        self.animated = frame_count != 1
         self.__frame_count = frame_count
         self.__frame = 0
 
@@ -267,16 +273,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         return self._init_render_(self._render_)[0].render
 
     # Properties
-
-    @property
-    def animated(self) -> bool:
-        """``True`` if the renderable is :term:`animated`.
-
-        GET:
-            Returns ``True`` if the renderable is :term:`animated`.
-            Otherwise, ``False``.
-        """
-        return self.__frame_count != 1
 
     @property
     def frame_count(self) -> int | FrameCount:
