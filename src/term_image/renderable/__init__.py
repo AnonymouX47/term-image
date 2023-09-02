@@ -5,12 +5,13 @@
 from __future__ import annotations
 
 __all__ = (
-    "FrameCount",
-    "FrameDuration",
     "Renderable",
     "RenderArgs",
     "RenderData",
     "Frame",
+    "FrameCount",
+    "FrameDuration",
+    "Seek",
     "RenderableError",
     "IndefiniteSeekError",
     "RenderError",
@@ -26,7 +27,7 @@ __all__ = (
     "UnknownDataFieldError",
 )
 
-from ._enum import FrameCount, FrameDuration
+from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import (
     IndefiniteSeekError,
     RenderableError,

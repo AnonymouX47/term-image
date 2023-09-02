@@ -77,6 +77,12 @@ Enumerations
 
 |
 
+.. autoclass:: Seek
+   :autosummary-sections: None
+   :undoc-members:
+
+|
+
 Exceptions
 ----------
 

@@ -19,7 +19,7 @@ from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SHOW_CURSOR
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
-from ._enum import FrameCount, FrameDuration
+from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import IndefiniteSeekError, RenderableError, RenderSizeOutofRangeError
 from ._types import Frame, RenderArgs, RenderData
 
@@ -480,31 +480,67 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             )
         )
 
-    def seek(self, offset: int) -> None:
+    def seek(self, offset: int, whence: Seek = Seek.START) -> int:
         """Sets the current frame number.
 
         Args:
-            offset: Frame number; ``0`` <= *offset* < :py:attr:`frame_count`.
+            offset: Frame offset (relative to *whence*).
+            whence: Reference position for *offset*.
+
+        Returns:
+            The new current frame number.
 
         Raises:
             IndefiniteSeekError: The renderable has
               :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument is of an appropriate type but has an
-              unexpected/invalid value.
+            ValueError: *offset* is out of range.
+
+        The value range for *offset* depends on *whence*:
+
+        .. list-table::
+           :align: left
+           :header-rows: 1
+           :widths: auto
+
+           * - *whence*
+             - Valid value range for *offset*
+
+           * - :py:attr:`~term_image.renderable.Seek.START`
+             - ``0`` <= *offset* < :py:attr:`frame_count`
+           * - :py:attr:`~term_image.renderable.Seek.CURRENT`
+             - -:py:meth:`tell` <= *offset* < :py:attr:`frame_count` - :py:meth:`tell`
+           * - :py:attr:`~term_image.renderable.Seek.END`
+             - -:py:attr:`frame_count` < *offset* <= ``0``
         """
-        if self.frame_count is FrameCount.INDEFINITE:
+        frame_count = self.frame_count
+
+        if frame_count is FrameCount.INDEFINITE:
             raise IndefiniteSeekError(
-                "A renderable with INDEFINITE frame count is not seekable"
+                "Cannot seek a renderable with INDEFINITE frame count"
             )
         if not isinstance(offset, int):
             raise arg_type_error("offset", offset)
-        if not 0 <= offset < self.frame_count:
-            raise arg_value_error_range(
-                "offset", offset, f"frame_count={self.frame_count}"
-            )
 
-        self.__frame = offset
+        frame = (
+            offset
+            if whence is Seek.START
+            else self.__frame + offset
+            if whence is Seek.CURRENT
+            else frame_count + offset - 1
+        )
+        if not 0 <= frame < frame_count:
+            raise arg_value_error_range(
+                "offset",
+                offset,
+                got_extra=(
+                    f"whence={whence.name}, current={self.__frame}, "
+                    f"frame_count={frame_count}"
+                ),
+            )
+        self.__frame = frame
+
+        return frame
 
     def tell(self) -> int:
         """Returns the current frame number.

@@ -4,9 +4,10 @@
 
 from __future__ import annotations
 
-__all__ = ("FrameCount", "FrameDuration")
+__all__ = ("FrameCount", "FrameDuration", "Seek")
 
-from enum import Enum, auto
+import os
+from enum import Enum, IntEnum, auto
 
 
 class FrameCount(Enum):
@@ -52,3 +53,27 @@ class FrameDuration(Enum):
 
     :meta hide-value:
     """
+
+
+class Seek(IntEnum):
+    """Relative seek enumeration
+
+    TIP:
+        * Each member's value is that of the corresponding
+          :py:data:`os.SEEK_* <os.SEEK_SET>` constant.
+        * Every member can be used directly as an integer since
+          :py:class:`enum.IntEnum` is a base class.
+
+    .. seealso::
+       :py:meth:`Renderable.seek`,
+       :py:meth:`RenderIterator.seek() <term_image.render.RenderIterator.seek>`
+    """
+
+    START = SET = os.SEEK_SET
+    """Start position"""
+
+    CURRENT = CUR = os.SEEK_CUR
+    """Current position"""
+
+    END = os.SEEK_END
+    """End position"""
