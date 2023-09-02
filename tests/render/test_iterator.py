@@ -810,15 +810,15 @@ class TestFromRenderData:
             )
 
     def test_render_data(self):
-        render_data = anim_space._get_render_data_(iteration=True)
-        assert render_data[Renderable].frame == 0
-        assert render_data[Renderable].size == Size(1, 1)
-        assert render_data[Renderable].duration == 1
+        render_data = frame_fill._get_render_data_(iteration=True)
+        render_iter = RenderIterator._from_render_data_(frame_fill, render_data)
 
+        assert next(render_iter).size == Size(1, 1)
         render_data[Renderable].size = Size(3, 3)
-        render_iter = RenderIterator._from_render_data_(anim_space, render_data)
+        render_iter.set_padding(ExactPadding())
         assert next(render_iter).size == Size(3, 3)
 
+        assert next(render_iter).duration == 1
         render_data[Renderable].duration = 100
         assert next(render_iter).duration == 100
 
