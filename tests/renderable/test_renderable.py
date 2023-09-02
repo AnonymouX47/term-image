@@ -22,6 +22,7 @@ from term_image.renderable import (
     RenderArgsError,
     RenderData,
     RenderSizeOutofRangeError,
+    Seek,
 )
 
 from .. import get_terminal_size
@@ -1002,36 +1003,63 @@ class TestRender:
 
 
 class TestSeekTell:
-    def test_definite(self):
-        space = Space(10, 1)
-        assert space.tell() == 0
+    indefinite_space = Space(FrameCount.INDEFINITE, 1)
 
-        with pytest.raises(TypeError, match="'offset'"):
-            space.seek(Ellipsis)
+    class TestDefinite:
+        anim_space = Space(10, 1)
 
-        with pytest.raises(ValueError, match="'offset'"):
-            space.seek(-1)
+        @pytest.mark.parametrize(
+            "whence,offset,frame_no",
+            [
+                (Seek.START, 0, 0),
+                (Seek.START, 1, 1),
+                (Seek.START, 9, 9),
+                (Seek.CURRENT, -5, 0),
+                (Seek.CURRENT, -1, 4),
+                (Seek.CURRENT, 0, 5),
+                (Seek.CURRENT, 1, 6),
+                (Seek.CURRENT, 4, 9),
+                (Seek.END, -9, 0),
+                (Seek.END, -1, 8),
+                (Seek.END, 0, 9),
+            ],
+        )
+        def test_in_range(self, whence, offset, frame_no):
+            self.anim_space.seek(5)
+            assert self.anim_space.tell() == 5
 
-        assert space.tell() == 0
-        space.seek(1)
-        assert space.tell() == 1
-        space.seek(9)
-        assert space.tell() == 9
+            assert self.anim_space.seek(offset, whence) == frame_no
+            assert self.anim_space.tell() == frame_no
 
-        with pytest.raises(ValueError, match="'offset'"):
-            space.seek(10)
+        @pytest.mark.parametrize(
+            "whence,offset",
+            [
+                (Seek.START, -1),
+                (Seek.START, 10),
+                (Seek.CURRENT, -6),
+                (Seek.CURRENT, 5),
+                (Seek.END, -10),
+                (Seek.END, 1),
+            ],
+        )
+        def test_out_of_range(self, whence, offset):
+            self.anim_space.seek(5)
+            assert self.anim_space.tell() == 5
 
-        assert space.tell() == 9
+            with pytest.raises(ValueError, match="'offset'"):
+                self.anim_space.seek(offset, whence)
 
-    def test_indefinite(self):
-        space = Space(FrameCount.INDEFINITE, 1)
-        assert space.tell() == 0
+            assert self.anim_space.tell() == 5
 
-        for value in (0, 1):
-            with pytest.raises(IndefiniteSeekError):
-                space.seek(value)
+    @pytest.mark.parametrize("offset", [-1, 0, 1])
+    @pytest.mark.parametrize("whence", Seek)
+    def test_indefinite(self, offset, whence):
+        assert self.indefinite_space.tell() == 0
 
-        assert space.tell() == 0
+        with pytest.raises(IndefiniteSeekError):
+            self.indefinite_space.seek(offset, whence)
+
+        assert self.indefinite_space.tell() == 0
 
 
 class TestGetRenderData:
