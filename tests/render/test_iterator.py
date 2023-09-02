@@ -34,10 +34,10 @@ class FrameFill(Renderable):
         data = render_data[Renderable]
         width, height = data.size
         return Frame(
-            data.frame,
+            data.frame_offset,
             data.duration,
             data.size,
-            "\n".join((str(data.frame) * width,) * height),
+            "\n".join((str(data.frame_offset) * width,) * height),
         )
 
 
@@ -57,7 +57,7 @@ class IndefiniteFrameFill(Renderable):
         width, height = data.size
         frame_number = next(render_data[__class__].frames) if data.iteration else 0
         return Frame(
-            data.frame,
+            data.frame_offset,
             data.duration,
             data.size,
             "\n".join((str(frame_number) * width,) * height),
@@ -400,7 +400,7 @@ class TestNext:
     def test_error(self):
         class ErrorSpace(Space):
             def _render_(self, render_data, render_args):
-                if render_data[Renderable].frame == 1:
+                if render_data[Renderable].frame_offset == 1:
                     assert False
                 return super()._render_(render_data, render_args)
 

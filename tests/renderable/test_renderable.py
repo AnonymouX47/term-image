@@ -43,7 +43,10 @@ class Space(Renderable):
         data = render_data[Renderable]
         width, height = data.size
         return Frame(
-            data.frame, data.duration, data.size, "\n".join((" " * width,) * height)
+            data.frame_offset,
+            data.duration,
+            data.size,
+            "\n".join((" " * width,) * height),
         )
 
 
@@ -78,7 +81,7 @@ class Char(Renderable):
         data = render_data[Renderable]
         width, height = data.size
         return Frame(
-            data.frame,
+            data.frame_offset,
             data.duration,
             data.size,
             "\n".join((render_args[Char].char * width,) * height),
@@ -1078,13 +1081,13 @@ class TestGetRenderData:
             assert isinstance(size, Size)
             assert size == render_size
 
-    def test_frame(self):
+    def test_frame_offset(self):
         for value in (2, 8):
             self.anim_space.seek(value)
             render_data = self.anim_space._get_render_data_(iteration=False)
-            frame = render_data[Renderable].frame
-            assert isinstance(frame, int)
-            assert frame == value
+            frame_offset = render_data[Renderable].frame_offset
+            assert isinstance(frame_offset, int)
+            assert frame_offset == value
 
     def test_duration(self):
         for value in (2, 100, FrameDuration.DYNAMIC):
