@@ -773,8 +773,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         render_data = RenderData(type(self))
         render_data[__class__].update(
             size=self._get_render_size_(),
-            frame=self.tell(),
-            duration=self.frame_duration,
+            frame_offset=self.__frame,
+            seek_whence=Seek.START,
+            duration=self.__frame_duration,
             iteration=iteration,
         )
 
@@ -923,7 +924,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Returns:
             The rendered frame.
 
-            * *render_size* = :py:attr:`render_data.size
+            * *render_size* = :py:attr:`render_data[Renderable].size
               <term_image.renderable.Renderable._Data_.size>`.
             * The :py:attr:`~term_image.renderable.Frame.render` field holds the
               :term:`render output`. This string should:
@@ -947,10 +948,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
             * The value of the :py:attr:`~term_image.renderable.Frame.duration` field
               should be determined from the frame data source (or a default/fallback
-              value, if undeterminable), if :py:attr:`render_data.duration
+              value, if undeterminable), if :py:attr:`render_data[Renderable].duration
               <term_image.renderable.Renderable._Data_.duration>` is
               :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
-              Otherwise, it should be equal to :py:attr:`render_data.duration
+              Otherwise, it should be equal to
+              :py:attr:`render_data[Renderable].duration
               <term_image.renderable.Renderable._Data_.duration>`.
 
         Raises:
@@ -960,7 +962,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         NOTE:
             :py:class:`StopIteration` may be raised if and only if
-            :py:attr:`render_data.iteration
+            :py:attr:`render_data[Renderable].iteration
             <term_image.renderable.Renderable._Data_.iteration>` is ``True``.
             Otherwise, it would be out of place.
 
@@ -987,24 +989,90 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         See :py:meth:`~term_image.renderable.Renderable._render_`.
         """
 
-        frame: int
-        """Frame number
+        frame_offset: int
+        """Frame number/offset
 
         If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
         renderable (that generated the data) is:
 
-        * definite (i.e an integer), the value of this field is a **non-negative**
-          integer **less than the frame count**, denoting the frame to be rendered.
-        * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`, the value of this
-          field is zero but the interpretation depends on the value of
-          :py:attr:`iteration`.
+        * *definite* (i.e an integer); the value of this field is a **non-negative**
+          integer **less than the frame count**, the number of the frame to be rendered.
+        * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`, the value range and
+          interpretation of this field depends on the value of :py:attr:`iteration`
+          and :py:attr:`seek_whence`.
 
-          If :py:attr:`iteration` is:
+          If :py:attr:`iteration` is ``False``, the value is always **zero** and
+          anything (such as a placeholder frame) may be rendered, as renderables with
+          :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count are
+          typically meant for iteration/animation.
 
-          * ``False``, anything (such as a placeholder frame) may be rendered, as
-            renderables with :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`
-            frame count are typically meant for iteration/animation.
-          * ``True``, the next frame on the stream should be rendered.
+          If :py:attr:`iteration` is ``True`` and :py:attr:`seek_whence` is:
+
+          * :py:attr:`~term_image.renderable.Seek.CURRENT`, the value of this field
+            may be:
+
+            * **zero**, denoting that the next frame on the stream should be rendered.
+            * **positive**, denoting that the stream should be seeked **forward** by
+              :py:attr:`frame_offset` frames and then the new next frame should be
+              rendered.
+            * **negative**, denoting that the stream should be seeked **backward** by
+              -:py:attr:`frame_offset` frames and then the new next frame should be
+              rendered.
+
+          * :py:attr:`~term_image.renderable.Seek.START`, the value of this field
+            may be:
+
+            * **zero**, denoting that the stream should be seeked to its beginning
+              and then the first frame should be rendered.
+            * **positive**, denoting that the stream should be seeked to the
+              (:py:attr:`frame_offset`)th frame **after the first** and then the new
+              next frame should be rendered.
+
+          * :py:attr:`~term_image.renderable.Seek.END`, the value of this field
+            may be:
+
+            * **zero**, denoting that the stream should be seeked to its end
+              and then the last frame should be rendered.
+            * **negative**, denoting that the stream should be seeked to the
+              (-:py:attr:`frame_offset`)th frame **before the last** and then the new
+              next frame should be rendered.
+
+            If the end of the stream cannot be determined (yet), such as with a live
+            source, the furthest available frame in the **forward** direction should
+            be taken to be the end.
+
+          .. note::
+             * If any seek operation is not supported by the underlying source, it
+               should be ignored and the next frame on the stream should be rendered.
+             * If forward seek is supported but the offset is out of the range of
+               available frames, the stream should be seeked to the furthest available
+               frame in the forward direction if its end cannot be determined (yet),
+               such as with a live source.
+               Otherwise i.e if the offset is determined to be beyond the end of the
+               stream, :py:class:`StopIteration` should be raised
+               (see :py:meth:`~term_image.renderable.Renderable._render_`).
+             * If backward seek is supported but the offset is out of the range of
+               available frames, the stream should be seeked to its beginning or the
+               furthest available frame in the backward direction.
+
+          .. tip::
+             A :term:`render class` that implements
+             :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count should
+             specify which seek operations it supports and any necessary details.
+        """
+
+        seek_whence: Seek
+        """Reference position for :py:attr:`frame_offset`
+
+        If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
+        renderable (that generated the data) is *definite*, or
+        :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` but
+        :py:attr:`iteration` is ``False``; the value of this
+        field is always :py:attr:`~term_image.renderable.Seek.START`.
+        Otherwise i.e if :py:attr:`~term_image.renderable.Renderable.frame_count`
+        is :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` and
+        :py:attr:`iteration` is ``True``, it may be any member of
+        :py:class:`~term_image.renderable.Seek`.
         """
 
         duration: int | FrameDuration | None
@@ -1017,8 +1085,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """:term:`Render` operation kind
 
         ``True`` if the render is part of a render operation involving a sequence of
-        renders, possibly of different frames. Otherwise, ``False`` i.e it's a one-off
-        render.
+        renders (most likely of different frames). Otherwise i.e if it's a one-off
+        render, ``False``.
         """
 
 

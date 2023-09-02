@@ -242,7 +242,7 @@ class RenderIterator:
                 "offset", offset, f"frame_count={self._renderable.frame_count}"
             )
 
-        self._render_data[Renderable].frame = offset
+        self._render_data[Renderable].frame_offset = offset
 
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
@@ -399,7 +399,7 @@ class RenderIterator:
         yield Frame(0, None, Size(1, 1), " ")
 
         # Render iteration
-        frame_no = renderable_data.frame * definite
+        frame_no = renderable_data.frame_offset * definite
         while loop:
             while frame_no < frame_count:
                 frame, *frame_details = cache[frame_no] if cache else (None,)
@@ -430,17 +430,17 @@ class RenderIterator:
                             self._padding,
                         )
                 if definite:
-                    renderable_data.frame += 1
-                elif renderable_data.frame:  # reset after seek
-                    renderable_data.frame = 0
+                    renderable_data.frame_offset += 1
+                elif renderable_data.frame_offset:  # reset after seek
+                    renderable_data.frame_offset = 0
 
                 yield frame
 
                 if definite:
-                    frame_no = renderable_data.frame
+                    frame_no = renderable_data.frame_offset
 
             # INDEFINITE can never reach here
-            frame_no = renderable_data.frame = 0
+            frame_no = renderable_data.frame_offset = 0
             if loop > 0:  # Avoid infinitely large negative numbers
                 self.loop = loop = loop - 1
 
