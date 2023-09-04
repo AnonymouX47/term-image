@@ -533,9 +533,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             raise arg_value_error_range(
                 "offset",
                 offset,
-                got_extra=(
-                    f"whence={whence.name}, current={self.__frame}, "
-                    f"frame_count={frame_count}"
+                (
+                    f"whence={whence.name}, frame_count={frame_count}"
+                    + (f", current={self.__frame}" if whence is Seek.CURRENT else "")
                 ),
             )
         self.__frame = frame

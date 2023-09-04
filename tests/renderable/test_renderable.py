@@ -1028,7 +1028,7 @@ class TestSeekTell:
             ],
         )
         def test_in_range(self, whence, offset, frame_no):
-            self.anim_space.seek(5)
+            self.anim_space.seek(5)  # For CURRENT-relative
             assert self.anim_space.tell() == 5
 
             assert self.anim_space.seek(offset, whence) == frame_no
@@ -1046,7 +1046,7 @@ class TestSeekTell:
             ],
         )
         def test_out_of_range(self, whence, offset):
-            self.anim_space.seek(5)
+            self.anim_space.seek(5)  # For CURRENT-relative
             assert self.anim_space.tell() == 5
 
             with pytest.raises(ValueError, match="'offset'"):
