@@ -383,7 +383,7 @@ class RenderIterator:
             TypeError: An argument is of an inappropriate type.
 
         NOTE:
-            Takes effect from the next rendered frame.
+            Takes effect from the next [#ri-nf]_ rendered frame.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
@@ -410,7 +410,7 @@ class RenderIterator:
             IncompatibleRenderArgsError: Incompatible render arguments.
 
         NOTE:
-            Takes effect from the next rendered frame.
+            Takes effect from the next [#ri-nf]_ rendered frame.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
@@ -431,7 +431,7 @@ class RenderIterator:
             TypeError: An argument is of an inappropriate type.
 
         NOTE:
-            Takes effect from the next rendered frame.
+            Takes effect from the next [#ri-nf]_ rendered frame.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
