@@ -183,12 +183,11 @@ class RenderIterator:
             raise
 
     def __repr__(self) -> str:
-        return "<{}: renderable={}, loops={}, loop={}, cached={}>".format(
-            type(self).__name__,
-            type(self._renderable).__name__,
-            self._loops,
-            self.loop,
-            self._cached,
+        return (
+            f"<{type(self).__name__}: "
+            f"type(renderable)={type(self._renderable).__name__}, "
+            f"frame_count={self._renderable.frame_count}, loops={self._loops}, "
+            f"loop={self.loop}, cached={self._cached}>"
         )
 
     def close(self) -> None:

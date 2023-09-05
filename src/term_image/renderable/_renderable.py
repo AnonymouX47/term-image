@@ -255,10 +255,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         return RenderIterator(self, loops=1)
 
     def __repr__(self) -> str:
-        return "<{}: animated={}, render_size={}>".format(
-            type(self).__name__,
-            self.animated,
-            self._get_render_size_(),
+        return (
+            f"<{type(self).__name__}: animated={self.animated}, "
+            f"frame_count={self.__frame_count}, "
+            f"frame_duration={self.__frame_duration}, "
+            f"render_size={self._get_render_size_()}>"
         )
 
     def __str__(self) -> str:
