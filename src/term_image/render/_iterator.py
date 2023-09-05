@@ -11,7 +11,7 @@ from typing import Generator
 from ..exceptions import TermImageError
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
-from ..renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData
+from ..renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData, Seek
 from ..utils import (
     arg_type_error,
     arg_value_error,
@@ -210,39 +210,167 @@ class RenderIterator:
             del self._render_data
             self._closed = True
 
-    def seek(self, offset: int) -> None:
-        """Sets the frame to be yielded on the next iteration without affecting
+    def seek(self, offset: int, whence: Seek = Seek.START) -> None:
+        """Sets the frame to be rendered on the next iteration, without affecting
         the loop count.
 
         Args:
-            offset: Frame number; ``0`` <= *offset* < :py:attr:`renderable.frame_count
-              <term_image.renderable.Renderable.frame_count>`.
+            offset: Frame offset (relative to *whence*).
+            whence: Reference position for *offset*.
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
             TypeError: An argument is of an inappropriate type.
-            ValueError: An argument is of an appropriate type but has an
-              unexpected/invalid value.
+            ValueError: *offset* is out of range.
+
+        The value range for *offset* depends on the
+        :py:attr:`~term_image.renderable.Renderable.frame_count` of the underlying
+        renderable and *whence*:
+
+        .. list-table:: *definite* frame count
+           :align: left
+           :header-rows: 1
+           :width: 90%
+           :widths: auto
+
+           * - *whence*
+             - Valid value range for *offset*
+
+           * - :py:attr:`~term_image.renderable.Seek.START`
+             - ``0`` <= *offset*
+               < :py:attr:`~term_image.renderable.Renderable.frame_count`
+           * - :py:attr:`~term_image.renderable.Seek.CURRENT`
+             - -*next_frame_number* [#ri-nf]_ <= *offset*
+               < :py:attr:`~term_image.renderable.Renderable.frame_count`
+               - *next_frame_number*
+           * - :py:attr:`~term_image.renderable.Seek.END`
+             - -:py:attr:`~term_image.renderable.Renderable.frame_count` < *offset*
+               <= ``0``
+
+        .. list-table:: :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame
+           count
+           :align: left
+           :header-rows: 1
+           :width: 90%
+           :widths: auto
+
+           * - *whence*
+             - Valid value range for *offset*
+
+           * - :py:attr:`~term_image.renderable.Seek.START`
+             - ``0`` <= *offset*
+           * - :py:attr:`~term_image.renderable.Seek.CURRENT`
+             - *any value*
+           * - :py:attr:`~term_image.renderable.Seek.END`
+             - *offset* <= ``0``
+
+        NOTE:
+            If the underlying renderable has *definite* frame count, seek operations
+            have **immeditate** effect. Hence, multiple consecutive seek operations,
+            starting with any kind and followed by one or more with *whence* =
+            :py:attr:`~term_image.renderable.Seek.CURRENT`, between any two
+            consecutive renders have a **cummulative** effect. In particular, any seek
+            operation with *whence* = :py:attr:`~term_image.renderable.Seek.CURRENT`
+            is relative to the frame to be rendered next [#ri-nf]_.
+
+            .. collapse:: Example
+
+               >>> animated_renderable.frame_count
+               10
+               >>> render_iter = RenderIterator(animated_renderable)  # next = 0
+               >>> render_iter.seek(5)  # next = 5
+               >>> next(render_iter).number  # next = 5 + 1 = 6
+               5
+               >>> # cummulative
+               >>> render_iter.seek(2, Seek.CURRENT)  # next = 6 + 2 = 8
+               >>> render_iter.seek(-4, Seek.CURRENT)  # next = 8 - 4 = 4
+               >>> next(render_iter).number  # next = 4 + 1 = 5
+               4
+               >>> # cummulative
+               >>> render_iter.seek(7)  # next = 7
+               >>> render_iter.seek(1, Seek.CURRENT)  # next = 7 + 1 = 8
+               >>> render_iter.seek(-5, Seek.CURRENT)  # next = 8 - 5 = 3
+               >>> next(render_iter).number  # next = 3 + 1 = 4
+               3
+               >>> # NOT cummulative
+               >>> render_iter.seek(3, Seek.CURRENT)  # next = 4 + 3 = 7
+               >>> render_iter.seek(2)  # next = 2
+               >>> next(render_iter).number  # next = 2 + 1 = 3
+               2
+
+            On the other hand, if the underlying renderable has
+            :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count, seek
+            operations don't take effect **until the next render**. Hence, multiple
+            consecutive seek operations between any two consecutive renders do **not**
+            have a **cummulative** effect; rather, only **the last one** takes effect.
+            In particular, any seek operation with *whence* =
+            :py:attr:`~term_image.renderable.Seek.CURRENT` is relative to the frame
+            after that which was rendered last.
+
+            .. collapse:: Example
+
+               >>> animated_renderable.frame_count is FrameCount.INDEFINITE
+               True
+               >>> # iterating normally without seeking
+               >>> [frame.render for frame in animated_renderable]
+               ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', ...]
+               >>>
+               >>> # Assuming the renderable implements all kinds of seek operations
+               >>> render_iter = RenderIterator(animated_renderable)  # next = 0
+               >>> render_iter.seek(5)  # next = 5
+               >>> next(render_iter).render  # next = 5 + 1 = 6
+               '5'
+               >>> render_iter.seek(2, Seek.CURRENT)  # next = 6 + 2 = 8
+               >>> render_iter.seek(-4, Seek.CURRENT)  # next = 6 - 4 = 2
+               >>> next(render_iter).render  # next = 2 + 1 = 3
+               '2'
+               >>> render_iter.seek(7)  # next = 7
+               >>> render_iter.seek(3, Seek.CURRENT)  # next = 3 + 3 = 6
+               >>> next(render_iter).render  # next = 6 + 1 = 7
+               '6'
+
+            A renderable with :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`
+            frame count may not support/implement all kinds of seek operations or any
+            at all. If the underlying renderable doesn't support/implement a given
+            seek operation, the seek operation should simply have no effect on
+            iteration i.e the next frame should be the one after that which was
+            rendered last. See each :term:`render class` that implements
+            :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count for
+            the seek operations it supports and any other specific related details.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-
         if not isinstance(offset, int):
             raise arg_type_error("offset", offset)
 
-        if self._renderable.frame_count is FrameCount.INDEFINITE:
-            if offset:
-                raise arg_value_error_msg(
-                    "Non-zero offset is invalid because the underlying renderable has "
-                    "INDEFINITE frame count",
-                    offset,
-                )
-        elif not 0 <= offset < self._renderable.frame_count:
-            raise arg_value_error_range(
-                "offset", offset, f"frame_count={self._renderable.frame_count}"
+        frame_count = self._renderable.frame_count
+        renderable_data = self._render_data[Renderable]
+        if frame_count is FrameCount.INDEFINITE:
+            if whence is Seek.START and offset < 0 or whence is Seek.END and offset > 0:
+                raise arg_value_error_range("offset", offset, f"whence={whence.name}")
+            renderable_data.update(frame_offset=offset, seek_whence=whence)
+        else:
+            frame = (
+                offset
+                if whence is Seek.START
+                else renderable_data.frame_offset + offset
+                if whence is Seek.CURRENT
+                else frame_count + offset - 1
             )
-
-        self._render_data[Renderable].frame_offset = offset
+            if not 0 <= frame < frame_count:
+                raise arg_value_error_range(
+                    "offset",
+                    offset,
+                    (
+                        f"whence={whence.name}, frame_count={frame_count}"
+                        + (
+                            f", next={renderable_data.frame_offset}"
+                            if whence is Seek.CURRENT
+                            else ""
+                        )
+                    ),
+                )
+            renderable_data.update(frame_offset=frame, seek_whence=Seek.START)
 
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
@@ -395,6 +523,7 @@ class RenderIterator:
         definite = frame_count > 1
         loop = self.loop
         cache = [(None,) * 4] * frame_count if self._cached else None
+        CURRENT = Seek.CURRENT
 
         yield Frame(0, None, Size(1, 1), " ")
 
@@ -429,10 +558,14 @@ class RenderIterator:
                             self._render_args,
                             self._padding,
                         )
+
                 if definite:
                     renderable_data.frame_offset += 1
-                elif renderable_data.frame_offset:  # reset after seek
-                    renderable_data.frame_offset = 0
+                elif (
+                    renderable_data.frame_offset
+                    or renderable_data.seek_whence != CURRENT
+                ):  # was seeked
+                    renderable_data.update(frame_offset=0, seek_whence=CURRENT)
 
                 yield frame
 

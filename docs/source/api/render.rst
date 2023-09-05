@@ -52,3 +52,14 @@ RenderIterator
       :autosummary-members: _from_render_data_
 
    .. automethod:: _from_render_data_
+
+|
+
+.. rubric:: Footnotes
+
+.. [#ri-nf]
+   The frame to be rendered **next** is either:
+
+   * the frame after that which was rendered **last**, if no seek operation
+     has occured since the last render; or
+   * the frame set by the **latest** seek operation since the last render.
