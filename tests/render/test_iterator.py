@@ -15,6 +15,7 @@ from term_image.renderable import (
     RenderArgs,
     RenderArgsError,
     RenderData,
+    Seek,
 )
 
 from ..renderable.test_renderable import Char, IndefiniteSpace, Space
@@ -439,57 +440,133 @@ class TestSeek:
             render_iter.seek(Ellipsis)
 
     class TestDefinite:
-        def test_arg_offset(self):
+        def test_start(self):
             render_iter = RenderIterator(anim_space)
-            for value in (2, -1):
-                with pytest.raises(ValueError, match="offset"):
-                    render_iter.seek(value)
+            data = render_iter._render_data[Renderable]
+            assert data.frame_offset == 0
+            assert data.seek_whence is Seek.START
 
-        def test_absolute(self):
-            for cache in (False, True):
-                print(f"cache={cache}")
+        @pytest.mark.parametrize(
+            "whence,offset,frame_no",
+            [
+                (Seek.START, 0, 0),
+                (Seek.START, 1, 1),
+                (Seek.START, 9, 9),
+                (Seek.CURRENT, -5, 0),
+                (Seek.CURRENT, -1, 4),
+                (Seek.CURRENT, 0, 5),
+                (Seek.CURRENT, 1, 6),
+                (Seek.CURRENT, 4, 9),
+                (Seek.END, -9, 0),
+                (Seek.END, -1, 8),
+                (Seek.END, 0, 9),
+            ],
+        )
+        def test_in_range(self, whence, offset, frame_no):
+            render_iter = RenderIterator(frame_fill)
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For CURRENT-relative
+            next(render_iter)  # next = 5
 
-                render_iter = RenderIterator(frame_fill, cache=cache)
-                assert next(render_iter).number == 0
+            render_iter.seek(offset, whence)
+            assert data.frame_offset == frame_no
+            assert data.seek_whence is Seek.START
 
-                render_iter.seek(9)
-                assert next(render_iter).number == 9
+            next(render_iter)
+            assert data.frame_offset == frame_no + 1
+            assert data.seek_whence is Seek.START
 
-                render_iter.seek(6)
-                render_iter.seek(4)
-                assert next(render_iter).number == 4
-                assert next(render_iter).number == 5
+        @pytest.mark.parametrize(
+            "whence,offset",
+            [
+                (Seek.START, -1),
+                (Seek.START, 10),
+                (Seek.CURRENT, -6),
+                (Seek.CURRENT, 5),
+                (Seek.END, -10),
+                (Seek.END, 1),
+            ],
+        )
+        def test_out_of_range(self, whence, offset):
+            render_iter = RenderIterator(frame_fill)
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For CURRENT-relative
+            next(render_iter)  # next = 5
 
-                render_iter.seek(3)
-                render_iter.seek(7)
-                assert next(render_iter).number == 7
-                assert next(render_iter).number == 8
+            with pytest.raises(ValueError, match="'offset'"):
+                render_iter.seek(offset, whence)
 
-                render_iter.seek(0)
-                assert next(render_iter).number == 0
-                assert next(render_iter).number == 1
+            assert data.frame_offset == 5
+            assert data.seek_whence is Seek.START
 
-                render_iter.seek(9)
-                assert next(render_iter).number == 9
+        @pytest.mark.parametrize(
+            "seek_ops,final_offset,final_whence",
+            [
+                # Non-cummulative
+                ([(5, Seek.START), (3, Seek.START)], 3, Seek.START),
+                ([(2, Seek.START), (-3, Seek.END)], 6, Seek.START),
+                ([(-2, Seek.END), (2, Seek.START)], 2, Seek.START),
+                ([(-5, Seek.END), (-2, Seek.END)], 7, Seek.START),
+                # # next=5
+                ([(3, Seek.CURRENT), (6, Seek.START)], 6, Seek.START),
+                ([(-3, Seek.CURRENT), (6, Seek.START)], 6, Seek.START),
+                ([(2, Seek.CURRENT), (-5, Seek.END)], 4, Seek.START),
+                ([(-2, Seek.CURRENT), (-5, Seek.END)], 4, Seek.START),
+                # Cummulative
+                ([(5, Seek.START), (3, Seek.CURRENT)], 8, Seek.START),
+                ([(7, Seek.START), (-3, Seek.CURRENT)], 4, Seek.START),
+                ([(-5, Seek.END), (-2, Seek.CURRENT)], 2, Seek.START),
+                ([(-7, Seek.END), (2, Seek.CURRENT)], 4, Seek.START),
+                # # next=5
+                ([(2, Seek.CURRENT), (2, Seek.CURRENT)], 9, Seek.START),
+                ([(3, Seek.CURRENT), (-3, Seek.CURRENT)], 5, Seek.START),
+                ([(-3, Seek.CURRENT), (3, Seek.CURRENT)], 5, Seek.START),
+                ([(-2, Seek.CURRENT), (-2, Seek.CURRENT)], 1, Seek.START),
+            ],
+        )
+        def test_consecutive_seek(self, seek_ops, final_offset, final_whence):
+            render_iter = RenderIterator(frame_fill)
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For initially CURRENT-relative
+            next(render_iter)  # next = 5
 
-                with pytest.raises(StopIteration, match="ended"):
-                    next(render_iter)
+            for offset, whence in seek_ops:
+                render_iter.seek(offset, whence)
 
-        def test_uncached(self):
+            assert data.frame_offset == final_offset
+            assert data.seek_whence is final_whence
+
+        @pytest.mark.parametrize(
+            "frames_before,offset,frames_after",
+            [(0, 9, 1), (3, 7, 3), (7, 4, 6), (10, 0, 10)],
+        )
+        def test_end_after_seek(self, frames_before, offset, frames_after):
+            render_iter = RenderIterator(frame_fill)
+
+            for _ in range(frames_before):
+                next(render_iter)
+            render_iter.seek(offset)
+            for _ in range(frames_after):
+                next(render_iter)
+
+            with pytest.raises(StopIteration, match="ended"):
+                next(render_iter)
+
+        def test_uncached_frames(self):
             render_iter = RenderIterator(frame_fill, cache=False)
             frames = [next(render_iter) for _ in range(10)]
             render_iter.seek(0)
             for old_frame, new_frame in zip_longest(frames, render_iter):
                 assert old_frame is not new_frame
 
-        def test_cached(self):
+        def test_cached_frames(self):
             render_iter = RenderIterator(frame_fill, cache=True)
             frames = [next(render_iter) for _ in range(10)]
             render_iter.seek(0)
             for old_frame, new_frame in zip_longest(frames, render_iter):
                 assert old_frame is new_frame
 
-        def test_cache_skipped_frame(self):
+        def test_previously_skipped_frame_is_cached(self):
             render_iter = RenderIterator(frame_fill, cache=True)
             render_iter.seek(9)
             next(render_iter)
@@ -504,26 +581,93 @@ class TestSeek:
             assert next(render_iter) is frame_5
 
     class TestIndefinite:
-        def test_arg_offset(self):
+        def test_start(self):
+            render_iter = RenderIterator(indefinite_space)
+            data = render_iter._render_data[Renderable]
+            assert data.frame_offset == 0
+            assert data.seek_whence is Seek.START
+
+        @pytest.mark.parametrize(
+            "whence,offset",
+            [
+                (Seek.START, 0),
+                (Seek.START, 1),
+                (Seek.START, 9),
+                (Seek.CURRENT, -5),
+                (Seek.CURRENT, -1),
+                (Seek.CURRENT, 0),
+                (Seek.CURRENT, 1),
+                (Seek.CURRENT, 4),
+                (Seek.END, -9),
+                (Seek.END, -1),
+                (Seek.END, 0),
+                # out of range of available frames but valid seek ops
+                (Seek.START, 10),
+                (Seek.CURRENT, -6),
+                (Seek.CURRENT, 5),
+                (Seek.END, -10),
+            ],
+        )
+        def test_in_range(self, whence, offset):
             render_iter = RenderIterator(indefinite_frame_fill)
-            for value in (1, -1):
-                with pytest.raises(ValueError, match="Non-zero .* INDEFINITE"):
-                    render_iter.seek(value)
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For CURRENT-relative
+            next(render_iter)  # next = 5
 
-        def test_absolute(self):
+            render_iter.seek(offset, whence)
+            assert data.frame_offset == offset
+            assert data.seek_whence is whence
+
+            next(render_iter)
+            assert data.frame_offset == 0
+            assert data.seek_whence is Seek.CURRENT
+
+        @pytest.mark.parametrize("whence,offset", [(Seek.START, -1), (Seek.END, 1)])
+        def test_out_of_range(self, whence, offset):
             render_iter = RenderIterator(indefinite_frame_fill)
-            frame = next(render_iter)
-            assert frame.number == 0
-            assert frame.render == "0"
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For CURRENT-relative
+            next(render_iter)  # next = 5
 
-            for render in "123456789":
-                render_iter.seek(0)
-                frame = next(render_iter)
-                assert frame.number == 0
-                assert frame.render == render
+            with pytest.raises(ValueError, match="'offset'"):
+                render_iter.seek(offset, whence)
 
-            with pytest.raises(StopIteration, match="ended"):
-                next(render_iter)
+            assert data.frame_offset == 0
+            assert data.seek_whence is Seek.CURRENT
+
+        @pytest.mark.parametrize(
+            "seek_ops,final_offset,final_whence",
+            [
+                # All non-cummulative
+                ([(5, Seek.START), (3, Seek.START)], 3, Seek.START),
+                ([(2, Seek.START), (-3, Seek.END)], -3, Seek.END),
+                ([(5, Seek.START), (3, Seek.CURRENT)], 3, Seek.CURRENT),
+                ([(7, Seek.START), (-3, Seek.CURRENT)], -3, Seek.CURRENT),
+                ([(-2, Seek.END), (2, Seek.START)], 2, Seek.START),
+                ([(-5, Seek.END), (-2, Seek.END)], -2, Seek.END),
+                ([(-5, Seek.END), (-2, Seek.CURRENT)], -2, Seek.CURRENT),
+                ([(-7, Seek.END), (2, Seek.CURRENT)], 2, Seek.CURRENT),
+                ([(3, Seek.CURRENT), (6, Seek.START)], 6, Seek.START),
+                ([(-3, Seek.CURRENT), (6, Seek.START)], 6, Seek.START),
+                ([(2, Seek.CURRENT), (-5, Seek.END)], -5, Seek.END),
+                ([(-2, Seek.CURRENT), (-5, Seek.END)], -5, Seek.END),
+                ([(2, Seek.CURRENT), (2, Seek.CURRENT)], 2, Seek.CURRENT),
+                ([(3, Seek.CURRENT), (-3, Seek.CURRENT)], -3, Seek.CURRENT),
+                ([(-3, Seek.CURRENT), (3, Seek.CURRENT)], 3, Seek.CURRENT),
+                ([(-2, Seek.CURRENT), (-2, Seek.CURRENT)], -2, Seek.CURRENT),
+            ],
+        )
+        def test_consecutive_seek(self, seek_ops, final_offset, final_whence):
+            render_iter = RenderIterator(indefinite_frame_fill)
+            data = render_iter._render_data[Renderable]
+            render_iter.seek(4)  # For initially CURRENT-relative
+            next(render_iter)  # next = 5
+
+            for offset, whence in seek_ops:
+                render_iter.seek(offset, whence)
+
+            assert data.frame_offset == final_offset
+            assert data.seek_whence is final_whence
 
     def test_finalized(self):
         render_iter = RenderIterator(anim_space)
