@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import sys
 from contextlib import contextmanager
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, Iterator
 
 import pytest
@@ -30,7 +30,17 @@ from .. import get_terminal_size
 stdout = io.StringIO()
 columns, lines = get_terminal_size()
 
-# ========================== Render classes ==========================
+# NOTE: Always keep in mind that frames are not actually rendered by `RenderIterator`.
+# Hence, avoid testing the original data (fields defined by `Frame`) of rendered frames
+# when what is actually required is contained in the render data and/or render args
+# (which the `DummyFrame` subclass exposes).
+#
+# Cases where original frame data may be tested include (but may not be limited to):
+#
+# - when the frame returned may not be the original rendered by the renderable such as
+#   when the render output is padded.
+
+# ========================== Renderables ==========================
 
 
 class Space(Renderable):
@@ -42,11 +52,14 @@ class Space(Renderable):
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
         width, height = data.size
-        return Frame(
+        return DummyFrame(
             data.frame_offset,
             data.duration,
             data.size,
             "\n".join((" " * width,) * height),
+            renderable=self,
+            render_data=render_data,
+            render_args=render_args,
         )
 
 
@@ -80,11 +93,14 @@ class Char(Renderable):
     def _render_(self, render_data, render_args):
         data = render_data[Renderable]
         width, height = data.size
-        return Frame(
+        return DummyFrame(
             data.frame_offset,
             data.duration,
             data.size,
             "\n".join((render_args[Char].char * width,) * height),
+            renderable=self,
+            render_data=render_data,
+            render_args=render_args,
         )
 
     class Args(RenderArgs.Namespace):
@@ -92,6 +108,28 @@ class Char(Renderable):
 
 
 # ========================== Utils ==========================
+
+
+class DummyFrame(Frame):
+    _extra_data = {}
+
+    def __new__(cls, *args, renderable, render_data, render_args):
+        new = super().__new__(cls, *args)
+        __class__._extra_data[id(new)] = (
+            renderable,
+            render_data,
+            render_args,
+            SimpleNamespace(**render_data[Renderable].as_dict()),
+        )
+        return new
+
+    def __del__(self):
+        del __class__._extra_data[id(self)]
+
+    renderable = property(lambda self: __class__._extra_data[id(self)][0])
+    render_data = property(lambda self: __class__._extra_data[id(self)][1])
+    render_args = property(lambda self: __class__._extra_data[id(self)][2])
+    data = property(lambda self: __class__._extra_data[id(self)][3])
 
 
 @contextmanager
@@ -664,8 +702,9 @@ def test_iter():
     assert r_iter.loop == 1
 
 
-def test_str():
-    assert str(Space(1, 1)) == " "
+@pytest.mark.parametrize("renderable", [Space(1, 1), Char(1, 1)])
+def test_str(renderable):
+    assert str(renderable) == renderable.render().render
 
 
 class TestDraw:
@@ -986,23 +1025,23 @@ class TestRender:
             self.space.render(padding=Ellipsis)
 
     def test_default(self):
-        render = self.space.render().render
-        assert render == " "
-        assert render == str(self.space)
-        assert render == self.space.render(None).render
-        assert render == self.space.render(padding=ExactPadding()).render
-        assert render == self.space.render(padding=AlignedPadding(1, 1)).render
+        frame = self.space.render()
+        assert frame == self.space.render(None)
+        assert frame == self.space.render(padding=ExactPadding())
+        assert frame == self.space.render(padding=AlignedPadding(1, 1))
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
     def test_render_args(self):
-        char = Char(1, 1)
-        assert char.render(+Char.Args("\u2850")).render == "\u2850"
+        frame = Char(1, 1).render(+Char.Args("\u2850"))
+        assert frame.render_args == +Char.Args("\u2850")
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
     def test_padding(self):
-        assert self.space.render(padding=AlignedPadding(3, 3)).render == "   \n   \n   "
+        frame = self.space.render(padding=AlignedPadding(3, 3))
+        assert frame.size == Size(3, 3)
+        assert frame.render == "   \n   \n   "
 
 
 class TestSeekTell:
@@ -1292,13 +1331,10 @@ class TestInitRender:
 
                     # out of range
                     anim_space.size = Size(columns + 1, 1)
-
                     # # Default
                     anim_space._init_render_(lambda *_: None)
-
                     # # False
                     anim_space._init_render_(lambda *_: None, check_size=False)
-
                     # # True
                     with pytest.raises(RenderSizeOutofRangeError, match="Render width"):
                         anim_space._init_render_(lambda *_: None, check_size=True)
@@ -1315,20 +1351,12 @@ class TestInitRender:
 
                     # out of range
                     padding = AlignedPadding(columns + 1, 1)
-
                     # # Default
-                    anim_space._init_render_(
-                        lambda *_: None,
-                        padding=padding,
-                    )
-
+                    anim_space._init_render_(lambda *_: None, padding=padding)
                     # # False
                     anim_space._init_render_(
-                        lambda *_: None,
-                        padding=padding,
-                        check_size=False,
+                        lambda *_: None, padding=padding, check_size=False
                     )
-
                     # # True
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Padded render width"
@@ -1351,13 +1379,11 @@ class TestInitRender:
 
                     # out of range
                     anim_space.size = Size(1, lines + 1)
-
                     # # Default
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Render height"
                     ):
                         anim_space._init_render_(lambda *_: None, check_size=True)
-
                     # # False
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Render height"
@@ -1365,12 +1391,10 @@ class TestInitRender:
                         anim_space._init_render_(
                             lambda *_: None, check_size=True, scroll=False
                         )
-
                     # # True
                     anim_space._init_render_(
                         lambda *_: None, check_size=True, scroll=True
                     )
-
                     # # ignored when check_size is False
                     anim_space._init_render_(
                         lambda *_: None, check_size=False, scroll=False
@@ -1389,17 +1413,13 @@ class TestInitRender:
 
                     # out of range
                     padding = AlignedPadding(1, lines + 1)
-
                     # # Default
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Padded render height"
                     ):
                         anim_space._init_render_(
-                            lambda *_: None,
-                            padding=padding,
-                            check_size=True,
+                            lambda *_: None, padding=padding, check_size=True
                         )
-
                     # # False
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Padded render height"
@@ -1410,21 +1430,13 @@ class TestInitRender:
                             check_size=True,
                             scroll=False,
                         )
-
                     # # True
                     anim_space._init_render_(
-                        lambda *_: None,
-                        padding=padding,
-                        check_size=True,
-                        scroll=True,
+                        lambda *_: None, padding=padding, check_size=True, scroll=True
                     )
-
                     # # ignored when check_size is False
                     anim_space._init_render_(
-                        lambda *_: None,
-                        padding=padding,
-                        check_size=False,
-                        scroll=False,
+                        lambda *_: None, padding=padding, check_size=False, scroll=False
                     )
 
         class TestAnimationTrue:
