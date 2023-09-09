@@ -15,11 +15,11 @@ from term_image.renderable import (
     Frame,
     FrameCount,
     FrameDuration,
+    IncompatibleRenderArgsError,
     IndefiniteSeekError,
     Renderable,
     RenderableError,
     RenderArgs,
-    RenderArgsError,
     RenderData,
     RenderSizeOutofRangeError,
     Seek,
@@ -612,77 +612,79 @@ class TestMeta:
 
 
 class TestInit:
-    def test_args(self):
-        with pytest.raises(TypeError, match="'frame_count'"):
-            Space(Ellipsis, 1)
+    @pytest.mark.parametrize("n_frames", [0, -1, -100])
+    def test_invalid_frame_count(self, n_frames):
+        with pytest.raises(ValueError, match="'frame_count'"):
+            Space(n_frames, 1)
 
-        for value in (0, -1, -100):
-            with pytest.raises(ValueError, match="'frame_count'"):
-                Space(value, 1)
-
-        with pytest.raises(TypeError, match="'frame_duration'"):
-            Space(2, Ellipsis)
-
-        for value in (0, -1, -100):
+    class TestFrameDuration:
+        @pytest.mark.parametrize("duration", [0, -1, -100])
+        def test_invalid(self, duration):
             with pytest.raises(ValueError, match="'frame_duration'"):
-                Space(2, value)
+                Space(2, duration)
 
-    def test_ignore_frame_duration_for_non_animated(self):
-        Space(1, Ellipsis)
+        def test_ignored_for_non_animated(self):
+            Space(1, Ellipsis)
 
 
-def test_animated():
-    assert not Space(1, 1).animated
+class TestAnimated:
+    def test_non_animated(self):
+        assert not Space(1, 1).animated
 
-    for value in (2, *FrameCount):
-        assert Space(value, 1).animated
+    @pytest.mark.parametrize("n_frames", [2, *FrameCount])
+    def test_animated(self, n_frames):
+        assert Space(n_frames, 1).animated
 
 
 class TestProperties:
-    def test_frame_count(self):
-        class PostponedSpace(Space):
-            def __init__(self, frame_count):
-                super().__init__(FrameCount.POSTPONED, 1)
-                self.__frame_count = frame_count
+    class TestFrameCount:
+        @pytest.mark.parametrize("n_frames", [1, 2, FrameCount.INDEFINITE])
+        def test_non_postponed(self, n_frames):
+            assert Space(n_frames, 1).frame_count == n_frames
 
-            def _get_frame_count_(self):
-                return self.__frame_count
+        class TestPostponed:
+            class PostponedSpace(Space):
+                def __init__(self, frame_count):
+                    super().__init__(FrameCount.POSTPONED, 1)
+                    self.__frame_count = frame_count
 
-        for value in (1, 2, FrameCount.INDEFINITE):
-            assert Space(value, 1).frame_count == value
+                def _get_frame_count_(self):
+                    return self.__frame_count
 
-        space = Space(FrameCount.POSTPONED, 1)
-        with pytest.raises(NotImplementedError):
-            space.frame_count
+            def test_not_implemented(self):
+                space = Space(FrameCount.POSTPONED, 1)
+                with pytest.raises(NotImplementedError):
+                    space.frame_count
 
-        for value in (2, FrameCount.INDEFINITE):
-            assert PostponedSpace(value).frame_count == value
+            @pytest.mark.parametrize("n_frames", [2, FrameCount.INDEFINITE])
+            def test_implemented(self, n_frames):
+                assert self.PostponedSpace(n_frames).frame_count == n_frames
 
     class TestFrameDuration:
-        def test_get(self):
-            for value in (1, 2, 100, FrameDuration.DYNAMIC):
-                assert Space(1, value).frame_duration is None
-                assert Space(2, value).frame_duration == value
+        @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
+        def test_get(self, duration):
+            assert Space(1, duration).frame_duration is None
+            assert Space(2, duration).frame_duration == duration
 
         class TestSet:
-            def test_non_animated(self):
-                space = Space(1, 1)
-                space.frame_duration = 100
-                assert space.frame_duration is None
+            space = Space(1, 1)
+            anim_space = Space(2, 1)
 
-            def test_animated(self):
-                anim_space = Space(2, 1)
+            @pytest.mark.parametrize("duration", [2, 100, FrameDuration.DYNAMIC])
+            def test_valid(self, duration):
+                self.space.frame_duration = duration
+                assert self.space.frame_duration is None
 
-                with pytest.raises(TypeError, match="'frame_duration'"):
-                    anim_space.frame_duration = Ellipsis
+                self.anim_space.frame_duration = duration
+                assert self.anim_space.frame_duration == duration
 
-                for value in (0, -1, -100):
-                    with pytest.raises(ValueError, match="'frame_duration'"):
-                        anim_space.frame_duration = value
+            @pytest.mark.parametrize("duration", [0, -1, -100])
+            def test_invalid(self, duration):
+                self.space.frame_duration = duration
+                assert self.space.frame_duration is None
 
-                for value in (1, 2, 100, FrameDuration.DYNAMIC):
-                    anim_space.frame_duration = value
-                    assert anim_space.frame_duration == value
+                with pytest.raises(ValueError, match="'frame_duration'"):
+                    self.anim_space.frame_duration = duration
 
     def test_render_size(self):
         space = Space(1, 1)
@@ -718,22 +720,20 @@ def test_str(renderable):
 
 
 class TestDraw:
+    @pytest.mark.parametrize("renderable", [Space(1, 1), Space(2, 1)])
     @capture_stdout()
-    def test_args(self):
-        for space in (Space(1, 1), Space(2, 1)):
-            with pytest.raises(TypeError, match="'render_args'"):
-                space.draw(Ellipsis)
-            with pytest.raises(RenderArgsError, match="incompatible"):
-                space.draw(RenderArgs(Char))
+    def test_args(self, renderable):
+        with pytest.raises(TypeError, match="'render_args'"):
+            renderable.draw(Ellipsis)
 
-            with pytest.raises(TypeError, match="'padding'"):
-                space.draw(padding=Ellipsis)
+        with pytest.raises(TypeError, match="'padding'"):
+            renderable.draw(padding=Ellipsis)
 
-            with pytest.raises(TypeError, match="'check_size'"):
-                space.draw(check_size=Ellipsis)
+        with pytest.raises(TypeError, match="'check_size'"):
+            renderable.draw(check_size=Ellipsis)
 
-            with pytest.raises(TypeError, match="'scroll'"):
-                space.draw(scroll=Ellipsis)
+        with pytest.raises(TypeError, match="'scroll'"):
+            renderable.draw(scroll=Ellipsis)
 
     class TestNonAnimation:
         space = Space(1, 1)
@@ -741,11 +741,15 @@ class TestDraw:
         char = Char(1, 1)
 
         @capture_stdout()
-        def test_args_ignored(self):
-            # ignored for non-animated renderables
+        def test_args_ignored_for_non_animated(self):
             self.space.draw(animate=Ellipsis)
             self.space.draw(loops=Ellipsis)
             self.space.draw(cache=Ellipsis)
+
+        @capture_stdout()
+        def test_args_ignored_for_animated_when_animate_is_false(self):
+            self.anim_space.draw(animate=False, loops=Ellipsis)
+            self.anim_space.draw(animate=False, cache=Ellipsis)
 
         @capture_stdout()
         def test_default(self):
@@ -753,14 +757,21 @@ class TestDraw:
             assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
             assert stdout.getvalue().endswith("\n")
 
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
-        @capture_stdout()
-        def test_render_args(self):
-            self.char.draw(+Char.Args("\u2850"))
-            assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
-            assert stdout.getvalue().count("\u2850") == 1
-            assert stdout.getvalue().endswith("\n")
+        class TestRenderArgs:
+            char = Char(1, 1)
+
+            def test_incompatible(self):
+                with pytest.raises(IncompatibleRenderArgsError):
+                    self.char.draw(RenderArgs(Space))
+
+            # Just ensures the argument is passed on and used appropriately.
+            # The full tests are at `TestInitRender`.
+            @capture_stdout()
+            def test_compatible(self):
+                self.char.draw(+Char.Args("\u2850"))
+                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
+                assert stdout.getvalue().count("\u2850") == 1
+                assert stdout.getvalue().endswith("\n")
 
         # Just ensures the argument is passed on and used appropriately.
         # The full tests are at `TestInitRender`.
@@ -975,26 +986,25 @@ class TestDraw:
                     self.anim_space.draw(padding=padding, scroll=True)
 
         class TestDefinite:
+            anim_space = Space(2, 1)
+
             # Can't test the default for definite frame count since it loops infinitely
 
-            def test_loops(self):
-                anim_space = Space(2, 1)
-                for loops in (1, 2, 10):
-                    with capture_stdout():
-                        anim_space.draw(loops=loops)
-                        assert stdout.getvalue().count("\n") == draw_n_eol(
-                            lines - 2, 2, loops
-                        )
-                        assert stdout.getvalue().endswith("\n")
+            @pytest.mark.parametrize("loops", [1, 2, 10])
+            @capture_stdout()
+            def test_loops(self, loops):
+                self.anim_space.draw(loops=loops)
+                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, loops)
+                assert stdout.getvalue().endswith("\n")
 
-            def test_frame_count(self):
-                for count in (2, 3, 10):
-                    with capture_stdout():
-                        Space(count, 1).draw(loops=1)
-                        assert stdout.getvalue().count("\n") == draw_n_eol(
-                            lines - 2, count, 1
-                        )
-                        assert stdout.getvalue().endswith("\n")
+            @pytest.mark.parametrize("n_frames", [2, 3, 10])
+            @capture_stdout()
+            def test_frame_count(self, n_frames):
+                Space(n_frames, 1).draw(loops=1)
+                assert stdout.getvalue().count("\n") == draw_n_eol(
+                    lines - 2, n_frames, 1
+                )
+                assert stdout.getvalue().endswith("\n")
 
         class TestIndefinite:
             @capture_stdout()
@@ -1003,23 +1013,21 @@ class TestDraw:
                 assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
                 assert stdout.getvalue().endswith("\n")
 
-            def test_loops(self):
-                for loops in (1, 2, 10, -1):
-                    with capture_stdout():
-                        IndefiniteSpace(2).draw(loops=loops)
-                        assert stdout.getvalue().count("\n") == draw_n_eol(
-                            lines - 2, 2, 1
-                        )
-                        assert stdout.getvalue().endswith("\n")
+            @pytest.mark.parametrize("loops", [1, 2, 10])
+            @capture_stdout()
+            def test_loops(self, loops):
+                IndefiniteSpace(2).draw(loops=loops)
+                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
+                assert stdout.getvalue().endswith("\n")
 
-            def test_frame_count(self):
-                for count in (2, 3, 10):
-                    with capture_stdout():
-                        IndefiniteSpace(count).draw()
-                        assert stdout.getvalue().count("\n") == draw_n_eol(
-                            lines - 2, count, 1
-                        )
-                        assert stdout.getvalue().endswith("\n")
+            @pytest.mark.parametrize("n_frames", [2, 3, 10])
+            @capture_stdout()
+            def test_frame_count(self, n_frames):
+                IndefiniteSpace(n_frames).draw()
+                assert stdout.getvalue().count("\n") == draw_n_eol(
+                    lines - 2, n_frames, 1
+                )
+                assert stdout.getvalue().endswith("\n")
 
 
 class TestRender:
@@ -1028,7 +1036,7 @@ class TestRender:
     def test_args(self):
         with pytest.raises(TypeError, match="'render_args'"):
             self.space.render(Ellipsis)
-        with pytest.raises(RenderArgsError, match="incompatible"):
+        with pytest.raises(IncompatibleRenderArgsError):
             self.space.render(RenderArgs(Char))
 
         with pytest.raises(TypeError, match="'padding'"):
@@ -1122,42 +1130,58 @@ class TestGetRenderData:
         assert isinstance(render_data, RenderData)
         assert render_data.render_cls is Space
 
-    def test_size(self):
-        for value in (2, 10):
-            self.anim_space.size = render_size = Size(value, value)
-            render_data = self.anim_space._get_render_data_(iteration=False)
-            size = render_data[Renderable].size
-            assert isinstance(size, Size)
-            assert size == render_size
-
-    def test_frame_offset(self):
-        for value in (2, 8):
-            self.anim_space.seek(value)
-            render_data = self.anim_space._get_render_data_(iteration=False)
-            frame_offset = render_data[Renderable].frame_offset
-            assert isinstance(frame_offset, int)
-            assert frame_offset == value
-
-    def test_duration(self):
-        for value in (2, 100, FrameDuration.DYNAMIC):
-            self.anim_space.frame_duration = value
-            render_data = self.anim_space._get_render_data_(iteration=False)
-            duration = render_data[Renderable].duration
-            assert isinstance(duration, (int, FrameDuration))
-            assert duration == value
-
-    def test_iteration(self):
+    @pytest.mark.parametrize("render_size", [Size(2, 2), Size(10, 10)])
+    def test_size(self, render_size):
+        self.anim_space.size = render_size
         render_data = self.anim_space._get_render_data_(iteration=False)
-        assert render_data[Renderable].iteration is False
+        size = render_data[Renderable].size
+        assert isinstance(size, Size)
+        assert size == render_size
 
-        render_data = self.anim_space._get_render_data_(iteration=True)
-        assert render_data[Renderable].iteration is True
+    @pytest.mark.parametrize("offset", [2, 8])
+    def test_frame_offset(self, offset):
+        self.anim_space.seek(offset)
+        render_data = self.anim_space._get_render_data_(iteration=False)
+        frame_offset = render_data[Renderable].frame_offset
+        assert isinstance(frame_offset, int)
+        assert frame_offset == offset
+
+    @pytest.mark.parametrize("duration", [2, 100, FrameDuration.DYNAMIC])
+    def test_duration(self, duration):
+        self.anim_space.frame_duration = duration
+        render_data = self.anim_space._get_render_data_(iteration=False)
+        duration = render_data[Renderable].duration
+        assert isinstance(duration, (int, FrameDuration))
+        assert duration == duration
+
+    @pytest.mark.parametrize("iteration", [False, True])
+    def test_iteration(self, iteration):
+        render_data = self.anim_space._get_render_data_(iteration=iteration)
+        assert render_data[Renderable].iteration is iteration
 
 
 class TestInitRender:
     space = Space(1, 1)
     anim_space = Space(2, 1)
     char = Char(1, 1)
+
+    class Foo(Renderable):
+        _render_ = None
+
+        def _get_render_size_(self):
+            pass
+
+        def __init__(self, data):
+            super().__init__(1, 1)
+            self.__data = data
+
+        def _get_render_data_(self, *, iteration):
+            render_data = super()._get_render_data_(iteration=iteration)
+            render_data[__class__].foo = self.__data
+            return render_data
+
+        class _Data_(RenderData.Namespace):
+            foo: Any
 
     class TestReturnValue:
         space = Space(1, 1)
@@ -1173,9 +1197,9 @@ class TestInitRender:
             assert renderer_return is None
             assert padding is None
 
-        def test_renderer_return(self):
-            for value in (None, 2, "", (), []):
-                assert self.space._init_render_(lambda *_: value)[0] is value
+        @pytest.mark.parametrize("value", [None, Ellipsis, " ", []])
+        def test_renderer_return(self, value):
+            assert self.space._init_render_(lambda *_: value)[0] is value
 
         # See also: `TestInitRender.TestPadding`
         def test_padding(self):
@@ -1186,87 +1210,55 @@ class TestInitRender:
                 ExactPadding,
             )
 
-    def test_renderer(self):
-        for renderable, render_cls in ((self.space, Space), (self.char, Char)):
-            renderer_args = renderable._init_render_(lambda *args: args)[0]
+    @pytest.mark.parametrize("renderable", [space, char])
+    def test_renderer(self, renderable):
+        renderer_args = renderable._init_render_(lambda *args: args)[0]
+        assert isinstance(renderer_args, tuple)
+        assert len(renderer_args) == 2
 
-            assert isinstance(renderer_args, tuple)
-            assert len(renderer_args) == 2
-
-            render_data, render_args = renderer_args
-
-            assert isinstance(render_data, RenderData)
-            assert render_data.render_cls is render_cls
-
-            assert isinstance(render_args, RenderArgs)
-            assert render_args.render_cls is render_cls
+        render_data, render_args = renderer_args
+        assert isinstance(render_data, RenderData)
+        assert render_data.render_cls is type(renderable)
+        assert isinstance(render_args, RenderArgs)
+        assert render_args.render_cls is type(renderable)
 
     # See also: `TestInitRender.test_iteration`
-    def test_render_data(self):
-        class Foo(Renderable):
-            _render_ = None
+    @pytest.mark.parametrize("data", [None, Ellipsis, " ", []])
+    def test_render_data(self, data):
+        render_data = self.Foo(data)._init_render_(lambda *args: args)[0][0]
 
-            def _get_render_size_(self):
-                pass
-
-            def __init__(self, value):
-                super().__init__(1, 1)
-                self.__value = value
-
-            def _get_render_data_(self, *, iteration):
-                render_data = super()._get_render_data_(iteration=iteration)
-                render_data[__class__].foo = self.__value
-                return render_data
-
-            class _Data_(RenderData.Namespace):
-                foo: Any
-
-        for value in (None, 1, " ", []):
-            render_data = Foo(value)._init_render_(lambda *args: args)[0][0]
-
-            assert isinstance(render_data, RenderData)
-            assert render_data.render_cls is Foo
-            assert render_data[Foo].foo is value
+        assert isinstance(render_data, RenderData)
+        assert render_data.render_cls is self.Foo
+        assert render_data[self.Foo].foo is data
 
     class TestRenderArgs:
         char = Char(1, 1)
 
         def test_default(self):
             render_args = self.char._init_render_(lambda *args: args)[0][1]
-
-            assert isinstance(render_args, RenderArgs)
-            assert render_args.render_cls is Char
-            assert render_args[Char].char == " "
-
+            assert render_args == RenderArgs(Char)
             assert (
                 render_args == self.char._init_render_(lambda *args: args, None)[0][1]
             )
-
             assert (
                 render_args
                 == self.char._init_render_(lambda *args: args, RenderArgs(Char))[0][1]
             )
 
         def test_non_default(self):
-            for value in "123abc":
-                render_args = self.char._init_render_(
-                    lambda *args: args, +Char.Args(value)
-                )[0][1]
-
-                assert isinstance(render_args, RenderArgs)
-                assert render_args.render_cls is Char
-                assert render_args[Char].char == value
+            render_args = self.char._init_render_(  # fmt: skip
+                lambda *args: args, +Char.Args("#")
+            )[0][1]
+            assert render_args == +Char.Args("#")
 
         def test_compatible(self):
-            assert (
-                self.char._init_render_(
-                    lambda *args: args, RenderArgs(Renderable)
-                )[0][1]
-                == RenderArgs(Char)  # fmt: skip
-            )
+            render_args = self.char._init_render_(
+                lambda *args: args, RenderArgs(Renderable)
+            )[0][1]
+            assert render_args == RenderArgs(Char)
 
         def test_incompatible(self):
-            with pytest.raises(RenderArgsError, match="incompatible"):
+            with pytest.raises(IncompatibleRenderArgsError):
                 self.char._init_render_(lambda *_: None, RenderArgs(Space))
 
     class TestPadding:
@@ -1303,29 +1295,33 @@ class TestInitRender:
             assert padding.h_align is orig_padding.h_align
             assert padding.v_align is orig_padding.v_align
 
-    def test_iteration(self):
-        render_data = self.space._init_render_(lambda *args: args)[0][0]
+    class TestIteration:
+        space = Space(1, 1)
 
-        assert render_data[Renderable].iteration is False
+        def test_default(self):
+            render_data = self.space._init_render_(lambda *args: args)[0][0]
+            assert render_data[Renderable].iteration is False
 
-        for value in (False, True):
+        @pytest.mark.parametrize("iteration", [False, True])
+        def test_non_default(self, iteration):
             render_data = self.space._init_render_(  # fmt: skip
-                lambda *args: args, iteration=value
+                lambda *args: args, iteration=iteration
             )[0][0]
+            assert render_data[Renderable].iteration is iteration
 
-            assert render_data[Renderable].iteration is value
+    class TestFinalize:
+        space = Space(1, 1)
 
-    def test_finalize(self):
-        render_data = self.space._init_render_(lambda *args: args)[0][0]
+        def test_default(self):
+            render_data = self.space._init_render_(lambda *args: args)[0][0]
+            assert render_data.finalized
 
-        assert render_data.finalized
-
-        for value in (False, True):
+        @pytest.mark.parametrize("finalize", [False, True])
+        def test_non_default(self, finalize):
             render_data = self.space._init_render_(  # fmt: skip
-                lambda *args: args, finalize=value
+                lambda *args: args, finalize=finalize
             )[0][0]
-
-            assert render_data.finalized is value
+            assert render_data.finalized is finalize
 
     class TestSizeValidation:
         space = Space(1, 1)

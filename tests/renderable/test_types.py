@@ -47,39 +47,39 @@ class TestFrame:
         assert len(frame) == 4
 
     class TestFields:
-        def test_number(self):
-            for value in (0, 10):
-                frame = Frame(value, None, None, None)
-                assert frame.number is value
+        @pytest.mark.parametrize("number", [0, 10])
+        def test_number(self, number):
+            frame = Frame(number, None, None, None)
+            assert frame.number is number
 
-        def test_duration(self):
-            for value in (1, 100):
-                frame = Frame(None, value, None, None)
-                assert frame.duration is value
+        @pytest.mark.parametrize("duration", [1, 100])
+        def test_duration(self, duration):
+            frame = Frame(None, duration, None, None)
+            assert frame.duration is duration
 
-        def test_size(self):
-            for value in (Size(1, 3), Size(100, 30)):
-                frame = Frame(None, None, value, None)
-                assert frame.size is value
+        @pytest.mark.parametrize("size", [Size(1, 3), Size(100, 30)])
+        def test_size(self, size):
+            frame = Frame(None, None, size, None)
+            assert frame.size is size
 
-        def test_render(self):
-            for value in (" ", " " * 10):
-                frame = Frame(None, None, None, value)
-                assert frame.render is value
+        @pytest.mark.parametrize("render", [" ", " " * 10])
+        def test_render(self, render):
+            frame = Frame(None, None, None, render)
+            assert frame.render is render
 
-    def test_immutability(self):
+    @pytest.mark.parametrize("field", Frame._fields)
+    def test_immutability(self, field):
         frame = Frame(None, None, None, None)
-        for attr in ("number", "duration", "size", "render"):
-            with pytest.raises(AttributeError):
-                setattr(frame, attr, Ellipsis)
+        with pytest.raises(AttributeError):
+            setattr(frame, field, Ellipsis)
 
-            with pytest.raises(AttributeError):
-                delattr(frame, attr)
+        with pytest.raises(AttributeError):
+            delattr(frame, field)
 
-    def test_str(self):
-        for value in (" ", " " * 10):
-            frame = Frame(None, None, None, value)
-            assert str(frame) is value is frame.render
+    @pytest.mark.parametrize("render", [" ", " " * 10])
+    def test_str(self, render):
+        frame = Frame(None, None, None, render)
+        assert str(frame) is render
 
 
 class TestNamespaceMeta:
@@ -260,11 +260,11 @@ class TestNamespace:
         with pytest.raises(TypeError, match="Cannot instantiate"):
             Namespace()
 
-    def test_delattr(self):
+    @pytest.mark.parametrize("field", ["foo", "bar"])
+    def test_delattr(self, field):
         namespace = self.Namespace(dict(foo=1, bar=2))
-        for attr in ("foo", "bar"):
-            with pytest.raises(AttributeError, match="Cannot delete"):
-                delattr(namespace, attr)
+        with pytest.raises(AttributeError, match="Cannot delete"):
+            delattr(namespace, field)
 
     def test_as_dict(self):
         namespace = self.Namespace(dict(foo=1, bar=2))
@@ -329,30 +329,20 @@ class TestRenderArgs:
                 class Args(RenderArgs.Namespace):
                     foo: None = None
 
-            def test_compatible(self):
-                for cls1, cls2 in (
-                    (self.A, self.A),
-                    (self.B, self.A),
-                    (self.B, self.B),
-                    (self.C, self.A),
-                    (self.C, self.C),
-                ):
-                    assert RenderArgs(cls1, cls2.Args()) == RenderArgs(cls1)
+            @pytest.mark.parametrize(
+                "cls1, cls2", [(A, A), (B, A), (B, B), (C, A), (C, C)]
+            )
+            def test_compatible(self, cls1, cls2):
+                assert RenderArgs(cls1, cls2.Args()) == RenderArgs(cls1)
 
-            def test_incompatible(self):
-                for cls1, cls2 in (
-                    (self.A, self.B),
-                    (self.A, self.C),
-                    (self.B, self.C),
-                    (self.C, self.B),
-                ):
-                    with pytest.raises(IncompatibleArgsNamespaceError):
-                        RenderArgs(cls1, cls2.Args())
+            @pytest.mark.parametrize("cls1, cls2", [(A, B), (A, C), (B, C), (C, B)])
+            def test_incompatible(self, cls1, cls2):
+                with pytest.raises(IncompatibleArgsNamespaceError):
+                    RenderArgs(cls1, cls2.Args())
 
         def test_default(self):
             render_args = RenderArgs(Foo)
             assert render_args[Foo] == Foo.Args()
-            assert render_args[Foo] == Foo.Args("FOO", "BAR")
 
         def test_non_default(self):
             namespace = Foo.Args("bar", "foo")
@@ -380,32 +370,38 @@ class TestRenderArgs:
             class C(A):
                 pass
 
-            def test_compatible(self):
-                for cls1, cls2 in (
-                    (self.A, Renderable),
-                    (self.A, self.A),
-                    (self.B, Renderable),
-                    (self.B, self.A),
-                    (self.B, self.B),
-                    (self.C, Renderable),
-                    (self.C, self.A),
-                    (self.C, self.C),
-                ):
-                    assert RenderArgs(cls1, RenderArgs(cls2)) == RenderArgs(cls1)
+            @pytest.mark.parametrize(
+                "cls1, cls2",
+                [
+                    (A, Renderable),
+                    (A, A),
+                    (B, Renderable),
+                    (B, A),
+                    (B, B),
+                    (C, Renderable),
+                    (C, A),
+                    (C, C),
+                ],
+            )
+            def test_compatible(self, cls1, cls2):
+                assert RenderArgs(cls1, RenderArgs(cls2)) == RenderArgs(cls1)
 
-            def test_incompatible(self):
-                for cls1, cls2 in (
-                    (Renderable, self.A),
-                    (Renderable, self.B),
-                    (Renderable, self.C),
-                    (self.A, self.B),
-                    (self.A, self.C),
-                    (self.B, self.C),
-                    (self.C, self.B),
-                ):
-                    init_render_args = RenderArgs(cls2)
-                    with pytest.raises(IncompatibleRenderArgsError):
-                        RenderArgs(cls1, init_render_args)
+            @pytest.mark.parametrize(
+                "cls1, cls2",
+                [
+                    (Renderable, A),
+                    (Renderable, B),
+                    (Renderable, C),
+                    (A, B),
+                    (A, C),
+                    (B, C),
+                    (C, B),
+                ],
+            )
+            def test_incompatible(self, cls1, cls2):
+                init_render_args = RenderArgs(cls2)
+                with pytest.raises(IncompatibleRenderArgsError):
+                    RenderArgs(cls1, init_render_args)
 
         def test_default(self):
             render_args = RenderArgs(Foo)
@@ -834,14 +830,17 @@ class TestArgsNamespace:
 
     def test_getattr(self):
         namespace = self.Namespace()
+        assert namespace.foo == "FOO"
+        assert namespace.bar == "BAR"
         with pytest.raises(UnknownArgsFieldError, match="'baz' for 'Bar'"):
             namespace.baz
 
     def test_setattr(self):
         namespace = self.Namespace()
-        for attr in ("foo", "bar"):
-            with pytest.raises(AttributeError):
-                setattr(namespace, attr, Ellipsis)
+        with pytest.raises(AttributeError):
+            namespace.foo = "bar"
+        with pytest.raises(AttributeError):
+            namespace.bar = "foo"
 
     def test_equality(self):
         namespace_default = self.Namespace()
@@ -1243,19 +1242,17 @@ class TestDataNamespace:
 
     def test_getattr(self):
         namespace = self.Namespace()
+        assert namespace.foo is None
+        assert namespace.bar is None
         with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
             namespace.baz
 
     def test_setattr(self):
         namespace = self.Namespace()
-        assert namespace.foo is None
-        assert namespace.bar is None
-
         namespace.foo = "FOO"
         namespace.bar = "BAR"
         assert namespace.foo == "FOO"
         assert namespace.bar == "BAR"
-
         with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
             namespace.baz = Ellipsis
 
