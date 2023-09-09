@@ -11,9 +11,9 @@ from term_image.render import FinalizedIteratorError, RenderIterator
 from term_image.renderable import (
     Frame,
     FrameCount,
+    IncompatibleRenderArgsError,
     Renderable,
     RenderArgs,
-    RenderArgsError,
     RenderData,
     Seek,
 )
@@ -111,9 +111,13 @@ indefinite_frame_fill = IndefiniteFrameFill(Size(1, 1))
 # ========================== Utils ==========================
 
 
-def get_loop_frames(renderable, cache):
+def get_loop_frames(renderable, cache=Ellipsis):
     frame_count = renderable.frame_count
-    render_iter = RenderIterator(renderable, loops=2, cache=cache)
+    render_iter = (
+        RenderIterator(renderable, loops=2)
+        if cache is Ellipsis
+        else RenderIterator(renderable, loops=2, cache=cache)
+    )
     loop_1_frames = [next(render_iter) for _ in range(frame_count)]
     loop_2_frames = [next(render_iter) for _ in range(frame_count)]
 
@@ -126,41 +130,32 @@ def get_loop_frames(renderable, cache):
 def test_args():
     with pytest.raises(TypeError, match="'renderable'"):
         RenderIterator(Ellipsis)
-    with pytest.raises(ValueError, match="not animated"):
-        RenderIterator(space)
 
     with pytest.raises(TypeError, match="'render_args'"):
         RenderIterator(anim_space, Ellipsis)
-    with pytest.raises(RenderArgsError, match="incompatible"):
-        RenderIterator(anim_space, RenderArgs(FrameFill))
 
     with pytest.raises(TypeError, match="'padding'"):
         RenderIterator(anim_space, padding=Ellipsis)
 
     with pytest.raises(TypeError, match="'loops'"):
         RenderIterator(anim_space, loops=Ellipsis)
-    with pytest.raises(ValueError, match="'loops'"):
-        RenderIterator(anim_space, loops=0)
 
     with pytest.raises(TypeError, match="'cache'"):
         RenderIterator(anim_space, cache=Ellipsis)
-    for value in (0, -1, -100):
-        with pytest.raises(ValueError, match="'cache'"):
-            RenderIterator(anim_space, cache=value)
 
 
-def test_renderable():
-    render_iter = RenderIterator(anim_space)
-    frame = next(render_iter)
-    assert frame.renderable is anim_space
-    assert frame.render_data.render_cls is Space
-    assert frame.render_args.render_cls is Space
+class TestRenderable:
+    def test_non_animated(self):
+        with pytest.raises(ValueError, match="not animated"):
+            RenderIterator(space)
 
-    render_iter = RenderIterator(frame_fill)
-    frame = next(render_iter)
-    assert frame.renderable is frame_fill
-    assert frame.render_data.render_cls is FrameFill
-    assert frame.render_args.render_cls is FrameFill
+    @pytest.mark.parametrize("renderable", [anim_space, frame_fill])
+    def test_animated(self, renderable):
+        render_iter = RenderIterator(renderable)
+        frame = next(render_iter)
+        assert frame.renderable is renderable
+        assert frame.render_data.render_cls is type(renderable)
+        assert frame.render_args.render_cls is type(renderable)
 
 
 class TestRenderArgs:
@@ -173,6 +168,10 @@ class TestRenderArgs:
         render_iter = RenderIterator(anim_char, +Char.Args(char="#"))
         for frame in render_iter:
             assert frame.render_args == +Char.Args(char="#")
+
+    def test_incompatible(self):
+        with pytest.raises(IncompatibleRenderArgsError):
+            RenderIterator(anim_space, RenderArgs(FrameFill))
 
 
 class TestPadding:
@@ -198,15 +197,19 @@ class TestPadding:
 
 
 class TestLoops:
+    def test_invalid(self):
+        with pytest.raises(ValueError, match="'loops'"):
+            RenderIterator(anim_space, loops=0)
+
     class TestDefinite:
         def test_default(self):
             render_iter = RenderIterator(anim_space)
             assert len(tuple(render_iter)) == 2
 
-        def test_finite(self):
-            for value in (1, 2, 10):
-                render_iter = RenderIterator(anim_space, loops=value)
-                assert len(tuple(render_iter)) == 2 * value
+        @pytest.mark.parametrize("loops", [1, 10])
+        def test_finite(self, loops):
+            render_iter = RenderIterator(anim_space, loops=loops)
+            assert len(tuple(render_iter)) == 2 * loops
 
         @pytest.mark.parametrize("cache", [False, True])
         def test_repetition(self, cache):
@@ -218,30 +221,25 @@ class TestLoops:
             render_iter = RenderIterator(indefinite_space)
             assert len(tuple(render_iter)) == 1
 
-        def test_ignored(self):
-            for value in (1, 10, -1, -10):
-                render_iter = RenderIterator(indefinite_space, loops=value)
-                assert len(tuple(render_iter)) == 1
+        @pytest.mark.parametrize("loops", [1, 10, -1, -10])
+        def test_ignored(self, loops):
+            render_iter = RenderIterator(indefinite_space, loops=loops)
+            assert len(tuple(render_iter)) == 1
 
 
 class TestCache:
+    @pytest.mark.parametrize("cache", [0, -1, -100])
+    def test_invalid(self, cache):
+        with pytest.raises(ValueError, match="'cache'"):
+            RenderIterator(anim_space, cache=cache)
+
     class TestDefinite:
-        def test_default(self):
-            for frame_count in (2, 100):
-                render_iter = RenderIterator(Space(frame_count, 1), loops=2)
-                loop_1_frames = [next(render_iter) for _ in range(frame_count)]
-                loop_2_frames = [next(render_iter) for _ in range(frame_count)]
-
-                for loop_1_frame, loop_2_frame in zip(loop_1_frames, loop_2_frames):
-                    assert loop_1_frame is loop_2_frame
-
-            for frame_count in (101, 200):
-                render_iter = RenderIterator(Space(frame_count, 1), loops=2)
-                loop_1_frames = [next(render_iter) for _ in range(frame_count)]
-                loop_2_frames = [next(render_iter) for _ in range(frame_count)]
-
-                for loop_1_frame, loop_2_frame in zip(loop_1_frames, loop_2_frames):
-                    assert loop_1_frame is not loop_2_frame
+        @pytest.mark.parametrize(
+            "n_frames,cached", [(99, True), (100, True), (101, False)]
+        )
+        def test_default(self, n_frames, cached):
+            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(Space(n_frames, 1))):
+                assert (loop_1_frame is loop_2_frame) is cached
 
         def test_false(self):
             for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, False)):
@@ -251,51 +249,46 @@ class TestCache:
             for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, True)):
                 assert loop_1_frame is loop_2_frame
 
-        def test_less_than_frame_count(self):
-            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, 9)):
-                assert loop_1_frame is not loop_2_frame
-
-        def test_equal_to_frame_count(self):
-            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, 10)):
-                assert loop_1_frame is loop_2_frame
-
-        def test_greater_than_frame_count(self):
-            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, 11)):
-                assert loop_1_frame is loop_2_frame
+        @pytest.mark.parametrize("cache,cached", [(9, False), (10, True), (11, True)])
+        def test_cache_size(self, cache, cached):
+            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, cache)):
+                assert (loop_1_frame is loop_2_frame) is cached
 
     class TestIndefinite:
-        def test_default(self):
-            for frame_count in (2, 100, 101, 200):
-                render_iter = RenderIterator(IndefiniteSpace(frame_count))
-                assert "cached=False" in repr(render_iter)
+        @pytest.mark.parametrize("n_frames", [99, 100, 101])
+        def test_default(self, n_frames):
+            render_iter = RenderIterator(IndefiniteSpace(n_frames))
+            assert render_iter._cached is False
 
-        def test_ignored(self):
-            for frame_count in (False, True, 9, 10, 11):
-                render_iter = RenderIterator(indefinite_frame_fill)
-                assert "cached=False" in repr(render_iter)
+        @pytest.mark.parametrize("cache", [False, True, 9, 10, 11])
+        def test_ignored(self, cache):
+            render_iter = RenderIterator(indefinite_frame_fill, cache=cache)
+            assert render_iter._cached is False
 
 
 class TestFrameCount:
-    def test_definite(self):
-        for value in (2, 10):
-            render_iter = RenderIterator(Space(value, 1))
-            assert len(tuple(render_iter)) == value
+    @pytest.mark.parametrize("n_frames", [2, 10])
+    def test_definite(self, n_frames):
+        render_iter = RenderIterator(Space(n_frames, 1))
+        assert len(tuple(render_iter)) == n_frames
 
-    def test_indefinite(self):
-        for value in (2, 10):
-            render_iter = RenderIterator(IndefiniteSpace(value))
-            assert len(tuple(render_iter)) == value
+    @pytest.mark.parametrize("n_frames", [2, 10])
+    def test_indefinite(self, n_frames):
+        render_iter = RenderIterator(IndefiniteSpace(n_frames))
+        assert len(tuple(render_iter)) == n_frames
 
 
 class TestLoop:
     class TestDefinite:
-        def test_start(self):
-            render_iter = RenderIterator(anim_space)
-            assert render_iter.loop == 1
+        class TestStart:
+            def test_default(self):
+                render_iter = RenderIterator(anim_space)
+                assert render_iter.loop == 1
 
-            for value in (10, -1, -10):
-                render_iter = RenderIterator(anim_space, loops=value)
-                assert render_iter.loop == value
+            @pytest.mark.parametrize("loops", [10, -10])
+            def test_non_default(self, loops):
+                render_iter = RenderIterator(anim_space, loops=loops)
+                assert render_iter.loop == loops
 
         def test_end(self):
             render_iter = RenderIterator(anim_space)
@@ -348,21 +341,25 @@ class TestLoop:
             assert render_iter.loop == 1
 
     class TestIndefinite:
-        def test_start(self):
-            render_iter = RenderIterator(indefinite_space)
-            assert render_iter.loop == 1
-
-            for value in (1, 10, -1, -10):
-                render_iter = RenderIterator(indefinite_space, loops=value)
+        class TestStart:
+            def test_default(self):
+                render_iter = RenderIterator(indefinite_space)
                 assert render_iter.loop == 1
 
-        def test_end(self):
-            render_iter = RenderIterator(indefinite_space)
-            tuple(render_iter)
-            assert render_iter.loop == 0
+            @pytest.mark.parametrize("loops", [10, -10])
+            def test_non_default(self, loops):
+                render_iter = RenderIterator(indefinite_space, loops=loops)
+                assert render_iter.loop == 1
 
-            for value in (1, 10, -1, -10):
-                render_iter = RenderIterator(indefinite_space, loops=value)
+        class TestEnd:
+            def test_default(self):
+                render_iter = RenderIterator(indefinite_space)
+                tuple(render_iter)
+                assert render_iter.loop == 0
+
+            @pytest.mark.parametrize("loops", [10, -10])
+            def test_non_default(self, loops):
+                render_iter = RenderIterator(indefinite_space, loops=loops)
                 tuple(render_iter)
                 assert render_iter.loop == 0
 
@@ -384,18 +381,15 @@ def test_iter():
 
 
 class TestNext:
-    def test_iteration(self):
-        for renderable in (anim_space, IndefiniteSpace(2)):
-            render_iter = RenderIterator(renderable)
-
-            for number in range(2):
-                assert isinstance(next(render_iter), Frame)
-
-            with pytest.raises(StopIteration, match="ended"):
-                next(render_iter)
-
-            with pytest.raises(StopIteration, match="finalized"):
-                next(render_iter)
+    @pytest.mark.parametrize("renderable", [anim_space, IndefiniteSpace(2)])
+    def test_iteration(self, renderable):
+        render_iter = RenderIterator(renderable)
+        for number in range(2):
+            assert isinstance(next(render_iter), Frame)
+        with pytest.raises(StopIteration, match="ended"):
+            next(render_iter)
+        with pytest.raises(StopIteration, match="finalized"):
+            next(render_iter)
 
     def test_error(self):
         class ErrorSpace(Space):
@@ -405,12 +399,9 @@ class TestNext:
                 return super()._render_(render_data, render_args)
 
         render_iter = RenderIterator(ErrorSpace(2, 1))
-
         assert isinstance(next(render_iter), Frame)
-
         with pytest.raises(AssertionError):
             next(render_iter)
-
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
@@ -682,7 +673,7 @@ class TestSetRenderArgs:
         render_iter = RenderIterator(self.anim_char)
         with pytest.raises(TypeError, match="render_args"):
             render_iter.set_render_args(Ellipsis)
-        with pytest.raises(RenderArgsError, match="incompatible"):
+        with pytest.raises(IncompatibleRenderArgsError):
             render_iter.set_render_args(RenderArgs(Space))
 
     def test_iteration(self):
@@ -906,7 +897,7 @@ class TestFromRenderData:
             RenderIterator._from_render_data_(
                 anim_space, render_data, render_args=Ellipsis
             )
-        with pytest.raises(RenderArgsError, match="incompatible"):
+        with pytest.raises(IncompatibleRenderArgsError):
             RenderIterator._from_render_data_(
                 anim_space, render_data, render_args=RenderArgs(FrameFill)
             )
@@ -931,14 +922,14 @@ class TestFromRenderData:
             render_iter.close()
             assert render_data.finalized is True
 
-        def test_non_default(self):
-            for value in (False, True):
-                render_data = anim_space._get_render_data_(iteration=True)
-                render_iter = RenderIterator._from_render_data_(
-                    anim_space, render_data, finalize=value
-                )
-                render_iter.close()
-                assert render_data.finalized is value
+        @pytest.mark.parametrize("finalize", [False, True])
+        def test_non_default(self, finalize):
+            render_data = anim_space._get_render_data_(iteration=True)
+            render_iter = RenderIterator._from_render_data_(
+                anim_space, render_data, finalize=finalize
+            )
+            render_iter.close()
+            assert render_data.finalized is finalize
 
     class TestRenderArgs:
         def test_default(self):
