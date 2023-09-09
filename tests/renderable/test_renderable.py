@@ -693,13 +693,23 @@ class TestProperties:
 
 
 def test_iter():
-    space = Space(1, 1)
+    char = Char(1, 1)
     with pytest.raises(ValueError, match="not animated"):
-        iter(space)
+        iter(char)
 
-    r_iter = iter(Space(2, 1))
-    assert isinstance(r_iter, RenderIterator)
-    assert r_iter.loop == 1
+    anim_char = Char(2, 1)
+    render_iter = iter(anim_char)
+    assert isinstance(render_iter, RenderIterator)
+    assert render_iter.loop == 1  # loop count
+
+    frame = next(render_iter)
+    render_iter.seek(0)
+    assert frame.renderable is anim_char  # renderable
+    assert frame.render_data.render_cls is Char  # render data
+    assert frame.render_args == RenderArgs(Char)  # default render args
+    assert frame.size == Size(1, 1)  # no padding
+    assert frame.render == " "  # no padding
+    assert next(render_iter) is not frame  # no caching
 
 
 @pytest.mark.parametrize("renderable", [Space(1, 1), Char(1, 1)])
