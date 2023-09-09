@@ -245,14 +245,19 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """Returns a render iterator.
 
         Returns:
-            An iterator with a loop count of 1 (one).
+            A render iterator (with frame caching disabled and all other optional
+            arguments to :py:class:`~term_image.render.RenderIterator` being the
+            default values).
 
-        :term:`Animated` renderables are iterable i.e they can be used with all means
-        of iteration such as the ``for`` statement and iterable unpacking.
+        Raises:
+            ValueError: The renderable is non-animated.
+
+        :term:`Animated` renderables are iterable i.e they can be used with various
+        means of iteration such as the ``for`` statement and iterable unpacking.
         """
         from term_image.render import RenderIterator
 
-        return RenderIterator(self, loops=1)
+        return RenderIterator(self, cache=False)
 
     def __repr__(self) -> str:
         return (
