@@ -22,8 +22,8 @@ from ..utils import (
 
 
 class RenderIterator:
-    """Effeciently iterate over :term:`rendered` frames of an :term:`animated`
-    renderable.
+    """An iterator for efficient iteration over :term:`rendered` frames of an
+    :term:`animated` renderable.
 
     Args:
         renderable: An animated renderable.
@@ -39,13 +39,11 @@ class RenderIterator:
             The value is ignored and taken to be ``1`` (one), if *renderable* has
             :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
 
-        cache: Determines if :term:`rendered` frames are cached. If the value is
+        cache: Determines if :term:`rendered` frames are cached.
 
-          * ``True``, caching is enabled.
-          * a positive integer greater than or equal to the frame count of
-            *renderable*, caching is enabled.
-          * otherwise (i.e ``False`` or a positive integer less than the frame count),
-            caching is disabled.
+          If the value is ``True`` or a positive integer greater than or equal to the
+          frame count of *renderable*, caching is enabled. Otherwise i.e ``False`` or
+          a positive integer less than the frame count, caching is disabled.
 
           .. note::
             The value is ignored and taken to be ``False``, if *renderable* has
