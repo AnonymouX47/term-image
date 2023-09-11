@@ -10,7 +10,7 @@ import sys
 from abc import ABCMeta, abstractmethod
 from time import perf_counter_ns, sleep
 from types import MappingProxyType
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, TextIO
 
 import term_image
 
@@ -455,7 +455,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 termios.tcsetattr(output_fd, termios.TCSAFLUSH, new_attr)
 
             if animation:
-                self._animate_(render_data, render_args, padding, loops, cache)
+                self._animate_(render_data, render_args, padding, loops, cache, output)
             else:
                 frame = self._render_(render_data, render_args)
                 padded_size = padding.get_padded_size(frame.size)
@@ -598,22 +598,26 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         padding: Padding,
         loops: int,
         cache: bool | int,
+        output: TextIO,
     ) -> None:
-        """Animates frames of a renderable on standard output.
+        """Animates frames of a renderable.
 
         Args:
             render_data: Render data.
             render_args: Render arguments associated with the renderable's class.
-
-        Called by :py:meth:`draw` for animations.
+            output: The text I/O stream to which rendered frames will be written.
 
         All other parameters are the same as for :py:meth:`draw`, except that
-        *padding* always has **absolute** dimensions if it's an instance of
+        *padding* must have **absolute** dimensions if it's an instance of
         :py:class:`~term_image.padding.AlignedPadding`.
 
+        This is called by :py:meth:`draw` for animations.
+
         NOTE:
-            * Render size validation would've been performed by :py:meth:`draw`.
-            * *loops* and *cache* are not validated by :py:meth:`draw`.
+            * The base implementation does not finalize *render_data*.
+            * :term:`Render size` validation should've been performed by the caller.
+            * When called by :py:meth:`draw` (at least, the base implementation),
+              *loops* and *cache* wouldn't have been validated.
         """
         from term_image.render import RenderIterator
 
@@ -629,8 +633,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         )
         cursor_to_top_left = "\r" + CURSOR_UP % (padded_height - 1)
         cursor_down = CURSOR_DOWN % padded_height
-        write = sys.stdout.write
-        flush = sys.stdout.flush
+        write = output.write
+        flush = output.flush
 
         try:
             # first frame
