@@ -767,9 +767,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         external state.
 
         Args:
-            iteration: ``True`` if the render operation requiring the data involves a
-              sequence of :term:`renders`, possibly of different frames.
-              Otherwise, ``False`` i.e it's a one-off :term:`render`.
+            iteration: Whether the render operation requiring the data involves a
+              sequence of :term:`renders` (most likely of different frames), or it's
+              a one-off render.
 
         Returns:
             The generated render data.
@@ -870,18 +870,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               for a render operation to be performed later on.
             render_args: Render arguments.
             padding: :term:`Render output` padding.
-            iteration: ``True`` if the render operation involves a sequence of renders,
-              possibly of different frames. Otherwise, ``False`` i.e it's a one-off
-              render.
-            finalize: If ``True``, the render data passed to *renderer* is finalized
-              immediately *renderer* returns. Otherwise, finalizing the render data is
-              left to the caller of this method.
-            check_size: If ``False``, the [padded] :term:`render size` is not
-              validated, for **non-animations**.
-            scroll: If ``True``, the [padded] :term:`render height` is not validated,
-              for **non-animations**. Ignored if *check_size* is ``False``.
-            animation: If ``True``, *check_size* and *scroll* are ignored and the
-              [padded] :term:`render size` is validated.
+            iteration: Whether the render operation involves a sequence of renders
+              (most likely of different frames), or it's a one-off render.
+            finalize: Whether to finalize the render data passed to *renderer*
+              immediately *renderer* returns.
+            check_size: Whether to validate the [padded] :term:`render size` of
+              **non-animations**.
+            scroll: Whether to validate the [padded] :term:`render height` of
+              **non-animations**. Ignored if *check_size* is ``False``.
+            animation: Whether the render operation is an animation. If ``True``,
+              *check_size* and *scroll* are ignored and the [padded]
+              :term:`render size` is validated.
 
         Returns:
             A tuple containing

@@ -457,8 +457,7 @@ class RenderIterator:
             render_data: Render data.
             render_args: Render arguments.
             args: Other positional arguments accepted by the class constructor.
-            finalize: If ``True``, *render_data* is finalized along with the iterator.
-              Otherwise, finalizing *render_data* is left to the caller of this method.
+            finalize: Whether *render_data* is finalized along with the iterator.
             kwargs: Other keyword arguments accepted by the class constructor.
 
         Returns:
