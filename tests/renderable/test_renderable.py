@@ -8,6 +8,7 @@ from typing import Any, Iterator
 
 import pytest
 
+from term_image.ctlseqs import HIDE_CURSOR, SHOW_CURSOR
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
 from term_image.render import RenderIterator
@@ -26,6 +27,14 @@ from term_image.renderable import (
 )
 
 from .. import get_terminal_size
+
+try:
+    import pty
+    import termios
+except ImportError:
+    OS_IS_UNIX = False
+else:
+    OS_IS_UNIX = True
 
 stdout = io.StringIO()
 columns, lines = get_terminal_size()
@@ -142,6 +151,21 @@ def capture_stdout():
     finally:
         stdout.seek(0)
         stdout.truncate()
+
+
+@contextmanager
+def capture_stdout_pty():
+    def write(string):
+        type(slave).write(slave, string)
+        buffer.write(string)
+
+    master, slave = (open(fd, mode) for fd, mode in zip(pty.openpty(), "rw"))
+    buffer = io.StringIO()
+    slave.write = write
+    sys.stdout = slave
+
+    with master, slave:
+        yield master, buffer
 
 
 def draw_n_eol(height, frame_count, loops):
@@ -863,6 +887,63 @@ class TestDraw:
                 self.space.draw(scroll=True)
                 self.space.draw(padding=padding, scroll=True)
 
+        @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
+        class TestHideCursor:
+            class TestInTerminal:
+                space = Space(1, 1)
+
+                def test_default(self):
+                    with capture_stdout_pty() as (_, buffer):
+                        self.space.draw()
+                        output = buffer.getvalue()
+                        assert output.startswith(HIDE_CURSOR)
+                        assert output.count(HIDE_CURSOR) == 1
+                        assert output.endswith(SHOW_CURSOR)
+                        assert output.count(SHOW_CURSOR) == 1
+
+                @pytest.mark.parametrize("hide_cursor", [False, True])
+                def test_non_default(self, hide_cursor):
+                    with capture_stdout_pty() as (_, buffer):
+                        self.space.draw(hide_cursor=hide_cursor)
+                        output = buffer.getvalue()
+                        assert (output.startswith(HIDE_CURSOR)) is hide_cursor
+                        assert output.count(HIDE_CURSOR) == hide_cursor
+                        assert (output.endswith(SHOW_CURSOR)) is hide_cursor
+                        assert output.count(SHOW_CURSOR) == hide_cursor
+
+            @pytest.mark.parametrize("hide_cursor", [False, True])
+            @capture_stdout()
+            def test_not_in_terminal(self, hide_cursor):
+                space = Space(1, 1)
+                space.draw(hide_cursor=hide_cursor)
+                output = stdout.getvalue()
+                assert HIDE_CURSOR not in output
+                assert SHOW_CURSOR not in output
+
+        @pytest.mark.skipif(not OS_IS_UNIX, reason="Not supported on non-Unix")
+        class TestEchoInput:
+            class EchoSpace(Space):
+                def __init__(self):
+                    super().__init__(1, 1)
+
+                def _render_(self, *args):
+                    attr = termios.tcgetattr(sys.stdout.fileno())
+                    self.echoed = bool(attr[3] & termios.ECHO)
+                    return super()._render_(*args)
+
+            @capture_stdout_pty()
+            def test_default(self):
+                echo_space = self.EchoSpace()
+                echo_space.draw()
+                assert echo_space.echoed is False
+
+            @pytest.mark.parametrize("echo_input", [False, True])
+            @capture_stdout_pty()
+            def test_non_default(self, echo_input):
+                echo_space = self.EchoSpace()
+                echo_space.draw(echo_input=echo_input)
+                assert echo_space.echoed is echo_input
+
     class TestAnimation:
         anim_space = Space(2, 1)
         anim_char = Char(2, 1)
@@ -1028,6 +1109,62 @@ class TestDraw:
                     lines - 2, n_frames, 1
                 )
                 assert stdout.getvalue().endswith("\n")
+
+        @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
+        class TestHideCursor:
+            class TestInTerminal:
+                anim_space = Space(2, 1)
+
+                def test_default(self):
+                    with capture_stdout_pty() as (_, buffer):
+                        self.anim_space.draw(loops=1)
+                        output = buffer.getvalue()
+                        assert output.startswith(HIDE_CURSOR)
+                        assert output.count(HIDE_CURSOR) == 1
+                        assert output.endswith(SHOW_CURSOR)
+                        assert output.count(SHOW_CURSOR) == 1
+
+                @pytest.mark.parametrize("hide_cursor", [False, True])
+                def test_non_default(self, hide_cursor):
+                    with capture_stdout_pty() as (_, buffer):
+                        self.anim_space.draw(loops=1, hide_cursor=hide_cursor)
+                        output = buffer.getvalue()
+                        assert (output.startswith(HIDE_CURSOR)) is hide_cursor
+                        assert output.count(HIDE_CURSOR) == hide_cursor
+                        assert (output.endswith(SHOW_CURSOR)) is hide_cursor
+                        assert output.count(SHOW_CURSOR) == hide_cursor
+
+            @pytest.mark.parametrize("hide_cursor", [False, True])
+            @capture_stdout()
+            def test_not_in_terminal(self, hide_cursor):
+                anim_space = Space(1, 1)
+                anim_space.draw(loops=1, hide_cursor=hide_cursor)
+                output = stdout.getvalue()
+                assert HIDE_CURSOR not in output
+                assert SHOW_CURSOR not in output
+
+        @pytest.mark.skipif(not OS_IS_UNIX, reason="Not supported on non-Unix")
+        class TestEchoInput:
+            class AnimEchoSpace(Space):
+                def __init__(self):
+                    super().__init__(2, 1)
+
+                def _animate_(self, *args, **kwargs):
+                    attr = termios.tcgetattr(sys.stdout.fileno())
+                    self.echoed = bool(attr[3] & termios.ECHO)
+
+            @capture_stdout_pty()
+            def test_default(self):
+                anim_echo_space = self.AnimEchoSpace()
+                anim_echo_space.draw(loops=1)
+                assert anim_echo_space.echoed is False
+
+            @pytest.mark.parametrize("echo_input", [False, True])
+            @capture_stdout_pty()
+            def test_non_default(self, echo_input):
+                anim_echo_space = self.AnimEchoSpace()
+                anim_echo_space.draw(loops=1, echo_input=echo_input)
+                assert anim_echo_space.echoed is echo_input
 
 
 class TestRender:
