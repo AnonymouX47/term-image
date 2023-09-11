@@ -23,6 +23,13 @@ from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import IndefiniteSeekError, RenderableError, RenderSizeOutofRangeError
 from ._types import Frame, RenderArgs, RenderData
 
+try:
+    import termios
+except ImportError:
+    OS_IS_UNIX = False
+else:
+    OS_IS_UNIX = True
+
 
 class RenderableMeta(ABCMeta):
     """Base metaclass of the Renderable API.
@@ -354,6 +361,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         cache: bool | int = 100,
         check_size: bool = True,
         scroll: bool = False,
+        hide_cursor: bool = True,
+        echo_input: bool = False,
     ) -> None:
         """Draws the current frame or an animation to standard output.
 
@@ -370,6 +379,15 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               for **non-animations**.
             scroll: If ``True``, the padded :term:`render height` is not validated,
               for **non-animations**. Ignored if *check_size* is ``False``.
+            hide_cursor: Whether to hide the cursor **while drawing**.
+            echo_input: Whether to display input **while drawing** (applies on **Unix
+              only**).
+
+              .. note::
+                 * If disabled (default), input is not read/consumed, it's just not
+                   displayed.
+                 * If enabled, echoed input may affect cursor positioning and
+                   therefore, the output (especially for animations).
 
         Raises:
             TypeError: An argument is of an inappropriate type.
@@ -386,6 +404,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
           :term:`render height` must not be greater than the :term:`terminal height`.
 
         NOTE:
+            * *hide_cursor* and *echo_input* apply if and only if the output stream
+              is connected to a terminal.
             * For animations (i.e animated renderables with *animate* set to ``True``),
               the padded :term:`render size` is always validated.
             * Animations with **definite** frame count, **by default**, are infinitely
@@ -408,6 +428,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         animation = self.animated and animate
         output = sys.stdout
+        not_echo_input = OS_IS_UNIX and not echo_input and output.isatty()
+        hide_cursor = hide_cursor and output.isatty()
 
         # Validate size and get render data
         (render_data, render_args), padding = self._init_render_(
@@ -421,9 +443,16 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             animation=animation,
         )
 
+        if not_echo_input:
+            output_fd = output.fileno()
+            old_attr = termios.tcgetattr(output_fd)
+            new_attr = termios.tcgetattr(output_fd)
+            new_attr[3] &= ~termios.ECHO
         try:
-            if output.isatty():
+            if hide_cursor:
                 output.write(HIDE_CURSOR)
+            if not_echo_input:
+                termios.tcsetattr(output_fd, termios.TCSAFLUSH, new_attr)
 
             if animation:
                 self._animate_(render_data, render_args, padding, loops, cache)
@@ -443,9 +472,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                     raise
         finally:
             output.write("\n")
-            if output.isatty():
+            if hide_cursor:
                 output.write(SHOW_CURSOR)
             output.flush()
+            if not_echo_input:
+                termios.tcsetattr(output_fd, termios.TCSANOW, old_attr)
             render_data.finalize()
 
     def render(
