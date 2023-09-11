@@ -369,16 +369,16 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Args:
             render_args: Render arguments.
             padding: :term:`Render output` padding.
-            animate: If ``False``, disable animation i.e draw only the current frame.
-              Applies to :term:`animated` renderables only.
-            loops: Applies to animations only.
-              See :py:class:`~term_image.render.RenderIterator`.
-            cache: Applies to animations only.
-              See :py:class:`~term_image.render.RenderIterator`.
-            check_size: If ``False``, the padded :term:`render size` is not validated,
-              for **non-animations**.
-            scroll: If ``True``, the padded :term:`render height` is not validated,
-              for **non-animations**. Ignored if *check_size* is ``False``.
+            animate: Whether to enable animation for :term:`animated` renderables.
+              If disabled, only the current frame is drawn.
+            loops: See :py:class:`~term_image.render.RenderIterator`
+              (applies to **animations only**).
+            cache: See :py:class:`~term_image.render.RenderIterator`.
+              (applies to **animations only**).
+            check_size: Whether to validate the padded :term:`render size` of
+              **non-animations**.
+            scroll: Whether to validate the padded :term:`render height` of
+              **non-animations**. Ignored if *check_size* is ``False``.
             hide_cursor: Whether to hide the cursor **while drawing**.
             echo_input: Whether to display input **while drawing** (applies on **Unix
               only**).
