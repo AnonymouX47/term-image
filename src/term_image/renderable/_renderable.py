@@ -360,7 +360,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         loops: int = -1,
         cache: bool | int = 100,
         check_size: bool = True,
-        scroll: bool = False,
+        allow_scroll: bool = False,
         hide_cursor: bool = True,
         echo_input: bool = False,
     ) -> None:
@@ -377,7 +377,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               (applies to **animations only**).
             check_size: Whether to validate the padded :term:`render size` of
               **non-animations**.
-            scroll: Whether to validate the padded :term:`render height` of
+            allow_scroll: Whether to validate the padded :term:`render height` of
               **non-animations**. Ignored if *check_size* is ``False``.
             hide_cursor: Whether to hide the cursor **while drawing**.
             echo_input: Whether to display input **while drawing** (applies on **Unix
@@ -400,7 +400,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         * the padded :term:`render width` must not be greater than the
           :term:`terminal width`.
-        * and *scroll* is ``False`` (the default) or it's an animation, the padded
+        * and *allow_scroll* is ``False`` (the default) or it's an animation, the padded
           :term:`render height` must not be greater than the :term:`terminal height`.
 
         NOTE:
@@ -423,8 +423,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         if not isinstance(check_size, bool):
             raise arg_type_error("check_size", check_size)
-        if not isinstance(scroll, bool):
-            raise arg_type_error("scroll", scroll)
+        if not isinstance(allow_scroll, bool):
+            raise arg_type_error("allow_scroll", allow_scroll)
 
         animation = self.animated and animate
         output = sys.stdout
@@ -439,7 +439,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             iteration=animation,
             finalize=False,
             check_size=check_size,
-            scroll=scroll,
+            allow_scroll=allow_scroll,
             animation=animation,
         )
 
@@ -860,7 +860,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         iteration: bool = False,
         finalize: bool = True,
         check_size: bool = False,
-        scroll: bool = False,
+        allow_scroll: bool = False,
         animation: bool = False,
     ) -> tuple[Any, Padding | None]:
         """Initiates a render operation.
@@ -876,10 +876,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               immediately *renderer* returns.
             check_size: Whether to validate the [padded] :term:`render size` of
               **non-animations**.
-            scroll: Whether to validate the [padded] :term:`render height` of
+            allow_scroll: Whether to validate the [padded] :term:`render height` of
               **non-animations**. Ignored if *check_size* is ``False``.
             animation: Whether the render operation is an animation. If ``True``,
-              *check_size* and *scroll* are ignored and the [padded]
+              *check_size* and *allow_scroll* are ignored and the [padded]
               :term:`render size` is validated.
 
         Returns:
@@ -937,7 +937,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                         f"{'Padded render' if padding else 'Render'} width out of "
                         f"range (got: {width}; terminal_width={terminal_width})"
                     )
-                if (animation or not scroll) and height > terminal_height:
+                if (animation or not allow_scroll) and height > terminal_height:
                     raise RenderSizeOutofRangeError(
                         f"{'Padded render' if padding else 'Render'} height out of "
                         f"range (got: {height}; terminal_height={terminal_height}, "

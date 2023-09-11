@@ -756,8 +756,8 @@ class TestDraw:
         with pytest.raises(TypeError, match="'check_size'"):
             renderable.draw(check_size=Ellipsis)
 
-        with pytest.raises(TypeError, match="'scroll'"):
-            renderable.draw(scroll=Ellipsis)
+        with pytest.raises(TypeError, match="'allow_scroll'"):
+            renderable.draw(allow_scroll=Ellipsis)
 
     class TestNonAnimation:
         space = Space(1, 1)
@@ -858,7 +858,7 @@ class TestDraw:
                 self.space.draw(padding=padding, check_size=False)
 
             @capture_stdout()
-            def test_scroll(self):
+            def test_allow_scroll(self):
                 space = Space(1, 1)
                 space.size = Size(1, lines + 1)
                 padding = AlignedPadding(1, lines + 1)
@@ -877,15 +877,15 @@ class TestDraw:
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    space.draw(scroll=False)
+                    space.draw(allow_scroll=False)
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    self.space.draw(padding=padding, scroll=False)
+                    self.space.draw(padding=padding, allow_scroll=False)
 
                 # True
-                self.space.draw(scroll=True)
-                self.space.draw(padding=padding, scroll=True)
+                self.space.draw(allow_scroll=True)
+                self.space.draw(padding=padding, allow_scroll=True)
 
         @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
         class TestHideCursor:
@@ -1031,7 +1031,7 @@ class TestDraw:
                     self.anim_space.draw(padding=padding, check_size=False)
 
             @capture_stdout()
-            def test_scroll(self):
+            def test_allow_scroll(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(1, lines + 1)
                 padding = AlignedPadding(1, lines + 1)
@@ -1050,21 +1050,21 @@ class TestDraw:
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    anim_space.draw(scroll=False)
+                    anim_space.draw(allow_scroll=False)
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    self.anim_space.draw(padding=padding, scroll=False)
+                    self.anim_space.draw(padding=padding, allow_scroll=False)
 
                 # True
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    anim_space.draw(scroll=True)
+                    anim_space.draw(allow_scroll=True)
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render height"
                 ):
-                    self.anim_space.draw(padding=padding, scroll=True)
+                    self.anim_space.draw(padding=padding, allow_scroll=True)
 
         class TestDefinite:
             anim_space = Space(2, 1)
@@ -1510,14 +1510,14 @@ class TestInitRender:
                             check_size=True,
                         )
 
-            class TestScroll:
+            class TestAllowScroll:
                 def test_render_height(self):
                     anim_space = Space(2, 1)
 
                     # in range
                     anim_space.size = Size(1, lines)
                     anim_space._init_render_(
-                        lambda *_: None, check_size=True, scroll=False
+                        lambda *_: None, check_size=True, allow_scroll=False
                     )
 
                     # out of range
@@ -1532,15 +1532,15 @@ class TestInitRender:
                         RenderSizeOutofRangeError, match="Render height"
                     ):
                         anim_space._init_render_(
-                            lambda *_: None, check_size=True, scroll=False
+                            lambda *_: None, check_size=True, allow_scroll=False
                         )
                     # # True
                     anim_space._init_render_(
-                        lambda *_: None, check_size=True, scroll=True
+                        lambda *_: None, check_size=True, allow_scroll=True
                     )
                     # # ignored when check_size is False
                     anim_space._init_render_(
-                        lambda *_: None, check_size=False, scroll=False
+                        lambda *_: None, check_size=False, allow_scroll=False
                     )
 
                 def test_padded_height(self):
@@ -1551,7 +1551,7 @@ class TestInitRender:
                         lambda *_: None,
                         padding=AlignedPadding(1, lines),
                         check_size=True,
-                        scroll=False,
+                        allow_scroll=False,
                     )
 
                     # out of range
@@ -1571,15 +1571,21 @@ class TestInitRender:
                             lambda *_: None,
                             padding=padding,
                             check_size=True,
-                            scroll=False,
+                            allow_scroll=False,
                         )
                     # # True
                     anim_space._init_render_(
-                        lambda *_: None, padding=padding, check_size=True, scroll=True
+                        lambda *_: None,
+                        padding=padding,
+                        check_size=True,
+                        allow_scroll=True,
                     )
                     # # ignored when check_size is False
                     anim_space._init_render_(
-                        lambda *_: None, padding=padding, check_size=False, scroll=False
+                        lambda *_: None,
+                        padding=padding,
+                        check_size=False,
+                        allow_scroll=False,
                     )
 
         class TestAnimationTrue:
@@ -1592,11 +1598,14 @@ class TestInitRender:
                         lambda *_: None, animation=True, check_size=False
                     )
 
-            def test_scroll_is_ignored(self):
+            def test_allow_scroll_is_ignored(self):
                 anim_space = Space(2, 1)
                 anim_space.size = Size(1, lines + 1)
 
                 with pytest.raises(RenderSizeOutofRangeError, match="Render height"):
                     anim_space._init_render_(
-                        lambda *_: None, animation=True, check_size=True, scroll=True
+                        lambda *_: None,
+                        animation=True,
+                        check_size=True,
+                        allow_scroll=True,
                     )
