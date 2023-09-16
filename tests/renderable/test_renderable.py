@@ -93,6 +93,16 @@ class IndefiniteSpace(Space):
         frames: Iterator[int] | None
 
 
+class CacheSpace(Space):
+    def __init__(self, *args):
+        self.n_renders = 0
+        super().__init__(*args)
+
+    def _render_(self, *args):
+        self.n_renders += 1
+        return super()._render_(*args)
+
+
 class Char(Renderable):
     size = Size(1, 1)
 
