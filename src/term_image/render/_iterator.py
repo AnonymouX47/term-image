@@ -528,10 +528,10 @@ class RenderIterator:
         while loop:
             while frame_no < frame_count:
                 frame, *frame_details = cache[frame_no] if cache else (None,)
+
                 if not frame or frame_details != [
                     renderable_data.size,
                     self._render_args,
-                    self._padding,
                 ]:
                     try:
                         frame = renderable._render_(render_data, self._render_args)
@@ -540,20 +540,20 @@ class RenderIterator:
                             self.loop = 0
                             return
                         raise
-                    if self._padded_size != frame.size:
-                        frame = Frame(
-                            frame.number,
-                            frame.duration,
-                            self._padded_size,
-                            self._padding.pad(frame.render, frame.size),
-                        )
                     if cache:
                         cache[frame_no] = (
                             frame,
                             renderable_data.size,
                             self._render_args,
-                            self._padding,
                         )
+
+                if self._padded_size != frame.size:
+                    frame = Frame(
+                        frame.number,
+                        frame.duration,
+                        self._padded_size,
+                        self._padding.pad(frame.render, frame.size),
+                    )
 
                 if definite:
                     renderable_data.frame_offset += 1
