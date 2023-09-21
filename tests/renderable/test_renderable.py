@@ -805,7 +805,7 @@ class TestDraw:
             @capture_stdout()
             def test_compatible(self):
                 draw_char = self.DrawChar(1, 1)
-                char_args = Char.Args("\u2850")
+                char_args = Char.Args("#")
                 draw_char.draw(+char_args)
                 assert draw_char.render_args == RenderArgs(self.DrawChar, char_args)
                 assert STDOUT.getvalue().count("\n") == LINES - 2
@@ -956,10 +956,8 @@ class TestDraw:
         @capture_stdout()
         def test_non_default(self):
             draw_anim_char = self.DrawAnimChar(2, 1)
-            render_args = RenderArgs(self.DrawAnimChar, Char.Args("\u2850"))
-            draw_anim_char.draw(
-                +Char.Args("\u2850"), ExactPadding(), loops=2, cache=False
-            )
+            render_args = RenderArgs(self.DrawAnimChar, Char.Args("#"))
+            draw_anim_char.draw(+Char.Args("#"), ExactPadding(), loops=2, cache=False)
             assert draw_anim_char.anim_args.render_data.render_cls is self.DrawAnimChar
             assert draw_anim_char.anim_args.render_args == render_args
             assert draw_anim_char.anim_args.padding == ExactPadding()
@@ -1147,8 +1145,8 @@ class TestRender:
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
     def test_render_args(self):
-        frame = Char(1, 1).render(+Char.Args("\u2850"))
-        assert frame.render_args == +Char.Args("\u2850")
+        frame = Char(1, 1).render(+Char.Args("#"))
+        assert frame.render_args == +Char.Args("#")
 
     # Just ensures the argument is passed on and used appropriately.
     # The full tests are at `TestInitRender`.
@@ -1266,7 +1264,7 @@ class TestAnimate:
 
     @pytest.mark.parametrize(
         "render_args",
-        [RenderArgs(AnimateChar), RenderArgs(AnimateChar, Char.Args("\u2850"))],
+        [RenderArgs(AnimateChar), RenderArgs(AnimateChar, Char.Args("#"))],
     )
     @capture_stdout()
     def test_render_args(self, render_args):
