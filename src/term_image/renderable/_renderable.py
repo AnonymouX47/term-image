@@ -936,7 +936,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             This is to prevent inconsitency in data used for the same render which may
             result in unexpected output.
         """
-        render_args = RenderArgs(type(self), render_args)  # Validate and complete
+        if not (render_args and render_args.render_cls is type(self)):
+            # Validate compatibility (and convert, if compatible)
+            render_args = RenderArgs(type(self), render_args)
         terminal_size = get_terminal_size()
         render_data = self._get_render_data_(iteration=iteration)
         try:

@@ -415,7 +415,13 @@ class RenderIterator:
         if not isinstance(render_args, RenderArgs):
             raise arg_type_error("render_args", render_args)
 
-        self._render_args = RenderArgs(type(self._renderable), render_args)
+        render_cls = type(self._renderable)
+        self._render_args = (
+            render_args
+            if render_args.render_cls is render_cls
+            # Validate compatibility (and convert, if compatible)
+            else RenderArgs(render_cls, render_args)
+        )
 
     def set_render_size(self, render_size: Size) -> None:
         """Sets the :term:`render size`.
@@ -484,10 +490,13 @@ class RenderIterator:
         if not render_data[Renderable].iteration:
             raise arg_value_error_msg("Invalid render data for iteration", render_data)
 
+        if not (render_args and render_args.render_cls is type(renderable)):
+            # Validate compatibility (and convert, if compatible)
+            render_args = RenderArgs(type(renderable), render_args)
+
         if not isinstance(finalize, bool):
             raise arg_type_error("finalize", finalize)
 
-        render_args = RenderArgs(type(renderable), render_args)  # Validate and complete
         new._padding = (
             padding.resolve(get_terminal_size())
             if isinstance(padding, AlignedPadding) and padding.relative
