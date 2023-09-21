@@ -125,7 +125,29 @@ class Response:
             __all__.append(name)
 
 
-__all__ += ("x_parse_color",)
+__all__ += (
+    "cursor_backward",
+    "cursor_down",
+    "cursor_forward",
+    "cursor_up",
+    "x_parse_color",
+)
+
+
+def cursor_backward(columns: int) -> str:
+    return CURSOR_BACKWARD % columns if columns > 0 else ""
+
+
+def cursor_down(lines: int) -> str:
+    return CURSOR_DOWN % lines if lines > 0 else ""
+
+
+def cursor_forward(columns: int) -> str:
+    return CURSOR_FORWARD % columns if columns > 0 else ""
+
+
+def cursor_up(lines: int) -> str:
+    return CURSOR_UP % lines if lines > 0 else ""
 
 
 def x_parse_color(spec: str) -> Tuple[int, int, int]:
