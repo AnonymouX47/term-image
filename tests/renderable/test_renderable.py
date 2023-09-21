@@ -36,8 +36,8 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-stdout = io.StringIO()
-columns, lines = get_terminal_size()
+STDOUT = io.StringIO()
+COLUMNS, LINES = get_terminal_size()
 
 # NOTE: Always keep in mind that frames are not actually rendered by `RenderIterator`.
 # Hence, avoid testing the original data (fields defined by `Frame`) of rendered frames
@@ -153,14 +153,14 @@ class DummyFrame(Frame):
 
 @contextmanager
 def capture_stdout():
-    stdout.seek(0)
-    stdout.truncate()
-    sys.stdout = stdout
+    STDOUT.seek(0)
+    STDOUT.truncate()
+    sys.stdout = STDOUT
     try:
         yield
     finally:
-        stdout.seek(0)
-        stdout.truncate()
+        STDOUT.seek(0)
+        STDOUT.truncate()
 
 
 @contextmanager
@@ -178,8 +178,15 @@ def capture_stdout_pty():
         yield master, buffer
 
 
-def draw_n_eol(height, frame_count, loops):
-    return (height - 1) * frame_count * loops + 1
+def anim_n_eol(render_height, padded_height, frame_count, loops):
+    return (
+        # first frame of the first loop, with padding
+        (padded_height - 1)
+        # remaining frames of the first loop
+        + ((render_height - 1) * (frame_count - 1))
+        # frames of the remaining loops
+        + ((render_height - 1) * frame_count * (loops - 1))
+    )
 
 
 # ========================== Tests ==========================
@@ -754,20 +761,7 @@ def test_str(renderable):
 
 
 class TestDraw:
-    @pytest.mark.parametrize("renderable", [Space(1, 1), Space(2, 1)])
-    @capture_stdout()
-    def test_args(self, renderable):
-        with pytest.raises(TypeError, match="'render_args'"):
-            renderable.draw(Ellipsis)
-
-        with pytest.raises(TypeError, match="'padding'"):
-            renderable.draw(padding=Ellipsis)
-
-        with pytest.raises(TypeError, match="'check_size'"):
-            renderable.draw(check_size=Ellipsis)
-
-        with pytest.raises(TypeError, match="'allow_scroll'"):
-            renderable.draw(allow_scroll=Ellipsis)
+    """See also: `TestInitRender` and `TestAnimate`."""
 
     class TestNonAnimation:
         space = Space(1, 1)
@@ -776,159 +770,135 @@ class TestDraw:
 
         @capture_stdout()
         def test_args_ignored_for_non_animated(self):
-            self.space.draw(animate=Ellipsis)
-            self.space.draw(loops=Ellipsis)
-            self.space.draw(cache=Ellipsis)
+            self.space.draw(loops=0)
+            self.space.draw(cache=-1)
 
         @capture_stdout()
         def test_args_ignored_for_animated_when_animate_is_false(self):
-            self.anim_space.draw(animate=False, loops=Ellipsis)
-            self.anim_space.draw(animate=False, cache=Ellipsis)
+            self.anim_space.draw(animate=False, loops=0)
+            self.anim_space.draw(animate=False, cache=-1)
 
         @capture_stdout()
         def test_default(self):
-            self.space.draw()
-            assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
-            assert stdout.getvalue().endswith("\n")
+            class DrawChar(Char):
+                def _render_(self, render_data, render_args):
+                    self.render_args = render_args
+                    return super()._render_(render_data, render_args)
+
+            draw_char = DrawChar(1, 1)
+            draw_char.draw()
+            assert draw_char.render_args == RenderArgs(DrawChar)
+            assert STDOUT.getvalue().count("\n") == LINES - 2
+            assert STDOUT.getvalue().endswith("\n")
 
         class TestRenderArgs:
-            char = Char(1, 1)
+            class DrawChar(Char):
+                def _render_(self, render_data, render_args):
+                    self.render_args = render_args
+                    return super()._render_(render_data, render_args)
 
             def test_incompatible(self):
                 with pytest.raises(IncompatibleRenderArgsError):
-                    self.char.draw(RenderArgs(Space))
+                    self.DrawChar(1, 1).draw(RenderArgs(Space))
 
-            # Just ensures the argument is passed on and used appropriately.
-            # The full tests are at `TestInitRender`.
             @capture_stdout()
             def test_compatible(self):
-                self.char.draw(+Char.Args("\u2850"))
-                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 1, 1)
-                assert stdout.getvalue().count("\u2850") == 1
-                assert stdout.getvalue().endswith("\n")
+                draw_char = self.DrawChar(1, 1)
+                char_args = Char.Args("\u2850")
+                draw_char.draw(+char_args)
+                assert draw_char.render_args == RenderArgs(self.DrawChar, char_args)
+                assert STDOUT.getvalue().count("\n") == LINES - 2
+                assert STDOUT.getvalue().endswith("\n")
 
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
         @capture_stdout()
         def test_padding(self):
             self.space.draw(padding=AlignedPadding(3, 3))
-            assert stdout.getvalue().count("\n") == draw_n_eol(3, 1, 1)
-            assert stdout.getvalue().endswith("\n")
+            assert STDOUT.getvalue().count("\n") == 3
+            assert STDOUT.getvalue().endswith("\n")
 
         def test_animate(self):
             with capture_stdout():
                 self.space.draw()
-                output = stdout.getvalue()
+                output = STDOUT.getvalue()
+                assert output.count("\n") == LINES - 2
 
             with capture_stdout():
                 self.space.draw(animate=True)
-                assert output == stdout.getvalue()
+                assert output == STDOUT.getvalue()
 
             with capture_stdout():
                 self.space.draw(animate=False)
-                assert output == stdout.getvalue()
+                assert output == STDOUT.getvalue()
 
             with capture_stdout():
                 self.anim_space.draw(animate=False)
-                assert output == stdout.getvalue()
+                assert output == STDOUT.getvalue()
 
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
-        class TestSizeValidation:
+        class TestCheckSize:
             space = Space(1, 1)
+            space_large = Space(1, 1)
+            space_large.size = Size(COLUMNS + 1, 1)
+            padding = AlignedPadding(COLUMNS + 1, 1)
 
             @capture_stdout()
-            def test_check_size(self):
-                space = Space(1, 1)
-                space.size = Size(columns + 1, 1)
-                padding = AlignedPadding(columns + 1, 1)
-
-                # Default
+            def test_default(self):
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render width"
                 ):
-                    space.draw()
+                    self.space_large.draw()
                 with pytest.raises(
                     RenderSizeOutofRangeError, match="Padded render width"
                 ):
-                    self.space.draw(padding=padding)
-
-                # True
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    space.draw(check_size=True)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    self.space.draw(padding=padding, check_size=True)
-
-                # False
-                space.draw(check_size=False)
-                self.space.draw(padding=padding, check_size=False)
+                    self.space.draw(padding=self.padding)
 
             @capture_stdout()
-            def test_allow_scroll(self):
-                space = Space(1, 1)
-                space.size = Size(1, lines + 1)
-                padding = AlignedPadding(1, lines + 1)
-
-                # Default
+            def test_true(self):
                 with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
+                    RenderSizeOutofRangeError, match="Padded render width"
                 ):
-                    space.draw()
+                    self.space_large.draw(check_size=True)
                 with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
+                    RenderSizeOutofRangeError, match="Padded render width"
                 ):
-                    self.space.draw(padding=padding)
+                    self.space.draw(padding=self.padding, check_size=True)
 
-                # False
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    space.draw(allow_scroll=False)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    self.space.draw(padding=padding, allow_scroll=False)
-
-                # True
-                self.space.draw(allow_scroll=True)
-                self.space.draw(padding=padding, allow_scroll=True)
-
-        @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
-        class TestHideCursor:
-            class TestInTerminal:
-                space = Space(1, 1)
-
-                def test_default(self):
-                    with capture_stdout_pty() as (_, buffer):
-                        self.space.draw()
-                        output = buffer.getvalue()
-                        assert output.startswith(HIDE_CURSOR)
-                        assert output.count(HIDE_CURSOR) == 1
-                        assert output.endswith(SHOW_CURSOR)
-                        assert output.count(SHOW_CURSOR) == 1
-
-                @pytest.mark.parametrize("hide_cursor", [False, True])
-                def test_non_default(self, hide_cursor):
-                    with capture_stdout_pty() as (_, buffer):
-                        self.space.draw(hide_cursor=hide_cursor)
-                        output = buffer.getvalue()
-                        assert (output.startswith(HIDE_CURSOR)) is hide_cursor
-                        assert output.count(HIDE_CURSOR) == hide_cursor
-                        assert (output.endswith(SHOW_CURSOR)) is hide_cursor
-                        assert output.count(SHOW_CURSOR) == hide_cursor
-
-            @pytest.mark.parametrize("hide_cursor", [False, True])
             @capture_stdout()
-            def test_not_in_terminal(self, hide_cursor):
-                space = Space(1, 1)
-                space.draw(hide_cursor=hide_cursor)
-                output = stdout.getvalue()
-                assert HIDE_CURSOR not in output
-                assert SHOW_CURSOR not in output
+            def test_false(self):
+                self.space_large.draw(check_size=False)
+                self.space.draw(padding=self.padding, check_size=False)
+
+        class TestAllowScroll:
+            space = Space(1, 1)
+            space_large = Space(1, 1)
+            space_large.size = Size(1, LINES + 1)
+            padding = AlignedPadding(1, LINES + 1)
+
+            @capture_stdout()
+            def test_default(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.space_large.draw()
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.space.draw(padding=self.padding)
+
+            @capture_stdout()
+            def test_false(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.space_large.draw(allow_scroll=False)
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.space.draw(padding=self.padding, allow_scroll=False)
+
+            @capture_stdout()
+            def test_true(self):
+                self.space_large.draw(allow_scroll=True)
+                self.space.draw(padding=self.padding, allow_scroll=True)
 
         @pytest.mark.skipif(not OS_IS_UNIX, reason="Not supported on non-Unix")
         class TestEchoInput:
@@ -955,203 +925,150 @@ class TestDraw:
                 assert echo_space.echoed is echo_input
 
     class TestAnimation:
-        anim_space = Space(2, 1)
-        anim_char = Char(2, 1)
+        class DrawAnimChar(Char):
+            def _animate_(
+                self, render_data, render_args, padding, loops, cache, output
+            ):
+                self.anim_args = args = SimpleNamespace()
+                args.render_data = render_data
+                args.render_args = render_args
+                args.padding = padding
+                args.loops = loops
+                args.cache = cache
+                args.output = output
 
         @capture_stdout()
-        def test_args(self):
-            with pytest.raises(TypeError, match="'animate'"):
-                self.anim_space.draw(animate=Ellipsis)
+        def test_default(self):
+            draw_anim_char = self.DrawAnimChar(2, 1)
+            draw_anim_char.draw()
+            assert draw_anim_char.anim_args.render_data.render_cls is self.DrawAnimChar
+            assert draw_anim_char.anim_args.render_args == RenderArgs(self.DrawAnimChar)
+            assert draw_anim_char.anim_args.padding == AlignedPadding(
+                COLUMNS, LINES - 2
+            )
+            assert draw_anim_char.anim_args.loops == -1
+            assert draw_anim_char.anim_args.cache == 100
+            assert draw_anim_char.anim_args.output is sys.stdout
+            assert STDOUT.getvalue().count("\n") == 1
+            assert STDOUT.getvalue().endswith("\n")
 
-            with pytest.raises(TypeError, match="'loops'"):
-                self.anim_space.draw(loops=Ellipsis)
-
-            with pytest.raises(TypeError, match="'cache'"):
-                self.anim_space.draw(cache=Ellipsis)
-
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
         @capture_stdout()
-        def test_render_args(self):
-            self.anim_char.draw(+Char.Args("\u2850"), loops=1)
-            assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
-            assert stdout.getvalue().count("\u2850") == 2
-            assert stdout.getvalue().endswith("\n")
+        def test_non_default(self):
+            draw_anim_char = self.DrawAnimChar(2, 1)
+            render_args = RenderArgs(self.DrawAnimChar, Char.Args("\u2850"))
+            draw_anim_char.draw(
+                +Char.Args("\u2850"), ExactPadding(), loops=2, cache=False
+            )
+            assert draw_anim_char.anim_args.render_data.render_cls is self.DrawAnimChar
+            assert draw_anim_char.anim_args.render_args == render_args
+            assert draw_anim_char.anim_args.padding == ExactPadding()
+            assert draw_anim_char.anim_args.loops == 2
+            assert draw_anim_char.anim_args.cache is False
+            assert draw_anim_char.anim_args.output is sys.stdout
+            assert STDOUT.getvalue().count("\n") == 1
+            assert STDOUT.getvalue().endswith("\n")
 
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
-        @capture_stdout()
-        def test_padding(self):
-            self.anim_space.draw(padding=AlignedPadding(3, 3), loops=1)
-            assert stdout.getvalue().count("\n") == draw_n_eol(3, 2, 1)
-            assert stdout.getvalue().endswith("\n")
+        def test_incompatible_render_args(self):
+            char = Char(2, 1)
+            with pytest.raises(IncompatibleRenderArgsError):
+                char.draw(RenderArgs(Space))
 
         def test_animate(self):
-            with capture_stdout():
-                self.anim_space.draw(loops=1)
-                output = stdout.getvalue()
-
-            with capture_stdout():
-                self.anim_space.draw(animate=True, loops=1)
-                assert output == stdout.getvalue()
-
-            with capture_stdout():
-                self.anim_space.draw(animate=False, loops=1)
-                assert output != stdout.getvalue()
-
-        # Just ensures the argument is passed on and used appropriately.
-        # The full tests are at `TestInitRender`.
-        class TestSizeValidation:
             anim_space = Space(2, 1)
 
-            @capture_stdout()
-            def test_check_size(self):
-                anim_space = Space(2, 1)
-                anim_space.size = Size(columns + 1, 1)
-                padding = AlignedPadding(columns + 1, 1)
+            with capture_stdout():
+                anim_space.draw(loops=1)
+                output = STDOUT.getvalue()
+                assert output.count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
 
-                # Default
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    anim_space.draw()
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    self.anim_space.draw(padding=padding)
+            with capture_stdout():
+                anim_space.draw(animate=True, loops=1)
+                assert output == STDOUT.getvalue()
 
-                # True
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    anim_space.draw(check_size=True)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    self.anim_space.draw(padding=padding, check_size=True)
-
-                # False
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    anim_space.draw(check_size=False)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render width"
-                ):
-                    self.anim_space.draw(padding=padding, check_size=False)
-
-            @capture_stdout()
-            def test_allow_scroll(self):
-                anim_space = Space(2, 1)
-                anim_space.size = Size(1, lines + 1)
-                padding = AlignedPadding(1, lines + 1)
-
-                # Default
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    anim_space.draw()
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    self.anim_space.draw(padding=padding)
-
-                # False
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    anim_space.draw(allow_scroll=False)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    self.anim_space.draw(padding=padding, allow_scroll=False)
-
-                # True
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    anim_space.draw(allow_scroll=True)
-                with pytest.raises(
-                    RenderSizeOutofRangeError, match="Padded render height"
-                ):
-                    self.anim_space.draw(padding=padding, allow_scroll=True)
-
-        class TestDefinite:
-            anim_space = Space(2, 1)
-
-            # Can't test the default for definite frame count since it loops infinitely
-
-            @pytest.mark.parametrize("loops", [1, 2, 10])
-            @capture_stdout()
-            def test_loops(self, loops):
-                self.anim_space.draw(loops=loops)
-                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, loops)
-                assert stdout.getvalue().endswith("\n")
-
-            @pytest.mark.parametrize("n_frames", [2, 3, 10])
-            @capture_stdout()
-            def test_frame_count(self, n_frames):
-                Space(n_frames, 1).draw(loops=1)
-                assert stdout.getvalue().count("\n") == draw_n_eol(
-                    lines - 2, n_frames, 1
+            with capture_stdout():
+                anim_space.draw(animate=False, loops=1)
+                assert output != STDOUT.getvalue()
+                assert (
+                    STDOUT.getvalue().count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
                 )
-                assert stdout.getvalue().endswith("\n")
 
-        class TestIndefinite:
+        class TestCheckSize:
+            anim_space = Space(2, 1)
+            anim_space_large = Space(2, 1)
+            anim_space_large.size = Size(COLUMNS + 1, 1)
+            padding = AlignedPadding(COLUMNS + 1, 1)
+
             @capture_stdout()
             def test_default(self):
-                IndefiniteSpace(2).draw()
-                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
-                assert stdout.getvalue().endswith("\n")
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space_large.draw()
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space.draw(padding=self.padding)
 
-            @pytest.mark.parametrize("loops", [1, 2, 10])
             @capture_stdout()
-            def test_loops(self, loops):
-                IndefiniteSpace(2).draw(loops=loops)
-                assert stdout.getvalue().count("\n") == draw_n_eol(lines - 2, 2, 1)
-                assert stdout.getvalue().endswith("\n")
+            def test_true(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space_large.draw(check_size=True)
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space.draw(padding=self.padding, check_size=True)
 
-            @pytest.mark.parametrize("n_frames", [2, 3, 10])
             @capture_stdout()
-            def test_frame_count(self, n_frames):
-                IndefiniteSpace(n_frames).draw()
-                assert stdout.getvalue().count("\n") == draw_n_eol(
-                    lines - 2, n_frames, 1
-                )
-                assert stdout.getvalue().endswith("\n")
+            def test_false(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space_large.draw(check_size=False)
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render width"
+                ):
+                    self.anim_space.draw(padding=self.padding, check_size=False)
 
-        @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
-        class TestHideCursor:
-            class TestInTerminal:
-                anim_space = Space(2, 1)
+        class TestAllowScroll:
+            anim_space = Space(2, 1)
+            anim_space_large = Space(2, 1)
+            anim_space_large.size = Size(1, LINES + 1)
+            padding = AlignedPadding(1, LINES + 1)
 
-                def test_default(self):
-                    with capture_stdout_pty() as (_, buffer):
-                        self.anim_space.draw(loops=1)
-                        output = buffer.getvalue()
-                        assert output.startswith(HIDE_CURSOR)
-                        assert output.count(HIDE_CURSOR) == 1
-                        assert output.endswith(SHOW_CURSOR)
-                        assert output.count(SHOW_CURSOR) == 1
-
-                @pytest.mark.parametrize("hide_cursor", [False, True])
-                def test_non_default(self, hide_cursor):
-                    with capture_stdout_pty() as (_, buffer):
-                        self.anim_space.draw(loops=1, hide_cursor=hide_cursor)
-                        output = buffer.getvalue()
-                        assert (output.startswith(HIDE_CURSOR)) is hide_cursor
-                        assert output.count(HIDE_CURSOR) == hide_cursor
-                        assert (output.endswith(SHOW_CURSOR)) is hide_cursor
-                        assert output.count(SHOW_CURSOR) == hide_cursor
-
-            @pytest.mark.parametrize("hide_cursor", [False, True])
             @capture_stdout()
-            def test_not_in_terminal(self, hide_cursor):
-                anim_space = Space(1, 1)
-                anim_space.draw(loops=1, hide_cursor=hide_cursor)
-                output = stdout.getvalue()
-                assert HIDE_CURSOR not in output
-                assert SHOW_CURSOR not in output
+            def test_default(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space_large.draw()
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space.draw(padding=self.padding)
+
+            @capture_stdout()
+            def test_false(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space_large.draw(allow_scroll=False)
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space.draw(padding=self.padding, allow_scroll=False)
+
+            @capture_stdout()
+            def test_true(self):
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space_large.draw(allow_scroll=True)
+                with pytest.raises(
+                    RenderSizeOutofRangeError, match="Padded render height"
+                ):
+                    self.anim_space.draw(padding=self.padding, allow_scroll=True)
 
         @pytest.mark.skipif(not OS_IS_UNIX, reason="Not supported on non-Unix")
         class TestEchoInput:
@@ -1175,6 +1092,37 @@ class TestDraw:
                 anim_echo_space = self.AnimEchoSpace()
                 anim_echo_space.draw(loops=1, echo_input=echo_input)
                 assert anim_echo_space.echoed is echo_input
+
+    @pytest.mark.skipif(not OS_IS_UNIX, reason="Cannot test on non-Unix")
+    @pytest.mark.parametrize("renderable", [Space(1, 1), Space(2, 1)])
+    class TestHideCursor:
+        class TestInTerminal:
+            def test_default(self, renderable):
+                with capture_stdout_pty() as (_, buffer):
+                    renderable.draw(loops=1)
+                    output = buffer.getvalue()
+                    assert output.startswith(HIDE_CURSOR)
+                    assert output.count(HIDE_CURSOR) == 1
+                    assert output.endswith(SHOW_CURSOR)
+                    assert output.count(SHOW_CURSOR) == 1
+
+            @pytest.mark.parametrize("hide_cursor", [False, True])
+            def test_non_default(self, renderable, hide_cursor):
+                with capture_stdout_pty() as (_, buffer):
+                    renderable.draw(loops=1, hide_cursor=hide_cursor)
+                    output = buffer.getvalue()
+                    assert (output.startswith(HIDE_CURSOR)) is hide_cursor
+                    assert output.count(HIDE_CURSOR) == hide_cursor
+                    assert (output.endswith(SHOW_CURSOR)) is hide_cursor
+                    assert output.count(SHOW_CURSOR) == hide_cursor
+
+        @pytest.mark.parametrize("hide_cursor", [False, True])
+        @capture_stdout()
+        def test_not_in_terminal(self, renderable, hide_cursor):
+            renderable.draw(loops=1, hide_cursor=hide_cursor)
+            output = STDOUT.getvalue()
+            assert HIDE_CURSOR not in output
+            assert SHOW_CURSOR not in output
 
 
 class TestRender:
@@ -1479,11 +1427,11 @@ class TestInitRender:
                     anim_space = Space(2, 1)
 
                     # in range
-                    anim_space.size = Size(columns, 1)
+                    anim_space.size = Size(COLUMNS, 1)
                     anim_space._init_render_(lambda *_: None, check_size=True)
 
                     # out of range
-                    anim_space.size = Size(columns + 1, 1)
+                    anim_space.size = Size(COLUMNS + 1, 1)
                     # # Default
                     anim_space._init_render_(lambda *_: None)
                     # # False
@@ -1498,12 +1446,12 @@ class TestInitRender:
                     # in range
                     anim_space._init_render_(
                         lambda *_: None,
-                        padding=AlignedPadding(columns, 1),
+                        padding=AlignedPadding(COLUMNS, 1),
                         check_size=True,
                     )
 
                     # out of range
-                    padding = AlignedPadding(columns + 1, 1)
+                    padding = AlignedPadding(COLUMNS + 1, 1)
                     # # Default
                     anim_space._init_render_(lambda *_: None, padding=padding)
                     # # False
@@ -1525,13 +1473,13 @@ class TestInitRender:
                     anim_space = Space(2, 1)
 
                     # in range
-                    anim_space.size = Size(1, lines)
+                    anim_space.size = Size(1, LINES)
                     anim_space._init_render_(
                         lambda *_: None, check_size=True, allow_scroll=False
                     )
 
                     # out of range
-                    anim_space.size = Size(1, lines + 1)
+                    anim_space.size = Size(1, LINES + 1)
                     # # Default
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Render height"
@@ -1559,13 +1507,13 @@ class TestInitRender:
                     # in range
                     anim_space._init_render_(
                         lambda *_: None,
-                        padding=AlignedPadding(1, lines),
+                        padding=AlignedPadding(1, LINES),
                         check_size=True,
                         allow_scroll=False,
                     )
 
                     # out of range
-                    padding = AlignedPadding(1, lines + 1)
+                    padding = AlignedPadding(1, LINES + 1)
                     # # Default
                     with pytest.raises(
                         RenderSizeOutofRangeError, match="Padded render height"
@@ -1601,7 +1549,7 @@ class TestInitRender:
         class TestAnimationTrue:
             def test_check_size_is_ignored(self):
                 anim_space = Space(2, 1)
-                anim_space.size = Size(columns + 1, 1)
+                anim_space.size = Size(COLUMNS + 1, 1)
 
                 with pytest.raises(RenderSizeOutofRangeError, match="Render width"):
                     anim_space._init_render_(
@@ -1610,7 +1558,7 @@ class TestInitRender:
 
             def test_allow_scroll_is_ignored(self):
                 anim_space = Space(2, 1)
-                anim_space.size = Size(1, lines + 1)
+                anim_space.size = Size(1, LINES + 1)
 
                 with pytest.raises(RenderSizeOutofRangeError, match="Render height"):
                     anim_space._init_render_(
