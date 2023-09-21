@@ -15,7 +15,7 @@ from typing import Any, Callable, ClassVar, TextIO
 import term_image
 
 from .. import geometry
-from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SHOW_CURSOR
+from ..ctlseqs import HIDE_CURSOR, SHOW_CURSOR, cursor_down, cursor_forward, cursor_up
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
@@ -621,7 +621,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         from term_image.render import RenderIterator
 
-        padded_height = padding.get_padded_size(render_data[__class__].size).height
+        width, height = render_data[__class__].size
+        pad_left, _, _, pad_bottom = padding._get_exact_dimensions_(
+            render_data[__class__].size
+        )
         render_iter = RenderIterator._from_render_data_(
             self,
             render_data,
@@ -631,8 +634,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             False if loops == 1 else cache,
             finalize=False,
         )
-        cursor_to_top_left = "\r" + CURSOR_UP % (padded_height - 1)
-        cursor_down = CURSOR_DOWN % padded_height
+        cursor_to_bottom = cursor_down(height + pad_bottom - 1)
+        cursor_to_next_render_line = f"\n{cursor_forward(pad_left)}"
+        cursor_to_render_top_left = (
+            f"\r{cursor_up(height - 1)}{cursor_forward(pad_left)}"
+        )
         write = output.write
         flush = output.flush
 
@@ -645,33 +651,41 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
             try:
                 write(frame.render)
-                write(cursor_to_top_left)
-                flush()
             except KeyboardInterrupt:
                 self._handle_interrupted_draw_(render_data, render_args)
                 return
+            else:
+                write(
+                    f"\r{cursor_up(height + pad_bottom - 1)}{cursor_forward(pad_left)}"
+                )
+            finally:
+                flush()
 
-            # render next frame during current frame's duration
+            # Padding has been drawn with the first frame, only the actual render is
+            # needed henceforth.
+            render_iter.set_padding(ExactPadding())
+
+            # render next frame during previous frame's duration
             duration_ms = frame.duration
             start_ns = perf_counter_ns()
 
             for frame in render_iter:  # Render next frame
-                # left-over of current frame's duration
+                # left-over of previous frame's duration
                 sleep(
                     max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns))
                     / 10**9
                 )
 
-                # draw new frame
+                # draw next frame
                 try:
-                    write(frame.render)
-                    write(cursor_to_top_left)
+                    write(frame.render.replace("\n", cursor_to_next_render_line))
+                    write(cursor_to_render_top_left)
                     flush()
                 except KeyboardInterrupt:
                     self._handle_interrupted_draw_(render_data, render_args)
                     return
 
-                # render next frame during current frame's duration
+                # render next frame during previous frame's duration
                 start_ns = perf_counter_ns()
                 duration_ms = frame.duration
 
@@ -685,7 +699,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             render_iter.close()
             # Move the cursor to the last line to prevent "overlayed" output in a
             # terminal
-            write(cursor_down)
+            write(cursor_to_bottom)
             flush()
 
     @staticmethod
