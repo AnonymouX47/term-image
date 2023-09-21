@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import sys
 from contextlib import contextmanager
+from tempfile import TemporaryFile
 from types import MappingProxyType, SimpleNamespace
 from typing import Any, Iterator
 
@@ -1215,6 +1216,154 @@ class TestSeekTell:
             self.indefinite_space.seek(offset, whence)
 
         assert self.indefinite_space.tell() == 0
+
+
+class TestAnimate:
+    class AnimateChar(Char):
+        def _render_(self, render_data, render_args):
+            assert render_data is self.render_data
+            assert render_args is self.render_args
+            return super()._render_(render_data, render_args)
+
+    animate_char = AnimateChar(2, 1)
+    render_data = animate_char._get_render_data_(iteration=True)
+    render_data[Renderable].duration = 0
+    render_args = RenderArgs(AnimateChar)
+    padding = ExactPadding()
+
+    anim_space = Space(2, 1)
+    with capture_stdout():
+        anim_space._animate_(
+            anim_space._get_render_data_(iteration=True),
+            RenderArgs(Space),
+            padding,
+            1,
+            False,
+            STDOUT,
+        )
+        expected_output = STDOUT.getvalue()
+
+    @pytest.mark.parametrize(
+        "render_data",
+        [
+            animate_char._get_render_data_(iteration=True),
+            animate_char._get_render_data_(iteration=True),
+        ],
+    )
+    @capture_stdout()
+    def test_render_data(self, render_data):
+        self.animate_char.render_data = render_data
+        self.animate_char.render_args = self.render_args
+        self.animate_char._animate_(
+            render_data,
+            self.render_args,
+            self.padding,
+            1,
+            False,
+            STDOUT,
+        )
+        assert not STDOUT.getvalue().endswith("\n")
+
+    @pytest.mark.parametrize(
+        "render_args",
+        [RenderArgs(AnimateChar), RenderArgs(AnimateChar, Char.Args("\u2850"))],
+    )
+    @capture_stdout()
+    def test_render_args(self, render_args):
+        self.animate_char.render_data = self.render_data
+        self.animate_char.render_args = render_args
+        self.animate_char._animate_(
+            self.render_data,
+            render_args,
+            self.padding,
+            1,
+            False,
+            STDOUT,
+        )
+        assert not STDOUT.getvalue().endswith("\n")
+
+    @pytest.mark.parametrize(
+        "padding,padded_height", [(ExactPadding(), 1), (AlignedPadding(3, 3), 3)]
+    )
+    @capture_stdout()
+    def test_padding(self, padding, padded_height):
+        self.anim_space._animate_(
+            self.anim_space._get_render_data_(iteration=True),
+            RenderArgs(Space),
+            padding,
+            1,
+            False,
+            STDOUT,
+        )
+        assert STDOUT.getvalue().count("\n") == anim_n_eol(1, padded_height, 2, 1)
+        assert not STDOUT.getvalue().endswith("\n")
+
+    # The *newline* argument to `TemporaryFile` prevents any "\r" written to the file
+    # from being read back as "\n".
+    @pytest.mark.parametrize("output", [io.StringIO(), TemporaryFile("w+", newline="")])
+    def test_output(self, output):
+        self.anim_space._animate_(
+            self.anim_space._get_render_data_(iteration=True),
+            RenderArgs(Space),
+            self.padding,
+            1,
+            False,
+            output,
+        )
+        output.seek(0)
+        assert output.read() == self.expected_output
+
+    class TestDefinite:
+        anim_space = Space(2, 1)
+        render_data = anim_space._get_render_data_(iteration=True)
+        render_data[Renderable].duration = 0
+        args = (render_data, RenderArgs(Space), AlignedPadding(3, 3))
+
+        @pytest.mark.parametrize("loops", [1, 2, 10])
+        @capture_stdout()
+        def test_loops(self, loops):
+            self.anim_space._animate_(*self.args, loops, False, STDOUT)
+            assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, 2, loops)
+            assert not STDOUT.getvalue().endswith("\n")
+
+        @pytest.mark.parametrize(
+            "cache, n_renders", [(False, 8), (True, 4), (3, 8), (4, 4), (5, 4)]
+        )
+        def test_cache(self, cache, n_renders):
+            cache_space = CacheSpace(4, 1)
+            render_data = cache_space._get_render_data_(iteration=True)
+            cache_space._animate_(render_data, *self.args[1:], 2, cache, STDOUT)
+            assert cache_space.n_renders == n_renders
+
+        @pytest.mark.parametrize("n_frames", [2, 3, 10])
+        @capture_stdout()
+        def test_frame_count(self, n_frames):
+            Space(n_frames, 1)._animate_(*self.args, 1, False, STDOUT)
+            assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
+            assert not STDOUT.getvalue().endswith("\n")
+
+    class TestIndefinite:
+        args = (RenderArgs(IndefiniteSpace), AlignedPadding(3, 3))
+
+        @pytest.mark.parametrize("loops", [1, 2, 10])
+        @capture_stdout()
+        def test_loops(self, loops):
+            indefinite_space = IndefiniteSpace(2)
+            render_data = indefinite_space._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+            indefinite_space._animate_(render_data, *self.args, loops, False, STDOUT)
+            assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, 2, 1)
+            assert not STDOUT.getvalue().endswith("\n")
+
+        @pytest.mark.parametrize("n_frames", [2, 3, 10])
+        @capture_stdout()
+        def test_frame_count(self, n_frames):
+            indefinite_space = IndefiniteSpace(n_frames)
+            render_data = indefinite_space._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+            indefinite_space._animate_(render_data, *self.args, 1, False, STDOUT)
+            assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
+            assert not STDOUT.getvalue().endswith("\n")
 
 
 class TestGetRenderData:
