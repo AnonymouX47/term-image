@@ -33,10 +33,6 @@ from ._exceptions import RenderableError
 class Frame(NamedTuple):
     """A rendered frame.
 
-    NOTE:
-        Arguments are not validated since instances are only meant to be created
-        internally.
-
     TIP:
         - Instances are immutable and hashable.
         - Instances with equal fields compare equal.
@@ -55,9 +51,9 @@ class Frame(NamedTuple):
     number: int
     """Frame number
 
-    Zero, if the frame belongs to a non-animated renderable or one with
-    :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
-    Otherwise, a non-negative integer.
+    The number of the rendered frame (a non-negative integer), if the frame belongs to
+    a renderable with *definite* frame count. Otherwise, the value range and meaning
+    of this field is unspecified.
     """
 
     duration: int | None
