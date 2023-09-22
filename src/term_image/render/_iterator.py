@@ -11,7 +11,15 @@ from typing import Generator
 from ..exceptions import TermImageError
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
-from ..renderable import Frame, FrameCount, Renderable, RenderArgs, RenderData, Seek
+from ..renderable import (
+    Frame,
+    FrameCount,
+    FrameDuration,
+    Renderable,
+    RenderArgs,
+    RenderData,
+    Seek,
+)
 from ..utils import (
     arg_type_error,
     arg_value_error,
@@ -369,6 +377,27 @@ class RenderIterator:
                 )
             renderable_data.update(frame_offset=frame, seek_whence=Seek.START)
 
+    def set_frame_duration(self, duration: int | FrameDuration) -> None:
+        """Sets the frame duration.
+
+        Args:
+            duration: Frame duration.
+
+        Raises:
+            FinalizedIteratorError: The iterator has been finalized.
+            ValueError: *duration* is out of range.
+
+        NOTE:
+            Takes effect from the next [#ri-nf]_ rendered frame.
+        """
+        if self._closed:
+            raise FinalizedIteratorError("This iterator has been finalized") from None
+
+        if isinstance(duration, int) and duration <= 0:
+            raise arg_value_error_range("duration", duration)
+
+        self._render_data[Renderable].duration = duration
+
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
 
@@ -540,8 +569,12 @@ class RenderIterator:
 
                 if not frame or frame_details != [
                     renderable_data.size,
+                    renderable_data.duration,
                     self._render_args,
                 ]:
+                    # NOTE: Re-render is required even when only `duration` changes
+                    # and the new value is *static* because frame duration may affect
+                    # the render output of some renderables.
                     try:
                         frame = renderable._render_(render_data, self._render_args)
                     except StopIteration:
@@ -549,10 +582,12 @@ class RenderIterator:
                             self.loop = 0
                             return
                         raise
+
                     if cache:
                         cache[frame_no] = (
                             frame,
                             renderable_data.size,
+                            renderable_data.duration,
                             self._render_args,
                         )
 
