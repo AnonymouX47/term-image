@@ -58,8 +58,9 @@ RenderIterator
 .. rubric:: Footnotes
 
 .. [#ri-nf]
-   The frame to be rendered **next** is either:
+   The frame to be rendered **next** is:
 
-   * the frame after that which was rendered **last**, if no seek operation
-     has occured since the last render; or
-   * the frame set by the **latest** seek operation since the last render.
+   * the first frame, if no seek operation or render has occured;
+   * otherwise, the frame after that which was rendered **last**, if no seek operation
+     has occured since the last render;
+   * otherwise, the frame set by the **latest** seek operation since the last render.
