@@ -11,6 +11,7 @@ from term_image.render import FinalizedIteratorError, RenderIterator
 from term_image.renderable import (
     Frame,
     FrameCount,
+    FrameDuration,
     IncompatibleRenderArgsError,
     Renderable,
     RenderArgs,
@@ -738,6 +739,72 @@ class TestSeek:
             render_iter.seek(0)
 
 
+class TestSetFrameDuration:
+    anim_space = Space(5, 1)
+
+    @pytest.mark.parametrize("duration", [0, -1])
+    def test_arg_duration(self, duration):
+        render_iter = RenderIterator(self.anim_space)
+        with pytest.raises(ValueError, match="duration"):
+            render_iter.set_frame_duration(duration)
+
+    def test_iteration(self):
+        render_iter = RenderIterator(self.anim_space)
+        assert next(render_iter).data.duration == 1
+
+        render_iter.set_frame_duration(10)
+        assert next(render_iter).data.duration == 10
+        assert next(render_iter).data.duration == 10
+
+        render_iter.set_frame_duration(FrameDuration.DYNAMIC)
+        assert next(render_iter).data.duration is FrameDuration.DYNAMIC
+        assert next(render_iter).data.duration is FrameDuration.DYNAMIC
+
+    def test_before_seek(self):
+        render_iter = RenderIterator(self.anim_space)
+        assert next(render_iter).data.duration == 1
+
+        render_iter.set_frame_duration(10)
+        render_iter.seek(3)
+        assert next(render_iter).data.duration == 10
+
+    def test_after_seek(self):
+        render_iter = RenderIterator(self.anim_space)
+        assert next(render_iter).data.duration == 1
+
+        render_iter.seek(3)
+        render_iter.set_frame_duration(10)
+        assert next(render_iter).data.duration == 10
+
+    def test_cache_update(self):
+        cache_space = CacheSpace(2, 1)
+        render_iter = RenderIterator(cache_space, cache=True)
+        old_frame = next(render_iter)
+        assert cache_space.n_renders == 1
+        assert old_frame.data.duration == 1
+
+        render_iter.seek(0)
+        assert next(render_iter) is old_frame
+        assert cache_space.n_renders == 1
+
+        render_iter.seek(0)
+        render_iter.set_frame_duration(10)
+        new_frame = next(render_iter)
+        assert cache_space.n_renders == 2
+        assert new_frame is not old_frame
+        assert new_frame.data.duration == 10
+
+        render_iter.seek(0)
+        assert next(render_iter) is new_frame
+        assert cache_space.n_renders == 2
+
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.set_frame_duration(10)
+
+
 class TestSetRenderArgs:
     anim_char = Char(5, 1)
 
@@ -888,7 +955,7 @@ class TestSetPadding:
 
 
 class TestSetRenderSize:
-    anim_space = Char(5, 1)
+    anim_space = Space(5, 1)
 
     def test_args(self):
         render_iter = RenderIterator(self.anim_space)
