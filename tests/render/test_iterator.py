@@ -72,7 +72,7 @@ class FrameFill(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            data.duration,
+            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
             data.size,
             "\n".join((str(data.frame_offset) * width,) * height),
             renderable=self,
@@ -98,7 +98,7 @@ class IndefiniteFrameFill(Renderable):
         frame_number = next(render_data[__class__].frames) if data.iteration else 0
         return DummyFrame(
             data.frame_offset,
-            data.duration,
+            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
             data.size,
             "\n".join((str(frame_number) * width,) * height),
             renderable=self,

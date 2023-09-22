@@ -64,7 +64,7 @@ class Space(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            data.duration,
+            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
             data.size,
             "\n".join((" " * width,) * height),
             renderable=self,
@@ -115,7 +115,7 @@ class Char(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            data.duration,
+            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
             data.size,
             "\n".join((render_args[Char].char * width,) * height),
             renderable=self,
