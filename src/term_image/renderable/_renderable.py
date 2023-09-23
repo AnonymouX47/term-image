@@ -396,17 +396,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             IncompatibleRenderArgsError: Incompatible render arguments.
             RenderError: An error occured during :term:`rendering`.
 
-        If *check_size* is ``True`` (the default) or it's an animation,
+        If *check_size* is ``True`` (or it's an animation),
 
         * the padded :term:`render width` must not be greater than the
           :term:`terminal width`.
-        * and *allow_scroll* is ``False`` (the default) or it's an animation, the padded
+        * and *allow_scroll* is ``False`` (or it's an animation), the padded
           :term:`render height` must not be greater than the :term:`terminal height`.
 
         NOTE:
             * *hide_cursor* and *echo_input* apply if and only if the output stream
               is connected to a terminal.
-            * For animations (i.e animated renderables with *animate* set to ``True``),
+            * For animations (i.e animated renderables with *animate* = ``True``),
               the padded :term:`render size` is always validated.
             * Animations with **definite** frame count, **by default**, are infinitely
               looped but can be terminated with :py:data:`~signal.SIGINT`
@@ -438,9 +438,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             padding,
             iteration=animation,
             finalize=False,
-            check_size=check_size,
-            allow_scroll=allow_scroll,
-            animation=animation,
+            check_size=animation or check_size,
+            allow_scroll=not animation and allow_scroll,
         )
 
         if not_echo_input:
@@ -880,7 +879,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         finalize: bool = True,
         check_size: bool = False,
         allow_scroll: bool = False,
-        animation: bool = False,
     ) -> tuple[Any, Padding | None]:
         """Initiates a render operation.
 
@@ -897,9 +895,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
               **non-animations**.
             allow_scroll: Whether to validate the [padded] :term:`render height` of
               **non-animations**. Ignored if *check_size* is ``False``.
-            animation: Whether the render operation is an animation. If ``True``,
-              *check_size* and *allow_scroll* are ignored and the [padded]
-              :term:`render size` is validated.
 
         Returns:
             A tuple containing
@@ -910,8 +905,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         Raises:
             IncompatibleRenderArgsError: Incompatible render arguments.
-            RenderSizeOutofRangeError: *check_size* or *animation* is ``True`` and the
-              [padded] :term:`render size` cannot fit into the :term:`terminal size`.
+            RenderSizeOutofRangeError: *check_size* is ``True`` and the [padded]
+              :term:`render size` cannot fit into the :term:`terminal size`.
 
         After preparing render data and processing arguments, *renderer* is called with
         the following positional arguments:
@@ -946,7 +941,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             if padding and isinstance(padding, AlignedPadding) and padding.relative:
                 padding = padding.resolve(terminal_size)
 
-            if check_size or animation:
+            if check_size:
                 render_size = render_data[__class__].size
                 width, height = (
                     padding.get_padded_size(render_size) if padding else render_size
@@ -958,11 +953,10 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                         f"{'Padded render' if padding else 'Render'} width out of "
                         f"range (got: {width}; terminal_width={terminal_width})"
                     )
-                if (animation or not allow_scroll) and height > terminal_height:
+                if not allow_scroll and height > terminal_height:
                     raise RenderSizeOutofRangeError(
                         f"{'Padded render' if padding else 'Render'} height out of "
-                        f"range (got: {height}; terminal_height={terminal_height}, "
-                        f"animation={animation})"
+                        f"range (got: {height}; terminal_height={terminal_height})"
                     )
 
             return renderer(render_data, render_args), padding
