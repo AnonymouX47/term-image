@@ -23,6 +23,7 @@ __all__ = (
     "IncompatibleRenderArgsError",
     "NoArgsNamespaceError",
     "NoDataNamespaceError",
+    "UninitializedDataFieldError",
     "UnknownArgsFieldError",
     "UnknownDataFieldError",
 )
@@ -46,6 +47,7 @@ from ._types import (
     RenderArgsError,
     RenderData,
     RenderDataError,
+    UninitializedDataFieldError,
     UnknownArgsFieldError,
     UnknownDataFieldError,
 )

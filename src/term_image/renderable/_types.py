@@ -15,6 +15,7 @@ __all__ = (
     "IncompatibleRenderArgsError",
     "NoArgsNamespaceError",
     "NoDataNamespaceError",
+    "UninitializedDataFieldError",
     "UnknownArgsFieldError",
     "UnknownDataFieldError",
 )
@@ -171,9 +172,8 @@ class RenderArgsData:
             return super().__new__(cls)
 
         def __init__(self, fields: Mapping[str, Any]) -> None:
-            setattr_ = __class__.__setattr__
+            setattr_ = __class__.__setattr__  # Subclass(es) redefine `__setattr__()`
             for name in type(self)._FIELDS:
-                # Subclass(es) redefine `__setattr__()`
                 setattr_(self, name, fields[name])
 
         def __delattr__(self, _):
@@ -1049,20 +1049,34 @@ class RenderData(RenderArgsData):
         """
 
         def __init__(self) -> None:
-            super().__init__(type(self)._FIELDS)
+            pass
 
         def __repr__(self) -> str:
+            fields_repr = {}
+            for name in type(self)._FIELDS:
+                try:
+                    fields_repr[name] = repr(getattr(self, name))
+                except UninitializedDataFieldError:
+                    fields_repr[name] = "<uninitialized>"
+
             return "".join(
                 (
                     f"<{type(self)._RENDER_CLS.__name__}._Data_: ",
                     ", ".join(
-                        f"{name}={getattr(self, name)!r}" for name in type(self)._FIELDS
+                        f"{name}={value_repr}"
+                        for name, value_repr in fields_repr.items()
                     ),
                     ">",
                 )
             )
 
         def __getattr__(self, attr):
+            if attr in type(self)._FIELDS:
+                raise UninitializedDataFieldError(
+                    f"The render data field {attr!r} of "
+                    f"{type(self)._RENDER_CLS.__name__!r} has not been initialized"
+                )
+
             raise UnknownDataFieldError(
                 f"Unknown render data field {attr!r} for "
                 f"{type(self)._RENDER_CLS.__name__!r}"
@@ -1144,6 +1158,12 @@ class NoArgsNamespaceError(RenderArgsError):
 class NoDataNamespaceError(RenderDataError):
     """Raised when an attempt is made to get a render data namespace for a
     :term:`render class` that defines no render data.
+    """
+
+
+class UninitializedDataFieldError(RenderDataError, AttributeError):
+    """Raised when an attempt is made to access a render data field that hasn't been
+    initialized i.e for which a value hasn't been set.
     """
 
 
