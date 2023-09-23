@@ -14,6 +14,7 @@ from term_image.renderable import (
     RenderArgsDataError,
     RenderArgsError,
     RenderData,
+    UninitializedDataFieldError,
     UnknownArgsFieldError,
     UnknownDataFieldError,
 )
@@ -1184,6 +1185,10 @@ class TestRenderData:
     def test_finalized(self):
         render_data = RenderData(Foo)
         assert render_data.finalized is False
+
+        render_data[Foo].update(foo="FOO", bar="BAR")
+        assert render_data.finalized is False
+
         render_data.finalize()
         assert render_data.finalized is True
 
@@ -1233,49 +1238,84 @@ class TestRenderData:
 
 
 class TestDataNamespace:
-    class Bar(Renderable):
-        class _Data_(RenderData.Namespace):
-            foo: str
-            bar: str
+    class TestGetattrSetattr:
+        class Bar(Renderable):
+            class _Data_(RenderData.Namespace):
+                foo: str
+                bar: str
 
-    Namespace = Bar._Data_
+        Namespace = Bar._Data_
 
-    def test_getattr(self):
-        namespace = self.Namespace()
-        assert namespace.foo is None
-        assert namespace.bar is None
-        with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
-            namespace.baz
+        def test_known(self):
+            namespace = self.Namespace()
+            with pytest.raises(UninitializedDataFieldError, match="'foo' of 'Bar'"):
+                namespace.foo
+            with pytest.raises(UninitializedDataFieldError, match="'bar' of 'Bar'"):
+                namespace.bar
 
-    def test_setattr(self):
-        namespace = self.Namespace()
-        namespace.foo = "FOO"
-        namespace.bar = "BAR"
-        assert namespace.foo == "FOO"
-        assert namespace.bar == "BAR"
-        with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
-            namespace.baz = Ellipsis
+            namespace.foo = "FOO"
+            assert namespace.foo == "FOO"
+            with pytest.raises(UninitializedDataFieldError, match="'bar' of 'Bar'"):
+                namespace.bar
 
-    def test_update(self):
-        namespace = self.Namespace()
-        assert namespace.foo is None
-        assert namespace.bar is None
+            namespace.bar = "BAR"
+            assert namespace.foo == "FOO"
+            assert namespace.bar == "BAR"
 
-        namespace.update()
-        assert namespace.foo is None
-        assert namespace.bar is None
+            namespace.foo = "bar"
+            namespace.bar = "foo"
+            assert namespace.foo == "bar"
+            assert namespace.bar == "foo"
 
-        namespace.update(foo="FOO")
-        assert namespace.foo == "FOO"
-        assert namespace.bar is None
+        def test_unknown_get(self):
+            namespace = self.Namespace()
+            with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
+                namespace.baz
 
-        namespace.update(bar="BAR")
-        assert namespace.foo == "FOO"
-        assert namespace.bar == "BAR"
+        def test_unknown_set(self):
+            namespace = self.Namespace()
+            with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
+                namespace.baz = Ellipsis
 
-        namespace.update(foo="bar", bar="foo")
-        assert namespace.foo == "bar"
-        assert namespace.bar == "foo"
+    class TestUpdate:
+        class Bar(Renderable):
+            class _Data_(RenderData.Namespace):
+                foo: str
+                bar: str
 
-        with pytest.raises(UnknownDataFieldError, match=r"'baz'"):
-            namespace.update(baz=Ellipsis)
+        Namespace = Bar._Data_
+
+        def test_known(self):
+            namespace = self.Namespace()
+            with pytest.raises(UninitializedDataFieldError):
+                namespace.foo
+            with pytest.raises(UninitializedDataFieldError):
+                namespace.bar
+
+            namespace.update()
+            with pytest.raises(UninitializedDataFieldError):
+                namespace.foo
+            with pytest.raises(UninitializedDataFieldError):
+                namespace.bar
+
+            namespace.update(foo="FOO")
+            assert namespace.foo == "FOO"
+            with pytest.raises(UninitializedDataFieldError):
+                namespace.bar
+
+            namespace.update(bar="BAR")
+            assert namespace.foo == "FOO"
+            assert namespace.bar == "BAR"
+
+            namespace.update()
+            assert namespace.foo == "FOO"
+            assert namespace.bar == "BAR"
+
+            namespace.update(foo="bar", bar="foo")
+            assert namespace.foo == "bar"
+            assert namespace.bar == "foo"
+
+        def test_unknown(self):
+            namespace = self.Namespace()
+            with pytest.raises(UnknownDataFieldError, match=r"\('baz',\) for 'Bar'"):
+                namespace.update(baz=Ellipsis)
