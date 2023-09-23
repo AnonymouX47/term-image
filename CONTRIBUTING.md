@@ -159,7 +159,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Anonym
 
 Please put some effort into breaking your contribution up into a series of well formed commits. There is a good guide available at https://cbea.ms/git-commit/.
 
-- Always run the [checks and corrections](#pre-commit-checks-and-corrections) before commiting changes.
+- Always run the [checks and corrections](#pre-commit-checks-and-corrections) before commiting changes
 - Each commit should ideally contain only one change
 - Don't bundle multiple **unrelated** changes into a single commit
 - Write descriptive and well formatted commit messages
@@ -179,15 +179,17 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 
 ### Code Style
 
-- **NAMES tell WHAT... CODE tells HOW... COMMENTS tell WHY, when necessary (and WHAT, when impossible/unreasonable to make it obvious with names)**.
+- **NAMES tell WHAT... CODE tells HOW... COMMENTS tell WHY, when necessary (and WHAT, when impossible/unreasonable to make it obvious with NAMES)**.
 - Maximum line length is 88 characters.
 - All functions (including methods) should be adequately annotated.
   - **Note:** Currently, annotations are only for documentation purposes and better/quicker comprehension of the defined interfaces by the users and developers.
-- Try to keep things (definitions, names, dictionary keys, list items, etc) ...
+- Try to keep things (definitions, names, dictionary keys, list items, etc)
+
   - **grouped** (preferably by the most dominant criterium e.g object/definition type)
   - **sorted** (preferrably lexicographically, with the exception of dependant definitions e.g decorators, metaclasses, baseclasses, etc)
-- ... wherever **reasonably** possible.
-  - Makes things organized and finding things is quicker and easier 😃.
+
+  wherever **reasonably** possible. Makes things organized and quicker and easier to find 😃.
+
 - For any matter of style not directly/indirectly addressed here, please try as much as possible to follow formats or styles already established in the project.
 - Any questions or suggestions about the above can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/7).
 - See also: [Documentation Style](#documentation-style).
@@ -198,9 +200,11 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 - The documentation source is being written in the [reStructuredText](https://docutils.sourceforge.io/rst.html) (reST) markup syntax.
 - All modules, classes and functions (including methods) should have docstrings (as specified below).
 - All docstrings should be written according to the [Google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) for the following reasons:
+
   - Uniformity.
   - The reference section of the documentation is auto-generated from the modules using the `autodoc` and `napoleon` extensions of [Sphinx](https://www.sphinx-doc.org/en/master/).
   - Google-style docstrings + `napoleon` is used instead of pure reStructuredText docstrings for the sake of readability and to reduce the requirements for contribution.
+
 - Any questions or suggestions about the above can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/3).
 
 
