@@ -615,7 +615,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         NOTE:
             * The base implementation does not finalize *render_data*.
-            * :term:`Render size` validation should've been performed by the caller.
+            * :term:`Render size` validation is expected to have been performed by
+              the caller.
             * When called by :py:meth:`draw` (at least, the base implementation),
               *loops* and *cache* wouldn't have been validated.
         """

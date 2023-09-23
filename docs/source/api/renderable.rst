@@ -219,7 +219,7 @@ Renderable.Args
       >>> render_args[Bar]
       Traceback (most recent call last):
       ...
-      term_image.exceptions.RenderArgsError: 'Bar' defines no render arguments
+      NoArgsNamespaceError: 'Bar' defines no render arguments
 
    .. note::
 
@@ -260,19 +260,26 @@ Renderable._Data_
       ...     class _Data_(RenderData.Namespace):
       ...         foo: str | None
       ...
-      >>> foo_args = Foo._Data_()
-      >>> foo_args
-      Foo._Data_(foo=None)
-      >>> foo_args.foo = "FOO"
-      >>> foo_args
-      Foo._Data_(foo='FOO')
+      >>> foo_data = Foo._Data_()
+      >>> foo_data
+      <Foo._Data_: foo=<uninitialized>>
+      >>> foo_data.foo
+      Traceback (most recent call last):
+        ...
+      UninitializedDataFieldError: The render data field 'foo' of 'Foo' has not been initialized
+      >>>
+      >>> foo_data.foo = "FOO"
+      >>> foo_data
+      <Foo._Data_: foo='FOO'>
+      >>> assert foo_data.foo == "FOO"
       >>>
       >>> render_data = RenderData(Foo)
       >>> render_data[Foo]
-      Foo._Data_(foo=None)
+      <Foo._Data_: foo=<uninitialized>>
+      >>>
       >>> render_data[Foo].foo = "bar"
       >>> render_data[Foo]
-      Foo._Data_(foo='bar')
+      <Foo._Data_: foo='bar'>
 
    On the other hand, if this is ``None``, it implies the render class defines no
    render data.
@@ -283,11 +290,12 @@ Renderable._Data_
       ...     pass
       ...
       >>> assert Bar._Data_ is None
+      >>>
       >>> render_data = RenderData(Bar)
       >>> render_data[Bar]
       Traceback (most recent call last):
-      ...
-      term_image.exceptions.RenderDataError: 'Bar' defines no render data
+        ...
+      NoDataNamespaceError: 'Bar' defines no render data
 
    .. note::
 
@@ -399,7 +407,7 @@ RenderArgs.Namespace
       ...
       Traceback (most recent call last):
         ...
-      term_image.exceptions.RenderArgsDataError: No field defined or to inherit
+      RenderArgsDataError: No field defined or to inherit
       >>>
       >>> class Args2(Args1, inherit=False):
       ...     bar: str = "BAR"

@@ -1031,13 +1031,15 @@ class RenderData(RenderArgsData):
         :ref:`args-namespace`, except that values assigned to the class attributes
         are not used.
 
-        Every field is initialized to ``None``. The fields are expected to be updated
-        by the :py:meth:`~term_image.renderable.Renderable._get_render_data_` method
-        of the render class associated [#rdn1]_ with the namespace, if neccessary.
+        Every field is **uninitialized** immediately after instantiation of a
+        namespace. The fields are expected to be initialized within the
+        :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
+        render class associated [#rdn1]_ with the namespace or at some other point
+        during a render operation, if neccessary.
 
         NOTE:
             * Fields are exposed as instance attributes.
-            * Instances are mutable and fields can updated **in-place** either
+            * Instances are mutable and fields can be updated **in-place**, either
               individually by assignment to an attribute reference or in batch via
               :py:meth:`update`.
             * An instance shouldn't be copied by any means because finalizing its
