@@ -317,21 +317,21 @@ class RenderIterator:
                >>> animated_renderable.frame_count is FrameCount.INDEFINITE
                True
                >>> # iterating normally without seeking
-               >>> [frame.render for frame in animated_renderable]
+               >>> [frame.render_output for frame in animated_renderable]
                ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', ...]
                >>>
                >>> # Assuming the renderable implements all kinds of seek operations
                >>> render_iter = RenderIterator(animated_renderable)  # next = 0
                >>> render_iter.seek(5)  # next = 5
-               >>> next(render_iter).render  # next = 5 + 1 = 6
+               >>> next(render_iter).render_output  # next = 5 + 1 = 6
                '5'
                >>> render_iter.seek(2, Seek.CURRENT)  # next = 6 + 2 = 8
                >>> render_iter.seek(-4, Seek.CURRENT)  # next = 6 - 4 = 2
-               >>> next(render_iter).render  # next = 2 + 1 = 3
+               >>> next(render_iter).render_output  # next = 2 + 1 = 3
                '2'
                >>> render_iter.seek(7)  # next = 7
                >>> render_iter.seek(3, Seek.CURRENT)  # next = 3 + 3 = 6
-               >>> next(render_iter).render  # next = 6 + 1 = 7
+               >>> next(render_iter).render_output  # next = 6 + 1 = 7
                '6'
 
             A renderable with :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`
@@ -591,12 +591,12 @@ class RenderIterator:
                             self._render_args,
                         )
 
-                if self._padded_size != frame.size:
+                if self._padded_size != frame.render_size:
                     frame = Frame(
                         frame.number,
                         frame.duration,
                         self._padded_size,
-                        self._padding.pad(frame.render, frame.size),
+                        self._padding.pad(frame.render_output, frame.render_size),
                     )
 
                 if definite:

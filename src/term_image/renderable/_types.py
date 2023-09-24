@@ -64,19 +64,19 @@ class Frame(NamedTuple):
     integer.
     """
 
-    size: geometry.Size
+    render_size: geometry.Size
     """Frame :term:`render size`"""
 
-    render: str
+    render_output: str
     """Frame :term:`render output`"""
 
     def __str__(self) -> str:
         """Returns the frame :term:`render output`.
 
         Returns:
-            The frame render output, :py:attr:`render`.
+            The frame render output, :py:attr:`render_output`.
         """
-        return self.render
+        return self.render_output
 
 
 class RenderArgsData:

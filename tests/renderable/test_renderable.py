@@ -751,14 +751,14 @@ def test_iter():
     assert frame.renderable is anim_char  # renderable
     assert frame.render_data.render_cls is Char  # render data
     assert frame.render_args == RenderArgs(Char)  # default render args
-    assert frame.size == Size(1, 1)  # no padding
-    assert frame.render == " "  # no padding
+    assert frame.render_size == Size(1, 1)  # no padding
+    assert frame.render_output == " "  # no padding
     assert next(render_iter) is not frame  # no caching
 
 
 @pytest.mark.parametrize("renderable", [Space(1, 1), Char(1, 1)])
 def test_str(renderable):
-    assert str(renderable) == renderable.render().render
+    assert str(renderable) == renderable.render().render_output
 
 
 class TestDraw:
@@ -1152,8 +1152,8 @@ class TestRender:
     # The full tests are at `TestInitRender`.
     def test_padding(self):
         frame = self.space.render(padding=AlignedPadding(3, 3))
-        assert frame.size == Size(3, 3)
-        assert frame.render == "   \n   \n   "
+        assert frame.render_size == Size(3, 3)
+        assert frame.render_output == "   \n   \n   "
 
 
 class TestSeekTell:

@@ -61,12 +61,12 @@ class TestFrame:
         @pytest.mark.parametrize("size", [Size(1, 3), Size(100, 30)])
         def test_size(self, size):
             frame = Frame(None, None, size, None)
-            assert frame.size is size
+            assert frame.render_size is size
 
         @pytest.mark.parametrize("render", [" ", " " * 10])
         def test_render(self, render):
             frame = Frame(None, None, None, render)
-            assert frame.render is render
+            assert frame.render_output is render
 
     @pytest.mark.parametrize("field", Frame._fields)
     def test_immutability(self, field):

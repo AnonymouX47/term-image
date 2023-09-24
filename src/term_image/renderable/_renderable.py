@@ -283,7 +283,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         Raises:
             RenderError: An error occured during :term:`rendering`.
         """
-        return self._init_render_(self._render_)[0].render
+        return self._init_render_(self._render_)[0].render_output
 
     # Properties
 
@@ -457,11 +457,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 self._animate_(render_data, render_args, padding, loops, cache, output)
             else:
                 frame = self._render_(render_data, render_args)
-                padded_size = padding.get_padded_size(frame.size)
+                padded_size = padding.get_padded_size(frame.render_size)
                 render = (
-                    frame.render
-                    if frame.size == padded_size
-                    else padding.pad(frame.render, frame.size)
+                    frame.render_output
+                    if frame.render_size == padded_size
+                    else padding.pad(frame.render_output, frame.render_size)
                 )
                 try:
                     output.write(render)
@@ -503,16 +503,16 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             raise arg_type_error("padding", padding)
 
         frame, padding = self._init_render_(self._render_, render_args, padding)
-        padded_size = padding.get_padded_size(frame.size)
+        padded_size = padding.get_padded_size(frame.render_size)
 
         return (
             frame
-            if frame.size == padded_size
+            if frame.render_size == padded_size
             else Frame(
                 frame.number,
                 frame.duration,
                 padded_size,
-                padding.pad(frame.render, frame.size),
+                padding.pad(frame.render_output, frame.render_size),
             )
         )
 
@@ -650,7 +650,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 return
 
             try:
-                write(frame.render)
+                write(frame.render_output)
             except KeyboardInterrupt:
                 self._handle_interrupted_draw_(render_data, render_args)
                 return
@@ -678,7 +678,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
                 # draw next frame
                 try:
-                    write(frame.render.replace("\n", cursor_to_next_render_line))
+                    write(frame.render_output.replace("\n", cursor_to_next_render_line))
                     write(cursor_to_render_top_left)
                     flush()
                 except KeyboardInterrupt:
@@ -977,7 +977,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
             * *render_size* = :py:attr:`render_data[Renderable].size
               <term_image.renderable.Renderable._Data_.size>`.
-            * The :py:attr:`~term_image.renderable.Frame.render` field holds the
+            * The :py:attr:`~term_image.renderable.Frame.render_output` field holds the
               :term:`render output`. This string should:
 
               * contain as many lines as :py:attr:`render_size.height

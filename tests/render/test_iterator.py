@@ -205,22 +205,22 @@ class TestPadding:
     def test_default(self):
         render_iter = RenderIterator(frame_fill)
         for index, frame in enumerate(render_iter):
-            assert frame.size == Size(1, 1)
-            assert frame.render == str(index)
+            assert frame.render_size == Size(1, 1)
+            assert frame.render_output == str(index)
 
     def test_padded(self):
         render_iter = RenderIterator(frame_fill, padding=ExactPadding(1, 1, 1, 1))
         for index, frame in enumerate(render_iter):
-            assert frame.size == Size(3, 3)
-            assert frame.render == f"   \n {index} \n   "
+            assert frame.render_size == Size(3, 3)
+            assert frame.render_output == f"   \n {index} \n   "
 
     def test_unpadded(self):
         render_iter = RenderIterator(
             FrameFill(Size(5, 5)), padding=ExactPadding(0, 0, 0, 0)
         )
         for index, frame in enumerate(render_iter):
-            assert frame.size == Size(5, 5)
-            assert frame.render == "\n".join((str(index) * 5,) * 5)
+            assert frame.render_size == Size(5, 5)
+            assert frame.render_output == "\n".join((str(index) * 5,) * 5)
 
 
 class TestLoops:
@@ -884,48 +884,48 @@ class TestSetPadding:
     def test_iteration(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
         frame = next(render_iter)
-        assert frame.size == Size(1, 1)
-        assert frame.render == "#"
+        assert frame.render_size == Size(1, 1)
+        assert frame.render_output == "#"
 
         render_iter.set_padding(AlignedPadding(3, 1))
         frame = next(render_iter)
-        assert frame.size == Size(3, 1)
-        assert frame.render == " # "
+        assert frame.render_size == Size(3, 1)
+        assert frame.render_output == " # "
         frame = next(render_iter)
-        assert frame.size == Size(3, 1)
-        assert frame.render == " # "
+        assert frame.render_size == Size(3, 1)
+        assert frame.render_output == " # "
 
         render_iter.set_padding(ExactPadding(1, 1, 1, 1))
         frame = next(render_iter)
-        assert frame.size == Size(3, 3)
-        assert frame.render == "   \n # \n   "
+        assert frame.render_size == Size(3, 3)
+        assert frame.render_output == "   \n # \n   "
         frame = next(render_iter)
-        assert frame.size == Size(3, 3)
-        assert frame.render == "   \n # \n   "
+        assert frame.render_size == Size(3, 3)
+        assert frame.render_output == "   \n # \n   "
 
     def test_before_seek(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
         frame = next(render_iter)
-        assert frame.size == Size(1, 1)
-        assert frame.render == "#"
+        assert frame.render_size == Size(1, 1)
+        assert frame.render_output == "#"
 
         render_iter.set_padding(AlignedPadding(3, 1))
         render_iter.seek(3)
         frame = next(render_iter)
-        assert frame.size == Size(3, 1)
-        assert frame.render == " # "
+        assert frame.render_size == Size(3, 1)
+        assert frame.render_output == " # "
 
     def test_after_seek(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
         frame = next(render_iter)
-        assert frame.size == Size(1, 1)
-        assert frame.render == "#"
+        assert frame.render_size == Size(1, 1)
+        assert frame.render_output == "#"
 
         render_iter.seek(3)
         render_iter.set_padding(AlignedPadding(3, 1))
         frame = next(render_iter)
-        assert frame.size == Size(3, 1)
-        assert frame.render == " # "
+        assert frame.render_size == Size(3, 1)
+        assert frame.render_output == " # "
 
     def test_cache_not_updated(self):
         cache_frame_fill = CacheFrameFill(Size(1, 1))
@@ -935,8 +935,8 @@ class TestSetPadding:
 
         old_frame = next(render_iter)
         assert cache_frame_fill.n_renders == 1
-        assert old_frame.size == Size(2, 1)
-        assert old_frame.render == " 0"
+        assert old_frame.render_size == Size(2, 1)
+        assert old_frame.render_output == " 0"
 
         render_iter.seek(0)
         render_iter.set_padding(AlignedPadding(3, 1))
@@ -944,8 +944,8 @@ class TestSetPadding:
         new_frame = next(render_iter)
         assert cache_frame_fill.n_renders == 1
         assert new_frame != old_frame
-        assert new_frame.size == Size(3, 1)
-        assert new_frame.render == " 0 "
+        assert new_frame.render_size == Size(3, 1)
+        assert new_frame.render_output == " 0 "
 
     def test_finalized(self):
         render_iter = RenderIterator(anim_space)
@@ -1104,8 +1104,8 @@ class TestFromRenderData:
                 frame_fill, frame_fill._get_render_data_(iteration=True)
             )
             for index, frame in enumerate(render_iter):
-                assert frame.size == Size(1, 1)
-                assert frame.render == str(index)
+                assert frame.render_size == Size(1, 1)
+                assert frame.render_output == str(index)
 
         def test_padded(self):
             render_iter = RenderIterator._from_render_data_(
@@ -1114,8 +1114,8 @@ class TestFromRenderData:
                 padding=ExactPadding(1, 1, 1, 1),
             )
             for index, frame in enumerate(render_iter):
-                assert frame.size == Size(3, 3)
-                assert frame.render == f"   \n {index} \n   "
+                assert frame.render_size == Size(3, 3)
+                assert frame.render_output == f"   \n {index} \n   "
 
         def test_unpadded(self):
             frame_fill = FrameFill(Size(5, 5))
@@ -1125,5 +1125,5 @@ class TestFromRenderData:
                 padding=ExactPadding(0, 0, 0, 0),
             )
             for index, frame in enumerate(render_iter):
-                assert frame.size == Size(5, 5)
-                assert frame.render == "\n".join((str(index) * 5,) * 5)
+                assert frame.render_size == Size(5, 5)
+                assert frame.render_output == "\n".join((str(index) * 5,) * 5)

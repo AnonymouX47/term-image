@@ -64,7 +64,7 @@ Below are definitions of terms used across the API, exception messages and the d
    render outputs
       A **string** produced by :term:`rendering` or by padding another render output.
 
-      .. seealso:: :py:attr:`Frame.render <term_image.renderable.Frame.render>`
+      .. seealso:: :py:attr:`Frame.render_output <term_image.renderable.Frame.render_output>`
 
    render size
    rendered size
@@ -73,7 +73,7 @@ Below are definitions of terms used across the API, exception messages and the d
       Every kind of :term:`render output` has a corresponding kind of render size,
       within the same contexts.
 
-      .. seealso:: :py:attr:`Frame.size <term_image.renderable.Frame.size>`
+      .. seealso:: :py:attr:`Frame.render_size <term_image.renderable.Frame.render_size>`
 
    render width
    rendered width
