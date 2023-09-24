@@ -9,7 +9,6 @@ from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding
 from term_image.render import FinalizedIteratorError, RenderIterator
 from term_image.renderable import (
-    Frame,
     FrameCount,
     FrameDuration,
     IncompatibleRenderArgsError,
@@ -340,10 +339,18 @@ class TestCache:
 
 
 class TestFrameCount:
-    @pytest.mark.parametrize("n_frames", [2, 10])
-    def test_definite(self, n_frames):
-        render_iter = RenderIterator(Space(n_frames, 1))
-        assert len(tuple(render_iter)) == n_frames
+    class TestDefinite:
+        @pytest.mark.parametrize("n_frames", [2, 10])
+        def test_unseeked(self, n_frames):
+            render_iter = RenderIterator(Space(n_frames, 1))
+            assert len(tuple(render_iter)) == n_frames
+
+        @pytest.mark.parametrize("frame_number", [2, 4])
+        def test_seeked(self, frame_number):
+            anim_space = Space(5, 1)
+            anim_space.seek(frame_number)
+            render_iter = RenderIterator(anim_space)
+            assert len(tuple(render_iter)) == 5
 
     @pytest.mark.parametrize("n_frames", [2, 10])
     def test_indefinite(self, n_frames):
@@ -454,11 +461,34 @@ def test_iter():
 
 
 class TestNext:
-    @pytest.mark.parametrize("renderable", [anim_space, IndefiniteSpace(2)])
-    def test_iteration(self, renderable):
+    anim_space_seeked = Space(2, 1)
+    anim_space_seeked.seek(1)
+
+    @pytest.mark.parametrize("renderable", [anim_space, anim_space_seeked])
+    def test_definite(self, renderable):
         render_iter = RenderIterator(renderable)
+
         for number in range(2):
-            assert isinstance(next(render_iter), Frame)
+            frame = next(render_iter)
+            assert frame.data.frame_offset == number
+            assert frame.data.seek_whence is Seek.START
+
+        with pytest.raises(StopIteration, match="ended"):
+            next(render_iter)
+        with pytest.raises(StopIteration, match="finalized"):
+            next(render_iter)
+
+    def test_indefinite(self):
+        render_iter = RenderIterator(IndefiniteSpace(2))
+
+        frame = next(render_iter)
+        assert frame.data.frame_offset == 0
+        assert frame.data.seek_whence is Seek.START
+
+        frame = next(render_iter)
+        assert frame.data.frame_offset == 0
+        assert frame.data.seek_whence is Seek.CURRENT
+
         with pytest.raises(StopIteration, match="ended"):
             next(render_iter)
         with pytest.raises(StopIteration, match="finalized"):
@@ -472,7 +502,7 @@ class TestNext:
                 return super()._render_(render_data, render_args)
 
         render_iter = RenderIterator(ErrorSpace(2, 1))
-        assert isinstance(next(render_iter), Frame)
+        next(render_iter)
         with pytest.raises(AssertionError):
             next(render_iter)
         with pytest.raises(StopIteration, match="finalized"):
@@ -503,8 +533,12 @@ class TestSeek:
             render_iter.seek(Ellipsis)
 
     class TestDefinite:
-        def test_start(self):
-            render_iter = RenderIterator(anim_space)
+        anim_space_seeked = Space(2, 1)
+        anim_space_seeked.seek(1)
+
+        @pytest.mark.parametrize("renderable", [anim_space, anim_space_seeked])
+        def test_start(self, renderable):
+            render_iter = RenderIterator(renderable)
             data = render_iter._render_data[Renderable]
             assert data.frame_offset == 0
             assert data.seek_whence is Seek.START
