@@ -271,7 +271,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             f"<{type(self).__name__}: animated={self.animated}, "
             f"frame_count={self.__frame_count}, "
             f"frame_duration={self.__frame_duration}, "
-            f"render_size={self._get_render_size_()}>"
+            f"render_size={self._get_render_size_()}, "
+            f"tell()={self.__frame}>"
         )
 
     def __str__(self) -> str:
