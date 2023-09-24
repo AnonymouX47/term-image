@@ -558,6 +558,7 @@ class RenderIterator:
         loop = self.loop
         cache = [(None,) * 4] * frame_count if self._cached else None
         CURRENT = Seek.CURRENT
+        renderable_data.frame_offset = 0
 
         yield Frame(0, None, Size(1, 1), " ")
 
