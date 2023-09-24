@@ -1369,31 +1369,36 @@ class TestGetRenderData:
 
     def test_render_data(self):
         render_data = self.anim_space._get_render_data_(iteration=False)
-        assert isinstance(render_data, RenderData)
         assert render_data.render_cls is Space
+        # Serves as a reminder to add tests for new fields
+        assert len(render_data[Renderable].as_dict()) == 5
 
     @pytest.mark.parametrize("render_size", [Size(2, 2), Size(10, 10)])
     def test_size(self, render_size):
         self.anim_space.size = render_size
         render_data = self.anim_space._get_render_data_(iteration=False)
         size = render_data[Renderable].size
-        assert isinstance(size, Size)
         assert size == render_size
 
-    @pytest.mark.parametrize("offset", [2, 8])
-    def test_frame_offset(self, offset):
-        self.anim_space.seek(offset)
-        render_data = self.anim_space._get_render_data_(iteration=False)
-        frame_offset = render_data[Renderable].frame_offset
-        assert isinstance(frame_offset, int)
-        assert frame_offset == offset
+    class TestFrameOffsetAndSeekWhence:
+        @pytest.mark.parametrize("offset", [0, 5, 9])
+        def test_definite(self, offset):
+            anim_space = Space(10, 1)
+            anim_space.seek(offset)
+            render_data = anim_space._get_render_data_(iteration=False)
+            assert render_data[Renderable].frame_offset == offset
+            assert render_data[Renderable].seek_whence == Seek.START
 
-    @pytest.mark.parametrize("duration", [2, 100, FrameDuration.DYNAMIC])
+        def test_indefinite(self):
+            render_data = IndefiniteSpace(2)._get_render_data_(iteration=False)
+            assert render_data[Renderable].frame_offset == 0
+            assert render_data[Renderable].seek_whence == Seek.START
+
+    @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
     def test_duration(self, duration):
         self.anim_space.frame_duration = duration
         render_data = self.anim_space._get_render_data_(iteration=False)
         duration = render_data[Renderable].duration
-        assert isinstance(duration, (int, FrameDuration))
         assert duration == duration
 
     @pytest.mark.parametrize("iteration", [False, True])
