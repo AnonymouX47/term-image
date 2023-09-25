@@ -23,7 +23,7 @@ from .exceptions import TermImageError
 from .geometry import RawSize, Size
 from .utils import arg_value_error_range
 
-# Variables
+# Variables ====================================================================
 
 
 _ALIGN_RATIOS = ((0, 1), (1, 2), (1, 1))
@@ -37,7 +37,7 @@ where ``i`` = ``{h|v}_align``.
 """
 
 
-# Enumerations
+# Enumerations =================================================================
 
 
 class HAlign(IntEnum):
@@ -84,20 +84,7 @@ class VAlign(IntEnum):
     """
 
 
-# Exceptions
-
-
-class PaddingError(TermImageError):
-    """Base exception class for padding errors."""
-
-
-class RelativePaddingDimensionError(PaddingError):
-    """Raised when a padding operation is performed on an :py:class:`AlignedPadding`
-    instance with **relative** minimum render dimension(s).
-    """
-
-
-# Classes
+# Classes ======================================================================
 
 
 class Padding(metaclass=ABCMeta):
@@ -119,7 +106,11 @@ class Padding(metaclass=ABCMeta):
           :py:class:`Padding`\\ 's Extension API
     """
 
+    # Class Attributes =========================================================
+
     __slots__ = ("fill",)
+
+    # Instance Attributes ======================================================
 
     fill: str
     """Fill string
@@ -127,8 +118,12 @@ class Padding(metaclass=ABCMeta):
     This is the string with which :term:`render outputs` will be padded.
     """
 
+    # Special Methods ==========================================================
+
     def __init__(self, fill: str = " ") -> None:
         __class__.__setattr__(self, "fill", fill)  # Subclasses are to be "immutable"
+
+    # Public Methods ===========================================================
 
     def get_padded_size(self, render_size: Size) -> Size:
         """Computes an expected padded :term:`render size`.
@@ -210,6 +205,8 @@ class Padding(metaclass=ABCMeta):
             else ExactPadding(*self._get_exact_dimensions_(render_size), self.fill)
         )
 
+    # Extension methods ========================================================
+
     @abstractmethod
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         """Returns the exact padding dimensions for the given :term:`render size`.
@@ -271,7 +268,11 @@ class AlignedPadding(Padding):
         * Instances with equal fields compare equal.
     """
 
+    # Class Attributes =========================================================
+
     __slots__ = ("width", "height", "h_align", "v_align", "relative")
+
+    # Instance Attributes ======================================================
 
     width: int
     """Minimum :term:`render width`"""
@@ -291,6 +292,8 @@ class AlignedPadding(Padding):
     """``True`` if either or both *minimum render dimension(s)* is/are relative i.e
     non-positive. Otherwise, ``False``.
     """
+
+    # Special Methods ==========================================================
 
     def __init__(
         self,
@@ -319,6 +322,8 @@ class AlignedPadding(Padding):
             self.fill,
         )
 
+    # Properties ===============================================================
+
     @property
     def size(self) -> RawSize:
         """Minimum :term:`render size`
@@ -327,6 +332,8 @@ class AlignedPadding(Padding):
             Returns the *minimum render dimensions*.
         """
         return RawSize(self.width, self.height)
+
+    # Public Methods ===========================================================
 
     def get_padded_size(self, render_size: Size) -> Size:
         """Computes an expected padded :term:`render size`.
@@ -362,6 +369,8 @@ class AlignedPadding(Padding):
             height = max(terminal_height + height, 1)
 
         return type(self)(width, height, *args)
+
+    # Extension methods ========================================================
 
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         if self.relative:
@@ -409,7 +418,11 @@ class ExactPadding(Padding):
         * Instances with equal fields compare equal.
     """
 
+    # Class Attributes =========================================================
+
     __slots__ = ("left", "top", "right", "bottom")
+
+    # Instance Attributes ======================================================
 
     left: int
     """Left padding dimension"""
@@ -424,6 +437,8 @@ class ExactPadding(Padding):
     """Bottom padding dimension"""
 
     fill: str
+
+    # Special Methods ==========================================================
 
     def __init__(
         self,
@@ -442,6 +457,8 @@ class ExactPadding(Padding):
                 raise arg_value_error_range(name, value)
             _setattr(name, value)
 
+    # Properties ===============================================================
+
     @property
     def dimensions(self) -> tuple[int, int, int, int]:
         """Padding dimensions
@@ -451,5 +468,20 @@ class ExactPadding(Padding):
         """
         return astuple(self)[:4]  # type: ignore
 
+    # Extension methods ========================================================
+
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         return astuple(self)[:4]  # type: ignore
+
+
+# Exceptions ===================================================================
+
+
+class PaddingError(TermImageError):
+    """Base exception class for padding errors."""
+
+
+class RelativePaddingDimensionError(PaddingError):
+    """Raised when a padding operation is performed on an :py:class:`AlignedPadding`
+    instance with **relative** minimum render dimension(s).
+    """

@@ -28,7 +28,7 @@ from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
 from ._exceptions import RenderableError
 
-# ==================== Classes ====================
+# Classes ======================================================================
 
 
 class Frame(NamedTuple):
@@ -277,16 +277,18 @@ class RenderArgs(RenderArgsData):
     .. Completed in /docs/source/api/renderable.rst
     """
 
+    # Class Attributes =========================================================
+
     __slots__ = ()
 
     __interned: ClassVar[dict[type[Renderable], RenderArgs]] = {}
 
-    # Instance Attributes
+    # Instance Attributes ======================================================
 
     render_cls: Type[Renderable]
     """The associated :term:`render class`"""
 
-    # Special Methods
+    # Special Methods ==========================================================
 
     def __new__(
         cls,
@@ -497,7 +499,7 @@ class RenderArgs(RenderArgsData):
             )
         )
 
-    # Public Methods
+    # Public Methods ===========================================================
 
     def convert(self, render_cls: Type[Renderable]) -> RenderArgs:
         """Converts the set of render arguments to one for a related render class.
@@ -608,7 +610,7 @@ class RenderArgs(RenderArgsData):
             *((self[render_cls].update(**fields),) if render_cls else namespaces),
         )
 
-    # Inner Classes
+    # Inner Classes ============================================================
 
     class _NamespaceMeta(RenderArgsData._NamespaceMeta):
         """Metaclass of render argument namespaces."""
@@ -915,9 +917,11 @@ class RenderData(RenderArgsData):
         data namespaces.
     """
 
+    # Class Attributes =========================================================
+
     __slots__ = ("finalized",)
 
-    # Instance Attributes
+    # Instance Attributes ======================================================
 
     finalized: bool
     """Finalization status"""
@@ -925,7 +929,7 @@ class RenderData(RenderArgsData):
     render_cls: Type[Renderable]
     """The associated :term:`render class`"""
 
-    # Special Methods
+    # Special Methods ==========================================================
 
     def __init__(self, render_cls: type[Renderable]) -> None:
         super().__init__(
@@ -999,7 +1003,7 @@ class RenderData(RenderArgsData):
             )
         )
 
-    # Public Methods
+    # Public Methods ===========================================================
 
     def finalize(self) -> None:
         """Finalizes the render data.
@@ -1016,7 +1020,7 @@ class RenderData(RenderArgsData):
             finally:
                 self.finalized = True
 
-    # Inner Classes
+    # Inner Classes ============================================================
 
     class Namespace(RenderArgsData.Namespace, _base=True):
         """Namespace()
@@ -1115,7 +1119,7 @@ class RenderData(RenderArgsData):
                     setattr_(*field)
 
 
-# ==================== Exceptions ====================
+# Exceptions ===================================================================
 
 
 class RenderArgsDataError(RenderableError):
@@ -1181,7 +1185,7 @@ class UnknownDataFieldError(RenderDataError, AttributeError):
     """
 
 
-# ==================== Variables ====================
+# Variables ====================================================================
 
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)

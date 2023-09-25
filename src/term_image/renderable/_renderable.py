@@ -168,7 +168,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
           :py:class:`Renderable`\\ 's Extension API
     """
 
-    # Class Attributes
+    # Class Attributes =========================================================
 
     _EXPORTED_ATTRS_: ClassVar[tuple[str]]
     """Exported attributes.
@@ -215,12 +215,12 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         class across subprocesses.
     """
 
-    # Instance Attributes
+    # Instance Attributes ======================================================
 
     animated: bool
     """``True`` if the renderable is :term:`animated`. Otherwise, ``False``."""
 
-    # Special Methods
+    # Special Methods ==========================================================
 
     def __init__(
         self,
@@ -286,7 +286,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         return self._init_render_(self._render_)[0].render_output
 
-    # Properties
+    # Properties ===============================================================
 
     @property
     def frame_count(self) -> int | FrameCount:
@@ -350,7 +350,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         return self._get_render_size_()
 
-    # Public Methods
+    # Public Methods ===========================================================
 
     def draw(
         self,
@@ -589,7 +589,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         return self.__frame
 
-    # Extension methods
+    # Extension methods ========================================================
 
     def _animate_(
         self,
@@ -1022,7 +1022,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         """
         raise NotImplementedError
 
-    # Inner classes
+    # Inner classes ============================================================
 
     class _Data_(RenderData.Namespace):
         """_Data_()

@@ -28,6 +28,8 @@ from ..utils import (
     get_terminal_size,
 )
 
+# Classes ======================================================================
+
 
 class RenderIterator:
     """An iterator for efficient iteration over :term:`rendered` frames of an
@@ -88,6 +90,8 @@ class RenderIterator:
           :py:class:`RenderIterator`\\ 's Extension API
     """
 
+    # Instance Attributes ======================================================
+
     loop: int
     """Iteration loop countdown
 
@@ -103,50 +107,7 @@ class RenderIterator:
         Modifying this doesn't affect the iterator.
     """
 
-    def _init(
-        self,
-        renderable: Renderable,
-        render_args: RenderArgs | None = None,
-        padding: Padding = ExactPadding(),
-        loops: int = 1,
-        cache: bool | int = 100,
-    ) -> None:
-        """Partially initializes an instance.
-
-        Performs the part of the initialization common to all constructors.
-        """
-        if not isinstance(renderable, Renderable):
-            raise arg_type_error("renderable", renderable)
-        if not renderable.animated:
-            raise arg_value_error_msg("'renderable' is not animated", renderable)
-
-        if render_args and not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-
-        if not isinstance(loops, int):
-            raise arg_type_error("loops", loops)
-        if not loops:
-            raise arg_value_error("loops", loops)
-
-        if not isinstance(cache, int):  # `bool` is a subclass of `int`
-            raise arg_type_error("cache", cache)
-        if False is not cache <= 0:
-            raise arg_value_error_range("cache", cache)
-
-        indefinite = renderable.frame_count is FrameCount.INDEFINITE
-        self._closed = False
-        self._renderable = renderable
-        self.loop = self._loops = 1 if indefinite else loops
-        self._cached = (
-            False
-            if indefinite
-            else cache
-            if isinstance(cache, bool)
-            else renderable.frame_count <= cache
-        )
+    # Special Methods ==========================================================
 
     def __init__(
         self,
@@ -195,6 +156,8 @@ class RenderIterator:
             f"frame_count={self._renderable.frame_count}, loops={self._loops}, "
             f"loop={self.loop}, cached={self._cached}>"
         )
+
+    # Public Methods ===========================================================
 
     def close(self) -> None:
         """Finalizes the iterator and releases resources used.
@@ -474,6 +437,8 @@ class RenderIterator:
         self._render_data[Renderable].size = render_size
         self._padded_size = self._padding.get_padded_size(render_size)
 
+    # Extension methods ========================================================
+
     @classmethod
     def _from_render_data_(
         cls,
@@ -536,6 +501,53 @@ class RenderIterator:
         next(new._iterator)
 
         return new
+
+    # Private Methods ==========================================================
+
+    def _init(
+        self,
+        renderable: Renderable,
+        render_args: RenderArgs | None = None,
+        padding: Padding = ExactPadding(),
+        loops: int = 1,
+        cache: bool | int = 100,
+    ) -> None:
+        """Partially initializes an instance.
+
+        Performs the part of the initialization common to all constructors.
+        """
+        if not isinstance(renderable, Renderable):
+            raise arg_type_error("renderable", renderable)
+        if not renderable.animated:
+            raise arg_value_error_msg("'renderable' is not animated", renderable)
+
+        if render_args and not isinstance(render_args, RenderArgs):
+            raise arg_type_error("render_args", render_args)
+
+        if not isinstance(padding, Padding):
+            raise arg_type_error("padding", padding)
+
+        if not isinstance(loops, int):
+            raise arg_type_error("loops", loops)
+        if not loops:
+            raise arg_value_error("loops", loops)
+
+        if not isinstance(cache, int):  # `bool` is a subclass of `int`
+            raise arg_type_error("cache", cache)
+        if False is not cache <= 0:
+            raise arg_value_error_range("cache", cache)
+
+        indefinite = renderable.frame_count is FrameCount.INDEFINITE
+        self._closed = False
+        self._renderable = renderable
+        self.loop = self._loops = 1 if indefinite else loops
+        self._cached = (
+            False
+            if indefinite
+            else cache
+            if isinstance(cache, bool)
+            else renderable.frame_count <= cache
+        )
 
     def _iterate(
         self,
@@ -617,6 +629,9 @@ class RenderIterator:
             frame_no = renderable_data.frame_offset = 0
             if loop > 0:  # Avoid infinitely large negative numbers
                 self.loop = loop = loop - 1
+
+
+# Exceptions ===================================================================
 
 
 class RenderIteratorError(TermImageError):
