@@ -86,15 +86,15 @@ class RenderableMeta(ABCMeta):
 
         new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
 
-        if args_cls is None:
-            new_cls.Args = None
-        else:
+        if args_cls:
             args_cls._RENDER_CLS = new_cls
-
-        if data_cls is None:
-            new_cls._Data_ = None
         else:
+            new_cls.Args = None
+
+        if data_cls:
             data_cls._RENDER_CLS = new_cls
+        else:
+            new_cls._Data_ = None
 
         if _base:  # Renderable
             all_default_args = {}
