@@ -272,13 +272,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         return RenderIterator(self, cache=False)
 
     def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__}: animated={self.animated}, "
-            f"frame_count={self.__frame_count}, "
-            f"frame_duration={self.__frame_duration}, "
-            f"render_size={self._get_render_size_()}, "
-            f"tell()={self.__frame}>"
-        )
+        return f"<{type(self).__name__}: frame_count={self.__frame_count}>"
 
     def __str__(self) -> str:
         """:term:`Renders` the current frame with default arguments and no padding.
