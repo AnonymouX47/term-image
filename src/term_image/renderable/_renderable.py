@@ -689,6 +689,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                     / 10**9
                 )
 
+                # clear previous frame, if necessary
+                self._clear_frame_(render_data, render_args, pad_left + 1, output)
+
                 # draw next frame
                 try:
                     write(frame.render_output.replace("\n", cursor_to_next_render_line))
@@ -715,36 +718,51 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             write(cursor_to_bottom)
             flush()
 
-    @staticmethod
     def _clear_frame_(
+        self,
         render_data: RenderData,
         render_args: RenderArgs,
-        render_region: geometry.Region,
+        cursor_x: int,
+        output: TextIO,
     ) -> None:
-        """Clears the current frame while drawing an animation, if necessary.
+        """Clears the previous frame of an animation, if necessary.
 
         Args:
             render_data: Render data.
             render_args: Render arguments.
-            render_region: The region occupied by the primary :term:`render output`,
-              relative to the cursor position at the point of calling this method.
+            cursor_x: Column/horizontal position of the cursor at the point of calling
+              this method.
+
+              .. note:: The position is **1-based** i.e the leftmost column on the
+                 screen is at position 1 (one).
+
+            output: The text I/O stream to which frames of the animation are being
+              written.
 
         Called by the base implementation of :py:meth:`_animate_` just before drawing
         the next frame of an animation.
-        If writing to standard output, it's advisable to **not** flush the stream
-        immediately to reduce the flicker interval. The stream will be flushed after
-        writing the next frame.
+
+        Upon calling this method, the cursor should be positioned at the top-left-most
+        cell of the region occupied by the frame render output on the terminal screen.
+
         Upon return, ensure the cursor is at the same position it was at the point of
-        calling this method.
+        calling this method (at least logically, since *output* shouldn't be flushed
+        yet).
 
         The base implementation does nothing.
 
         NOTE:
             * This is required only if drawing the next frame doesn't inherently
-              overwrite the current frame.
+              overwrite the previous frame.
             * This is only meant (and should only be used) as a last resort since
-              clearing the current frame before drawing the next may result in visible
-              flicker.
+              clearing the previous frame before drawing the next may result in
+              visible flicker.
+            * Ensure whatever this method does doesn't result in the screen being
+              scrolled.
+
+        TIP:
+            To reduce flicker, it's advisable to **not** flush *output*. It will be
+            flushed after writing the next frame.
         """
 
     @classmethod

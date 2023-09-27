@@ -141,6 +141,7 @@ Renderable
         _EXPORTED_ATTRS_,
         _EXPORTED_DESCENDANT_ATTRS_,
         _animate_,
+        _clear_frame_,
         _finalize_render_data_,
         _get_frame_count_,
         _get_render_data_,
@@ -152,6 +153,7 @@ Renderable
    .. autoattribute:: _EXPORTED_ATTRS_
    .. autoattribute:: _EXPORTED_DESCENDANT_ATTRS_
    .. automethod:: _animate_
+   .. automethod:: _clear_frame_
    .. automethod:: _finalize_render_data_
    .. automethod:: _get_frame_count_
    .. automethod:: _get_render_data_
