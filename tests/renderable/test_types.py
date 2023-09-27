@@ -130,7 +130,7 @@ class TestNamespaceMeta:
                 bar: None
 
             assert Namespace.__dict__["__slots__"] == ("foo", "bar")
-            assert Namespace.get_fields() == {"foo": None, "bar": None}
+            assert Namespace._FIELDS == {"foo": None, "bar": None}
 
         def test_inherit(self):
             class A(NamespaceBase):
@@ -141,7 +141,7 @@ class TestNamespaceMeta:
                 pass
 
             assert B.__dict__["__slots__"] == ()
-            assert B.get_fields() == {"a": None, "b": None}
+            assert B._FIELDS == {"a": None, "b": None}
 
         def test_inherit_and_define(self):
             class A(NamespaceBase):
@@ -164,7 +164,7 @@ class TestNamespaceMeta:
                 d: None
 
             assert B.__dict__["__slots__"] == ("c", "d")
-            assert B.get_fields() == {"c": None, "d": None}
+            assert B._FIELDS == {"c": None, "d": None}
 
             with pytest.raises(RenderArgsDataError, match="No field"):
 
@@ -268,16 +268,6 @@ class TestNamespace:
             del namespace.foo
         with pytest.raises(AttributeError, match="Cannot delete"):
             del namespace.bar
-
-    def test_as_dict(self):
-        namespace = self.Namespace(dict(foo=1, bar=2))
-        assert isinstance(namespace.as_dict(), dict)
-        assert namespace.as_dict() == dict(foo=1, bar=2)
-
-    def test_get_fields(self):
-        namespace = self.Namespace(dict(foo=1, bar=2))
-        assert self.Namespace.get_fields() == dict(foo=None, bar=None)
-        assert namespace.get_fields() == dict(foo=None, bar=None)
 
     def test_get_render_cls(self):
         class Namespace(NamespaceBase):
@@ -1113,6 +1103,18 @@ class TestArgsNamespace:
                 with pytest.raises(IncompatibleRenderArgsError):
                     RenderArgs(B) | c
 
+    def test_as_dict(self):
+        namespace = self.Namespace()
+        assert namespace.as_dict() == dict(foo="FOO", bar="BAR")
+
+        namespace = self.Namespace("bar", "foo")
+        assert namespace.as_dict() == dict(foo="bar", bar="foo")
+
+    def test_get_fields(self):
+        namespace = self.Namespace()
+        assert self.Namespace.get_fields() == dict(foo="FOO", bar="BAR")
+        assert namespace.get_fields() == dict(foo="FOO", bar="BAR")
+
     class TestToRenderArgs:
         class Bar(Foo):
             class Args(RenderArgs.Namespace):
@@ -1257,6 +1259,13 @@ class TestRenderData:
 
 
 class TestDataNamespace:
+    class Bar(Renderable):
+        class _Data_(RenderData.Namespace):
+            foo: str
+            bar: str
+
+    Namespace = Bar._Data_
+
     class TestGetattrAndSetattr:
         class Bar(Renderable):
             class _Data_(RenderData.Namespace):
@@ -1295,6 +1304,28 @@ class TestDataNamespace:
             namespace = self.Namespace()
             with pytest.raises(UnknownDataFieldError, match="'baz' for 'Bar'"):
                 namespace.baz = Ellipsis
+
+    def test_as_dict(self):
+        namespace = self.Namespace()
+
+        with pytest.raises(UninitializedDataFieldError):
+            namespace.as_dict()
+
+        namespace.foo = "FOO"
+        with pytest.raises(UninitializedDataFieldError):
+            namespace.as_dict()
+
+        namespace.bar = "BAR"
+        assert namespace.as_dict() == dict(foo="FOO", bar="BAR")
+
+        namespace.foo = "bar"
+        namespace.bar = "foo"
+        assert namespace.as_dict() == dict(foo="bar", bar="foo")
+
+    def test_get_fields(self):
+        namespace = self.Namespace()
+        assert self.Namespace.get_fields() == ("foo", "bar")
+        assert namespace.get_fields() == ("foo", "bar")
 
     class TestUpdate:
         class Bar(Renderable):
