@@ -1381,6 +1381,21 @@ class TestAnimate:
         )
         assert cache_space.n_renders == n_renders
 
+    # The *newline* argument to `TemporaryFile` prevents any "\r" written to the file
+    # from being read back as "\n".
+    @pytest.mark.parametrize("output", [io.StringIO(), TemporaryFile("w+", newline="")])
+    def test_output(self, output):
+        self.anim_space._animate_(
+            self.anim_space._get_render_data_(iteration=True),
+            RenderArgs(Space),
+            self.padding,
+            1,
+            False,
+            output,
+        )
+        output.seek(0)
+        assert output.read() == self.expected_output
+
     @pytest.mark.parametrize("n_frames", [2, 3, 10])
     class TestFrameCount:
         definite_args = (RenderArgs(Space), AlignedPadding(3, 3))
@@ -1406,20 +1421,61 @@ class TestAnimate:
             assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
             assert not STDOUT.getvalue().endswith("\n")
 
-    # The *newline* argument to `TemporaryFile` prevents any "\r" written to the file
-    # from being read back as "\n".
-    @pytest.mark.parametrize("output", [io.StringIO(), TemporaryFile("w+", newline="")])
-    def test_output(self, output):
-        self.anim_space._animate_(
-            self.anim_space._get_render_data_(iteration=True),
-            RenderArgs(Space),
-            self.padding,
-            1,
-            False,
-            output,
+    class TestClearFrame:
+        class ClearFrameChar(Char):
+            n_clears = 0
+
+            def _clear_frame_(self, render_data, render_args, cursor_x, output):
+                assert render_data is self.clear_frame_args.render_data
+                assert render_args is self.clear_frame_args.render_args
+                assert cursor_x == self.clear_frame_args.cursor_x
+                assert output is self.clear_frame_args.output
+
+                # The next frame to be drawn should already be rendered.
+                # Hence, the next frame to be rendered by the iterator (the value
+                # of `frame_offset`) will be the frame after that, which is also
+                # **two frames after the frame to be cleared**. Hence, the `-2`.
+                cleared_frame_offset = render_data[Renderable].frame_offset - 2
+                if cleared_frame_offset < 0:  # frame from previous loop
+                    cleared_frame_offset += self.frame_count
+
+                # Each time `_clear_frame_()` is called, it **should've** been called
+                # exactly `n_clears = x + <multiple-of-frame-count>` times earlier
+                # where `x` is the offset of the frame to be cleared (see above).
+                # Note that `n_clears` is incremented after this. Hence, the value
+                # at this point is the number of previous calls.
+                assert cleared_frame_offset == self.n_clears % self.frame_count
+
+                self.n_clears += 1
+
+        @pytest.mark.parametrize(
+            "n_frames,render_args,cursor_x,loops,output",
+            [
+                (2, RenderArgs(ClearFrameChar), 1, 1, STDOUT),
+                (10, RenderArgs(ClearFrameChar, Char.Args("#")), 3, 2, io.StringIO()),
+            ],
         )
-        output.seek(0)
-        assert output.read() == self.expected_output
+        def test(self, n_frames, render_args, cursor_x, loops, output):
+            clear_frame_char = self.ClearFrameChar(n_frames, 1)
+            render_data = clear_frame_char._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+            clear_frame_char.clear_frame_args = SimpleNamespace(
+                render_data=render_data,
+                render_args=render_args,
+                cursor_x=cursor_x,
+                output=output,
+            )
+            clear_frame_char._animate_(
+                render_data,
+                render_args,
+                ExactPadding(cursor_x - 1),
+                loops,
+                True,
+                output,
+            )
+
+            # The overall last frame is not cleared.
+            assert clear_frame_char.n_clears == n_frames * loops - 1
 
 
 class TestGetRenderData:
