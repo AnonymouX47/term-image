@@ -102,6 +102,7 @@ Exceptions
 .. autoexception:: IncompatibleRenderArgsError
 .. autoexception:: NoArgsNamespaceError
 .. autoexception:: NoDataNamespaceError
+.. autoexception:: NonAnimatedFrameDurationError
 .. autoexception:: UninitializedDataFieldError
 .. autoexception:: UnknownArgsFieldError
 .. autoexception:: UnknownDataFieldError

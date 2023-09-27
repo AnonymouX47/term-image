@@ -20,7 +20,12 @@ from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration, Seek
-from ._exceptions import IndefiniteSeekError, RenderableError, RenderSizeOutofRangeError
+from ._exceptions import (
+    IndefiniteSeekError,
+    NonAnimatedFrameDurationError,
+    RenderableError,
+    RenderSizeOutofRangeError,
+)
 from ._types import Frame, RenderArgs, RenderData
 
 try:
@@ -331,7 +336,9 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     @frame_duration.setter
     def frame_duration(self, duration: int | FrameDuration) -> None:
         if not self.animated:
-            return
+            raise NonAnimatedFrameDurationError(
+                "Cannot set frame duration for a non-animated renderable"
+            )
 
         if isinstance(duration, int):
             if duration <= 0:

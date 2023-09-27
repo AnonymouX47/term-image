@@ -23,6 +23,7 @@ __all__ = (
     "IncompatibleRenderArgsError",
     "NoArgsNamespaceError",
     "NoDataNamespaceError",
+    "NonAnimatedFrameDurationError",
     "UninitializedDataFieldError",
     "UnknownArgsFieldError",
     "UnknownDataFieldError",
@@ -31,6 +32,7 @@ __all__ = (
 from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import (
     IndefiniteSeekError,
+    NonAnimatedFrameDurationError,
     RenderableError,
     RenderError,
     RenderSizeOutofRangeError,
