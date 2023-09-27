@@ -22,6 +22,7 @@ from ..renderable.test_renderable import (
     CacheSpace,
     Char,
     DummyFrame,
+    FrameFill,
     IndefiniteSpace,
     Space,
 )
@@ -43,7 +44,7 @@ from ..renderable.test_renderable import (
 # for both `cache=False` and `cache=True`. Any other test should be okay with the
 # default (if not specifically a caching test).
 
-# ========================== Renderables ==========================
+# Renderables ==================================================================
 
 
 class CacheChar(Char):
@@ -54,30 +55,6 @@ class CacheChar(Char):
     def _render_(self, *args):
         self.n_renders += 1
         return super()._render_(*args)
-
-
-class FrameFill(Renderable):
-    size = Size(1, 1)
-
-    def _get_render_size_(self):
-        return self.size
-
-    def __init__(self, size: Size):
-        super().__init__(10, 1)
-        self.size = size
-
-    def _render_(self, render_data, render_args):
-        data = render_data[Renderable]
-        width, height = data.size
-        return DummyFrame(
-            data.frame_offset,
-            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
-            data.size,
-            "\n".join((str(data.frame_offset) * width,) * height),
-            renderable=self,
-            render_data=render_data,
-            render_args=render_args,
-        )
 
 
 class IndefiniteFrameFill(Renderable):
@@ -134,7 +111,7 @@ frame_fill = FrameFill(Size(1, 1))
 indefinite_frame_fill = IndefiniteFrameFill(Size(1, 1))
 
 
-# ========================== Utils ==========================
+# Utils ========================================================================
 
 
 def get_loop_frames(renderable, cache=Ellipsis):
@@ -150,7 +127,9 @@ def get_loop_frames(renderable, cache=Ellipsis):
     return loop_1_frames, loop_2_frames
 
 
-# ========================== Tests ==========================
+# Tests ========================================================================
+
+# # Constructor ==================================================================
 
 
 def test_args():
@@ -255,20 +234,21 @@ class TestLoops:
 
 class TestCache:
     @pytest.mark.parametrize("cache", [0, -1, -100])
-    def test_invalid(self, cache):
+    def test_invalid_cache_size(self, cache):
         with pytest.raises(ValueError, match="'cache'"):
             RenderIterator(anim_space, cache=cache)
 
     class TestDefinite:
         @pytest.mark.parametrize(
-            "n_frames,cached", [(99, True), (100, True), (101, False)]
+            "n_frames,cached,n_renders",
+            [(99, True, 99), (100, True, 100), (101, False, 202)],
         )
-        def test_default(self, n_frames, cached):
+        def test_default(self, n_frames, cached, n_renders):
             cache_space = CacheSpace(n_frames, 1)
             render_iter = RenderIterator(cache_space, loops=2)
             assert render_iter._cached is cached
             tuple(render_iter)
-            assert cache_space.n_renders == (n_frames if cached else n_frames * 2)
+            assert cache_space.n_renders == n_renders
 
         def test_false(self):
             cache_frame_fill = CacheFrameFill(Size(1, 1))
@@ -301,7 +281,7 @@ class TestCache:
                 # Second loop
                 for frame in frames:
                     assert next(render_iter) is frame
-                    assert cache_frame_fill.n_renders == len(frames)
+                    assert cache_frame_fill.n_renders == 10
 
             def test_with_padding(self):
                 cache_frame_fill = CacheFrameFill(Size(1, 1))
@@ -319,12 +299,17 @@ class TestCache:
                 # Second loop
                 for frame in frames:
                     assert next(render_iter) == frame
-                    assert cache_frame_fill.n_renders == len(frames)
+                    assert cache_frame_fill.n_renders == 10
 
-        @pytest.mark.parametrize("cache,cached", [(9, False), (10, True), (11, True)])
-        def test_cache_size(self, cache, cached):
-            for loop_1_frame, loop_2_frame in zip(*get_loop_frames(frame_fill, cache)):
-                assert (loop_1_frame is loop_2_frame) is cached
+        @pytest.mark.parametrize(
+            "cache,cached,n_renders", [(9, False, 20), (10, True, 10), (11, True, 10)]
+        )
+        def test_cache_size(self, cache, cached, n_renders):
+            cache_frame_fill = CacheFrameFill(Size(1, 1))
+            render_iter = RenderIterator(cache_frame_fill, loops=2, cache=cache)
+            assert render_iter._cached is cached
+            tuple(render_iter)
+            assert cache_frame_fill.n_renders == n_renders
 
     class TestIndefinite:
         @pytest.mark.parametrize("n_frames", [99, 100, 101])
@@ -338,24 +323,7 @@ class TestCache:
             assert render_iter._cached is False
 
 
-class TestFrameCount:
-    class TestDefinite:
-        @pytest.mark.parametrize("n_frames", [2, 10])
-        def test_unseeked(self, n_frames):
-            render_iter = RenderIterator(Space(n_frames, 1))
-            assert len(tuple(render_iter)) == n_frames
-
-        @pytest.mark.parametrize("frame_number", [2, 4])
-        def test_seeked(self, frame_number):
-            anim_space = Space(5, 1)
-            anim_space.seek(frame_number)
-            render_iter = RenderIterator(anim_space)
-            assert len(tuple(render_iter)) == 5
-
-    @pytest.mark.parametrize("n_frames", [2, 10])
-    def test_indefinite(self, n_frames):
-        render_iter = RenderIterator(IndefiniteSpace(n_frames))
-        assert len(tuple(render_iter)) == n_frames
+# # Attributes ===================================================================
 
 
 class TestLoop:
@@ -453,6 +421,9 @@ class TestLoop:
             with pytest.raises(StopIteration):
                 next(render_iter)
             assert render_iter.loop == 0
+
+
+# # Methods ======================================================================
 
 
 def test_iter():
@@ -839,73 +810,6 @@ class TestSetFrameDuration:
             render_iter.set_frame_duration(10)
 
 
-class TestSetRenderArgs:
-    anim_char = Char(5, 1)
-
-    def test_args(self):
-        render_iter = RenderIterator(self.anim_char)
-        with pytest.raises(TypeError, match="render_args"):
-            render_iter.set_render_args(Ellipsis)
-        with pytest.raises(IncompatibleRenderArgsError):
-            render_iter.set_render_args(RenderArgs(Space))
-
-    def test_iteration(self):
-        render_iter = RenderIterator(self.anim_char)
-        assert next(render_iter).render_args == RenderArgs(Char)
-
-        render_iter.set_render_args(+Char.Args(char="#"))
-        assert next(render_iter).render_args == +Char.Args(char="#")
-        assert next(render_iter).render_args == +Char.Args(char="#")
-
-        render_iter.set_render_args(+Char.Args(char="$"))
-        assert next(render_iter).render_args == +Char.Args(char="$")
-        assert next(render_iter).render_args == +Char.Args(char="$")
-
-    def test_before_seek(self):
-        render_iter = RenderIterator(self.anim_char)
-        assert next(render_iter).render_args == RenderArgs(Char)
-
-        render_iter.set_render_args(+Char.Args(char="#"))
-        render_iter.seek(3)
-        assert next(render_iter).render_args == +Char.Args(char="#")
-
-    def test_after_seek(self):
-        render_iter = RenderIterator(self.anim_char)
-        assert next(render_iter).render_args == RenderArgs(Char)
-
-        render_iter.seek(3)
-        render_iter.set_render_args(+Char.Args(char="#"))
-        assert next(render_iter).render_args == +Char.Args(char="#")
-
-    def test_cache_update(self):
-        cache_char = CacheChar(2, 1)
-        render_iter = RenderIterator(cache_char, cache=True)
-        old_frame = next(render_iter)
-        assert cache_char.n_renders == 1
-        assert old_frame.render_args == RenderArgs(CacheChar)
-
-        render_iter.seek(0)
-        assert cache_char.n_renders == 1
-        assert next(render_iter) is old_frame
-
-        render_iter.seek(0)
-        render_iter.set_render_args(+Char.Args(char="#"))
-        new_frame = next(render_iter)
-        assert cache_char.n_renders == 2
-        assert new_frame is not old_frame
-        assert new_frame.render_args == RenderArgs(CacheChar, Char.Args(char="#"))
-
-        render_iter.seek(0)
-        assert next(render_iter) is new_frame
-        assert cache_char.n_renders == 2
-
-    def test_finalized(self):
-        render_iter = RenderIterator(anim_space)
-        render_iter.close()
-        with pytest.raises(FinalizedIteratorError, match="finalized"):
-            render_iter.set_render_args(RenderArgs(Space))
-
-
 class TestSetPadding:
     anim_char = Char(5, 1)
     render_args = +Char.Args(char="#")
@@ -986,6 +890,73 @@ class TestSetPadding:
         render_iter.close()
         with pytest.raises(FinalizedIteratorError, match="finalized"):
             render_iter.set_padding(ExactPadding())
+
+
+class TestSetRenderArgs:
+    anim_char = Char(5, 1)
+
+    def test_args(self):
+        render_iter = RenderIterator(self.anim_char)
+        with pytest.raises(TypeError, match="render_args"):
+            render_iter.set_render_args(Ellipsis)
+        with pytest.raises(IncompatibleRenderArgsError):
+            render_iter.set_render_args(RenderArgs(Space))
+
+    def test_iteration(self):
+        render_iter = RenderIterator(self.anim_char)
+        assert next(render_iter).render_args == RenderArgs(Char)
+
+        render_iter.set_render_args(+Char.Args(char="#"))
+        assert next(render_iter).render_args == +Char.Args(char="#")
+        assert next(render_iter).render_args == +Char.Args(char="#")
+
+        render_iter.set_render_args(+Char.Args(char="$"))
+        assert next(render_iter).render_args == +Char.Args(char="$")
+        assert next(render_iter).render_args == +Char.Args(char="$")
+
+    def test_before_seek(self):
+        render_iter = RenderIterator(self.anim_char)
+        assert next(render_iter).render_args == RenderArgs(Char)
+
+        render_iter.set_render_args(+Char.Args(char="#"))
+        render_iter.seek(3)
+        assert next(render_iter).render_args == +Char.Args(char="#")
+
+    def test_after_seek(self):
+        render_iter = RenderIterator(self.anim_char)
+        assert next(render_iter).render_args == RenderArgs(Char)
+
+        render_iter.seek(3)
+        render_iter.set_render_args(+Char.Args(char="#"))
+        assert next(render_iter).render_args == +Char.Args(char="#")
+
+    def test_cache_update(self):
+        cache_char = CacheChar(2, 1)
+        render_iter = RenderIterator(cache_char, cache=True)
+        old_frame = next(render_iter)
+        assert cache_char.n_renders == 1
+        assert old_frame.render_args == RenderArgs(CacheChar)
+
+        render_iter.seek(0)
+        assert cache_char.n_renders == 1
+        assert next(render_iter) is old_frame
+
+        render_iter.seek(0)
+        render_iter.set_render_args(+Char.Args(char="#"))
+        new_frame = next(render_iter)
+        assert cache_char.n_renders == 2
+        assert new_frame is not old_frame
+        assert new_frame.render_args == RenderArgs(CacheChar, Char.Args(char="#"))
+
+        render_iter.seek(0)
+        assert next(render_iter) is new_frame
+        assert cache_char.n_renders == 2
+
+    def test_finalized(self):
+        render_iter = RenderIterator(anim_space)
+        render_iter.close()
+        with pytest.raises(FinalizedIteratorError, match="finalized"):
+            render_iter.set_render_args(RenderArgs(Space))
 
 
 class TestSetRenderSize:
@@ -1161,3 +1132,26 @@ class TestFromRenderData:
             for index, frame in enumerate(render_iter):
                 assert frame.render_size == Size(5, 5)
                 assert frame.render_output == "\n".join((str(index) * 5,) * 5)
+
+
+# # Others =======================================================================
+
+
+class TestFrameCount:
+    class TestDefinite:
+        @pytest.mark.parametrize("n_frames", [2, 10])
+        def test_unseeked(self, n_frames):
+            render_iter = RenderIterator(Space(n_frames, 1))
+            assert len(tuple(render_iter)) == n_frames
+
+        @pytest.mark.parametrize("frame_number", [2, 4])
+        def test_seeked(self, frame_number):
+            anim_space = Space(5, 1)
+            anim_space.seek(frame_number)
+            render_iter = RenderIterator(anim_space)
+            assert len(tuple(render_iter)) == 5
+
+    @pytest.mark.parametrize("n_frames", [2, 10])
+    def test_indefinite(self, n_frames):
+        render_iter = RenderIterator(IndefiniteSpace(n_frames))
+        assert len(tuple(render_iter)) == n_frames

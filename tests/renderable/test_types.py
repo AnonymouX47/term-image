@@ -20,10 +20,7 @@ from term_image.renderable import (
 )
 from term_image.renderable._types import RenderArgsData
 
-
-class NamespaceBase(RenderArgsData.Namespace, _base=True):
-    def __init__(self, fields=None):
-        super().__init__(fields or {})
+# Renderables ==================================================================
 
 
 class Foo(Renderable):
@@ -41,46 +38,70 @@ class Foo(Renderable):
         bar: Any
 
 
+# Utils ========================================================================
+
+
+class NamespaceBase(RenderArgsData.Namespace, _base=True):
+    def __init__(self, fields=None):
+        super().__init__(fields or {})
+
+
+# Tests ========================================================================
+
+
 class TestFrame:
-    def test_is_tuple(self):
-        frame = Frame(None, None, None, None)
-        assert isinstance(frame, tuple)
-        assert len(frame) == 4
+    args = (0, 1, Size(1, 1), " ")
 
     class TestFields:
+        args = (0, 1, Size(1, 1), " ")
+
         @pytest.mark.parametrize("number", [0, 10])
         def test_number(self, number):
-            frame = Frame(number, None, None, None)
+            frame = Frame(number, *self.args[1:])
             assert frame.number is number
 
         @pytest.mark.parametrize("duration", [1, 100])
         def test_duration(self, duration):
-            frame = Frame(None, duration, None, None)
+            frame = Frame(*self.args[:1], duration, *self.args[2:])
             assert frame.duration is duration
 
         @pytest.mark.parametrize("size", [Size(1, 3), Size(100, 30)])
         def test_size(self, size):
-            frame = Frame(None, None, size, None)
+            frame = Frame(*self.args[:2], size, *self.args[3:])
             assert frame.render_size is size
 
         @pytest.mark.parametrize("render", [" ", " " * 10])
         def test_render(self, render):
-            frame = Frame(None, None, None, render)
+            frame = Frame(*self.args[:3], render)
             assert frame.render_output is render
+
+    @pytest.mark.parametrize("render", [" ", " " * 10])
+    def test_str(self, render):
+        frame = Frame(*self.args[:3], render)
+        assert str(frame) is render
 
     @pytest.mark.parametrize("field", Frame._fields)
     def test_immutability(self, field):
-        frame = Frame(None, None, None, None)
+        frame = Frame(*self.args)
         with pytest.raises(AttributeError):
             setattr(frame, field, Ellipsis)
 
         with pytest.raises(AttributeError):
             delattr(frame, field)
 
-    @pytest.mark.parametrize("render", [" ", " " * 10])
-    def test_str(self, render):
-        frame = Frame(None, None, None, render)
-        assert str(frame) is render
+    @pytest.mark.parametrize("args", [args, (9, 100, Size(10, 10), " " * 10)])
+    def test_equality(self, args):
+        assert Frame(*args) == Frame(*args)
+
+    @pytest.mark.parametrize(
+        "args1, args2",
+        [
+            (args, (9, 100, Size(10, 10), " " * 10)),
+            (args, (99, 1000, Size(100, 100), " " * 100)),
+        ],
+    )
+    def test_unequality(self, args1, args2):
+        assert Frame(*args1) != Frame(*args2)
 
 
 class TestNamespaceMeta:
@@ -161,7 +182,7 @@ class TestNamespaceMeta:
             assert Namespace.get_render_cls() is Renderable
 
         class TestInheritTrue:
-            def test_subclass_before(self):
+            def test_subclass_before_association(self):
                 class A(NamespaceBase):
                     a: None
 
@@ -173,7 +194,7 @@ class TestNamespaceMeta:
                 A._RENDER_CLS = Renderable
                 assert B.get_render_cls() is Renderable
 
-            def test_subclass_after(self):
+            def test_subclass_after_association(self):
                 class A(NamespaceBase):
                     a: None
 
@@ -185,7 +206,7 @@ class TestNamespaceMeta:
                 assert B.get_render_cls() is Renderable
 
         class TestInheritFalse:
-            def test_subclass_before(self):
+            def test_subclass_before_association(self):
                 class A(NamespaceBase):
                     a: None
 
@@ -197,7 +218,7 @@ class TestNamespaceMeta:
                 A._RENDER_CLS = Renderable
                 assert B.get_render_cls() is None
 
-            def test_subclass_after(self):
+            def test_subclass_after_association(self):
                 class A(NamespaceBase):
                     a: None
 
@@ -208,44 +229,24 @@ class TestNamespaceMeta:
 
                 assert B.get_render_cls() is None
 
-    def test_required_constructor_parameters(self):
-        with pytest.raises(TypeError, match="__init__.* required parameter"):
+    class TestRequiredConstructorParameters:
+        def test_new(self):
+            with pytest.raises(TypeError, match="__new__.* required parameter"):
 
-            class Namespace(NamespaceBase):
-                foo: None
+                class Namespace(NamespaceBase):  # noqa: F811
+                    foo: None
 
-                def __init__(self, foo):
-                    pass
+                    def __new__(self, foo):
+                        pass
 
-        with pytest.raises(TypeError, match="__new__.* required parameter"):
+        def test_init(self):
+            with pytest.raises(TypeError, match="__init__.* required parameter"):
 
-            class Namespace(NamespaceBase):  # noqa: F811
-                foo: None
+                class Namespace(NamespaceBase):
+                    foo: None
 
-                def __new__(self, foo):
-                    pass
-
-        with pytest.raises(TypeError, match="__init__.* required parameter"):
-
-            class Namespace(NamespaceBase):  # noqa: F811
-                foo: None
-
-                def __new__(self, *args, **kwargs):
-                    pass
-
-                def __init__(self, foo):
-                    pass
-
-        with pytest.raises(TypeError, match="__new__.* required parameter"):
-
-            class Namespace(NamespaceBase):  # noqa: F811
-                foo: None
-
-                def __new__(self, foo):
-                    pass
-
-                def __init__(self, *args, **kwargs):
-                    pass
+                    def __init__(self, foo):
+                        pass
 
 
 class TestNamespace:
@@ -261,11 +262,12 @@ class TestNamespace:
         with pytest.raises(TypeError, match="Cannot instantiate"):
             Namespace()
 
-    @pytest.mark.parametrize("field", ["foo", "bar"])
-    def test_delattr(self, field):
+    def test_delattr(self):
         namespace = self.Namespace(dict(foo=1, bar=2))
         with pytest.raises(AttributeError, match="Cannot delete"):
-            delattr(namespace, field)
+            del namespace.foo
+        with pytest.raises(AttributeError, match="Cannot delete"):
+            del namespace.bar
 
     def test_as_dict(self):
         namespace = self.Namespace(dict(foo=1, bar=2))
@@ -416,33 +418,7 @@ class TestRenderArgs:
             assert render_args[Foo] == Foo.Args("bar", "foo")
             assert render_args[Foo] is init_render_args[Foo]
 
-    def test_namespace_precedence(self):
-        class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                a: int = 1
-
-        class B(A):
-            class Args(RenderArgs.Namespace):
-                b: int = 2
-
-        class C(B):
-            class Args(RenderArgs.Namespace):
-                c: int = 3
-
-        init_render_args = RenderArgs(B, A.Args(10), B.Args(20))
-        namespace = A.Args(100)
-        render_args = RenderArgs(C, init_render_args, namespace)
-
-        assert render_args[A] is namespace
-        assert render_args[B] is init_render_args[B]
-        assert render_args[C] is RenderArgs(C)[C]  # default
-
-    def test_immutability(self):
-        render_args = RenderArgs(Foo)
-        with pytest.raises(TypeError):
-            render_args[Foo] = Foo.Args()
-
-    def test_equality(self):
+    def test_eq(self):
         class Bar(Renderable):
             class Args(RenderArgs.Namespace):
                 bar: str = "BAR"
@@ -665,6 +641,32 @@ class TestRenderArgs:
             assert render_args.update(Foo, foo="foo") == +Foo.Args(foo="foo")
             assert render_args.update(Foo, bar="foo") == +Foo.Args(foo="bar", bar="foo")
 
+    def test_immutability(self):
+        render_args = RenderArgs(Foo)
+        with pytest.raises(TypeError):
+            render_args[Foo] = Foo.Args()
+
+    def test_namespace_source_precedence(self):
+        class A(Renderable):
+            class Args(RenderArgs.Namespace):
+                a: int = 1
+
+        class B(A):
+            class Args(RenderArgs.Namespace):
+                b: int = 2
+
+        class C(B):
+            class Args(RenderArgs.Namespace):
+                c: int = 3
+
+        init_render_args = RenderArgs(B, A.Args(10), B.Args(20))
+        namespace = A.Args(100)
+        render_args = RenderArgs(C, init_render_args, namespace)
+
+        assert render_args[A] is namespace
+        assert render_args[B] is init_render_args[B]
+        assert render_args[C] is RenderArgs(C)[C]  # default
+
     class TestOptimizations:
         class TestDefaultsInterned:
             class Bar(Foo):
@@ -843,7 +845,7 @@ class TestArgsNamespace:
         with pytest.raises(AttributeError):
             namespace.bar = "foo"
 
-    def test_equality(self):
+    def test_eq(self):
         namespace_default = self.Namespace()
         assert namespace_default == self.Namespace()
         assert namespace_default == self.Namespace("FOO", "BAR")
@@ -1146,25 +1148,12 @@ class TestArgsNamespace:
 
     def test_update(self):
         namespace = self.Namespace()
-        assert namespace.update() == self.Namespace()
-        assert namespace.update(foo="bar") == self.Namespace("bar")
-        assert namespace.update(bar="foo") == self.Namespace(bar="foo")
-        assert namespace.update(foo="bar", bar="foo") == self.Namespace("bar", "foo")
 
-        namespace_foo = self.Namespace("bar")
-        assert namespace_foo.update() == self.Namespace("bar")
-        assert namespace_foo.update(foo="baz") == self.Namespace("baz")
-        assert namespace_foo.update(bar="foo") == self.Namespace("bar", "foo")
-        assert namespace_foo.update(foo="baz", bar="baz") == self.Namespace(
-            "baz", "baz"
-        )
-
-        namespace_bar = self.Namespace(bar="foo")
-        assert namespace_bar.update() == self.Namespace(bar="foo")
-        assert namespace_bar.update(bar="baz") == self.Namespace(bar="baz")
-        assert namespace_bar.update(foo="bar") == self.Namespace("bar", "foo")
-        assert namespace_bar.update(foo="baz", bar="baz") == self.Namespace(
-            "baz", "baz"
+        assert namespace.update().as_dict() == dict(foo="FOO", bar="BAR")
+        assert namespace.update(foo="bar").as_dict() == dict(foo="bar", bar="BAR")
+        assert namespace.update(bar="foo").as_dict() == dict(foo="FOO", bar="foo")
+        assert namespace.update(foo="bar", bar="foo").as_dict() == dict(
+            foo="bar", bar="foo"
         )
 
         with pytest.raises(UnknownArgsFieldError, match="'baz'"):
@@ -1216,6 +1205,36 @@ class TestRenderData:
         assert isinstance(render_data[Foo], Foo._Data_)
         assert isinstance(render_data[Renderable], Renderable._Data_)
 
+    # Currently depends on implementation detail (the order or namespaces) but I don't
+    # really see any reasonable/neat way around that for now
+    def test_iter(self):
+        class A(Renderable):
+            class _Data_(RenderData.Namespace):
+                foo: None = None
+
+        class B(A):
+            class _Data_(RenderData.Namespace):
+                foo: None = None
+
+        class C(B):
+            class _Data_(RenderData.Namespace):
+                foo: None = None
+
+        a_data, base_data = tuple(RenderData(A))
+        assert isinstance(a_data, A._Data_)
+        assert isinstance(base_data, Renderable._Data_)
+
+        b_data, a_data, base_data = tuple(RenderData(B))
+        assert isinstance(a_data, A._Data_)
+        assert isinstance(b_data, B._Data_)
+        assert isinstance(base_data, Renderable._Data_)
+
+        c_data, b_data, a_data, base_data = tuple(RenderData(C))
+        assert isinstance(a_data, A._Data_)
+        assert isinstance(b_data, B._Data_)
+        assert isinstance(c_data, C._Data_)
+        assert isinstance(base_data, Renderable._Data_)
+
     def test_finalize(self):
         render_data = RenderData(Foo)
         render_data[Foo].update(foo="FOO", bar="BAR")
@@ -1238,7 +1257,7 @@ class TestRenderData:
 
 
 class TestDataNamespace:
-    class TestGetattrSetattr:
+    class TestGetattrAndSetattr:
         class Bar(Renderable):
             class _Data_(RenderData.Namespace):
                 foo: str
@@ -1304,16 +1323,13 @@ class TestDataNamespace:
                 namespace.bar
 
             namespace.update(bar="BAR")
-            assert namespace.foo == "FOO"
-            assert namespace.bar == "BAR"
+            assert namespace.as_dict() == dict(foo="FOO", bar="BAR")
 
             namespace.update()
-            assert namespace.foo == "FOO"
-            assert namespace.bar == "BAR"
+            assert namespace.as_dict() == dict(foo="FOO", bar="BAR")
 
             namespace.update(foo="bar", bar="foo")
-            assert namespace.foo == "bar"
-            assert namespace.bar == "foo"
+            assert namespace.as_dict() == dict(foo="bar", bar="foo")
 
         def test_unknown(self):
             namespace = self.Namespace()

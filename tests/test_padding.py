@@ -45,7 +45,7 @@ class TestPadding:
             ((1, 1, 1, 1), Size(2, 2), Size(4, 4)),
         ],
     )
-    def test_padded_size(self, dimensions, render_size, padded_size):
+    def test_get_padded_size(self, dimensions, render_size, padded_size):
         padding = ConcretePadding(dimensions)
         assert padding.get_padded_size(render_size) == padded_size
 
