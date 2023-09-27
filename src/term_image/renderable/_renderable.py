@@ -150,8 +150,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
         frame_duration: The duration of a frame. If it's a
 
-          * positive integer, the duration of every frame is fixed to the given
-            value (in **milliseconds**).
+          * positive integer, it implies a static duration (in **milliseconds**)
+            i.e the same duration applies to every frame.
           * :py:class:`~term_image.renderable.FrameDuration` enum member, see the
             member's description.
 
@@ -318,18 +318,23 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             * ``None``, if the renderable is non-animated.
             * Otherwise,
 
-              * The fixed duration (in **milliseconds**) of **every** frame, or
+              * A static duration (in **milliseconds**) i.e the same duration applies
+                to every frame, or
               * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
 
         SET:
-            If the renderable is :term:`animated` and the value is
+            If the renderable is
 
-            * a positive integer, it is set as the fixed duration (in **milliseconds**)
-              of **every** frame.
-            * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
-              enum member's description.
+            * :term:`animated` and the value is
 
-            If the renderable is not animated, nothing is done.
+              * a positive integer, it implies a static duration (in **milliseconds**)
+                i.e the same duration applies to every frame.
+              * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
+                enum member's description.
+
+            * non-animated,
+              :py:class:`~term_image.renderable.NonAnimatedFrameDurationError`
+              is raised.
         """
         return self.__frame_duration
 
@@ -1137,6 +1142,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         duration: int | FrameDuration | None
         """Frame duration
 
+        The possible values and their interpretation are the same as for
+        :py:attr:`~term_image.renderable.Renderable.frame_duration`.
         See :py:meth:`~term_image.renderable.Renderable._render_`.
         """
 

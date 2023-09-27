@@ -344,7 +344,8 @@ class RenderIterator:
         """Sets the frame duration.
 
         Args:
-            duration: Frame duration.
+            duration: Frame duration (see
+              :py:attr:`~term_image.renderable.Renderable.frame_duration`).
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
