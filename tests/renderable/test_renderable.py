@@ -19,6 +19,7 @@ from term_image.renderable import (
     FrameDuration,
     IncompatibleRenderArgsError,
     IndefiniteSeekError,
+    NonAnimatedFrameDurationError,
     Renderable,
     RenderableError,
     RenderArgs,
@@ -744,23 +745,26 @@ class TestFrameDuration:
 
     class TestSet:
         space = Space(1, 1)
-        anim_space = Space(2, 1)
 
-        @pytest.mark.parametrize("duration", [2, 100, FrameDuration.DYNAMIC])
-        def test_valid(self, duration):
-            self.space.frame_duration = duration
+        @pytest.mark.parametrize("duration", [100, FrameDuration.DYNAMIC, 0, -100])
+        def test_non_animated(self, duration):
+            with pytest.raises(NonAnimatedFrameDurationError):
+                self.space.frame_duration = duration
+
             assert self.space.frame_duration is None
 
-            self.anim_space.frame_duration = duration
-            assert self.anim_space.frame_duration == duration
+        class TestAnimated:
+            anim_space = Space(2, 1)
 
-        @pytest.mark.parametrize("duration", [0, -1, -100])
-        def test_invalid(self, duration):
-            self.space.frame_duration = duration
-            assert self.space.frame_duration is None
-
-            with pytest.raises(ValueError, match="'frame_duration'"):
+            @pytest.mark.parametrize("duration", [2, 100, FrameDuration.DYNAMIC])
+            def test_valid(self, duration):
                 self.anim_space.frame_duration = duration
+                assert self.anim_space.frame_duration == duration
+
+            @pytest.mark.parametrize("duration", [0, -1, -100])
+            def test_invalid(self, duration):
+                with pytest.raises(ValueError, match="'frame_duration'"):
+                    self.anim_space.frame_duration = duration
 
 
 def test_render_size():
