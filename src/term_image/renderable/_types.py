@@ -179,45 +179,6 @@ class RenderArgsData:
         def __delattr__(self, _):
             raise AttributeError("Cannot delete field")
 
-        def as_dict(self) -> dict[str, Any]:
-            """Converts the namespace to a dictionary.
-
-            Returns:
-                A dictionary mapping field names to their values.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return {name: getattr(self, name) for name in type(self)._FIELDS}
-
-        @classmethod
-        def get_fields(cls) -> Mapping[str, Any]:
-            """Returns the field definitions.
-
-            Returns:
-                A mapping of field names to their default values.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return cls._FIELDS
-
         @classmethod
         def get_render_cls(cls) -> Type[Renderable] | None:
             """Returns the associated :term:`render class`.
@@ -842,6 +803,45 @@ class RenderArgs(RenderArgsData):
 
             return self.__or__(other)  # All other cases are commutative
 
+        def as_dict(self) -> dict[str, Any]:
+            """Copies the namespace as a dictionary.
+
+            Returns:
+                A dictionary mapping field names to their values.
+
+            WARNING:
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
+            """
+            return {name: getattr(self, name) for name in type(self)._FIELDS}
+
+        @classmethod
+        def get_fields(cls) -> Mapping[str, Any]:
+            """Returns the field definitions.
+
+            Returns:
+                A mapping of field names to their default values.
+
+            WARNING:
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
+            """
+            return cls._FIELDS
+
         def to_render_args(
             self, render_cls: type[Renderable] | None = None
         ) -> RenderArgs:
@@ -1096,6 +1096,48 @@ class RenderData(RenderArgsData):
                     f"Unknown render data field {attr!r} for "
                     f"{type(self)._RENDER_CLS.__name__!r}"
                 ) from None
+
+        def as_dict(self) -> dict[str, Any]:
+            """Copies the namespace as a dictionary.
+
+            Returns:
+                A dictionary mapping field names to their current values.
+
+            Raises:
+              UninitializedDataFieldError: A field has not been initialized.
+
+            WARNING:
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
+            """
+            return {name: getattr(self, name) for name in type(self)._FIELDS}
+
+        @classmethod
+        def get_fields(cls) -> tuple[str]:
+            """Returns the field names.
+
+            Returns:
+                A tuple of field names.
+
+            WARNING:
+                The number and order of fields is guaranteed to be the same for a
+                subclass that defines fields, its subclasses (that inherit its fields)
+                and all their instances but beyond this, should not be relied upon as
+                the details (such as the specific number or order) may change without
+                notice.
+
+                The order is an implementation detail of the Render Arguments/Data API
+                and the number should be considered an implementation detail of the
+                specific namespace subclass.
+            """
+            return tuple(cls._FIELDS)
 
         def update(self, **fields: Any) -> None:
             """Updates render data fields.
