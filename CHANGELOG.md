@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `term_image.geometry` submodule ([#96]).
   - `term_image.geometry.Size`.
   - `term_image.geometry.RawSize` ([5537037]).
+- `term_image.renderable` subpackage ([#97]).
+  - `Renderable`, `RenderArgs`, `RenderData`, `Frame`, etc.
+- `term_image.render` subpackage ([#97]).
+  - `RenderIterator`, etc.
+- `term_image.padding` submodule ([#97]).
+  - `Padding`, `AlignedPadding`, `ExactPadding`, etc.
 
 ### Changed
 - `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
