@@ -993,6 +993,59 @@ class TestDraw:
             anim_render_char.draw(animate=False)
             assert anim_render_char.render_data[Renderable].frame_offset == offset
 
+        class TestHandleInterruptedDraw:
+            class InterruptedChar(Char):
+                interrupted = False
+
+                def __init__(self):
+                    super().__init__(1, 1)
+
+                def _handle_interrupted_draw_(self, render_data, render_args, output):
+                    self.interrupted_args = SimpleNamespace(
+                        render_data=render_data,
+                        render_args=render_args,
+                        output=output,
+                    )
+                    self.interrupted = True
+
+            def interrupted_write(string):
+                raise KeyboardInterrupt
+
+            interrupted_io_1 = io.StringIO()
+            interrupted_io_1.write = interrupted_write
+            interrupted_io_2 = io.StringIO()
+            interrupted_io_2.write = interrupted_write
+
+            @capture_stdout()
+            def test_uninterrupted(self):
+                interrupted_char = self.InterruptedChar()
+                interrupted_char.draw(RenderArgs(self.InterruptedChar), ExactPadding())
+                assert interrupted_char.interrupted is False
+
+            @pytest.mark.parametrize(
+                "render_args,output",
+                [
+                    (RenderArgs(InterruptedChar), interrupted_io_1),
+                    (RenderArgs(InterruptedChar, Char.Args("#")), interrupted_io_2),
+                ],
+            )
+            def test_interrupted(self, render_args, output):
+                interrupted_char = self.InterruptedChar()
+                sys.stdout = output
+
+                try:
+                    interrupted_char.draw(render_args)
+                except KeyboardInterrupt:
+                    pass
+
+                assert interrupted_char.interrupted is True
+                assert (
+                    interrupted_char.interrupted_args.render_data.render_cls
+                    is self.InterruptedChar
+                )
+                assert interrupted_char.interrupted_args.render_args is render_args
+                assert interrupted_char.interrupted_args.output is output
+
     class TestAnimation:
         class AnimateChar(Char):
             def _animate_(
@@ -1503,6 +1556,81 @@ class TestAnimate:
             )
             # The overall last frame is not cleared.
             assert clear_frame_char.n_clears == n_frames * loops - 1
+
+    class TestHandleInterruptedDraw:
+        class InterruptedFrameFill(FrameFill):
+            interrupted = False
+
+            def __init__(self):
+                # The width is crucial for the markers for the write method wrappers
+                super().__init__(Size(10, 1))
+
+            def _handle_interrupted_draw_(self, render_data, render_args, output):
+                self.interrupted_args = SimpleNamespace(
+                    render_data=render_data,
+                    render_args=render_args,
+                    output=output,
+                )
+                self.interrupted = True
+
+            class Args(RenderArgs.Namespace):
+                foo: bool = False
+
+        def wrap_write(write_method, marker=None):
+            def write_wrapper(string):
+                if not marker or marker in string:
+                    raise KeyboardInterrupt
+                return write_method(string)
+
+            return write_wrapper
+
+        frame_0_io = io.StringIO()
+        frame_0_io.write = wrap_write(frame_0_io.write, "0000000000")
+        frame_9_io = io.StringIO()
+        frame_9_io.write = wrap_write(frame_9_io.write, "9999999999")
+
+        @capture_stdout()
+        def test_uninterrupted(self):
+            interrupted_frame_fill = self.InterruptedFrameFill()
+            render_data = interrupted_frame_fill._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+
+            interrupted_frame_fill._animate_(
+                render_data,
+                RenderArgs(self.InterruptedFrameFill),
+                ExactPadding(),
+                1,
+                True,
+                STDOUT,
+            )
+            assert interrupted_frame_fill.interrupted is False
+
+        @pytest.mark.parametrize(
+            "render_args,output,frame_interrupted",
+            [
+                (RenderArgs(InterruptedFrameFill), frame_0_io, 0),
+                (+InterruptedFrameFill.Args(True), frame_9_io, 9),
+            ],
+        )
+        @capture_stdout()
+        def test_interrupted(self, render_args, output, frame_interrupted):
+            interrupted_frame_fill = self.InterruptedFrameFill()
+            render_data = interrupted_frame_fill._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+
+            interrupted_frame_fill._animate_(
+                render_data,
+                render_args,
+                ExactPadding(),
+                1,
+                True,
+                output,
+            )
+            assert interrupted_frame_fill.interrupted is True
+            assert interrupted_frame_fill.interrupted_args.render_data is render_data
+            assert interrupted_frame_fill.interrupted_args.render_args is render_args
+            assert interrupted_frame_fill.interrupted_args.output is output
+            assert render_data[Renderable].frame_offset == frame_interrupted + 1
 
 
 class TestGetRenderData:
