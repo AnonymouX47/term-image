@@ -474,7 +474,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                     output.write(render)
                     output.flush()
                 except KeyboardInterrupt:
-                    self._handle_interrupted_draw_(render_data, render_args)
+                    self._handle_interrupted_draw_(render_data, render_args, output)
                     raise
         finally:
             output.write("\n")
@@ -658,14 +658,14 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
             try:
                 write(frame.render_output)
+                flush()
             except KeyboardInterrupt:
-                self._handle_interrupted_draw_(render_data, render_args)
+                self._handle_interrupted_draw_(render_data, render_args, output)
                 return
             else:
                 write(
                     f"\r{cursor_up(height + pad_bottom - 1)}{cursor_forward(pad_left)}"
                 )
-            finally:
                 flush()
 
             # Padding has been drawn with the first frame, only the actual render is
@@ -689,11 +689,13 @@ class Renderable(metaclass=RenderableMeta, _base=True):
                 # draw next frame
                 try:
                     write(frame.render_output.replace("\n", cursor_to_next_render_line))
-                    write(cursor_to_render_top_left)
                     flush()
                 except KeyboardInterrupt:
-                    self._handle_interrupted_draw_(render_data, render_args)
+                    self._handle_interrupted_draw_(render_data, render_args, output)
                     return
+
+                write(cursor_to_render_top_left)
+                flush()
 
                 # render next frame during previous frame's duration
                 start_ns = perf_counter_ns()
@@ -878,20 +880,28 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         raise NotImplementedError
 
     def _handle_interrupted_draw_(
-        self, render_data: RenderData, render_args: RenderArgs
+        self, render_data: RenderData, render_args: RenderArgs, output: TextIO
     ) -> None:
-        """Performs any necessary actions if :py:class:`KeyboardInterrupt` is raised
-        while writing a frame to the terminal.
+        """Performs any special handling necessary when an interruption occurs while
+        writing a :term:`render output` to a stream.
 
         Args:
             render_data: Render data.
             render_args: Render arguments.
+            output: The text I/O stream to which the render output was being written.
+
+        Called by the base implementations of :py:meth:`draw` (for non-animations)
+        and :py:meth:`_animate_` when :py:class:`KeyboardInterrupt` is raised while
+        writing a render output.
 
         The base implementation does nothing.
 
+        NOTE:
+            *output* should be flushed by this method.
+
         HINT:
-            For a renderable that uses SGR sequences in its :term:`render output`,
-            this method may write ``CSI 0 m`` to standard output.
+            For a renderable that uses SGR sequences in its render output, this method
+            may write ``CSI 0 m`` to *output*.
         """
 
     def _init_render_(
