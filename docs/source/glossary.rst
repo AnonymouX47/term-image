@@ -19,19 +19,9 @@ Below are definitions of terms used across the API, exception messages and the d
       .. seealso:: :ref:`active-terminal`
 
    alignment
-      The position of a primary :term:`render` output within its :term:`padding`.
-
-      .. seealso:: :ref:`alignment`
-
    horizontal alignment
-      The horizontal position of a primary :term:`render` output within its :term:`padding width`.
-
-      .. seealso:: :ref:`alignment`
-
    vertical alignment
-      The vertical position of a primary :term:`render` output within its :term:`padding height`.
-
-      .. seealso:: :ref:`alignment`
+      ...
 
    alpha threshold
       Alpha ratio/value above which a pixel is taken as **opaque** (applies only to :ref:`text-based`).
@@ -59,45 +49,42 @@ Below are definitions of terms used across the API, exception messages and the d
       The height of the area used in :term:`automatic sizing`.
 
    render
+   renders
    rendered
    rendering
-      The process of encoding pixel data into a byte/character **string** (possibly including escape sequences to reproduce colour and transparency).
+      The process of encoding visual/textual data into a byte/character **string** (possibly including terminal control sequences), the result of which is called a :term:`render output`.
 
-      This string is also called the **primary** render output and **excludes** :term:`padding`.
+      .. seealso:: :py:meth:`~term_image.renderable.Renderable._render_`
 
+   render class
+   render classes
+      :py:class:`~term_image.renderable.Renderable` or a subclass of it.
+
+   render output
+   render outputs
+      A **string** produced by :term:`rendering` or by padding another render output.
+
+      .. seealso:: :py:attr:`Frame.render_output <term_image.renderable.Frame.render_output>`
+
+   render size
    rendered size
-      The amount of space (columns and lines) that'll be occupied by a primary :term:`render` output **when drawn (written) onto a terminal screen**.
+      The amount of space (columns and lines) that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**.
 
-   .. seealso:: :py:attr:`~term_image.image.BaseImage.rendered_size`
+      .. seealso:: :py:attr:`Frame.render_size <term_image.renderable.Frame.render_size>`
 
+   render width
    rendered width
-      The amount of **columns** that'll be occupied by a primary :term:`render` output **when drawn (written) onto a terminal screen**.
+      The amount of **columns** that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**. Also the horizontal component of a :term:`render size`.
 
-   .. seealso:: :py:attr:`~term_image.image.BaseImage.rendered_width`
-
+   render height
    rendered height
-      The amount of **lines** that'll be occupied by a primary :term:`render` output **when drawn (written) onto a terminal screen**.
-
-   .. seealso:: :py:attr:`~term_image.image.BaseImage.rendered_height`
+      The amount of **lines** that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**. Also the vertical component of a :term:`render size`.
 
    padding
-      Amount of lines and columns within which to fit a primary :term:`render` output.
-
-      .. seealso:: :ref:`padding`
-
+   padding size
    padding width
-      Amount of **columns** within which to fit a primary :term:`render` output.
-
-      Excess columns on either or both sides of the render output (depending on the :term:`horizontal alignment`) will be filled with spaces.
-
-      .. seealso:: :ref:`padding`
-
    padding height
-      Amount of **lines** within which to fit a primary :term:`render` output.
-
-      Excess lines on either or both sides of the render output (depending on the :term:`vertical alignment`) will be filled with spaces.
-
-      .. seealso:: :ref:`padding`
+      ...
 
    pixel ratio
       The aspect ratio with which one rendered pixel is drawn/displayed on the terminal screen.

@@ -14,15 +14,11 @@ class TermImageError(Exception):
 
 
 class InvalidSizeError(TermImageError):
-    """Raised for invalid image sizes."""
+    """Raised for invalid sizes."""
 
 
 class RenderError(TermImageError):
-    """Raised for errors that occur **during** :term:`rendering`.
-
-    If the direct cause of the error is an exception, it should typically be attached
-    as the context of this exception i.e ``raise RenderError(...) from exc``.
-    """
+    """..."""
 
 
 class StyleError(TermImageError):

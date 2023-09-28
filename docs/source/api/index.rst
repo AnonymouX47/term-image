@@ -20,8 +20,11 @@ API Reference
    :caption: Sub-sections:
 
    toplevel
+   renderable
+   render
    image
    widget
+   padding
    geometry
    exceptions
    utils

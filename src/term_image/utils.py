@@ -287,17 +287,17 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
 
 def arg_type_error(arg: str, value: Any, got_extra: str = "") -> TypeError:
     return TypeError(
-        f"Invalid type for {arg!r} (got: {type(value).__name__}; {got_extra})"
+        f"Invalid type for {arg!r} (got: {type(value).__qualname__}; {got_extra})"
         if got_extra
-        else f"Invalid type for {arg!r} (got: {type(value).__name__})"
+        else f"Invalid type for {arg!r} (got: {type(value).__qualname__})"
     )
 
 
 def arg_type_error_msg(msg: str, value: Any, got_extra: str = "") -> TypeError:
     return TypeError(
-        f"{msg} (got: {type(value).__name__}; {got_extra})"
+        f"{msg} (got: {type(value).__qualname__}; {got_extra})"
         if got_extra
-        else f"{msg} (got: {type(value).__name__})"
+        else f"{msg} (got: {type(value).__qualname__})"
     )
 
 

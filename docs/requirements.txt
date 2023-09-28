@@ -1,6 +1,7 @@
 sphinx==6.1.2
 furo==2022.12.7
 sphinx-toolbox==3.4.0
+sphinxcontrib-prettyspecialmethods==0.1.0
 urwid==2.1.2
 
 # `sphinx-toolbox` requires `cachecontrol`, which is incompatible with `urllib3>=2`
