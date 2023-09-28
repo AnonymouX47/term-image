@@ -70,9 +70,6 @@ Below are definitions of terms used across the API, exception messages and the d
    rendered size
       The amount of space (columns and lines) that'll be occupied by a :term:`render output` **when drawn (written) onto a terminal screen**.
 
-      Every kind of :term:`render output` has a corresponding kind of render size,
-      within the same contexts.
-
       .. seealso:: :py:attr:`Frame.render_size <term_image.renderable.Frame.render_size>`
 
    render width

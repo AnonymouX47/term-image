@@ -519,7 +519,7 @@ RenderData
    .. [#rdn1]
       A render data namespace class, along with its subclasses (that inherit its fields
       and are not associated with another render class) and their instances, is
-      associated with the :term:`render class` that defines (not inherits) that
-      subclass as its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
-      The render class is accessible via
+      associated with the :term:`render class` that defines (not inherits) the namespace
+      class as its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
+      The associated render class is accessible via
       :py:meth:`~term_image.renderable.RenderData.Namespace.get_render_cls`.
