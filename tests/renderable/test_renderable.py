@@ -801,17 +801,36 @@ class TestIter:
         assert next(render_iter) is not frame  # no caching
 
 
-@pytest.mark.parametrize("offset", [0, 5, 9])
-def test_str(offset):
-    frame_fill = FrameFill(Size(1, 1))
-    frame_fill.seek(offset)
-    assert str(frame_fill) == frame_fill.render().render_output
+class TestStr:
+    class RenderChar(Char):
+        def _render_(self, render_data, render_args):
+            self.render_data = render_data
+            self.render_args = render_args
+            return super()._render_(render_data, render_args)
+
+    def test_default_render_args(self):
+        render_char = self.RenderChar(1, 1)
+        str(render_char)
+        assert render_char.render_args == RenderArgs(self.RenderChar)
+
+    @pytest.mark.parametrize("offset", [0, 5, 9])
+    def test_frame_number(self, offset):
+        anim_render_char = self.RenderChar(10, 1)
+        anim_render_char.seek(offset)
+        str(anim_render_char)
+        assert anim_render_char.render_data[Renderable].frame_offset == offset
 
 
 class TestDraw:
     """See also: `TestInitRender` and `TestAnimate`."""
 
     class TestNonAnimation:
+        class RenderChar(Char):
+            def _render_(self, render_data, render_args):
+                self.render_data = render_data
+                self.render_args = render_args
+                return super()._render_(render_data, render_args)
+
         space = Space(1, 1)
         anim_space = Space(2, 1)
         char = Char(1, 1)
@@ -828,33 +847,28 @@ class TestDraw:
 
         @capture_stdout()
         def test_default(self):
-            class DrawChar(Char):
-                def _render_(self, render_data, render_args):
-                    self.render_args = render_args
-                    return super()._render_(render_data, render_args)
-
-            draw_char = DrawChar(1, 1)
-            draw_char.draw()
-            assert draw_char.render_args == RenderArgs(DrawChar)
+            render_char = self.RenderChar(1, 1)
+            render_char.draw()
+            assert render_char.render_args == RenderArgs(self.RenderChar)
             assert STDOUT.getvalue().count("\n") == LINES - 2
             assert STDOUT.getvalue().endswith("\n")
 
         class TestRenderArgs:
-            class DrawChar(Char):
+            class RenderChar(Char):
                 def _render_(self, render_data, render_args):
                     self.render_args = render_args
                     return super()._render_(render_data, render_args)
 
             def test_incompatible(self):
                 with pytest.raises(IncompatibleRenderArgsError):
-                    self.DrawChar(1, 1).draw(RenderArgs(Space))
+                    self.RenderChar(1, 1).draw(RenderArgs(Space))
 
             @capture_stdout()
             def test_compatible(self):
-                draw_char = self.DrawChar(1, 1)
+                render_char = self.RenderChar(1, 1)
                 char_args = Char.Args("#")
-                draw_char.draw(+char_args)
-                assert draw_char.render_args == RenderArgs(self.DrawChar, char_args)
+                render_char.draw(+char_args)
+                assert render_char.render_args == RenderArgs(self.RenderChar, char_args)
                 assert STDOUT.getvalue().count("\n") == LINES - 2
                 assert STDOUT.getvalue().endswith("\n")
 
@@ -972,45 +986,51 @@ class TestDraw:
                 echo_space.draw(echo_input=echo_input)
                 assert echo_space.echoed is echo_input
 
+        @pytest.mark.parametrize("offset", [0, 5, 9])
+        def test_frame_number(self, offset):
+            anim_render_char = self.RenderChar(10, 1)
+            anim_render_char.seek(offset)
+            anim_render_char.draw(animate=False)
+            assert anim_render_char.render_data[Renderable].frame_offset == offset
+
     class TestAnimation:
-        class DrawAnimChar(Char):
+        class AnimateChar(Char):
             def _animate_(
                 self, render_data, render_args, padding, loops, cache, output
             ):
-                self.anim_args = args = SimpleNamespace()
-                args.render_data = render_data
-                args.render_args = render_args
-                args.padding = padding
-                args.loops = loops
-                args.cache = cache
-                args.output = output
+                self.anim_args = SimpleNamespace(
+                    render_data=render_data,
+                    render_args=render_args,
+                    padding=padding,
+                    loops=loops,
+                    cache=cache,
+                    output=output,
+                )
 
         @capture_stdout()
         def test_default(self):
-            draw_anim_char = self.DrawAnimChar(2, 1)
-            draw_anim_char.draw()
-            assert draw_anim_char.anim_args.render_data.render_cls is self.DrawAnimChar
-            assert draw_anim_char.anim_args.render_args == RenderArgs(self.DrawAnimChar)
-            assert draw_anim_char.anim_args.padding == AlignedPadding(
-                COLUMNS, LINES - 2
-            )
-            assert draw_anim_char.anim_args.loops == -1
-            assert draw_anim_char.anim_args.cache == 100
-            assert draw_anim_char.anim_args.output is sys.stdout
+            animate_char = self.AnimateChar(2, 1)
+            animate_char.draw()
+            assert animate_char.anim_args.render_data.render_cls is self.AnimateChar
+            assert animate_char.anim_args.render_args == RenderArgs(self.AnimateChar)
+            assert animate_char.anim_args.padding == AlignedPadding(COLUMNS, LINES - 2)
+            assert animate_char.anim_args.loops == -1
+            assert animate_char.anim_args.cache == 100
+            assert animate_char.anim_args.output is sys.stdout
             assert STDOUT.getvalue().count("\n") == 1
             assert STDOUT.getvalue().endswith("\n")
 
         @capture_stdout()
         def test_non_default(self):
-            draw_anim_char = self.DrawAnimChar(2, 1)
-            render_args = RenderArgs(self.DrawAnimChar, Char.Args("#"))
-            draw_anim_char.draw(+Char.Args("#"), ExactPadding(), loops=2, cache=False)
-            assert draw_anim_char.anim_args.render_data.render_cls is self.DrawAnimChar
-            assert draw_anim_char.anim_args.render_args == render_args
-            assert draw_anim_char.anim_args.padding == ExactPadding()
-            assert draw_anim_char.anim_args.loops == 2
-            assert draw_anim_char.anim_args.cache is False
-            assert draw_anim_char.anim_args.output is sys.stdout
+            animate_char = self.AnimateChar(2, 1)
+            render_args = RenderArgs(self.AnimateChar, Char.Args("#"))
+            animate_char.draw(+Char.Args("#"), ExactPadding(), loops=2, cache=False)
+            assert animate_char.anim_args.render_data.render_cls is self.AnimateChar
+            assert animate_char.anim_args.render_args == render_args
+            assert animate_char.anim_args.padding == ExactPadding()
+            assert animate_char.anim_args.loops == 2
+            assert animate_char.anim_args.cache is False
+            assert animate_char.anim_args.output is sys.stdout
             assert STDOUT.getvalue().count("\n") == 1
             assert STDOUT.getvalue().endswith("\n")
 
@@ -1202,6 +1222,12 @@ class TestRender:
         frame = self.char.render(padding=AlignedPadding(3, 3))
         assert frame.render_size == Size(3, 3)
         assert frame.render_output == "   \n   \n   "
+
+    @pytest.mark.parametrize("offset", [0, 5, 9])
+    def test_frame_number(self, offset):
+        anim_char = Char(10, 1)
+        anim_char.seek(offset)
+        assert anim_char.render().data.frame_offset == offset
 
 
 class TestSeekTell:
@@ -1455,6 +1481,7 @@ class TestAnimate:
                 (10, RenderArgs(ClearFrameChar, Char.Args("#")), 3, 2, io.StringIO()),
             ],
         )
+        @capture_stdout()
         def test(self, n_frames, render_args, cursor_x, loops, output):
             clear_frame_char = self.ClearFrameChar(n_frames, 1)
             render_data = clear_frame_char._get_render_data_(iteration=True)
@@ -1465,6 +1492,7 @@ class TestAnimate:
                 cursor_x=cursor_x,
                 output=output,
             )
+
             clear_frame_char._animate_(
                 render_data,
                 render_args,
@@ -1473,7 +1501,6 @@ class TestAnimate:
                 True,
                 output,
             )
-
             # The overall last frame is not cleared.
             assert clear_frame_char.n_clears == n_frames * loops - 1
 
