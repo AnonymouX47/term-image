@@ -12,7 +12,7 @@ What about Windows support?
    - If stuck on Windows and want to use all features, you could use WSL + Windows Terminal.
 
 Why are colours not properly reproduced?
-   - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
+   - Some terminal emulators support direct-color (truecolor) escape sequences but use a **256-color** pallete. This limits color reproduction.
 
 Why are images out of scale?
    - If :ref:`auto-cell-ratio` is supported and enabled, call

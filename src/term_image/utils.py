@@ -337,8 +337,8 @@ def clear_queue(queue: Union[Queue, mp_Queue]):
 def color(
     text: str, fg: Tuple[int] = (), bg: Tuple[int] = (), *, end: bool = False
 ) -> str:
-    """Prepends *text* with 24-bit color escape codes for the given foreground and/or
-    background RGB values, optionally ending with the color reset sequence.
+    """Prepends *text* with direct-color escape sequences for the given foreground
+    and/or background RGB values, optionally ending with the color reset sequence.
 
     Args:
         text: String to be color-coded.

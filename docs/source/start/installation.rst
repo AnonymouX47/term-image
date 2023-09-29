@@ -10,7 +10,7 @@ Requirements
   
   * support for the `Kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.
   * support for the `iTerm2 inline image protocol <https://iterm2.com/documentation-images.html>`_.
-  * full Unicode support and ANSI 24-bit color support
+  * full Unicode support and direct-color (truecolor) support
 
   **Plans to support a wider variety of terminal emulators are in motion**.
 
@@ -60,5 +60,5 @@ Some terminals emulators that have been tested to meet the requirements for at l
    information about it in the discussion linked above.
 
 .. note::
-   Some terminal emulators support 24-bit color escape sequences but have a
-   256-color pallete. This will limit color reproduction.
+   Some terminal emulators support direct-color (truecolor) escape sequences but use
+   a **256-color** pallete. This limits color reproduction.
