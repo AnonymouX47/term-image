@@ -215,6 +215,8 @@ The following projects have been (and are still) crucial to the development of t
 The logo was composed using resource(s) from the following source(s):
 - [Gallery icons created by Andrean Prabowo - Flaticon](https://www.flaticon.com/free-icons/gallery)
 
+This project started as [img](https://github.com/lainq/img) by Pranav Baburaj (but the author had no intentions to take it any further).
+
 ## Sponsor This Project
 
 <a href="https://www.buymeacoffee.com/anonymoux47" target="_blank">
