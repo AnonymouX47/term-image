@@ -25,7 +25,6 @@ Contents
    start/index
    guide/index
    api/index
-   planned
    issues
    faqs
    glossary

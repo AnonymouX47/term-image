@@ -196,7 +196,7 @@ Thanks! 💓
 
 ## Planned Features
 
-See [here](https://term-image.readthedocs.io/en/stable/planned.html).
+See the [milestones](https://github.com/AnonymouX47/term-image/milestones) and [open issues with the `planned` label](https://github.com/AnonymouX47/term-image/issues?q=label%3A%22planned%22+is%3Aopen).
 
 ## Known Issues
 
