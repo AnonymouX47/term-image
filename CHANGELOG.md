@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `term_image.geometry` submodule ([#96]).
-  - `term_image.geometry.Size`.
-  - `term_image.geometry.RawSize` ([5537037]).
+  - `Size`.
+  - `RawSize` ([5537037]).
 - `term_image.renderable` subpackage ([#97]).
   - `Renderable`, `RenderArgs`, `RenderData`, `Frame`, etc.
 - `term_image.render` subpackage ([#97]).
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 [#96]: https://github.com/AnonymouX47/term-image/pull/96
+[#97]: https://github.com/AnonymouX47/term-image/pull/97
 [497d9b7]: https://github.com/AnonymouX47/term-image/commit/497d9b70dd74605e6589b81bea2fcac22efc684b
 [d296a31]: https://github.com/AnonymouX47/term-image/commit/d296a3110882449f6717959400abbc5fa1bd0891
 [5537037]: https://github.com/AnonymouX47/term-image/commit/5537037a10b1da7ae8467cefaf99dc7959ceb7bc
