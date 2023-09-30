@@ -160,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **(BREAKING!)** Changed the valid values for the `z_index` style-specific parameter of the *kitty* render style ([#74]).
 - Computed image size and `image.rendered_size` (regardless of the value of `image.scale`) can no longer be null (contain `0`) ([#78]).
   - No more "Image size or scale too small" error at render time.
-- **(BREAKING!)** Redefined gloabl settings and moved all to package top-level ([#82]).
+- **(BREAKING!)** Redefined global settings and moved all to package top-level ([#82]).
   - `term_image.utils.set_query_timeout()` -> `term_image.set_query_timeout()`
   - `term_image.utils.DISABLE_QUERIES` -> `term_image.disable_queries()` and `term_image.enable_queries()`
   - `term_image.utils.SWAP_WIN_SIZE` -> `term_image.enable_win_size_swap()` and `term_image.disable_win_size_swap()`
@@ -226,7 +226,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [lib] **(BREAKING!)** Changed the default value of `size`, `width` and `height` properties to `Size.FIT` ([#64]).
 - [lib] Updated `BaseImage.set_size()` ([#64]).
   - **(BREAKING!)** Removed *fit_to_width* and *fit_to_height* parameters.
-  - Now accepts `Size` enum mumbers.
+  - Now accepts `Size` enum members.
   - Refer to the linked PR for others.
 - [lib] Moved `TermImageWarning` from the top-level into `term_image.exceptions`.
 - [lib] Refactored and improved various utilities ([#66]).
@@ -309,7 +309,7 @@ See the commit messages for [0.4.1] for the full logs.
 - [lib] Support for style-specific parameters and format specification ([#47]).
 - [lib] Style-specific exception classes ([#47]).
 - [lib] `ITerm2Image` class, `iterm2` render style; Support for the iTerm2 inline image protocol ([#50]).
-- [lib] `term_image.TermImageWarning`; pacage specific warning category ([#50]).
+- [lib] `term_image.TermImageWarning`; package specific warning category ([#50]).
 - [lib] Auto background color i.e using the terminal's default BG color for transparent images ([#54]).
 - [lib] `ImageIterator.loop_no` property ([7de6b4a]).
 - [cli] `--style` command-line option for render style selection ([#37]).
@@ -444,7 +444,7 @@ See the commit messages for [0.4.1] for the full logs.
 - [cli,tui] `processName` and `threadName` log fields (only at DEBUG logging level).
 - [cli,tui] Full exception log when a session is terminated due to an exception.
 - [config] New config options: `anim cache`, `log file`, `max notifications`, `checkers`, `getters` and `grid renderers`.
-- [cli,config] Descriptive error messages for config options (and the correspoding command-line options, if there is).
+- [cli,config] Descriptive error messages for config options (and the corresponding command-line options, if there is).
 
 ### Changed
 - Bumped Pillow minimum version to 9.1.0 (because of [Pillow #6077](https://github.com/python-pillow/Pillow/pull/6077))
@@ -459,7 +459,7 @@ See the commit messages for [0.4.1] for the full logs.
 - [lib] The names and semantics of some parameters of `TermImage.set_size()`:
   - `check_height` -> `fit_to_width`
   - `check_width` -> `fit_to_height`
-- [lib] Renamed `ignore_oversize` paramter of `TermImage.draw()` to `check_size` and modified the semantics accordingly.
+- [lib] Renamed `ignore_oversize` parameter of `TermImage.draw()` to `check_size` and modified the semantics accordingly.
 - [lib,cli,tui] Improved image animation performance.
 - [lib,cli,tui] Automatic caching of animation frames is now based on number of frames.
 - [cli] The current working directory is used if no source is specified.

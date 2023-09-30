@@ -28,7 +28,7 @@ class UrwidImage(urwid.Widget):
         format_spec: :ref:`Render format specifier <format-spec>`. Padding width and
           height are ignored.
         upscale: If ``True``, the image will be upscaled to fit maximally within the
-          available size, if neccessary, while still preserving the aspect ratio.
+          available size, if necessary, while still preserving the aspect ratio.
           Otherwise, the image is never upscaled.
 
     Raises:
@@ -181,7 +181,7 @@ class UrwidImage(urwid.Widget):
         """Sets the widget to be rendered in place of an image when rendering fails.
 
         Args:
-            widget: The placholder widget or ``None`` to remove the placeholder.
+            widget: The placeholder widget or ``None`` to remove the placeholder.
 
         Raises:
             TypeError: *widget* is not an urwid widget.
@@ -225,7 +225,7 @@ class UrwidImageCanvas(urwid.Canvas):
         an image). This is temporary as horizontal trimming will be implemented in the
         future.
 
-        This canvas is intended to be rendered by :py:class:`UrwidImage` (or a sublass
+        This canvas is intended to be rendered by :py:class:`UrwidImage` (or a subclass
         of it) only. Otherwise, the output isn't guaranteed to be as expected.
 
     WARNING:

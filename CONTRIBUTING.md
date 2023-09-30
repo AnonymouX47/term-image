@@ -65,7 +65,7 @@ We will then answer the question as soon as possible.
 
 When contributing to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content and that the content you contribute may be provided under the [term-image license](/LICENSE).
 
-If by any means, any content which you didn't author is included, this should be clearly and duely noted along with any neccesary attribution and license/copyright notices.
+If by any means, any content which you didn't author is included, this should be clearly and duely noted along with any necessary attribution and license/copyright notices.
 **NOTE:** We can not guarantee that such contributions will be accepted.
 
 
@@ -132,7 +132,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Anonym
 
 - Set up a [development environment](#setting-up-a-development-environment) (you may skip **step 1** if you wish).
 - Go through and follow the [style guides](#style-guides).
-- Before commiting changes, run the neccesary [checks](#documentation-checks), make any neccesary [correction](#documentation-corrections) and ensure they pass.
+- Before committing changes, run the necessary [checks](#documentation-checks), make any necessary [correction](#documentation-corrections) and ensure they pass.
 - Before opening a pull request, ensure the documentation [builds](#building-the-documentation) successfully.
 - Open a [pull request](https://github.com/AnonymouX47/term-image/compare) from **a branch (of your fork) other than the default (`main`)** into the **upstream `main` branch** (except stated otherwise). Any pull request **from** the **default branch** will not be merged.
 - If the pull request is **incomplete**, convert the pull request into a **draft**.
@@ -143,10 +143,10 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Anonym
 - Set up a [development environment](#setting-up-a-development-environment).
 - Ensure the bug fix or enhancement has been discussed and the approach for implementation decided. If not, [suggest the enhancement](#suggesting-enhancements) before going ahead to implementation.
 - Go through and follow the [style guides](#style-guides).
-- Before commiting changes, run all [checks](#code-checks), make any neccesary [correction](#code-corrections) and ensure they pass.
+- Before committing changes, run all [checks](#code-checks), make any necessary [correction](#code-corrections) and ensure they pass.
 - Before opening a pull request:
   - Add or update tests for the feature being added, improved or fixed.
-  - Run all [tests](#running-the-tests), make any neccesary correction and ensure they pass.
+  - Run all [tests](#running-the-tests), make any necessary correction and ensure they pass.
   - Ensure everything you've implemented up to the latest commit works as expected.
   - Note that the sub-steps above might not confer compatibility across multiple Python versions or platforms, final checks will be done automatically when you push the changes or open a pull request.
 - Open a [pull request](https://github.com/AnonymouX47/term-image/compare) from **a branch (of your fork) other than the default (`main`)** into the **upstream `main` branch** (except stated otherwise). Any pull request **from** the **default branch** will not be merged.
@@ -159,7 +159,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Anonym
 
 Please put some effort into breaking your contribution up into a series of well formed commits. There is a good guide available at https://cbea.ms/git-commit/.
 
-- Always run the [checks and corrections](#pre-commit-checks-and-corrections) before commiting changes
+- Always run the [checks and corrections](#pre-commit-checks-and-corrections) before committing changes
 - Each commit should ideally contain only one change
 - Don't bundle multiple **unrelated** changes into a single commit
 - Write descriptive and well formatted commit messages
@@ -186,7 +186,7 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 - Try to keep things (definitions, names, dictionary keys, list items, etc)
 
   - **grouped** (preferably by the most dominant criterium e.g object/definition type)
-  - **sorted** (preferrably lexicographically, with the exception of dependant definitions e.g decorators, metaclasses, baseclasses, etc)
+  - **sorted** (preferably lexicographically, with the exception of dependent definitions e.g decorators, metaclasses, baseclasses, etc)
 
   wherever **reasonably** possible. Makes things organized and quicker and easier to find 😃.
 

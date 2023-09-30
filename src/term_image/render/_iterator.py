@@ -168,7 +168,7 @@ class RenderIterator:
             is ended prematurely (i.e before the iterator itself is exhausted),
             especially if frames are cached.
 
-            This method is safe for multiple invokations.
+            This method is safe for multiple invocations.
         """
         if not self._closed:
             self._iterator.close()
@@ -237,7 +237,7 @@ class RenderIterator:
             have **immeditate** effect. Hence, multiple consecutive seek operations,
             starting with any kind and followed by one or more with *whence* =
             :py:attr:`~term_image.renderable.Seek.CURRENT`, between any two
-            consecutive renders have a **cummulative** effect. In particular, any seek
+            consecutive renders have a **cumulative** effect. In particular, any seek
             operation with *whence* = :py:attr:`~term_image.renderable.Seek.CURRENT`
             is relative to the frame to be rendered next [#ri-nf]_.
 
@@ -249,18 +249,18 @@ class RenderIterator:
                >>> render_iter.seek(5)  # next = 5
                >>> next(render_iter).number  # next = 5 + 1 = 6
                5
-               >>> # cummulative
+               >>> # cumulative
                >>> render_iter.seek(2, Seek.CURRENT)  # next = 6 + 2 = 8
                >>> render_iter.seek(-4, Seek.CURRENT)  # next = 8 - 4 = 4
                >>> next(render_iter).number  # next = 4 + 1 = 5
                4
-               >>> # cummulative
+               >>> # cumulative
                >>> render_iter.seek(7)  # next = 7
                >>> render_iter.seek(1, Seek.CURRENT)  # next = 7 + 1 = 8
                >>> render_iter.seek(-5, Seek.CURRENT)  # next = 8 - 5 = 3
                >>> next(render_iter).number  # next = 3 + 1 = 4
                3
-               >>> # NOT cummulative
+               >>> # NOT cumulative
                >>> render_iter.seek(3, Seek.CURRENT)  # next = 4 + 3 = 7
                >>> render_iter.seek(2)  # next = 2
                >>> next(render_iter).number  # next = 2 + 1 = 3
@@ -270,7 +270,7 @@ class RenderIterator:
             :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count, seek
             operations don't take effect **until the next render**. Hence, multiple
             consecutive seek operations between any two consecutive renders do **not**
-            have a **cummulative** effect; rather, only **the last one** takes effect.
+            have a **cumulative** effect; rather, only **the last one** takes effect.
             In particular, any seek operation with *whence* =
             :py:attr:`~term_image.renderable.Seek.CURRENT` is relative to the frame
             after that which was rendered last.
@@ -640,4 +640,4 @@ class RenderIteratorError(TermImageError):
 
 
 class FinalizedIteratorError(RenderIteratorError):
-    """Raised if certain operations are attempted on a finalized itterator."""
+    """Raised if certain operations are attempted on a finalized iterator."""

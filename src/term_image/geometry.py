@@ -20,7 +20,7 @@ class RawSize(NamedTuple):
 
     NOTE:
         * A dimension may be non-positive but the validity and meaning would be
-          determined by the recieving interface.
+          determined by the receiving interface.
         * This is a subclass of :py:class:`tuple`. Hence, instances can be used anyway
           and anywhere tuples can.
     """

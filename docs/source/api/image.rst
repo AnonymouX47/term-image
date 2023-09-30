@@ -49,7 +49,7 @@ Enumerations
 Image Classes
 -------------
 
-Class Hierachy
+Class Hierarchy
 ^^^^^^^^^^^^^^
 
 * :py:class:`BaseImage`

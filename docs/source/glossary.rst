@@ -91,7 +91,7 @@ Below are definitions of terms used across the API, exception messages and the d
 
       For :ref:`graphics-based`, this is ideally ``1.0``.
 
-      For :ref:`text-based`, this is equvalent to the :term:`cell ratio` multiplied by 2,
+      For :ref:`text-based`, this is equivalent to the :term:`cell ratio` multiplied by 2,
       since there are technically two times more pixels along the vertical axis than
       along the horizontal axis in one character cell.
 
@@ -108,7 +108,7 @@ Below are definitions of terms used across the API, exception messages and the d
       A specific technique for rendering or displaying pixel data (including images)
       in a terminal emulator. 
 
-      A render style (or simply *style*) is implemented by a class, often refered to
+      A render style (or simply *style*) is implemented by a class, often referred to
       as a *render style class* (or simply *style class*).
 
       .. seealso:: :ref:`render-styles`

@@ -100,7 +100,7 @@ class TestFrame:
             (args, (99, 1000, Size(100, 100), " " * 100)),
         ],
     )
-    def test_unequality(self, args1, args2):
+    def test_inequality(self, args1, args2):
         assert Frame(*args1) != Frame(*args2)
 
 

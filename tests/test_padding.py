@@ -334,7 +334,7 @@ class TestAlignedPadding:
             ((1, 1), dict(fill="#"), (1, 1), dict(fill="*")),
         ],
     )
-    def test_unequality(self, args1, kwargs1, args2, kwargs2):
+    def test_inequality(self, args1, kwargs1, args2, kwargs2):
         assert AlignedPadding(*args1, **kwargs1) != AlignedPadding(*args2, **kwargs2)
 
 
@@ -411,5 +411,5 @@ class TestExactPadding:
             ((), dict(fill="#"), (), dict(fill="*")),
         ],
     )
-    def test_unequality(self, args1, kwargs1, args2, kwargs2):
+    def test_inequality(self, args1, kwargs1, args2, kwargs2):
         assert ExactPadding(*args1, **kwargs1) != ExactPadding(*args2, **kwargs2)

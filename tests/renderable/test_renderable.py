@@ -1247,7 +1247,7 @@ class TestDraw:
 class TestRender:
     """Just ensures the arguments is passed on and used appropriately.
 
-    See alse: `TestInitRender`.
+    See also: `TestInitRender`.
     """
 
     char = Char(1, 1)

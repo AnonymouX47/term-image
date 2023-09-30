@@ -716,7 +716,7 @@ class TestRenderData:
         test(img.copy(), frame=False, fail=True)
 
 
-# As long as each subclass passes it's render tests (particulary those related to the
+# As long as each subclass passes it's render tests (particularly those related to the
 # size of the render results), then testing formatting with a single style should
 # suffice.
 class TestFormatting:
