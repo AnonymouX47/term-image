@@ -608,9 +608,9 @@ class BaseImage(metaclass=ImageMeta):
     def close(self) -> None:
         """Finalizes the instance and releases external resources.
 
-        * In most cases, it's not neccesary to explicity call this method, as it's
+        * In most cases, it's not necessary to explicitly call this method, as it's
           automatically called when the instance is garbage-collected.
-        * This method can be safely called mutiple times.
+        * This method can be safely called multiple times.
         * If the instance was initialized with a PIL image, the PIL image is never
           finalized.
         """
@@ -701,7 +701,7 @@ class BaseImage(metaclass=ImageMeta):
               can not fit into the :term:`terminal size`.
             term_image.exceptions.StyleError: Unrecognized style-specific render
               parameter(s).
-            term_image.exceptions.RenderError: An error occured during
+            term_image.exceptions.RenderError: An error occurred during
               :term:`rendering`.
 
         * If *pad_width* or *pad_height* is:
@@ -916,7 +916,7 @@ class BaseImage(metaclass=ImageMeta):
             <terminal-queries>` the :term:`active terminal` the **first time** they're
             executed.
 
-            Hence, it's advisable to perform all neccesary support checks (call
+            Hence, it's advisable to perform all necessary support checks (call
             this method on required style classes) at an early stage of a program,
             before user input is expected. If using automatic style selection,
             calling :py:func:`~term_image.image.auto_image_class` only should be
@@ -1209,7 +1209,7 @@ class BaseImage(metaclass=ImageMeta):
                 ) = cls._style_args[name]
             except KeyError:
                 for other_cls in cls.__mro__:
-                    # less costly than memebership tests on every class' __bases__
+                    # less costly than membership tests on every class' __bases__
                     if other_cls is __class__:
                         raise StyleError(
                             f"Unknown style-specific render parameter {name!r} for "
@@ -1259,7 +1259,7 @@ class BaseImage(metaclass=ImageMeta):
 
         **Every style-specific format spec should be handled as follows:**
 
-        Every overriding method should call the overriden method (more on this below).
+        Every overriding method should call the overridden method (more on this below).
         At every step in the call chain, the specifier should be of the form::
 
             [parent] [current] [invalid]
@@ -1341,7 +1341,7 @@ class BaseImage(metaclass=ImageMeta):
                 time.sleep(max(0, duration - (time.time() - start)))
 
                 # Clear the current frame, if necessary,
-                # move cursor up to the begining of the first line of the image
+                # move cursor up to the beginning of the first line of the image
                 # and print the new current frame.
                 self._clear_frame()
                 print("\r", cursor_up, frame, sep="", end="", flush=True)
@@ -1357,7 +1357,7 @@ class BaseImage(metaclass=ImageMeta):
             image_it.close()
             self._close_image(img)
             self._seek_position = prev_seek_pos
-            # Move the cursor to the last line of the image to prevent "overlayed"
+            # Move the cursor to the last line of the image to prevent "overlaid"
             # output in the terminal
             print(cursor_down, end="")
 
@@ -1602,7 +1602,7 @@ class BaseImage(metaclass=ImageMeta):
 
     @staticmethod
     def _handle_interrupted_draw():
-        """Performs any neccessary actions when image drawing is interrupted."""
+        """Performs any necessary actions when image drawing is interrupted."""
 
     @staticmethod
     @abstractmethod
@@ -1966,7 +1966,7 @@ class TextImage(BaseImage):
               ``NULL`` ("\\0").
 
               - must be defined and implemented by every text-based style
-                (i.e sublcasses of this class).
+                (i.e subclasses of this class).
               - required by some other parts of the library.
               - only used internally, across the library.
         """
@@ -1974,7 +1974,7 @@ class TextImage(BaseImage):
 
 
 class ImageIterator:
-    """Effeciently iterate over :term:`rendered` frames of an :term:`animated` image
+    """Efficiently iterate over :term:`rendered` frames of an :term:`animated` image
 
     Args:
         image: Animated image.

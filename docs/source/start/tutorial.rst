@@ -9,13 +9,13 @@ For this tutorial we'll be using the image below:
 
 The image has a resolution of **288x288 pixels**.
 
-.. note:: All the samples in this tutorial occured in a terminal window of **255 columns by 70 lines**.
+.. note:: All the samples in this tutorial occurred in a terminal window of **255 columns by 70 lines**.
 
 
 Creating an Instance
 --------------------
 
-Image instances can be created using the convinience functions :py:func:`~term_image.image.AutoImage`,
+Image instances can be created using the convenience functions :py:func:`~term_image.image.AutoImage`,
 :py:func:`~term_image.image.from_file` and :py:func:`~term_image.image.from_url`,
 which automatically detect the best style supported by the terminal emulator.
 

@@ -164,7 +164,7 @@ class BlockImage(TextImage):
 
             update_buffer()  # Rest of the line
             if split_cells:
-                # Set the last "\0" to be overwriten by the next byte
+                # Set the last "\0" to be overwritten by the next byte
                 buffer.seek(buffer.tell() - 1)
             if row_no < height:  # last line not yet rendered
                 buf_write(end_of_line)

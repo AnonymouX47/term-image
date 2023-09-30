@@ -9,7 +9,7 @@ Render Styles
 See :term:`render style`.
 
 All render style classes are designed to share a common interface (with some having
-extensions), making the usage of one class directly compatibile with another, except
+extensions), making the usage of one class directly compatible with another, except
 when using style-specific features.
 
 Hence, the factory functions :py:class:`~term_image.image.AutoImage`,
@@ -116,8 +116,8 @@ emulators.
 Terminal Queries
 ----------------
 
-Some features of this library require the aquisition of certain information from
-the :term:`active terminal`. A single iteration of this aquisition procedure is called a
+Some features of this library require the acquisition of certain information from
+the :term:`active terminal`. A single iteration of this acquisition procedure is called a
 **query**.
 
 A query involves three major steps:
@@ -137,7 +137,7 @@ About #2 and #3
    After sending a request to the terminal, its response is awaited. The default wait
    time is :py:data:`~term_image.DEFAULT_QUERY_TIMEOUT` but can be changed
    using :py:func:`~term_image.set_query_timeout`. If the terminal emulator
-   responds after the set timeout, this can result in the application program recieving
+   responds after the set timeout, this can result in the application program receiving
    what would seem to be garbage or ghost input (see this :ref:`FAQ <query-timeout-faq>`).
 
    If the program includes any other function that could write to the terminal OR

@@ -378,9 +378,9 @@ class KittyImage(GraphicsImage):
 
     @staticmethod
     def _handle_interrupted_draw():
-        """Performs neccessary actions when image drawing is interrupted.
+        """Performs necessary actions when image drawing is interrupted.
 
-        If drawing is interruped while transmiting a command, it causes terminal to
+        If drawing is interrupted while transmitting a command, it causes terminal to
         wait for more data (in fact, it actually consumes any output following)
         until the output reaches the expected payload size or ST (String Terminator)
         is written.

@@ -154,7 +154,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
 
         Similar to the **WHOLE** render method, except that the terminal emulator
         animates the image, provided it supports the feature of the protocol.
-        The animation is completely controled by the terminal emulator.
+        The animation is completely controlled by the terminal emulator.
 
         .. note::
             * If the image data size (in bytes) is greater than the value of
@@ -548,9 +548,9 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
 
     @staticmethod
     def _handle_interrupted_draw():
-        """Performs neccessary actions when image drawing is interrupted.
+        """Performs necessary actions when image drawing is interrupted.
 
-        If drawing is interruped while transmiting an image, it causes terminal to
+        If drawing is interrupted while transmitting an image, it causes terminal to
         wait for more data (while consuming any output following) until the output
         reaches the expected payload size or ST (String Terminator) is written.
         """

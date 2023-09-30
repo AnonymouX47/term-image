@@ -260,7 +260,7 @@ def terminal_size_cached(func: FunctionType) -> FunctionType:
 
 @no_redecorate
 def unix_tty_only(func: FunctionType) -> FunctionType:
-    """Disable invokation of a function on a non-unix-like platform or when there is no
+    """Disable invocation of a function on a non-unix-like platform or when there is no
     :term:`active terminal`.
 
     Args:
@@ -327,7 +327,7 @@ def color(
     Returns:
         The color-coded string.
 
-    The color code is ommited for any of *fg* or *bg* that is empty.
+    The color code is omitted for any of *fg* or *bg* that is empty.
     """
     return (ctlseqs.SGR_FG_RGB * bool(fg) + ctlseqs.SGR_BG_RGB * bool(bg) + "%s") % (
         *fg,
@@ -513,11 +513,11 @@ def query_terminal(
     """Sends a query to the :term:`active terminal` and returns the response.
 
     Args:
-        more: A callable, which when passed the response recieved so far, returns a
+        more: A callable, which when passed the response received so far, returns a
           boolean indicating if the response is incomplete or not. If it returns:
 
           * ``True``, more response is waited for.
-          * ``False``, the recieved response is returned immediately.
+          * ``False``, the received response is returned immediately.
 
         timeout: Time limit for awaiting a response from the terminal, in seconds
           (infinite if negative).
@@ -528,12 +528,12 @@ def query_terminal(
 
     Returns:
         `None` if queries are disabled (via :py:func:`~term_image.disable_queries`),
-        else the terminal's response (empty, if no response is recieved after
+        else the terminal's response (empty, if no response is received after
         *timeout* is up).
 
     ATTENTION:
-        Any unread input is discared before the query. If the input might be needed,
-        it can be read using :py:func:`read_tty()` before calling this fucntion.
+        Any unread input is discarded before the query. If the input might be needed,
+        it can be read using :py:func:`read_tty()` before calling this function.
     """
     if not _queries_enabled:
         return None
@@ -561,11 +561,11 @@ def read_tty(
     """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
-        more: A callable, which when passed the input recieved so far, as a `bytearray`
+        more: A callable, which when passed the input received so far, as a `bytearray`
           object, returns a boolean. If it returns:
 
           * ``True``, more input is waited for.
-          * ``False``, the input recieved so far is returned immediately.
+          * ``False``, the input received so far is returned immediately.
 
         timeout: Time limit for awaiting input, in seconds.
         min: Causes to block until at least the given number of bytes have been read.
@@ -573,7 +573,7 @@ def read_tty(
           Any input before or after calling this function is not affected.
 
     Returns:
-        The input read (empty, if *min* == ``0`` (default) and no input is recieved
+        The input read (empty, if *min* == ``0`` (default) and no input is received
         before *timeout* is up).
 
     If *timeout* is ``None`` (default), all available input is read without blocking.
@@ -595,7 +595,7 @@ def read_tty(
     """
     old_attr = termios.tcgetattr(_tty_fd)
     new_attr = termios.tcgetattr(_tty_fd)
-    new_attr[3] &= ~termios.ICANON  # Disable cannonical mode
+    new_attr[3] &= ~termios.ICANON  # Disable canonical mode
     new_attr[6][termios.VTIME] = 0  # Never block based on time
     if echo:
         new_attr[3] |= termios.ECHO  # Enable input echo
@@ -760,7 +760,7 @@ if OS_IS_UNIX:
         Process.run = wraps(Process.run)(_process_run_wrapper)
 
         # Shouldn't be needed since we're getting our own separate file descriptors
-        # but the validity of the assumed safety is stil under probation
+        # but the validity of the assumed safety is still under probation
         """
         for name, value in vars(termios).items():
             if isinstance(value, BuiltinFunctionType):

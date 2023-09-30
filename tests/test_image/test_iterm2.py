@@ -96,7 +96,7 @@ class TestProperties:
 
                 del C.jpeg_quality
 
-                # A subclass with the propery unset uses that of its parent
+                # A subclass with the property unset uses that of its parent
                 assert A.jpeg_quality == 90
                 assert B.jpeg_quality == 60
                 assert C.jpeg_quality == 60
@@ -111,7 +111,7 @@ class TestProperties:
 
                 del B.jpeg_quality
 
-                # A subclass and its subclass with the propery unset use that of their
+                # A subclass and its subclass with the property unset use that of their
                 # parent
                 assert A.jpeg_quality == 50
                 assert B.jpeg_quality == 50
@@ -313,7 +313,7 @@ class TestProperties:
 
                 del C.read_from_file
 
-                # A subclass with the propery unset uses that of its parent
+                # A subclass with the property unset uses that of its parent
                 assert not A.read_from_file
                 assert not B.read_from_file
                 assert not C.read_from_file
@@ -328,7 +328,7 @@ class TestProperties:
 
                 del B.read_from_file
 
-                # A subclass and its subclass with the propery unset use that of their
+                # A subclass and its subclass with the property unset use that of their
                 # parent
                 assert A.read_from_file
                 assert B.read_from_file
@@ -856,7 +856,7 @@ class TestRenderLines:
                     assert format == "JPEG"
                     assert mode == "RGB"
 
-            # Compresssion level / Image data size
+            # Compression level / Image data size
             ITerm2Image.jpeg_quality = 0
             jpeg_0 = str(jpeg_image)
             ITerm2Image.jpeg_quality = 50
@@ -1119,7 +1119,7 @@ class TestRenderWhole:
                 assert format == "JPEG"
                 assert mode == "RGB"
 
-            # Compresssion level / Image data size
+            # Compression level / Image data size
             ITerm2Image.jpeg_quality = 0
             jpeg_0 = str(jpeg_image)
             ITerm2Image.jpeg_quality = 50
