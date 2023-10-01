@@ -80,8 +80,8 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
     from types import FunctionType
 
     # Documented members with only annotations but no value
-    # i.e not in the parent's namespace
-    if name is None:
+    # i.e not in the parent's `__dict__` (or `__dir__` ?)
+    if not name:
         # raise Exception(f"{what=}, {obj=}, {section=}, {parent=}")
         return
 
