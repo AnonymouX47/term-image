@@ -186,7 +186,7 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 - Try to keep things (definitions, names, dictionary keys, list items, etc)
 
   - **grouped** (preferably by the most dominant criterium e.g object/definition type)
-  - **sorted** (preferably lexicographically, with the exception of dependent definitions e.g decorators, metaclasses, baseclasses, etc)
+  - **sorted** (preferably lexicographically, with the exception of depended-upon definitions e.g decorators, metaclasses, baseclasses, etc)
 
   wherever **reasonably** possible. Makes things organized and quicker and easier to find 😃.
 
