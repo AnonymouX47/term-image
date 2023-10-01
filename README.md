@@ -66,7 +66,7 @@
 
 ### Requirements
 - Operating System: Unix / Linux / Mac OS X / Windows (limited support, see the [FAQs](https://term-image.readthedocs.io/en/stable/faqs.html))
-- [Python](https://www.python.org/) >= 3.7
+- [Python](https://www.python.org/) >= 3.8
 - A terminal emulator with **any** of the following:
   
   - support for the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
