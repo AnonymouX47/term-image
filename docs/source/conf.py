@@ -3,6 +3,7 @@
 # For the full list of configuration options, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from sphinx_toolbox.collapse import CollapseNode
 from sphinxcontrib import prettyspecialmethods
 
 from term_image import __version__, utils
@@ -166,3 +167,8 @@ def skip_undoc_special_methods(*args, **kwargs):
 
 prettyspecialmethods.SPECIAL_METHODS["__ror__"] = reflected_binary_op_transformer("|")
 prettyspecialmethods.show_special_methods = skip_undoc_special_methods
+
+# # -- sphinx_toolbox.collapse -------------------------------------------------
+
+# Fixes some weird `AttributeError` when building on `ReadTheDocs`
+CollapseNode.label = None
