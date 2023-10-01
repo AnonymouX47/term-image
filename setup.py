@@ -34,7 +34,7 @@ setup(
     license="MIT",
     classifiers=classifiers,
     python_requires=">=3.8",
-    install_requires=["pillow>=9.1,<10.0", "requests>=2.23,<3.0"],
+    install_requires=["pillow>=9.1,<11", "requests>=2.23,<3"],
     project_urls={
         "Changelog": "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md",
         "Documentation": "https://term-image.readthedocs.io/",
