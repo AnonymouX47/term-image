@@ -10,4 +10,5 @@ combine_as_imports = true
 filterwarnings = [
     "error",
     "ignore:.+in a terminal:UserWarning:term_image.utils",
+    "ignore:.*'urwid.wimp'.*:DeprecationWarning:urwid",
 ]
