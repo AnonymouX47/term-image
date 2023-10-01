@@ -60,7 +60,7 @@ RenderIterator
 .. [#ri-nf]
    The frame to be rendered **next** is:
 
-   * the first frame, if no seek operation or render has occured;
+   * the first frame, if no seek operation or render has occurred;
    * otherwise, the frame after that which was rendered **last**, if no seek operation
-     has occured since the last render;
+     has occurred since the last render;
    * otherwise, the frame set by the **latest** seek operation since the last render.

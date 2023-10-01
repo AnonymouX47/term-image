@@ -570,7 +570,7 @@ class TestSeek:
         @pytest.mark.parametrize(
             "seek_ops,final_offset,final_whence",
             [
-                # Non-cummulative
+                # Non-cumulative
                 ([(5, Seek.START), (3, Seek.START)], 3, Seek.START),
                 ([(2, Seek.START), (-3, Seek.END)], 6, Seek.START),
                 ([(-2, Seek.END), (2, Seek.START)], 2, Seek.START),
@@ -580,7 +580,7 @@ class TestSeek:
                 ([(-3, Seek.CURRENT), (6, Seek.START)], 6, Seek.START),
                 ([(2, Seek.CURRENT), (-5, Seek.END)], 4, Seek.START),
                 ([(-2, Seek.CURRENT), (-5, Seek.END)], 4, Seek.START),
-                # Cummulative
+                # Cumulative
                 ([(5, Seek.START), (3, Seek.CURRENT)], 8, Seek.START),
                 ([(7, Seek.START), (-3, Seek.CURRENT)], 4, Seek.START),
                 ([(-5, Seek.END), (-2, Seek.CURRENT)], 2, Seek.START),
@@ -706,7 +706,7 @@ class TestSeek:
         @pytest.mark.parametrize(
             "seek_ops,final_offset,final_whence",
             [
-                # All non-cummulative
+                # All non-cumulative
                 ([(5, Seek.START), (3, Seek.START)], 3, Seek.START),
                 ([(2, Seek.START), (-3, Seek.END)], -3, Seek.END),
                 ([(5, Seek.START), (3, Seek.CURRENT)], 3, Seek.CURRENT),

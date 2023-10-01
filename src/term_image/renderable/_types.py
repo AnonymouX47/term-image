@@ -941,7 +941,7 @@ class RenderData(RenderArgsData):
     def __del__(self):
         try:
             self.finalize()
-        except AttributeError:  # Unsuccesful initialization
+        except AttributeError:  # Unsuccessful initialization
             pass
 
     def __getitem__(self, render_cls: Type[Renderable]) -> RenderData.Namespace:
@@ -1012,7 +1012,7 @@ class RenderData(RenderArgsData):
         of :py:attr:`render_cls`.
 
         NOTE:
-            This method is safe for multiple invokations on the same instance.
+            This method is safe for multiple invocations on the same instance.
         """
         if not self.finalized:
             try:
@@ -1039,7 +1039,7 @@ class RenderData(RenderArgsData):
         namespace. The fields are expected to be initialized within the
         :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
         render class associated [#rdn1]_ with the namespace or at some other point
-        during a render operation, if neccessary.
+        during a render operation, if necessary.
 
         NOTE:
             * Fields are exposed as instance attributes.

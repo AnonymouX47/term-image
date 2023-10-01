@@ -61,4 +61,4 @@ Some terminals emulators that have been tested to meet the requirements for at l
 
 .. note::
    Some terminal emulators support direct-color (truecolor) escape sequences but use
-   a **256-color** pallete. This limits color reproduction.
+   a **256-color** palette. This limits color reproduction.

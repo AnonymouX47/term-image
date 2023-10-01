@@ -7,7 +7,7 @@ Known Issues
    * **Description:** Some lines of the image seem to extend beyond the number of columns
      that they should normally occupy by one or two columns.
      
-     This behaviour causes animations to go bizzare when lines extend beyond the width of the terminal emulator.
+     This behaviour causes animations to go bizarre when lines extend beyond the width of the terminal emulator.
 
    * **Comment:** First of all, the issue seems to caused by the layer between Python
      and the terminal emulators (i.e the PTY implementation in use) which "consumes" the
@@ -25,7 +25,7 @@ Known Issues
 
    * **Description:** When the **LINES** render method is used, lines of the image
      might intermittently disappear. When the **WHOLE** render method is used,
-     the entire image might intermitently dissapear.
+     the entire image might intermitently disappear.
 
    * **Comment:** This is due to the fact that drawing each frame requires clearing the
      previous frame off the screen, since the terminal would otherwise blend subsequent
