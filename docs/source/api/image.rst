@@ -50,7 +50,7 @@ Image Classes
 -------------
 
 Class Hierarchy
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 * :py:class:`BaseImage`
 

@@ -1017,7 +1017,8 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
               * contain as many lines as :py:attr:`render_size.height
                 <term_image.geometry.Size.height>` i.e exactly
-                ``render_size.height - 1`` occurrences of ``\\n`` (the newline sequence).
+                ``render_size.height - 1`` occurrences of ``\\n`` (the newline
+                sequence).
               * occupy exactly :py:attr:`render_size.height
                 <term_image.geometry.Size.height>` lines and
                 :py:attr:`render_size.width <term_image.geometry.Size.width>` columns
