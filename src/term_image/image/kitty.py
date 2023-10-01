@@ -624,7 +624,6 @@ class ControlData:
 
 
 class _ControlData:  # Currently Unused
-
     i: Optional[int] = None  # image ID
     d: Optional[str] = None  # delete images
     m: Optional[int] = None  # payload chunk

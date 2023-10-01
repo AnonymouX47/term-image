@@ -563,7 +563,6 @@ class TestRenderData:
         )
 
     def test_alpha(self):
-
         # float
         for alpha in (0.0, _ALPHA_THRESHOLD, 0.999):
             img, _, a = self.get_render_data(alpha=alpha)
