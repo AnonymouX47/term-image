@@ -105,21 +105,43 @@ class TestFrame:
 
 
 class TestNamespaceMeta:
-    def test_multiple_namespace_bases(self):
+    def test_multiple_bases(self):
+        class Object:
+            pass
+
         class A(NamespaceBase):
             a: None
 
         class B(NamespaceBase):
             b: None
 
-        with pytest.raises(RenderArgsDataError, match="Multiple .* baseclasses"):
+        with pytest.raises(RenderArgsDataError, match="Multiple base classes"):
 
-            class C(A, B):
+            class C(A, Object):
+                pass
+
+        with pytest.raises(RenderArgsDataError, match="Multiple base classes"):
+
+            class C(Object, B):  # noqa: F811
+                pass
+
+        with pytest.raises(RenderArgsDataError, match="Multiple base classes"):
+
+            class C(A, B):  # noqa: F811
+                pass
+
+    def test_unassociated_namespace_base(self):
+        class A(NamespaceBase):
+            a: None
+
+        with pytest.raises(RenderArgsDataError, match="Unassociated .*base"):
+
+            class B(A):
                 pass
 
     class TestFields:
         def test_no_field(self):
-            with pytest.raises(RenderArgsDataError, match="No field"):
+            with pytest.raises(RenderArgsDataError, match="No fields"):
 
                 class Namespace(NamespaceBase):
                     pass
@@ -134,6 +156,7 @@ class TestNamespaceMeta:
 
         def test_inherit(self):
             class A(NamespaceBase):
+                _RENDER_CLS = Renderable
                 a: None
                 b: None
 
@@ -145,6 +168,7 @@ class TestNamespaceMeta:
 
         def test_inherit_and_define(self):
             class A(NamespaceBase):
+                _RENDER_CLS = Renderable
                 a: None
                 b: None
 
@@ -153,81 +177,6 @@ class TestNamespaceMeta:
                 class B(A):
                     c: None
                     d: None
-
-        def test_inherit_false(self):
-            class A(NamespaceBase):
-                a: None
-                b: None
-
-            class B(A, inherit=False):
-                c: None
-                d: None
-
-            assert B.__dict__["__slots__"] == ("c", "d")
-            assert B._FIELDS == {"c": None, "d": None}
-
-            with pytest.raises(RenderArgsDataError, match="No field"):
-
-                class B(A, inherit=False):
-                    pass
-
-    class TestRenderCls:
-        def test_association(self):
-            class Namespace(NamespaceBase):
-                foo: None
-
-            assert Namespace.get_render_cls() is None
-
-            Namespace._RENDER_CLS = Renderable
-            assert Namespace.get_render_cls() is Renderable
-
-        class TestInheritTrue:
-            def test_subclass_before_association(self):
-                class A(NamespaceBase):
-                    a: None
-
-                class B(A):
-                    pass
-
-                assert B.get_render_cls() is None
-
-                A._RENDER_CLS = Renderable
-                assert B.get_render_cls() is Renderable
-
-            def test_subclass_after_association(self):
-                class A(NamespaceBase):
-                    a: None
-
-                A._RENDER_CLS = Renderable
-
-                class B(A):
-                    pass
-
-                assert B.get_render_cls() is Renderable
-
-        class TestInheritFalse:
-            def test_subclass_before_association(self):
-                class A(NamespaceBase):
-                    a: None
-
-                class B(A, inherit=False):
-                    b: None
-
-                assert B.get_render_cls() is None
-
-                A._RENDER_CLS = Renderable
-                assert B.get_render_cls() is None
-
-            def test_subclass_after_association(self):
-                class A(NamespaceBase):
-                    a: None
-
-                A._RENDER_CLS = Renderable
-
-                class B(A, inherit=False):
-                    b: None
-
-                assert B.get_render_cls() is None
 
     class TestRequiredConstructorParameters:
         def test_new(self):
@@ -269,17 +218,31 @@ class TestNamespace:
         with pytest.raises(AttributeError, match="Cannot delete"):
             del namespace.bar
 
-    def test_get_render_cls(self):
-        class Namespace(NamespaceBase):
-            foo: None
+    class TestGetRenderCls:
+        def test_association(self):
+            class Namespace(NamespaceBase):
+                foo: None
 
-        assert Namespace.get_render_cls() is None
+            assert Namespace.get_render_cls() is None
 
-        Namespace._RENDER_CLS = Renderable
-        assert Namespace.get_render_cls() is Renderable
+            Namespace._RENDER_CLS = Renderable
+            assert Namespace.get_render_cls() is Renderable
 
-        namespace = Namespace(dict(foo=None))
-        assert namespace.get_render_cls() is Renderable
+            namespace = Namespace(dict(foo=None))
+            assert namespace.get_render_cls() is Renderable
+
+        def test_inheritance(self):
+            class A(NamespaceBase):
+                _RENDER_CLS = Renderable
+                a: None
+
+            class B(A):
+                pass
+
+            assert B.get_render_cls() is Renderable
+
+            b = B(dict(a=None))
+            assert b.get_render_cls() is Renderable
 
 
 class TestRenderArgs:
@@ -990,39 +953,28 @@ class TestArgsNamespace:
                     class Args(RenderArgs.Namespace):
                         a: int = 0
 
-                    class SubArgs(Args):
-                        def __ror__(self, other):  # See docstring of `TestRor`
-                            return super().__ror__(other)
+                class SubArgs(A.Args):
+                    def __ror__(self, other):  # See docstring of `TestRor`
+                        return super().__ror__(other)
 
-                a, a_sub = A.Args(1), A.SubArgs(2)
+                a, a_sub = A.Args(1), SubArgs(2)
                 assert a | a_sub == RenderArgs(A, a_sub)
 
             # Render class of *other* is a child of that of *self*
             def test_compatible_child_render_cls(self):
-                class ArgsC(RenderArgs.Namespace):
-                    c: int = 0
-
-                class ArgsB(ArgsC, inherit=False):
-                    b: int = 0
-
-                class ArgsA(ArgsC, inherit=False):
-                    a: int = 0
-
-                    def __ror__(self, other):  # See docstring of `TestRor`
-                        return super().__ror__(other)
-
                 class A(Renderable):
-                    Args = ArgsA
+                    class Args(RenderArgs.Namespace):
+                        a: int = 0
 
                 class B(A):
-                    Args = ArgsB
+                    class Args(RenderArgs.Namespace):
+                        b: int = 0
 
-                class C(A):
-                    Args = ArgsC
+                        def __or__(self, other):  # See docstring of `TestRor`
+                            return NotImplemented
 
-                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+                a, b = A.Args(1), B.Args(2)
                 assert b | a == RenderArgs(B, a, b)
-                assert c | a == RenderArgs(C, a, c)
 
             # Render class of *other* is a parent of that of *self*
             def test_compatible_parent_render_cls(self):
@@ -1030,35 +982,27 @@ class TestArgsNamespace:
                     class Args(RenderArgs.Namespace):
                         a: int = 0
 
+                        def __or__(self, other):  # See docstring of `TestRor`
+                            return NotImplemented
+
                 class B(A):
-                    class Args(A.Args, inherit=False):
+                    class Args(RenderArgs.Namespace):
                         b: int = 0
 
-                        def __ror__(self, other):  # See docstring of `TestRor`
-                            return super().__ror__(other)
-
-                class C(A):
-                    class Args(A.Args, inherit=False):
-                        c: int = 0
-
-                        def __ror__(self, other):  # See docstring of `TestRor`
-                            return super().__ror__(other)
-
-                a, b, c = A.Args(1), B.Args(2), C.Args(3)
+                a, b = A.Args(1), B.Args(2)
                 assert a | b == RenderArgs(B, a, b)
-                assert a | c == RenderArgs(C, a, c)
 
             def test_incompatible_render_cls(self):
                 class B(Renderable):
                     class Args(RenderArgs.Namespace):
                         b: int = 0
 
-                class C(Renderable):
-                    class Args(B.Args, inherit=False):
-                        c: int = 0
+                        def __or__(self, other):  # See docstring of `TestRor`
+                            return NotImplemented
 
-                        def __ror__(self, other):  # See docstring of `TestRor`
-                            return super().__ror__(other)
+                class C(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        c: int = 0
 
                 b, c = B.Args(2), C.Args(3)
                 with pytest.raises(IncompatibleArgsNamespaceError):
