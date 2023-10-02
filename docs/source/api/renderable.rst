@@ -42,11 +42,10 @@ Classes
    .. rubric:: Footnotes
 
    .. [#ran1]
-      A render argument namespace class, along with its subclasses (that inherit its
-      fields and are not associated with another render class) and their instances,
-      is associated with the :term:`render class` that defines (not inherits) that
-      subclass as its :ref:`Args <renderable-args>` attribute **at its creation**.
-      The render class is accessible via
+      A render argument namespace class, its subclasses and their instances are
+      associated with the :term:`render class` that defines (not inherits) the namespace
+      class as its :ref:`Args <renderable-args>` attribute **at its creation**.
+      The associated render class is accessible via
       :py:meth:`~term_image.renderable.RenderArgs.Namespace.get_render_cls`.
    .. [#ran2]
       A render argument namespace is compatible with its associated [#ran1]_
@@ -326,9 +325,12 @@ RenderArgs.Namespace
 
    .. rubric:: Subclassing
 
-   * Every subclass must **either** define or inherit fields.
+   * A Subclass cannot have multiple base classes.
    * Every **direct** subclass of this class must define fields.
-   * Directly subclassing multiple namespace classes is invalid.
+   * Every **indirect** subclass (i.e subclass of a **strict** subclass) of this class
+     must not define fields.
+   * A **direct** subclass that has not been associated with a :term:`render class`
+     cannot be further subclassed.
    * A subclass' constructor must not have required parameters.
 
    .. rubric:: Defining Fields
@@ -356,117 +358,29 @@ RenderArgs.Namespace
 
    Fields may be inherited from any **concrete** render argument namespace
    class (i.e any **strict** subclass of this class) by subclassing it.
-   By default, every **indirect** subclass (i.e subclass of a subclass) of this
-   class inherits the fields and associated [#ran1]_ render class (if any), of its
-   parent.
+   Every **indirect** subclass of this class inherits the fields and associated
+   [#ran1]_ render class of its parent.
 
    .. collapse:: Example
 
       >>> class Args1(RenderArgs.Namespace):
       ...     foo: str = "FOO"
       ...
+      >>> assert Args1.get_render_cls() is None
       >>> Args1.get_fields()
       mappingproxy({'foo': 'FOO'})
-      >>> assert Args1.get_render_cls() is None
-      >>>
-      >>> class Args2(Args1):
-      ...     pass
-      ...
-      >>> Args2.get_fields()
-      mappingproxy({'foo': 'FOO'})
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is None
-      >>>
-      >>> class Foo(Renderable):
-      ...     Args = Args2
-      ...
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is Foo
-      >>>
-      >>> class Args3(Args2):
-      ...     pass
-      ...
-      >>> Args3.get_fields()
-      mappingproxy({'foo': 'FOO'})
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is Foo
-      >>> assert Args3.get_render_cls() is Foo
-
-   To disable inheritance of fields and associated [#ran1]_ render class, the
-   ``inherit=False`` keyword argument should be passed in the class definition
-   header, in which case the new subclass must define fields.
-
-   .. collapse:: Example
-
-      >>> class Args1(RenderArgs.Namespace):
-      ...     foo: str = "FOO"
-      ...
-      >>> Args1.get_fields()
-      mappingproxy({'foo': 'FOO'})
-      >>> assert Args1.get_render_cls() is None
-      >>>
-      >>> class Args2(Args1, inherit=False):
-      ...     pass
-      ...
-      Traceback (most recent call last):
-        ...
-      RenderArgsDataError: No field defined or to inherit
-      >>>
-      >>> class Args2(Args1, inherit=False):
-      ...     bar: str = "BAR"
-      ...
-      >>> Args2.get_fields()
-      mappingproxy({'bar': 'BAR'})
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is None
       >>>
       >>> class Foo(Renderable):
       ...     Args = Args1
       ...
       >>> assert Args1.get_render_cls() is Foo
-      >>> assert Args2.get_render_cls() is None
       >>>
-      >>> class Args3(Args1, inherit=False):
-      ...     baz: str = "BAZ"
-      ...
-      >>> Args3.get_fields()
-      mappingproxy({'baz': 'BAZ'})
-      >>> assert Args1.get_render_cls() is Foo
-      >>> assert Args2.get_render_cls() is None
-      >>> assert Args3.get_render_cls() is None
-
-   When a subclass is associated [#ran1]_ with a render class, all existing
-   subclasses **that inherited its fields** and haven't been associated with
-   another render class automatically inherit its associated render class.
-
-   .. collapse:: Example
-
-      >>> class Args1(RenderArgs.Namespace):
-      ...     foo: str = "FOO"
-      ...
       >>> class Args2(Args1):
       ...     pass
       ...
-      >>> class Args3(Args2):
-      ...     pass
-      ...
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is None
-      >>> assert Args3.get_render_cls() is None
-      >>>
-      >>> class Bar(Renderable):
-      ...     Args = Args3
-      ...
-      >>> assert Args1.get_render_cls() is None
-      >>> assert Args2.get_render_cls() is None
-      >>> assert Args3.get_render_cls() is Bar
-      >>>
-      >>> class Foo(Renderable):
-      ...     Args = Args1
-      ...
-      >>> assert Args1.get_render_cls() is Foo
       >>> assert Args2.get_render_cls() is Foo
-      >>> assert Args3.get_render_cls() is Bar
+      >>> Args2.get_fields()
+      mappingproxy({'foo': 'FOO'})
 
    .. important::
 
@@ -517,9 +431,8 @@ RenderData
    .. rubric:: Footnotes
 
    .. [#rdn1]
-      A render data namespace class, along with its subclasses (that inherit its fields
-      and are not associated with another render class) and their instances, is
-      associated with the :term:`render class` that defines (not inherits) the namespace
-      class as its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
+      A render data namespace class, its subclasses and their instances are associated
+      with the :term:`render class` that defines (not inherits) the namespace class as
+      its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
       The associated render class is accessible via
       :py:meth:`~term_image.renderable.RenderData.Namespace.get_render_cls`.
