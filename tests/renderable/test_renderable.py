@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import io
 import sys
 from contextlib import contextmanager
@@ -1462,7 +1463,10 @@ class TestAnimate:
 
     # The *newline* argument to `TemporaryFile` prevents any "\r" written to the file
     # from being read back as "\n".
-    @pytest.mark.parametrize("output", [io.StringIO(), TemporaryFile("w+", newline="")])
+    temp_file = TemporaryFile("w+", newline="")
+    atexit.register(lambda: TestAnimate.temp_file.close())
+
+    @pytest.mark.parametrize("output", [io.StringIO(), temp_file])
     def test_output(self, output):
         self.anim_space._animate_(
             self.anim_space._get_render_data_(iteration=True),
