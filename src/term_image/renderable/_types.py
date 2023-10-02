@@ -22,7 +22,7 @@ __all__ = (
 
 from inspect import Parameter, signature
 from types import MappingProxyType
-from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Type
+from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Sequence, Type
 
 from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
@@ -106,36 +106,35 @@ class RenderArgsData:
             bases,
             namespace,
             *,
-            inherit: bool = True,
             _base: bool = False,
             **kwargs,
         ):
             if _base:
                 namespace["__slots__"] = ()
             else:
-                namespace_bases = [cls for cls in bases if isinstance(cls, __class__)]
-                if len(namespace_bases) > 1:
-                    raise RenderArgsDataError("Multiple namespace baseclasses")
+                # Assumes the metaclass is never used directly without `_base=True`
 
-                base_has_fields = hasattr(namespace_bases[0], "_FIELDS")
-                inheriting = base_has_fields and inherit
-                fields = namespace.get("__annotations__", ())
+                if len(bases) > 1:
+                    raise RenderArgsDataError("Multiple base classes")
+
+                base = bases[0]
+                inheriting = hasattr(base, "_FIELDS")
+                fields: Sequence[str] = namespace.get("__annotations__", ())
 
                 if inheriting:
+                    if not base._RENDER_CLS:
+                        raise RenderArgsDataError("Unassociated namespace base class")
                     if fields:
                         raise RenderArgsDataError(
                             "Cannot both inherit and define fields"
                         )
                 else:
                     if not fields:
-                        raise RenderArgsDataError("No field defined or to inherit")
-
+                        raise RenderArgsDataError("No fields defined or to inherit")
+                    for name in fields:
+                        namespace.pop(name, None)
                     namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
-                    if base_has_fields:
-                        namespace["_RENDER_CLS"] = None
 
-                for attr in fields:
-                    namespace.pop(attr, None)
                 namespace["__slots__"] = tuple(fields)
 
             new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
