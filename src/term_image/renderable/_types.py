@@ -15,6 +15,7 @@ __all__ = (
     "IncompatibleRenderArgsError",
     "NoArgsNamespaceError",
     "NoDataNamespaceError",
+    "UnassociatedNamespaceError",
     "UninitializedDataFieldError",
     "UnknownArgsFieldError",
     "UnknownDataFieldError",
@@ -162,10 +163,10 @@ class RenderArgsData:
         """:term:`Render class`\\ -specific argument/data namespace."""
 
         def __new__(cls, *args, **kwargs):
-            if cls._RENDER_CLS is None:
-                raise TypeError(
+            if not cls._RENDER_CLS:
+                raise UnassociatedNamespaceError(
                     "Cannot instantiate a render argument/data namespace class "
-                    "that is not associated with a render class"
+                    "that hasn't been associated with a render class"
                 )
 
             return super().__new__(cls)
@@ -179,13 +180,22 @@ class RenderArgsData:
             raise AttributeError("Cannot delete field")
 
         @classmethod
-        def get_render_cls(cls) -> Type[Renderable] | None:
+        def get_render_cls(cls) -> Type[Renderable]:
             """Returns the associated :term:`render class`.
 
             Returns:
                 The associated render class, if the namespace class has been
-                associated. Otherwise, ``None``.
+                associated.
+
+            Raises:
+                UnassociatedNamespaceError: The namespace class hasn't been associated
+                  with a render class.
             """
+            if not cls._RENDER_CLS:
+                raise UnassociatedNamespaceError(
+                    "This namespace class hasn't been associated with a render class"
+                )
+
             return cls._RENDER_CLS
 
 
@@ -613,8 +623,8 @@ class RenderArgs(RenderArgsData):
               [#ran1]_ render class.
 
         Raises:
-            TypeError: The [sub]class being instantiated is not associated [#ran1]_
-              with a render class.
+            UnassociatedNamespaceError: The namespace class hasn't been associated
+              [#ran1]_ with a render class.
             TypeError: More values (positional arguments) than there are fields.
             UnknownArgsFieldError: Unknown field name(s).
             TypeError: Multiple values given for a field.
@@ -1027,8 +1037,8 @@ class RenderData(RenderArgsData):
         :term:`Render class`\\ -specific render data namespace.
 
         Raises:
-            TypeError: The [sub]class being instantiated is not associated [#rdn1]_
-              with a render class.
+            UnassociatedNamespaceError: The namespace class hasn't been associated
+              [#rdn1]_ with a render class.
 
         Subclassing, defining (and inheriting) fields is just as it is for
         :ref:`args-namespace`, except that values assigned to the class attributes
@@ -1205,6 +1215,12 @@ class NoArgsNamespaceError(RenderArgsError):
 class NoDataNamespaceError(RenderDataError):
     """Raised when an attempt is made to get a render data namespace for a
     :term:`render class` that defines no render data.
+    """
+
+
+class UnassociatedNamespaceError(RenderArgsDataError):
+    """Raised when certain operations are attempted on a render argument/data namespace
+    class that hasn't been associated [#ran1]_ [#rdn1]_ with a :term:`render class`.
     """
 
 

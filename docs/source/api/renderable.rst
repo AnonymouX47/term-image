@@ -102,6 +102,7 @@ Exceptions
 .. autoexception:: NoArgsNamespaceError
 .. autoexception:: NoDataNamespaceError
 .. autoexception:: NonAnimatedFrameDurationError
+.. autoexception:: UnassociatedNamespaceError
 .. autoexception:: UninitializedDataFieldError
 .. autoexception:: UnknownArgsFieldError
 .. autoexception:: UnknownDataFieldError
