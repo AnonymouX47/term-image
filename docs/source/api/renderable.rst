@@ -221,7 +221,7 @@ Renderable.Args
       >>> render_args = RenderArgs(Bar)
       >>> render_args[Bar]
       Traceback (most recent call last):
-      ...
+        ...
       NoArgsNamespaceError: 'Bar' defines no render arguments
 
    .. note::
@@ -367,7 +367,11 @@ RenderArgs.Namespace
       >>> class Args1(RenderArgs.Namespace):
       ...     foo: str = "FOO"
       ...
-      >>> assert Args1.get_render_cls() is None
+      >>> Args1.get_render_cls()
+      Traceback (most recent call last):
+        ...
+      UnassociatedNamespaceError: This namespace class hasn't been associated with a render class
+      >>>
       >>> Args1.get_fields()
       mappingproxy({'foo': 'FOO'})
       >>>
