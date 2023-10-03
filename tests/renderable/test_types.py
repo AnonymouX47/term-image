@@ -14,6 +14,7 @@ from term_image.renderable import (
     RenderArgsDataError,
     RenderArgsError,
     RenderData,
+    UnassociatedNamespaceError,
     UninitializedDataFieldError,
     UnknownArgsFieldError,
     UnknownDataFieldError,
@@ -208,7 +209,7 @@ class TestNamespace:
         class Namespace(NamespaceBase):
             foo: None
 
-        with pytest.raises(TypeError, match="Cannot instantiate"):
+        with pytest.raises(UnassociatedNamespaceError):
             Namespace()
 
     def test_delattr(self):
@@ -223,7 +224,8 @@ class TestNamespace:
             class Namespace(NamespaceBase):
                 foo: None
 
-            assert Namespace.get_render_cls() is None
+            with pytest.raises(UnassociatedNamespaceError):
+                Namespace.get_render_cls()
 
             Namespace._RENDER_CLS = Renderable
             assert Namespace.get_render_cls() is Renderable

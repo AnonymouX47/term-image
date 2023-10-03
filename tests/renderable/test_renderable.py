@@ -27,6 +27,7 @@ from term_image.renderable import (
     RenderData,
     RenderSizeOutofRangeError,
     Seek,
+    UnassociatedNamespaceError,
 )
 
 from .. import get_terminal_size
@@ -299,7 +300,8 @@ class TestMeta:
             class Args(RenderArgs.Namespace):
                 foo: None = None
 
-            assert Args.get_render_cls() is None
+            with pytest.raises(UnassociatedNamespaceError):
+                Args.get_render_cls()
 
             Foo = type(Renderable)("Foo", (Renderable,), {"Args": Args})
             assert Args.get_render_cls() is Foo
@@ -488,7 +490,8 @@ class TestMeta:
             class _Data_(RenderData.Namespace):
                 foo: None = None
 
-            assert _Data_.get_render_cls() is None
+            with pytest.raises(UnassociatedNamespaceError):
+                _Data_.get_render_cls()
 
             Foo = type(Renderable)("Foo", (Renderable,), {"_Data_": _Data_})
 
