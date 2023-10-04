@@ -176,7 +176,7 @@ are disabled.
 - Auto background color (black is used)
 - Alpha blend for pixels above the alpha threshold in transparent renders with
   :ref:`text-based` (black is used)
-- Workaround for ANSI background colors in text-based renders on the Kitty terminal
+- Workaround for background colors in text-based renders on the Kitty terminal
   (the workaround is disabled)
 
 .. note::

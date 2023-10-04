@@ -1,18 +1,18 @@
 Known Issues
 ============
 
-1. Drawing of images and animations doesn't work completely well with Python for Windows
-   (tested in Windows Terminal and MinTTY).
+1. Drawing of images and animations doesn't work completely well with Python **for
+   Windows** (tested in Windows Terminal and MinTTY).
 
-   * **Description:** Some lines of the image seem to extend beyond the number of columns
-     that they should normally occupy by one or two columns.
+   * **Description:** Some lines of the image seem to extend beyond the number of
+     columns that they should normally occupy by one or two columns.
      
-     This behaviour causes animations to go bizarre when lines extend beyond the width of the terminal emulator.
+     This behaviour causes animations to go bizarre when lines extend beyond the width
+     of the terminal emulator.
 
-   * **Comment:** First of all, the issue seems to caused by the layer between Python
-     and the terminal emulators (i.e the PTY implementation in use) which "consumes" the
-     escape sequences used to display images.
-     
+   * **Comment:** First of all, the issue seems to be caused by the layer(s) between
+     Python and the terminal emulators i.e the Windows Console APIs.
+
      It is neither a fault of this library nor of the terminal emulators, as drawing
      of images and animations works properly with WSL within Windows Terminal.
 

@@ -7,12 +7,17 @@ Why?
    - Terminals emulators have always been and always will be!
 
 What about Windows support?
-   - Only the new `Windows Terminal <https://github.com/microsoft/terminal>`_ seems to have proper ANSI support and modern terminal emulator features.
-   - Drawing images and animations doesn't work completely well with Python for Windows. See :doc:`issues`.
-   - If stuck on Windows and want to use all features, you could use WSL + Windows Terminal.
+   - `Windows Terminal <https://github.com/microsoft/terminal>`_ and
+     `Mintty <https://mintty.github.io/>`_ (at least) have modern terminal emulator
+     features including full Unicode and Truecolor support.
+   - Drawing images and animations doesn't work completely well with Python **for
+     Windows**.  See :doc:`issues`.
+   - Note that the graphics protocols supported by Mintty would only work for Cygwin,
+     MSYS and Msys2 programs, or via WSL; not for native Windows programs.
 
 Why are colours not properly reproduced?
-   - Some terminal emulators support direct-color (truecolor) escape sequences but use a **256-color** palette. This limits color reproduction.
+   - Some terminal emulators support direct-color (truecolor) sequences but use a
+     **256-color** palette. This limits color reproduction.
 
 Why are images out of scale?
    - If :ref:`auto-cell-ratio` is supported and enabled, call
