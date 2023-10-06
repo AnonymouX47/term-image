@@ -703,7 +703,6 @@ class RenderArgs(RenderArgsData):
             * Fields are exposed as instance attributes.
             * Instances are immutable but updated copies can be created via
               :py:meth:`update`.
-            * Each subclass may be associated [#ran1]_ with **only one** render class.
 
         .. Completed in /docs/source/api/renderable.rst
         """
@@ -1108,9 +1107,9 @@ class RenderData(RenderArgsData):
             UnassociatedNamespaceError: The namespace class hasn't been associated
               [#rdn1]_ with a render class.
 
-        Subclassing, defining (and inheriting) fields is just as it is for
-        :ref:`args-namespace`, except that values assigned to the class attributes
-        are not used.
+        Subclassing, defining (and inheriting) fields and associating with a render
+        class are just as they are for :ref:`args-namespace`, except that values
+        assigned to the class attributes are not used.
 
         Every field is **uninitialized** immediately after instantiation of a
         namespace. The fields are expected to be initialized within the
@@ -1126,7 +1125,6 @@ class RenderData(RenderArgsData):
             * An instance shouldn't be copied by any means because finalizing its
               containing :py:class:`RenderData` instance may invalidate all copies of
               the namespace.
-            * Each subclass may be associated [#rdn1]_ with **only one** render class.
 
         .. Completed in /docs/source/api/renderable.rst
         """

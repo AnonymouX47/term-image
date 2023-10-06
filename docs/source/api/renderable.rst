@@ -176,8 +176,9 @@ Renderable.Args
 
    :term:`Render class`\ -specific render arguments.
 
-   If this is a class, it defines the render arguments of the render class defining
-   this attribute.
+   If this is a class, it must be a subclass of :py:class:`RenderArgs.Namespace` that
+   **has fields** and **has NOT been associated** with a render class. It defines the
+   render arguments of the render class defining this attribute.
 
    An instance of this class (``Args``), is contained in any :py:class:`RenderArgs`
    instance associated [#ra2]_ with the render class defining this attribute or any
@@ -245,8 +246,9 @@ Renderable._Data_
 
    :term:`Render class`\ -specific render data.
 
-   If this is a class, it defines the render data of the render class defining
-   this attribute.
+   If this is a class, it must be a subclass of :py:class:`RenderData.Namespace` that
+   **has fields** and **has NOT been associated** with a render class. It defines the
+   render data of the render class defining this attribute.
 
    An instance of this class (``_Data_``), is contained in any :py:class:`RenderData`
    instance associated [#rd1]_ with the render class defining this attribute or any
@@ -326,20 +328,17 @@ RenderArgs.Namespace
 
    .. rubric:: Subclassing
 
-   * A Subclass cannot have multiple base classes.
-   * Every **direct** subclass of this class must define fields.
-   * Every **indirect** subclass (i.e subclass of a **strict** subclass) of this class
-     must not define fields.
-   * A **direct** subclass that has not been associated with a :term:`render class`
-     cannot be further subclassed.
+   * A subclass cannot have multiple base classes.
+   * A subclass that **has fields** cannot be further subclassed until it is
+     associated with a render class.
+   * Every subclass, of a subclass that **has fields**, must not define fields.
    * A subclass' constructor must not have required parameters.
 
    .. rubric:: Defining Fields
 
-   Fields are defined as **annotated** class attributes.
-   All annotated attributes of this class are taken to be fields.
-   Every such attribute must be assigned a value which is taken to be the default
-   value of the field.
+   Fields are defined as **annotated** class attributes. All annotated attributes of a
+   subclass are taken to be fields. Every such attribute must be assigned a value which
+   is taken to be the default value of the field.
 
    .. collapse:: Example
 
@@ -350,28 +349,23 @@ RenderArgs.Namespace
       >>> Args.get_fields()
       mappingproxy({'foo': 'FOO', 'bar': 'BAR'})
 
-   The attribute annotations are only used to identify render argument fields,
-   they're never evaluated or used otherwise by any part of the Renderable API.
+   The attribute annotations are only used to identify the fields, they're never
+   evaluated or used otherwise by any part of the Renderable API.
    The field names will be unbound from their assigned values (the default field
    values) during the creation of the subclass.
 
    .. rubric:: Inheriting Fields
 
-   Fields may be inherited from any **concrete** render argument namespace
-   class (i.e any **strict** subclass of this class) by subclassing it.
-   Every **indirect** subclass of this class inherits the fields and associated
-   [#ran1]_ render class of its parent.
+   Fields may be inherited from any associated render argument namespace class
+   (i.e any subclass of this class that has been associated with a render class) by
+   subclassing it. The new subclass inherits the fields and associated render class of
+   its parent.
 
    .. collapse:: Example
 
       >>> class Args1(RenderArgs.Namespace):
       ...     foo: str = "FOO"
       ...
-      >>> Args1.get_render_cls()
-      Traceback (most recent call last):
-        ...
-      UnassociatedNamespaceError: This namespace class hasn't been associated with a render class
-      >>>
       >>> Args1.get_fields()
       mappingproxy({'foo': 'FOO'})
       >>>
@@ -386,6 +380,16 @@ RenderArgs.Namespace
       >>> assert Args2.get_render_cls() is Foo
       >>> Args2.get_fields()
       mappingproxy({'foo': 'FOO'})
+
+   .. rubric:: Associating With a Render Class
+
+   * A subclass that **has NO fields** cannot be associated with a render class.
+   * A subclass that **has fields** may be associated with **only one** render class.
+
+   .. tip::
+
+      A subclass may neither define nor inherit fields. Such can be used as a base
+      class for other namespace classes.
 
    .. important::
 
