@@ -96,7 +96,7 @@ class RenderArgsData:
     class _NamespaceMeta(type):
         """Metaclass of render argument/data namespaces."""
 
-        _FIELDS: MappingProxyType[str, Any]
+        _FIELDS: MappingProxyType[str, Any] = {}
 
         # Set by `RenderableMeta` for associated instances
         _RENDER_CLS: type[Renderable] | None = None
@@ -119,10 +119,9 @@ class RenderArgsData:
                     raise RenderArgsDataError("Multiple base classes")
 
                 base = bases[0]
-                inheriting = hasattr(base, "_FIELDS")
                 fields: Sequence[str] = namespace.get("__annotations__", ())
 
-                if inheriting:
+                if base._FIELDS:
                     if not base._RENDER_CLS:
                         raise RenderArgsDataError("Unassociated namespace base class")
                     if fields:
