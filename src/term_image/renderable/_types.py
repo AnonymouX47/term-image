@@ -29,6 +29,78 @@ from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
 from ._exceptions import RenderableError
 
+# Exceptions ===================================================================
+
+
+class RenderArgsDataError(RenderableError):
+    """Base exception class for errors specific to :py:class:`RenderArgs` and
+    :py:class:`RenderData`.
+
+    Raised for errors that occur during the creation of render argument/data
+    namespace classes.
+    """
+
+
+class RenderArgsError(RenderArgsDataError):
+    """Base exception class for errors specific to :py:class:`RenderArgs`.
+
+    Raised for errors that occur during the creation of render argument namespace
+    classes.
+    """
+
+
+class RenderDataError(RenderArgsDataError):
+    """Base exception class for errors specific to :py:class:`RenderData`."""
+
+
+class IncompatibleArgsNamespaceError(RenderArgsError):
+    """Raised when a given render argument namespace is incompatible [#ran2]_ with a
+    certain :term:`render class`.
+    """
+
+
+class IncompatibleRenderArgsError(RenderArgsError):
+    """Raised when a given set of render arguments is incompatible [#ra1]_ with a
+    certain :term:`render class`.
+    """
+
+
+class NoArgsNamespaceError(RenderArgsError):
+    """Raised when an attempt is made to get a render argument namespace for a
+    :term:`render class` that defines no render arguments.
+    """
+
+
+class NoDataNamespaceError(RenderDataError):
+    """Raised when an attempt is made to get a render data namespace for a
+    :term:`render class` that defines no render data.
+    """
+
+
+class UnassociatedNamespaceError(RenderArgsDataError):
+    """Raised when certain operations are attempted on a render argument/data namespace
+    class that hasn't been associated [#ran1]_ [#rdn1]_ with a :term:`render class`.
+    """
+
+
+class UninitializedDataFieldError(RenderDataError, AttributeError):
+    """Raised when an attempt is made to access a render data field that hasn't been
+    initialized i.e for which a value hasn't been set.
+    """
+
+
+class UnknownArgsFieldError(RenderArgsError, AttributeError):
+    """Raised when an attempt is made to access or modify an unknown render argument
+    field.
+    """
+
+
+class UnknownDataFieldError(RenderDataError, AttributeError):
+    """Raised when an attempt is made to access or modify an unknown render data
+    field.
+    """
+
+
 # Classes ======================================================================
 
 
@@ -123,14 +195,14 @@ class RenderArgsData:
 
                 if base._FIELDS:
                     if not base._RENDER_CLS:
-                        raise RenderArgsDataError("Unassociated namespace base class")
+                        raise RenderArgsDataError(
+                            "Unassociated namespace base class with fields"
+                        )
                     if fields:
                         raise RenderArgsDataError(
                             "Cannot both inherit and define fields"
                         )
-                else:
-                    if not fields:
-                        raise RenderArgsDataError("No fields defined or to inherit")
+                elif fields:
                     for name in fields:
                         namespace.pop(name, None)
                     namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
@@ -584,28 +656,25 @@ class RenderArgs(RenderArgsData):
     class _NamespaceMeta(RenderArgsData._NamespaceMeta):
         """Metaclass of render argument namespaces."""
 
-        def __new__(cls, name, bases, namespace, *, _base: bool = False, **kwargs):
-            if not _base:
-                try:
-                    defaults = {
-                        name: namespace[name]
-                        for name in namespace.get("__annotations__", ())
-                    }
-                except KeyError as e:
-                    raise RenderArgsError(
-                        f"Field {e.args[0]!r} has no default value"
-                    ) from None
+        def __new__(cls, name, bases, namespace, **kwargs):
+            try:
+                defaults = {
+                    name: namespace[name]
+                    for name in namespace.get("__annotations__", ())
+                }
+            except KeyError as e:
+                raise RenderArgsError(
+                    f"Field {e.args[0]!r} has no default value"
+                ) from None
 
-            new_cls = super().__new__(
-                cls, name, bases, namespace, _base=_base, **kwargs
-            )
+            new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
 
-            if not _base and "_FIELDS" in new_cls.__dict__:
+            if "_FIELDS" in new_cls.__dict__:
                 new_cls._FIELDS = MappingProxyType(defaults)
 
             return new_cls
 
-    class Namespace(RenderArgsData.Namespace, metaclass=_NamespaceMeta, _base=True):
+    class Namespace(RenderArgsData.Namespace, metaclass=_NamespaceMeta):
         """Namespace(*values, **fields)
 
         :term:`Render class`\\ -specific render argument namespace.
@@ -1030,7 +1099,7 @@ class RenderData(RenderArgsData):
 
     # Inner Classes ============================================================
 
-    class Namespace(RenderArgsData.Namespace, _base=True):
+    class Namespace(RenderArgsData.Namespace):
         """Namespace()
 
         :term:`Render class`\\ -specific render data namespace.
@@ -1167,78 +1236,6 @@ class RenderData(RenderArgsData):
                 setattr_ = super().__setattr__
                 for field in fields.items():
                     setattr_(*field)
-
-
-# Exceptions ===================================================================
-
-
-class RenderArgsDataError(RenderableError):
-    """Base exception class for errors specific to :py:class:`RenderArgs` and
-    :py:class:`RenderData`.
-
-    Raised for errors that occur during the creation of render argument/data
-    namespace classes.
-    """
-
-
-class RenderArgsError(RenderArgsDataError):
-    """Base exception class for errors specific to :py:class:`RenderArgs`.
-
-    Raised for errors that occur during the creation of render argument namespace
-    classes.
-    """
-
-
-class RenderDataError(RenderArgsDataError):
-    """Base exception class for errors specific to :py:class:`RenderData`."""
-
-
-class IncompatibleArgsNamespaceError(RenderArgsError):
-    """Raised when a given render argument namespace is incompatible [#ran2]_ with a
-    certain :term:`render class`.
-    """
-
-
-class IncompatibleRenderArgsError(RenderArgsError):
-    """Raised when a given set of render arguments is incompatible [#ra1]_ with a
-    certain :term:`render class`.
-    """
-
-
-class NoArgsNamespaceError(RenderArgsError):
-    """Raised when an attempt is made to get a render argument namespace for a
-    :term:`render class` that defines no render arguments.
-    """
-
-
-class NoDataNamespaceError(RenderDataError):
-    """Raised when an attempt is made to get a render data namespace for a
-    :term:`render class` that defines no render data.
-    """
-
-
-class UnassociatedNamespaceError(RenderArgsDataError):
-    """Raised when certain operations are attempted on a render argument/data namespace
-    class that hasn't been associated [#ran1]_ [#rdn1]_ with a :term:`render class`.
-    """
-
-
-class UninitializedDataFieldError(RenderDataError, AttributeError):
-    """Raised when an attempt is made to access a render data field that hasn't been
-    initialized i.e for which a value hasn't been set.
-    """
-
-
-class UnknownArgsFieldError(RenderArgsError, AttributeError):
-    """Raised when an attempt is made to access or modify an unknown render argument
-    field.
-    """
-
-
-class UnknownDataFieldError(RenderDataError, AttributeError):
-    """Raised when an attempt is made to access or modify an unknown render data
-    field.
-    """
 
 
 # Variables ====================================================================
