@@ -251,6 +251,13 @@ class TestMeta:
                     class Args:
                         pass
 
+        def test_no_fields(self):
+            with pytest.raises(RenderableError, match="'Foo.Args' has no fields"):
+
+                class Foo(Renderable):
+                    class Args(RenderArgs.Namespace):
+                        pass
+
         def test_already_associated(self):
             class Foo(Renderable):
                 class Args(RenderArgs.Namespace):
@@ -439,6 +446,13 @@ class TestMeta:
 
                 class Foo(Renderable):
                     class _Data_:
+                        pass
+
+        def test_no_fields(self):
+            with pytest.raises(RenderableError, match="'Foo._Data_' has no fields"):
+
+                class Foo(Renderable):
+                    class _Data_(RenderData.Namespace):
                         pass
 
         def test_already_associated(self):

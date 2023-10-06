@@ -54,13 +54,12 @@ class RenderableMeta(ABCMeta):
         if args_cls is not None:
             if not isinstance(args_cls, type):
                 raise arg_type_error(f"'{name}.Args'", args_cls)
-            if (
-                not issubclass(args_cls, RenderArgs.Namespace)
-                or args_cls is RenderArgs.Namespace
-            ):
+            if not issubclass(args_cls, RenderArgs.Namespace):
                 raise RenderableError(
-                    f"'{name}.Args' is not a strict subclass of 'RenderArgs.Namespace'"
+                    f"'{name}.Args' is not a subclass of 'RenderArgs.Namespace'"
                 )
+            if not args_cls._FIELDS:
+                raise RenderableError(f"'{name}.Args' has no fields")
             if args_cls._RENDER_CLS:
                 raise RenderableError(
                     f"'{name}.Args' is already associated with render class "
@@ -75,14 +74,12 @@ class RenderableMeta(ABCMeta):
         if data_cls is not None:
             if not isinstance(data_cls, type):
                 raise arg_type_error(f"'{name}._Data_'", data_cls)
-            if (
-                not issubclass(data_cls, RenderData.Namespace)
-                or data_cls is RenderData.Namespace
-            ):
+            if not issubclass(data_cls, RenderData.Namespace):
                 raise RenderableError(
-                    f"'{name}._Data_' is not a strict subclass of "
-                    "'RenderData.Namespace'"
+                    f"'{name}._Data_' is not a subclass of 'RenderData.Namespace'"
                 )
+            if not data_cls._FIELDS:
+                raise RenderableError(f"'{name}._Data_' has no fields")
             if data_cls._RENDER_CLS:
                 raise RenderableError(
                     f"'{name}._Data_' is already associated with render class "

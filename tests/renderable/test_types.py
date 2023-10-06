@@ -141,11 +141,13 @@ class TestNamespaceMeta:
                 pass
 
     class TestFields:
-        def test_no_field(self):
-            with pytest.raises(RenderArgsDataError, match="No fields"):
+        def test_no_fields(self):
+            class Namespace(NamespaceBase):
+                pass
 
-                class Namespace(NamespaceBase):
-                    pass
+            assert Namespace.__dict__["__slots__"] == ()
+            assert "_FIELDS" not in Namespace.__dict__
+            assert Namespace._FIELDS == {}
 
         def test_define(self):
             class Namespace(NamespaceBase):
@@ -690,6 +692,13 @@ class TestRenderArgs:
 
 class TestArgsNamespaceMeta:
     class TestFields:
+        def test_no_fields(self):
+            class Namespace(RenderArgs.Namespace):
+                pass
+
+            assert "_FIELDS" not in Namespace.__dict__
+            assert Namespace._FIELDS == {}
+
         def test_no_default(self):
             with pytest.raises(RenderArgsError, match="'bar' .* no default"):
 
@@ -703,7 +712,7 @@ class TestArgsNamespaceMeta:
                 foo: str = "FOO"
                 bar: str = "BAR"
 
-            Namespace.get_fields() == dict(foo="FOO", bar="BAR")
+            assert Namespace._FIELDS == dict(foo="FOO", bar="BAR")
 
 
 class TestArgsNamespace:
@@ -1056,10 +1065,18 @@ class TestArgsNamespace:
         namespace = self.Namespace("bar", "foo")
         assert namespace.as_dict() == dict(foo="bar", bar="foo")
 
-    def test_get_fields(self):
-        namespace = self.Namespace()
-        assert self.Namespace.get_fields() == dict(foo="FOO", bar="BAR")
-        assert namespace.get_fields() == dict(foo="FOO", bar="BAR")
+    class TestGetFields:
+        def test_no_fields(self):
+            class Namespace(RenderArgs.Namespace):
+                pass
+
+            assert Namespace.get_fields() == {}
+
+        def test_with_fields(self):
+            Namespace = TestArgsNamespace.Namespace
+            namespace = Namespace()
+            assert Namespace.get_fields() == dict(foo="FOO", bar="BAR")
+            assert namespace.get_fields() == dict(foo="FOO", bar="BAR")
 
     class TestToRenderArgs:
         class Bar(Foo):
@@ -1268,10 +1285,18 @@ class TestDataNamespace:
         namespace.bar = "foo"
         assert namespace.as_dict() == dict(foo="bar", bar="foo")
 
-    def test_get_fields(self):
-        namespace = self.Namespace()
-        assert self.Namespace.get_fields() == ("foo", "bar")
-        assert namespace.get_fields() == ("foo", "bar")
+    class TestGetFields:
+        def test_no_fields(self):
+            class Namespace(RenderData.Namespace):
+                pass
+
+            assert Namespace.get_fields() == ()
+
+        def test_with_fields(self):
+            Namespace = TestDataNamespace.Namespace
+            namespace = Namespace()
+            assert Namespace.get_fields() == ("foo", "bar")
+            assert namespace.get_fields() == ("foo", "bar")
 
     class TestUpdate:
         class Bar(Renderable):
