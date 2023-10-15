@@ -2,6 +2,17 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.mypy]
+strict = true
+
+# These modules will go through massive changes real soon
+[[tool.mypy.overrides]]
+module = [
+    'term_image.image.*',
+    'term_image.widget.*',
+]
+ignore_errors = true
+
 [tool.isort]
 profile = "black"
 combine_as_imports = true
