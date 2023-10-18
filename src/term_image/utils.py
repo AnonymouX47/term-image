@@ -353,7 +353,11 @@ def clear_queue(queue: Queue[Any] | mp_Queue[Any]) -> None:
 
 
 def color(
-    text: str, fg: Tuple[int] = (), bg: Tuple[int] = (), *, end: bool = False
+    text: str,
+    fg: tuple[int, int, int] | None = None,
+    bg: tuple[int, int, int] | None = None,
+    *,
+    end: bool = False,
 ) -> str:
     """Prepends *text* with direct-color escape sequences for the given foreground
     and/or background RGB values, optionally ending with the color reset sequence.
@@ -370,8 +374,8 @@ def color(
     The color code is omitted for any of *fg* or *bg* that is empty.
     """
     return (ctlseqs.SGR_FG_RGB * bool(fg) + ctlseqs.SGR_BG_RGB * bool(bg) + "%s") % (
-        *fg,
-        *bg,
+        *(fg or ()),
+        *(bg or ()),
         text,
     ) + ctlseqs.SGR_NORMAL * end
 
