@@ -26,10 +26,11 @@ class RawSize(NamedTuple):
     """
 
     width: int
-    """The horizontal dimension"""
-
     height: int
-    """The vertical dimension"""
+
+
+RawSize.width.__doc__ = "The horizontal dimension"
+RawSize.height.__doc__ = "The vertical dimension"
 
 
 class Size(RawSize):
@@ -39,7 +40,14 @@ class Size(RawSize):
         ValueError: Either dimension is non-positive.
 
     Same as :py:class:`RawSize`, except that both dimensions must be **positive**.
+
+    IMPORTANT:
+        In the case of multiple inheritance i.e if subclassing this class along with
+        other classes, this class should appear last (i.e to the far right) in the
+        base class list.
     """
+
+    __slots__ = ()
 
     def __new__(cls, width: int, height: int):
         if width < 1:
