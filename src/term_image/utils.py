@@ -392,6 +392,11 @@ def get_cell_size() -> term_image.geometry.Size | None:
     """
     from term_image.geometry import Size
 
+    cell_size: tuple[int, ...]
+    text_area_size: tuple[int, ...]
+    cell_size = text_area_size = (0, 0)
+    got_text_area_size = False
+
     # If a thread reaches this point while the lock is being changed
     # (the old lock has been acquired but hasn't been changed), after the lock has
     # been changed and the former lock is released, the waiting thread will acquire
@@ -400,24 +405,22 @@ def get_cell_size() -> term_image.geometry.Size | None:
     # lock and be in sync.
     # NB: Multiple expressions are processed as multiple nested with statements.
     with _cell_size_lock, _cell_size_lock:
-        ts = get_terminal_size()
-        if ts == tuple(_cell_size_cache[:2]):
-            size = tuple(_cell_size_cache[2:])
-            return None if 0 in size else Size(*size)
-
-        size = text_area_size = None
+        terminal_size = get_terminal_size()
+        if terminal_size == tuple(_cell_size_cache[:2]):
+            cell_size = tuple(_cell_size_cache[2:])
+            return None if 0 in cell_size else Size(*cell_size)
 
         # First try ioctl
         buf = array("H", [0, 0, 0, 0])
         try:
             if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
                 text_area_size = tuple(buf[2:])
-                if 0 in text_area_size:
-                    text_area_size = None
+                if 0 not in text_area_size:
+                    got_text_area_size = True
         except OSError:
             pass
 
-        if not text_area_size:
+        if not got_text_area_size:
             # Then XTWINOPS
             # The last sequence is to speed up the entire query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
@@ -433,7 +436,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
                     )
             # XTWINOPS specifies (height, width)
             if cell_size_match:
-                size = tuple(map(int, cell_size_match.groups()))[::-1]
+                cell_size = tuple(map(int, cell_size_match.groups()))[::-1]
             elif text_area_size_match:
                 text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
 
@@ -443,14 +446,14 @@ def get_cell_size() -> term_image.geometry.Size | None:
                 if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
                     text_area_size = (text_area_size[0], text_area_size[1] * 2)
 
-        if text_area_size and _swap_win_size:
-            text_area_size = text_area_size[::-1]
-        size = size or (
-            tuple(map(floordiv, text_area_size, ts)) if text_area_size else (0, 0)
-        )
-        _cell_size_cache[:] = ts + size
+        if got_text_area_size:
+            if _swap_win_size:
+                text_area_size = text_area_size[::-1]
+            cell_size = tuple(map(floordiv, text_area_size, terminal_size))
 
-        return None if 0 in size else Size(*size)
+        _cell_size_cache[:] = terminal_size + cell_size
+
+        return None if 0 in cell_size else Size(*cell_size)
 
 
 @cached
