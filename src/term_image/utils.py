@@ -26,7 +26,15 @@ from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
 
-from typing_extensions import Any, Literal, ParamSpec, TypeVar, no_type_check, overload
+from typing_extensions import (
+    Any,
+    Literal,
+    ParamSpec,
+    Tuple,
+    TypeVar,
+    no_type_check,
+    overload,
+)
 
 import term_image
 
@@ -52,6 +60,12 @@ else:
 
 P = ParamSpec("P")
 T = TypeVar("T")
+
+ColorType = Tuple[int, int, int]
+
+# Variables
+
+HEX_RGB_FMT = "#" + "%02x" * 3
 
 # Decorator Classes
 
@@ -456,16 +470,31 @@ def get_cell_size() -> term_image.geometry.Size | None:
         return None if 0 in cell_size else Size(*cell_size)
 
 
+@overload
+def get_fg_bg_colors(
+    *, hex: Literal[False]
+) -> tuple[ColorType | None, ColorType | None]:
+    ...
+
+
+@overload
+def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]:
+    ...
+
+
 @cached
 def get_fg_bg_colors(
-    *, hex: bool = False
-) -> Tuple[
-    Union[None, str, Tuple[int, int, int]], Union[None, str, Tuple[int, int, int]]
-]:
-    """Returns the default FG and BG colors of the :term:`active terminal`.
+    *, hex: Literal[False, True] = False
+) -> tuple[ColorType | str | None, ColorType | str | None]:
+    """
+    get_fg_bg_colors(*, hex: Literal[False]) \
+    -> tuple[ColorType | None, ColorType | None]
+    get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]
+
+    Returns the default FG and BG colors of the :term:`active terminal`.
 
     Returns:
-        For each color:
+        For each color,
 
         * an RGB 3-tuple, if *hex* is ``False``
         * an RGB hex string if *hex* is ``True``
@@ -491,8 +520,9 @@ def get_fg_bg_colors(
             elif c == "11":
                 bg = ctlseqs.x_parse_color(spec)
 
-    return tuple(
-        rgb and ("#" + ("{:02x}" * 3).format(*rgb) if hex else rgb) for rgb in (fg, bg)
+    return (
+        fg and (HEX_RGB_FMT % fg if hex else fg),
+        bg and (HEX_RGB_FMT % bg if hex else bg),
     )
 
 
