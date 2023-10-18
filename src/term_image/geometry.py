@@ -40,7 +40,14 @@ class Size(RawSize):
         ValueError: Either dimension is non-positive.
 
     Same as :py:class:`RawSize`, except that both dimensions must be **positive**.
+
+    IMPORTANT:
+        In the case of multiple inheritance i.e if subclassing this class along with
+        other classes, this class should appear last (i.e to the far right) in the
+        base class list.
     """
+
+    __slots__ = ()
 
     def __new__(cls, width: int, height: int):
         if width < 1:
