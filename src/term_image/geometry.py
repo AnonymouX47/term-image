@@ -26,10 +26,11 @@ class RawSize(NamedTuple):
     """
 
     width: int
-    """The horizontal dimension"""
-
     height: int
-    """The vertical dimension"""
+
+
+RawSize.width.__doc__ = "The horizontal dimension"
+RawSize.height.__doc__ = "The vertical dimension"
 
 
 class Size(RawSize):
