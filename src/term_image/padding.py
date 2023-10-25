@@ -121,7 +121,8 @@ class Padding(metaclass=ABCMeta):
     # Special Methods ==========================================================
 
     def __init__(self, fill: str = " ") -> None:
-        __class__.__setattr__(self, "fill", fill)  # Subclasses are to be "immutable"
+        # Subclasses are to be "immutable", `super()` is costlier
+        __class__.__setattr__(self, "fill", fill)  # type: ignore[name-defined]
 
     # Public Methods ===========================================================
 
@@ -346,7 +347,7 @@ class AlignedPadding(Padding):
         if self.relative:
             raise RelativePaddingDimensionError("Relative minimum render dimension(s)")
 
-        return Size(*map(max, (self.width, self.height), render_size))  # type: ignore
+        return Size(max(self.width, render_size[0]), max(self.height, render_size[1]))
 
     def resolve(self, terminal_size: os.terminal_size) -> AlignedPadding:
         """Resolves **relative** *minimum render dimensions*.
@@ -466,12 +467,12 @@ class ExactPadding(Padding):
         GET:
             Returns the padding dimensions, ``(left, top, right, bottom)``.
         """
-        return astuple(self)[:4]  # type: ignore
+        return astuple(self)[:4]  # type: ignore[return-value]
 
     # Extension methods ========================================================
 
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
-        return astuple(self)[:4]  # type: ignore
+        return astuple(self)[:4]  # type: ignore[return-value]
 
 
 # Exceptions ===================================================================
