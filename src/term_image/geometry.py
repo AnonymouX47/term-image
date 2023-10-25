@@ -8,6 +8,8 @@ __all__ = ("RawSize", "Size")
 
 from typing import NamedTuple
 
+from typing_extensions import Self
+
 from .utils import arg_value_error_range
 
 
@@ -49,11 +51,11 @@ class Size(RawSize):
 
     __slots__ = ()
 
-    def __new__(cls, width: int, height: int):
+    def __new__(cls, width: int, height: int) -> Self:
         if width < 1:
             raise arg_value_error_range("width", width)
         if height < 1:
             raise arg_value_error_range("height", height)
 
         # Using `tuple` directly instead of `super()` for performance
-        return tuple.__new__(cls, (width, height))  # type: ignore
+        return tuple.__new__(cls, (width, height))  # type: ignore[type-var]
