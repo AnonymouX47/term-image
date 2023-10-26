@@ -104,7 +104,6 @@ def disable_win_size_swap():
     """
     if utils._swap_win_size:
         utils._swap_win_size = False
-        utils.get_cell_size._invalidate_terminal_size_cache()
         with utils._cell_size_lock:
             utils._cell_size_cache[:] = (0,) * 4
 
@@ -119,7 +118,6 @@ def enable_queries() -> None:
     """
     if not utils._queries_enabled:
         utils._queries_enabled = True
-        utils.get_cell_size._invalidate_terminal_size_cache()
         utils.get_fg_bg_colors._invalidate_cache()
         utils.get_terminal_name_version._invalidate_cache()
         with utils._cell_size_lock:
@@ -139,7 +137,6 @@ def enable_win_size_swap():
     """
     if not utils._swap_win_size:
         utils._swap_win_size = True
-        utils.get_cell_size._invalidate_terminal_size_cache()
         with utils._cell_size_lock:
             utils._cell_size_cache[:] = (0,) * 4
 
