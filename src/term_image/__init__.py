@@ -23,7 +23,8 @@ __author__ = "Toluwaleke Ogundipe"
 
 from enum import Enum, auto
 from operator import truediv
-from typing import ClassVar, Union
+
+from typing_extensions import ClassVar, Final
 
 from . import utils
 from .exceptions import TermImageError
@@ -35,7 +36,7 @@ __version__ = ".".join(map(str, version_info[:3]))
 if version_info[3:]:
     __version__ += "-" + ".".join(map(str, version_info[3:]))
 
-DEFAULT_QUERY_TIMEOUT: float = utils._query_timeout  # Final[float]
+DEFAULT_QUERY_TIMEOUT: Final[float] = utils._query_timeout
 """Default timeout for :ref:`terminal-queries`
 
 .. seealso:: :py:func:`set_query_timeout`.
@@ -91,7 +92,7 @@ def disable_queries() -> None:
     utils._queries_enabled = False
 
 
-def disable_win_size_swap():
+def disable_win_size_swap() -> None:
     """Disables a workaround for terminal emulators that wrongly report window
     dimensions swapped.
 
@@ -118,13 +119,13 @@ def enable_queries() -> None:
     """
     if not utils._queries_enabled:
         utils._queries_enabled = True
-        utils.get_fg_bg_colors._invalidate_cache()
-        utils.get_terminal_name_version._invalidate_cache()
+        getattr(utils.get_fg_bg_colors, "_invalidate_cache")()
+        getattr(utils.get_terminal_name_version, "_invalidate_cache")()
         with utils._cell_size_lock:
             utils._cell_size_cache[:] = (0,) * 4
 
 
-def enable_win_size_swap():
+def enable_win_size_swap() -> None:
     """Enables a workaround for terminal emulators that wrongly report window
     dimensions swapped.
 
@@ -150,7 +151,7 @@ def get_cell_ratio() -> float:
     return _cell_ratio or truediv(*(utils.get_cell_size() or (1, 2)))
 
 
-def set_cell_ratio(ratio: Union[float, AutoCellRatio]) -> None:
+def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
     """Sets the global :term:`cell ratio`.
 
     Args:
@@ -225,5 +226,5 @@ def set_query_timeout(timeout: float) -> None:
     utils._query_timeout = timeout
 
 
-_cell_ratio = 0.5
+_cell_ratio: float | None = 0.5
 AutoCellRatio.is_supported = None
