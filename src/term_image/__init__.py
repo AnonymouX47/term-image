@@ -166,9 +166,7 @@ def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
             only if the terminal size changes.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
-        ValueError: An argument is of an appropriate type but has an
-          unexpected/invalid value.
+        ValueError: *ratio* is a non-positive :py:class:`float`.
         term_image.exceptions.TermImageError: Auto cell ratio is not supported
           in the :term:`active terminal` or on the current platform.
 
@@ -200,12 +198,10 @@ def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
             _cell_ratio = truediv(*(utils.get_cell_size() or (1, 2)))
         else:
             _cell_ratio = None
-    elif isinstance(ratio, float):
+    else:
         if ratio <= 0.0:
             raise utils.arg_value_error_range("ratio", ratio)
         _cell_ratio = ratio
-    else:
-        raise utils.arg_type_error("ratio", ratio)
 
 
 def set_query_timeout(timeout: float) -> None:
@@ -215,11 +211,8 @@ def set_query_timeout(timeout: float) -> None:
         timeout: Time limit for awaiting a response from the terminal, in seconds.
 
     Raises:
-        TypeError: *timeout* is not a float.
         ValueError: *timeout* is less than or equal to zero.
     """
-    if not isinstance(timeout, float):
-        raise utils.arg_type_error("timeout", timeout)
     if timeout <= 0.0:
         raise utils.arg_value_error_range("timeout", timeout)
 
