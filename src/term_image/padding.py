@@ -19,6 +19,8 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import astuple, dataclass
 from enum import IntEnum, auto
 
+from typing_extensions import override
+
 from .exceptions import TermImageError
 from .geometry import RawSize, Size
 from .utils import arg_value_error_range
@@ -336,6 +338,7 @@ class AlignedPadding(Padding):
 
     # Public Methods ===========================================================
 
+    @override
     def get_padded_size(self, render_size: Size) -> Size:
         """Computes an expected padded :term:`render size`.
 
@@ -373,6 +376,7 @@ class AlignedPadding(Padding):
 
     # Extension methods ========================================================
 
+    @override
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         if self.relative:
             raise RelativePaddingDimensionError("Relative minimum render dimension(s)")
@@ -471,6 +475,7 @@ class ExactPadding(Padding):
 
     # Extension methods ========================================================
 
+    @override
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         return astuple(self)[:4]  # type: ignore[return-value]
 
