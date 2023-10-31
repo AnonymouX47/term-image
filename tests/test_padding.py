@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from term_image.ctlseqs import CURSOR_FORWARD
 from term_image.geometry import RawSize, Size
 from term_image.padding import (
     AlignedPadding,
@@ -30,6 +31,7 @@ class TestPadding:
     def test_fill(self):
         assert ConcretePadding().fill == " "
         assert ConcretePadding(fill="#").fill == "#"
+        assert ConcretePadding(fill="").fill == ""
 
     @pytest.mark.parametrize(
         "dimensions,render_size,padded_size",
@@ -51,21 +53,6 @@ class TestPadding:
 
     class TestPad:
         @pytest.mark.parametrize(
-            "dimensions,padded_render",
-            [
-                ((0, 0, 0, 0), "#"),
-                ((1, 0, 0, 0), " #"),
-                ((0, 1, 0, 0), " \n#"),
-                ((0, 0, 1, 0), "# "),
-                ((0, 0, 0, 1), "#\n "),
-                ((1, 1, 1, 1), "   \n # \n   "),
-            ],
-        )
-        def test_dimensions(self, dimensions, padded_render):
-            padding = ConcretePadding(dimensions)
-            assert padding.pad("#", Size(1, 1)) == padded_render
-
-        @pytest.mark.parametrize(
             "render_size,render,padded_render",
             [
                 (Size(1, 1), "#", "   \n # \n   "),
@@ -78,16 +65,65 @@ class TestPadding:
             padding = ConcretePadding((1, 1, 1, 1))
             assert padding.pad(render, render_size) == padded_render
 
-        @pytest.mark.parametrize(
-            "fill,padded_render",
-            [
-                ("+", "+++\n+#+\n+++"),
-                ("-", "---\n-#-\n---"),
-            ],
-        )
-        def test_fill(self, fill, padded_render):
-            padding = ConcretePadding((1, 1, 1, 1), fill)
-            assert padding.pad("#", Size(1, 1)) == padded_render
+        class TestFill:
+            def test_default(self):
+                padding = ConcretePadding((1, 1, 1, 1))
+                assert padding.pad("#", Size(1, 1)) == "   \n # \n   "
+
+            @pytest.mark.parametrize(
+                "fill,padded_render",
+                [
+                    ("+", "+++\n+#+\n+++"),
+                    ("-", "---\n-#-\n---"),
+                ],
+            )
+            def test_non_empty(self, fill, padded_render):
+                padding = ConcretePadding((1, 1, 1, 1), fill)
+                assert padding.pad("#", Size(1, 1)) == padded_render
+
+            def test_empty(self):
+                padding = ConcretePadding((1, 1, 1, 1), "")
+                assert padding.pad("#", Size(1, 1)) == (
+                    f"{CURSOR_FORWARD % 3}\n{CURSOR_FORWARD % 1}"
+                    f"#{CURSOR_FORWARD % 1}\n{CURSOR_FORWARD % 3}"
+                )
+
+        class TestDimensions:
+            @pytest.mark.parametrize(
+                "dimensions,padded_render",
+                [
+                    ((0, 0, 0, 0), "#"),
+                    ((1, 0, 0, 0), " #"),
+                    ((0, 1, 0, 0), " \n#"),
+                    ((0, 0, 1, 0), "# "),
+                    ((0, 0, 0, 1), "#\n "),
+                    ((1, 1, 1, 1), "   \n # \n   "),
+                ],
+            )
+            def test_non_empty(self, dimensions, padded_render):
+                padding = ConcretePadding(dimensions)
+                assert padding.pad("#", Size(1, 1)) == padded_render
+
+            @pytest.mark.parametrize(
+                "dimensions,padded_render",
+                [
+                    ((0, 0, 0, 0), "#"),
+                    ((1, 0, 0, 0), f"{CURSOR_FORWARD % 1}#"),
+                    ((0, 1, 0, 0), f"{CURSOR_FORWARD % 1}\n#"),
+                    ((0, 0, 1, 0), f"#{CURSOR_FORWARD % 1}"),
+                    ((0, 0, 0, 1), f"#\n{CURSOR_FORWARD % 1}"),
+                    (
+                        (1, 1, 1, 1),
+                        (
+                            f"{CURSOR_FORWARD % 3}\n{CURSOR_FORWARD % 1}"
+                            f"#{CURSOR_FORWARD % 1}\n{CURSOR_FORWARD % 3}"
+                        ),
+                    ),
+                ],
+            )
+            def test_empty(self, dimensions, padded_render):
+                padding = ConcretePadding(dimensions, "")
+                assert padding.pad("#", Size(1, 1)) == padded_render
 
     @pytest.mark.parametrize(
         "dimensions,fill",
@@ -131,6 +167,7 @@ class TestAlignedPadding:
     def test_fill(self):
         assert AlignedPadding(1, 1).fill == " "
         assert AlignedPadding(1, 1, fill="#").fill == "#"
+        assert AlignedPadding(1, 1, fill="").fill == ""
 
     @pytest.mark.parametrize(
         "width,height,relative",
@@ -363,6 +400,7 @@ class TestExactPadding:
     def test_fill(self):
         assert ExactPadding(1, 1).fill == " "
         assert ExactPadding(1, 1, fill="#").fill == "#"
+        assert ExactPadding(1, 1, fill="").fill == ""
 
     @pytest.mark.parametrize("dimensions", [(0, 0, 0, 0), (1, 2, 3, 4), (5, 5, 5, 5)])
     def test_dimensions(self, dimensions):
