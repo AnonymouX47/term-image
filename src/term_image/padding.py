@@ -19,6 +19,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import astuple, dataclass
 from enum import IntEnum, auto
 
+from .ctlseqs import cursor_forward
 from .exceptions import TermImageError
 from .geometry import RawSize, Size
 from .utils import arg_value_error_range
@@ -91,10 +92,11 @@ class Padding(metaclass=ABCMeta):
     """:term:`Render output` padding.
 
     Args:
-        fill: Fill string; the string with which render outputs will be padded.
+        fill: Determines the string with which render outputs will be padded.
 
-          May be any string that occupies exactly **one column** when written to a
-          terminal screen.
+          May be any string that occupies exactly **one column** on a terminal screen,
+          or an empty string. If empty, the padding simply advances the cursor without
+          overwriting existing content on the terminal screen.
 
     ATTENTION:
         This is an abstract base class. Hence, only **concrete** subclasses can be
@@ -113,10 +115,7 @@ class Padding(metaclass=ABCMeta):
     # Instance Attributes ======================================================
 
     fill: str
-    """Fill string
-
-    This is the string with which :term:`render outputs` will be padded.
-    """
+    """Fill string"""
 
     # Special Methods ==========================================================
 
@@ -162,10 +161,16 @@ class Padding(metaclass=ABCMeta):
         vertical = top or bottom
         fill = self.fill
 
-        left_padding = fill * left
-        right_padding = fill * right
-        top_padding = f"{fill * width}\n" * top if top else ""
-        bottom_padding = f"\n{fill * width}" * bottom if bottom else ""
+        if fill:
+            left_padding = fill * left
+            right_padding = fill * right
+            top_padding = f"{fill * width}\n" * top if top else ""
+            bottom_padding = f"\n{fill * width}" * bottom if bottom else ""
+        else:
+            left_padding = cursor_forward(left)
+            right_padding = cursor_forward(right)
+            top_padding = f"{cursor_forward(width)}\n" * top if top else ""
+            bottom_padding = f"\n{cursor_forward(width)}" * bottom if bottom else ""
 
         return (
             "".join(
