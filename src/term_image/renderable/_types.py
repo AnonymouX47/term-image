@@ -7,7 +7,9 @@ from __future__ import annotations
 __all__ = (
     "Frame",
     "RenderArgs",
+    "ArgsNamespace",
     "RenderData",
+    "DataNamespace",
     "RenderArgsDataError",
     "RenderArgsError",
     "RenderDataError",
@@ -104,6 +106,602 @@ class UnknownDataFieldError(RenderDataError, AttributeError):
 # Classes ======================================================================
 
 
+class ArgsDataNamespaceMeta(type):
+    """Metaclass of render argument/data namespaces."""
+
+    _FIELDS: MappingProxyType[str, Any] = {}
+    _RENDER_CLS: type[Renderable] | None = None
+
+    def __new__(
+        cls,
+        name,
+        bases,
+        namespace,
+        *,
+        render_cls: type[Renderable] | None = None,
+        _base: bool = False,
+        **kwargs,
+    ):
+        if _base:
+            namespace["__slots__"] = ()
+        else:
+            # Assumes the metaclass is never used directly without `_base=True`
+
+            if len(bases) > 1:
+                raise RenderArgsDataError("Multiple base classes")
+
+            base = bases[0]
+            fields: Sequence[str] = namespace.get("__annotations__", ())
+
+            if base._FIELDS:
+                if fields:
+                    raise RenderArgsDataError("Cannot both inherit and define fields")
+            elif fields:
+                for name in fields:
+                    namespace.pop(name, None)
+                namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
+
+            namespace["__slots__"] = tuple(fields)
+
+            if render_cls:
+                if base._RENDER_CLS:
+                    raise RenderArgsDataError(
+                        "Cannot reassociate a namespace subclass; the base class "
+                        f"is already associated with {base._RENDER_CLS.__name__!r}"
+                    )
+                if not fields:
+                    raise RenderArgsDataError(
+                        "Cannot associate a namespace class that has no fields"
+                    )
+                if not isinstance(render_cls, RenderableMeta):
+                    raise arg_type_error("render_cls", render_cls)
+
+                namespace["_RENDER_CLS"] = render_cls
+            elif fields:
+                raise RenderArgsDataError("Unassociated namespace class with fields")
+
+        new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
+
+        if new_cls._FIELDS:
+            for method_name in ("__new__", "__init__"):
+                method = getattr(new_cls, method_name)
+                parameters = iter(signature(method).parameters.items())
+
+                next(parameters)  # skip first parameter (cls, self)
+                for param_name, param in parameters:
+                    if param.default is Parameter.empty and (
+                        Parameter.VAR_POSITIONAL
+                        is not param.kind
+                        is not Parameter.VAR_KEYWORD
+                    ):
+                        raise TypeError(
+                            f"'{new_cls.__qualname__}.{method_name}' has a "
+                            f"required parameter {param_name!r}"
+                        )
+
+        return new_cls
+
+
+class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
+    """:term:`Render class`\\ -specific argument/data namespace."""
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._RENDER_CLS:
+            raise UnassociatedNamespaceError(
+                "Cannot instantiate a render argument/data namespace class "
+                "that hasn't been associated with a render class"
+            )
+
+        return super().__new__(cls)
+
+    def __init__(self, fields: Mapping[str, Any]) -> None:
+        setattr_ = __class__.__setattr__  # Subclass(es) redefine `__setattr__()`
+        for name in type(self)._FIELDS:
+            setattr_(self, name, fields[name])
+
+    def __delattr__(self, _):
+        raise AttributeError("Cannot delete field")
+
+    @classmethod
+    def get_render_cls(cls) -> Type[Renderable]:
+        """Returns the associated :term:`render class`.
+
+        Returns:
+            The associated render class, if the namespace class has been
+            associated.
+
+        Raises:
+            UnassociatedNamespaceError: The namespace class hasn't been associated
+              with a render class.
+        """
+        if not cls._RENDER_CLS:
+            raise UnassociatedNamespaceError(
+                "This namespace class hasn't been associated with a render class"
+            )
+
+        return cls._RENDER_CLS
+
+
+class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
+    """Metaclass of render argument namespaces."""
+
+    def __new__(cls, name, bases, namespace, **kwargs):
+        try:
+            defaults = {
+                name: namespace[name] for name in namespace.get("__annotations__", ())
+            }
+        except KeyError as e:
+            raise RenderArgsError(f"Field {e.args[0]!r} has no default value") from None
+
+        args_cls = super().__new__(cls, name, bases, namespace, **kwargs)
+
+        if "_FIELDS" in args_cls.__dict__:
+            args_cls._FIELDS = MappingProxyType(defaults)
+
+        if render_cls := args_cls.__dict__.get("_RENDER_CLS"):
+            if render_cls.Args:
+                raise RenderArgsError(
+                    f"{render_cls.__name__!r} already has an associated render "
+                    f"argument namespace class {render_cls.Args.__name__!r}"
+                )
+            render_cls.Args = args_cls
+            render_cls._ALL_DEFAULT_ARGS = MappingProxyType(
+                {render_cls: args_cls(), **render_cls._ALL_DEFAULT_ARGS}
+            )
+
+        return args_cls
+
+
+class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
+    """ArgsNamespace(*values, **fields)
+
+    :term:`Render class`\\ -specific render argument namespace.
+
+    Args:
+        values: Render argument field values.
+
+          The values are mapped to fields in the order in which the fields were
+          defined.
+
+        fields: Render argument fields.
+
+          The keywords must be names of render argument fields for the associated
+          [#ran1]_ render class.
+
+    Raises:
+        UnassociatedNamespaceError: The namespace class hasn't been associated
+          [#ran1]_ with a render class.
+        TypeError: More values (positional arguments) than there are fields.
+        UnknownArgsFieldError: Unknown field name(s).
+        TypeError: Multiple values given for a field.
+
+    If no value is given for a field, its default value is used.
+
+    NOTE:
+        * Fields are exposed as instance attributes.
+        * Instances are immutable but updated copies can be created via
+          :py:meth:`update`.
+
+    .. Completed in /docs/source/api/renderable.rst
+    """
+
+    def __init__(self, *values: Any, **fields: Any) -> None:
+        default_fields = type(self)._FIELDS
+
+        if len(values) > len(default_fields):
+            raise TypeError(
+                f"{type(self)._RENDER_CLS.__name__!r} defines "
+                f"{len(default_fields)} render argument field(s) but "
+                f"{len(values)} values were given"
+            )
+        value_fields = dict(zip(default_fields, values))
+
+        unknown = fields.keys() - default_fields.keys()
+        if unknown:
+            raise UnknownArgsFieldError(
+                f"Unknown render argument fields {tuple(unknown)} for "
+                f"{type(self)._RENDER_CLS.__name__!r}"
+            )
+        multiple = fields.keys() & value_fields.keys()
+        if multiple:
+            raise TypeError(
+                f"Got multiple values for render argument fields "
+                f"{tuple(multiple)} of {type(self)._RENDER_CLS.__name__!r}"
+            )
+
+        super().__init__({**default_fields, **value_fields, **fields})
+
+    def __repr__(self) -> str:
+        return "".join(
+            (
+                f"{type(self).__name__}(",
+                ", ".join(
+                    f"{name}={getattr(self, name)!r}" for name in type(self)._FIELDS
+                ),
+                ")",
+            )
+        )
+
+    def __getattr__(self, attr):
+        raise UnknownArgsFieldError(
+            f"Unknown render argument field {attr!r} for "
+            f"{type(self)._RENDER_CLS.__name__!r}"
+        )
+
+    def __setattr__(self, *_):
+        raise AttributeError(
+            "Cannot modify render argument fields, use the `update()` method "
+            "of the namespace or the containing `RenderArgs` instance, as "
+            "applicable, instead"
+        )
+
+    def __eq__(self, other: ArgsNamespace) -> bool:
+        """Compares the namespace with another.
+
+        Args:
+            other: Another render argument namespace.
+
+        Returns:
+            ``True`` if both operands are associated with the same
+            :term:`render class` and have equal field values.
+            Otherwise, ``False``.
+        """
+        if type(other) is type(self):
+            return self is other or all(
+                getattr(self, name) == getattr(other, name)
+                for name in type(self)._FIELDS
+            )
+
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        """Computes the hash of the namespace.
+
+        Returns:
+            The computed hash.
+
+        IMPORTANT:
+            Like tuples, an instance is hashable if and only if the field values
+            are hashable.
+        """
+        # Field names and their order is the same for all instances associated
+        # with the same render class.
+        return hash(
+            (
+                type(self)._RENDER_CLS,
+                tuple([getattr(self, field) for field in type(self)._FIELDS]),
+            )
+        )
+
+    def __or__(self, other: ArgsNamespace | RenderArgs) -> RenderArgs:
+        """Derives a set of render arguments from the combination of both operands.
+
+        Args:
+            other: Another render argument namespace or a set of render arguments.
+
+        Returns:
+            A set of render arguments associated with the **most derived** one
+            of the associated :term:`render classes` of both operands.
+
+        Raises:
+            IncompatibleArgsNamespaceError: *other* is a render argument namespace
+              and neither operand is compatible [#ra1]_ [#ran2]_ with the
+              associated :term:`render class` of the other.
+            IncompatibleRenderArgsError: *other* is a set of render arguments
+              and neither operand is compatible [#ra1]_ [#ran2]_ with the
+              associated :term:`render class` of the other.
+
+        NOTE:
+            * If *other* is a render argument namespace associated with the
+              same :term:`render class` as *self*, *other* takes precedence.
+            * If *other* is a set of render arguments that contains a namespace
+              associated with the same :term:`render class` as *self*, *self* takes
+              precedence.
+        """
+        self_render_cls = type(self)._RENDER_CLS
+
+        if isinstance(other, __class__):
+            other_render_cls = type(other)._RENDER_CLS
+            if self_render_cls is other_render_cls:
+                return RenderArgs(other_render_cls, other)
+            if issubclass(self_render_cls, other_render_cls):
+                return RenderArgs(self_render_cls, self, other)
+            if issubclass(other_render_cls, self_render_cls):
+                return RenderArgs(other_render_cls, self, other)
+            raise IncompatibleArgsNamespaceError(
+                f"A render argument namespace for {other_render_cls.__name__!r} "
+                "cannot be combined with a render argument namespace for "
+                f"{self_render_cls.__name__!r}."
+            )
+
+        if isinstance(other, RenderArgs):
+            other_render_cls = other.render_cls
+            if issubclass(self_render_cls, other_render_cls):
+                return RenderArgs(self_render_cls, other, self)
+            if issubclass(other_render_cls, self_render_cls):
+                return RenderArgs(other_render_cls, other, self)
+            raise IncompatibleRenderArgsError(
+                f"A set of render arguments for {other_render_cls.__name__!r} "
+                "cannot be combined with a render argument namespace for "
+                f"{self_render_cls.__name__!r}."
+            )
+
+        return NotImplemented
+
+    def __pos__(self) -> RenderArgs:
+        """Creates a set of render arguments from the namespace.
+
+        Returns:
+            A set of render arguments associated with the same :term:`render class`
+            as the namespace and initialized with the namespace.
+
+        TIP:
+            ``+namespace`` is shorthand for
+            :py:meth:`namespace.to_render_args() <to_render_args>`.
+        """
+        return RenderArgs(type(self)._RENDER_CLS, self)
+
+    def __ror__(self, other: ArgsNamespace | RenderArgs) -> RenderArgs:
+        """Same as :py:meth:`__or__` but with reflected operands.
+
+        NOTE:
+            Unlike :py:meth:`__or__`, if *other* is a render argument namespace
+            associated with the same :term:`render class` as *self*, *self* takes
+            precedence.
+        """
+        # Not commutative
+        if isinstance(other, __class__) and (
+            type(self)._RENDER_CLS is type(other)._RENDER_CLS
+        ):
+            return RenderArgs(type(self)._RENDER_CLS, self)
+
+        return self.__or__(other)  # All other cases are commutative
+
+    def as_dict(self) -> dict[str, Any]:
+        """Copies the namespace as a dictionary.
+
+        Returns:
+            A dictionary mapping field names to their values.
+
+        WARNING:
+            The number and order of fields is guaranteed to be the same for a
+            subclass that defines fields, its subclasses (that inherit its fields)
+            and all their instances but beyond this, should not be relied upon as
+            the details (such as the specific number or order) may change without
+            notice.
+
+            The order is an implementation detail of the Render Arguments/Data API
+            and the number should be considered an implementation detail of the
+            specific namespace subclass.
+        """
+        return {name: getattr(self, name) for name in type(self)._FIELDS}
+
+    @classmethod
+    def get_fields(cls) -> Mapping[str, Any]:
+        """Returns the field definitions.
+
+        Returns:
+            A mapping of field names to their default values.
+
+        WARNING:
+            The number and order of fields is guaranteed to be the same for a
+            subclass that defines fields, its subclasses (that inherit its fields)
+            and all their instances but beyond this, should not be relied upon as
+            the details (such as the specific number or order) may change without
+            notice.
+
+            The order is an implementation detail of the Render Arguments/Data API
+            and the number should be considered an implementation detail of the
+            specific namespace subclass.
+        """
+        return cls._FIELDS
+
+    def to_render_args(self, render_cls: type[Renderable] | None = None) -> RenderArgs:
+        """Creates a set of render arguments from the namespace.
+
+        Args:
+            render_cls: A :term:`render class`, with which the namespace is
+              compatible [#ran2]_.
+
+        Returns:
+            A set of render arguments associated with *render_cls* (or the
+            associated [#ran1]_ render class of the namespace, if ``None``) and
+            initialized with the namespace.
+
+        Propagates exceptions raised by the
+        :py:class:`~term_image.renderable.RenderArgs` constructor, as applicable.
+
+        .. seealso:: :py:meth:`__pos__`.
+        """
+        return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
+
+    def update(self, **fields: Any) -> ArgsNamespace:
+        """Updates render argument fields.
+
+        Args:
+            fields: Render argument fields.
+
+        Returns:
+            A namespace with the given fields updated.
+
+        Raises:
+            UnknownArgsFieldError: Unknown field name(s).
+        """
+        if not fields:
+            return self
+
+        unknown = fields.keys() - type(self)._FIELDS.keys()
+        if unknown:
+            raise UnknownArgsFieldError(
+                f"Unknown render argument field(s) {tuple(unknown)} for "
+                f"{type(self)._RENDER_CLS.__name__!r}"
+            )
+
+        new = type(self).__new__(type(self))
+        new_fields = self.as_dict()
+        new_fields.update(fields)
+        super(__class__, new).__init__(new_fields)
+
+        return new
+
+
+class DataNamespaceMeta(ArgsDataNamespaceMeta):
+    """Metaclass of render data namespaces."""
+
+    def __new__(cls, name, bases, namespace, **kwargs):
+        data_cls = super().__new__(cls, name, bases, namespace, **kwargs)
+
+        if render_cls := data_cls.__dict__.get("_RENDER_CLS"):
+            if render_cls._Data_:
+                raise RenderDataError(
+                    f"{render_cls.__name__!r} already has an associated render "
+                    f"data namespace class {render_cls._Data_.__name__!r}"
+                )
+            render_cls._Data_ = data_cls
+            render_cls._RENDER_DATA_MRO = MappingProxyType(
+                {render_cls: data_cls, **render_cls._RENDER_DATA_MRO}
+            )
+
+        return data_cls
+
+
+class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta):
+    """DataNamespace()
+
+    :term:`Render class`\\ -specific render data namespace.
+
+    Raises:
+        UnassociatedNamespaceError: The namespace class hasn't been associated
+          [#rdn1]_ with a render class.
+
+    Subclassing, defining (and inheriting) fields and associating with a render
+    class are just as they are for :ref:`args-namespace`, except that values
+    assigned to the class attributes are not used.
+
+    Every field is **uninitialized** immediately after instantiation of a
+    namespace. The fields are expected to be initialized within the
+    :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
+    render class with which the namespace is associated [#rdn1]_ or at some other point
+    during a render operation, if necessary.
+
+    NOTE:
+        * Fields are exposed as instance attributes.
+        * Instances are mutable and fields can be updated **in-place**, either
+          individually by assignment to an attribute reference or in batch via
+          :py:meth:`update`.
+        * An instance shouldn't be copied by any means because finalizing its
+          containing :py:class:`RenderData` instance may invalidate all copies of
+          the namespace.
+
+    .. Completed in /docs/source/api/renderable.rst
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        fields_repr = {}
+        for name in type(self)._FIELDS:
+            try:
+                fields_repr[name] = repr(getattr(self, name))
+            except UninitializedDataFieldError:
+                fields_repr[name] = "<uninitialized>"
+
+        return "".join(
+            (
+                f"<{type(self).__name__}: ",
+                ", ".join(
+                    f"{name}={value_repr}" for name, value_repr in fields_repr.items()
+                ),
+                ">",
+            )
+        )
+
+    def __getattr__(self, attr):
+        if attr in type(self)._FIELDS:
+            raise UninitializedDataFieldError(
+                f"The render data field {attr!r} of "
+                f"{type(self)._RENDER_CLS.__name__!r} has not been initialized"
+            )
+
+        raise UnknownDataFieldError(
+            f"Unknown render data field {attr!r} for "
+            f"{type(self)._RENDER_CLS.__name__!r}"
+        )
+
+    def __setattr__(self, attr, value):
+        try:
+            super().__setattr__(attr, value)
+        except AttributeError:
+            raise UnknownDataFieldError(
+                f"Unknown render data field {attr!r} for "
+                f"{type(self)._RENDER_CLS.__name__!r}"
+            ) from None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Copies the namespace as a dictionary.
+
+        Returns:
+            A dictionary mapping field names to their current values.
+
+        Raises:
+          UninitializedDataFieldError: A field has not been initialized.
+
+        WARNING:
+            The number and order of fields is guaranteed to be the same for a
+            subclass that defines fields, its subclasses (that inherit its fields)
+            and all their instances but beyond this, should not be relied upon as
+            the details (such as the specific number or order) may change without
+            notice.
+
+            The order is an implementation detail of the Render Arguments/Data API
+            and the number should be considered an implementation detail of the
+            specific namespace subclass.
+        """
+        return {name: getattr(self, name) for name in type(self)._FIELDS}
+
+    @classmethod
+    def get_fields(cls) -> tuple[str]:
+        """Returns the field names.
+
+        Returns:
+            A tuple of field names.
+
+        WARNING:
+            The number and order of fields is guaranteed to be the same for a
+            subclass that defines fields, its subclasses (that inherit its fields)
+            and all their instances but beyond this, should not be relied upon as
+            the details (such as the specific number or order) may change without
+            notice.
+
+            The order is an implementation detail of the Render Arguments/Data API
+            and the number should be considered an implementation detail of the
+            specific namespace subclass.
+        """
+        return tuple(cls._FIELDS)
+
+    def update(self, **fields: Any) -> None:
+        """Updates render data fields.
+
+        Args:
+            fields: Render data fields.
+
+        Raises:
+            UnknownDataFieldError: Unknown field name(s).
+        """
+        if fields:
+            unknown = fields.keys() - type(self)._FIELDS.keys()
+            if unknown:
+                raise UnknownDataFieldError(
+                    f"Unknown render data field(s) {tuple(unknown)} for "
+                    f"{type(self)._RENDER_CLS.__name__!r}"
+                )
+
+            setattr_ = super().__setattr__
+            for field in fields.items():
+                setattr_(*field)
+
+
 class Frame(NamedTuple):
     """A rendered frame.
 
@@ -160,114 +758,10 @@ class RenderArgsData:
     def __init__(
         self,
         render_cls: type[Renderable],
-        namespaces: dict[type[Renderable], RenderArgsData.Namespace],
+        namespaces: dict[type[Renderable], ArgsDataNamespace],
     ) -> None:
         self.render_cls = render_cls
         self._namespaces = MappingProxyType(namespaces)
-
-    class _NamespaceMeta(type):
-        """Metaclass of render argument/data namespaces."""
-
-        _FIELDS: MappingProxyType[str, Any] = {}
-
-        # Set by `RenderableMeta` for associated instances
-        _RENDER_CLS: type[Renderable] | None = None
-
-        def __new__(
-            cls,
-            name,
-            bases,
-            namespace,
-            *,
-            _base: bool = False,
-            **kwargs,
-        ):
-            if _base:
-                namespace["__slots__"] = ()
-            else:
-                # Assumes the metaclass is never used directly without `_base=True`
-
-                if len(bases) > 1:
-                    raise RenderArgsDataError("Multiple base classes")
-
-                base = bases[0]
-                fields: Sequence[str] = namespace.get("__annotations__", ())
-
-                if base._FIELDS:
-                    if not base._RENDER_CLS:
-                        raise RenderArgsDataError(
-                            "Unassociated namespace base class with fields"
-                        )
-                    if fields:
-                        raise RenderArgsDataError(
-                            "Cannot both inherit and define fields"
-                        )
-                elif fields:
-                    for name in fields:
-                        namespace.pop(name, None)
-                    namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
-
-                namespace["__slots__"] = tuple(fields)
-
-            new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
-
-            if not _base:
-                for method_name in ("__new__", "__init__"):
-                    method = getattr(new_cls, method_name)
-                    parameters = iter(signature(method).parameters.items())
-
-                    next(parameters)  # skip first parameter (cls, self)
-                    for param_name, param in parameters:
-                        if param.default is Parameter.empty and (
-                            Parameter.VAR_POSITIONAL
-                            is not param.kind
-                            is not Parameter.VAR_KEYWORD
-                        ):
-                            raise TypeError(
-                                f"'{new_cls.__qualname__}.{method_name}' has a "
-                                f"required parameter {param_name!r}"
-                            )
-
-            return new_cls
-
-    class Namespace(metaclass=_NamespaceMeta, _base=True):
-        """:term:`Render class`\\ -specific argument/data namespace."""
-
-        def __new__(cls, *args, **kwargs):
-            if not cls._RENDER_CLS:
-                raise UnassociatedNamespaceError(
-                    "Cannot instantiate a render argument/data namespace class "
-                    "that hasn't been associated with a render class"
-                )
-
-            return super().__new__(cls)
-
-        def __init__(self, fields: Mapping[str, Any]) -> None:
-            setattr_ = __class__.__setattr__  # Subclass(es) redefine `__setattr__()`
-            for name in type(self)._FIELDS:
-                setattr_(self, name, fields[name])
-
-        def __delattr__(self, _):
-            raise AttributeError("Cannot delete field")
-
-        @classmethod
-        def get_render_cls(cls) -> Type[Renderable]:
-            """Returns the associated :term:`render class`.
-
-            Returns:
-                The associated render class, if the namespace class has been
-                associated.
-
-            Raises:
-                UnassociatedNamespaceError: The namespace class hasn't been associated
-                  with a render class.
-            """
-            if not cls._RENDER_CLS:
-                raise UnassociatedNamespaceError(
-                    "This namespace class hasn't been associated with a render class"
-                )
-
-            return cls._RENDER_CLS
 
 
 class RenderArgs(RenderArgsData):
@@ -334,14 +828,14 @@ class RenderArgs(RenderArgsData):
     def __new__(
         cls,
         render_cls: type[Renderable],
-        init_or_namespace: RenderArgs | RenderArgs.Namespace | None = None,
-        *namespaces: RenderArgs.Namespace,
+        init_or_namespace: RenderArgs | ArgsNamespace | None = None,
+        *namespaces: ArgsNamespace,
     ) -> RenderArgs:
         if init_or_namespace is None:
             init_render_args = None
         elif isinstance(init_or_namespace, cls):
             init_render_args = init_or_namespace
-        elif isinstance(init_or_namespace, __class__.Namespace):
+        elif isinstance(init_or_namespace, ArgsNamespace):
             init_render_args = None
             namespaces = (init_or_namespace, *namespaces)
         else:
@@ -383,8 +877,8 @@ class RenderArgs(RenderArgsData):
     def __init__(
         self,
         render_cls: type[Renderable],
-        init_or_namespace: RenderArgs | RenderArgs.Namespace | None = None,
-        *namespaces: RenderArgs.Namespace,
+        init_or_namespace: RenderArgs | ArgsNamespace | None = None,
+        *namespaces: ArgsNamespace,
     ) -> None:
         # `init_or_namespace` is validated in `__new__()`.
         # `render_cls` is validated in `__new__()`, if and only if `init_or_namespace`
@@ -429,7 +923,7 @@ class RenderArgs(RenderArgsData):
             namespaces_dict.update(init_render_args._namespaces)
 
         for index, namespace in enumerate(namespaces):
-            if not isinstance(namespace, __class__.Namespace):
+            if not isinstance(namespace, ArgsNamespace):
                 raise arg_type_error(f"namespaces[{index}]", namespace)
             if namespace._RENDER_CLS not in render_cls._ALL_DEFAULT_ARGS:
                 raise IncompatibleArgsNamespaceError(
@@ -467,7 +961,7 @@ class RenderArgs(RenderArgsData):
 
         return NotImplemented
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> RenderArgs.Namespace:
+    def __getitem__(self, render_cls: Type[Renderable]) -> ArgsNamespace:
         """Returns a constituent namespace.
 
         Args:
@@ -513,7 +1007,7 @@ class RenderArgs(RenderArgsData):
         # render classes, for all instances associated with the same render class.
         return hash((self.render_cls, tuple(self._namespaces.values())))
 
-    def __iter__(self) -> Iterator[RenderArgs.Namespace]:
+    def __iter__(self) -> Iterator[ArgsNamespace]:
         """Returns an iterator that yields the constituent namespaces.
 
         Returns:
@@ -585,8 +1079,8 @@ class RenderArgs(RenderArgsData):
 
     def update(
         self,
-        render_cls_or_namespace: Type[Renderable] | RenderArgs.Namespace,
-        *namespaces: RenderArgs.Namespace,
+        render_cls_or_namespace: Type[Renderable] | ArgsNamespace,
+        *namespaces: ArgsNamespace,
         **fields: Any,
     ) -> RenderArgs:
         """update(namespace, /, *namespaces) -> RenderArgs
@@ -632,7 +1126,7 @@ class RenderArgs(RenderArgsData):
                     "is a render class"
                 )
             render_cls = render_cls_or_namespace
-        elif isinstance(render_cls_or_namespace, __class__.Namespace):
+        elif isinstance(render_cls_or_namespace, ArgsNamespace):
             if fields:
                 raise TypeError(
                     "No keyword argument is expected when the first argument is "
@@ -650,323 +1144,6 @@ class RenderArgs(RenderArgsData):
             self,
             *((self[render_cls].update(**fields),) if render_cls else namespaces),
         )
-
-    # Inner Classes ============================================================
-
-    class _NamespaceMeta(RenderArgsData._NamespaceMeta):
-        """Metaclass of render argument namespaces."""
-
-        def __new__(cls, name, bases, namespace, **kwargs):
-            try:
-                defaults = {
-                    name: namespace[name]
-                    for name in namespace.get("__annotations__", ())
-                }
-            except KeyError as e:
-                raise RenderArgsError(
-                    f"Field {e.args[0]!r} has no default value"
-                ) from None
-
-            new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
-
-            if "_FIELDS" in new_cls.__dict__:
-                new_cls._FIELDS = MappingProxyType(defaults)
-
-            return new_cls
-
-    class Namespace(RenderArgsData.Namespace, metaclass=_NamespaceMeta):
-        """Namespace(*values, **fields)
-
-        :term:`Render class`\\ -specific render argument namespace.
-
-        Args:
-            values: Render argument field values.
-
-              The values are mapped to fields in the order in which the fields were
-              defined.
-
-            fields: Render argument fields.
-
-              The keywords must be names of render argument fields for the associated
-              [#ran1]_ render class.
-
-        Raises:
-            UnassociatedNamespaceError: The namespace class hasn't been associated
-              [#ran1]_ with a render class.
-            TypeError: More values (positional arguments) than there are fields.
-            UnknownArgsFieldError: Unknown field name(s).
-            TypeError: Multiple values given for a field.
-
-        If no value is given for a field, its default value is used.
-
-        NOTE:
-            * Fields are exposed as instance attributes.
-            * Instances are immutable but updated copies can be created via
-              :py:meth:`update`.
-
-        .. Completed in /docs/source/api/renderable.rst
-        """
-
-        def __init__(self, *values: Any, **fields: Any) -> None:
-            default_fields = type(self)._FIELDS
-
-            if len(values) > len(default_fields):
-                raise TypeError(
-                    f"{type(self)._RENDER_CLS.__name__!r} defines "
-                    f"{len(default_fields)} render argument field(s) but "
-                    f"{len(values)} values were given"
-                )
-            value_fields = dict(zip(default_fields, values))
-
-            unknown = fields.keys() - default_fields.keys()
-            if unknown:
-                raise UnknownArgsFieldError(
-                    f"Unknown render argument fields {tuple(unknown)} for "
-                    f"{type(self)._RENDER_CLS.__name__!r}"
-                )
-            multiple = fields.keys() & value_fields.keys()
-            if multiple:
-                raise TypeError(
-                    f"Got multiple values for render argument fields "
-                    f"{tuple(multiple)} of {type(self)._RENDER_CLS.__name__!r}"
-                )
-
-            super().__init__({**default_fields, **value_fields, **fields})
-
-        def __repr__(self) -> str:
-            return "".join(
-                (
-                    f"{type(self)._RENDER_CLS.__name__}.Args(",
-                    ", ".join(
-                        f"{name}={getattr(self, name)!r}" for name in type(self)._FIELDS
-                    ),
-                    ")",
-                )
-            )
-
-        def __getattr__(self, attr):
-            raise UnknownArgsFieldError(
-                f"Unknown render argument field {attr!r} for "
-                f"{type(self)._RENDER_CLS.__name__!r}"
-            )
-
-        def __setattr__(self, *_):
-            raise AttributeError(
-                "Cannot modify render argument fields, use the `update()` method "
-                "of the namespace or the containing `RenderArgs` instance, as "
-                "applicable, instead"
-            )
-
-        def __eq__(self, other: RenderArgs.Namespace) -> bool:
-            """Compares the namespace with another.
-
-            Args:
-                other: Another render argument namespace.
-
-            Returns:
-                ``True`` if both operands are associated with the same
-                :term:`render class` and have equal field values.
-                Otherwise, ``False``.
-            """
-            if type(other) is type(self):
-                return self is other or all(
-                    getattr(self, name) == getattr(other, name)
-                    for name in type(self)._FIELDS
-                )
-
-            return NotImplemented
-
-        def __hash__(self) -> int:
-            """Computes the hash of the namespace.
-
-            Returns:
-                The computed hash.
-
-            IMPORTANT:
-                Like tuples, an instance is hashable if and only if the field values
-                are hashable.
-            """
-            # Field names and their order is the same for all instances associated
-            # with the same render class.
-            return hash(
-                (
-                    type(self)._RENDER_CLS,
-                    tuple([getattr(self, field) for field in type(self)._FIELDS]),
-                )
-            )
-
-        def __or__(self, other: RenderArgs.Namespace | RenderArgs) -> RenderArgs:
-            """Derives a set of render arguments from the combination of both operands.
-
-            Args:
-                other: Another render argument namespace or a set of render arguments.
-
-            Returns:
-                A set of render arguments associated with the **most derived** one
-                of the associated :term:`render classes` of both operands.
-
-            Raises:
-                IncompatibleArgsNamespaceError: *other* is a render argument namespace
-                  and neither operand is compatible [#ra1]_ [#ran2]_ with the
-                  associated :term:`render class` of the other.
-                IncompatibleRenderArgsError: *other* is a set of render arguments
-                  and neither operand is compatible [#ra1]_ [#ran2]_ with the
-                  associated :term:`render class` of the other.
-
-            NOTE:
-                * If *other* is a render argument namespace associated with the
-                  same :term:`render class` as *self*, *other* takes precedence.
-                * If *other* is a set of render arguments that contains a namespace
-                  associated with the same :term:`render class` as *self*, *self* takes
-                  precedence.
-            """
-            self_render_cls = type(self)._RENDER_CLS
-
-            if isinstance(other, __class__):
-                other_render_cls = type(other)._RENDER_CLS
-                if self_render_cls is other_render_cls:
-                    return RenderArgs(other_render_cls, other)
-                if issubclass(self_render_cls, other_render_cls):
-                    return RenderArgs(self_render_cls, self, other)
-                if issubclass(other_render_cls, self_render_cls):
-                    return RenderArgs(other_render_cls, self, other)
-                raise IncompatibleArgsNamespaceError(
-                    f"A render argument namespace for {other_render_cls.__name__!r} "
-                    "cannot be combined with a render argument namespace for "
-                    f"{self_render_cls.__name__!r}."
-                )
-
-            if isinstance(other, RenderArgs):
-                other_render_cls = other.render_cls
-                if issubclass(self_render_cls, other_render_cls):
-                    return RenderArgs(self_render_cls, other, self)
-                if issubclass(other_render_cls, self_render_cls):
-                    return RenderArgs(other_render_cls, other, self)
-                raise IncompatibleRenderArgsError(
-                    f"A set of render arguments for {other_render_cls.__name__!r} "
-                    "cannot be combined with a render argument namespace for "
-                    f"{self_render_cls.__name__!r}."
-                )
-
-            return NotImplemented
-
-        def __pos__(self) -> RenderArgs:
-            """Creates a set of render arguments from the namespace.
-
-            Returns:
-                A set of render arguments associated with the same :term:`render class`
-                as the namespace and initialized with the namespace.
-
-            TIP:
-                ``+namespace`` is shorthand for
-                :py:meth:`namespace.to_render_args() <to_render_args>`.
-            """
-            return RenderArgs(type(self)._RENDER_CLS, self)
-
-        def __ror__(self, other: RenderArgs.Namespace | RenderArgs) -> RenderArgs:
-            """Same as :py:meth:`__or__` but with reflected operands.
-
-            NOTE:
-                Unlike :py:meth:`__or__`, if *other* is a render argument namespace
-                associated with the same :term:`render class` as *self*, *self* takes
-                precedence.
-            """
-            # Not commutative
-            if isinstance(other, __class__) and (
-                type(self)._RENDER_CLS is type(other)._RENDER_CLS
-            ):
-                return RenderArgs(type(self)._RENDER_CLS, self)
-
-            return self.__or__(other)  # All other cases are commutative
-
-        def as_dict(self) -> dict[str, Any]:
-            """Copies the namespace as a dictionary.
-
-            Returns:
-                A dictionary mapping field names to their values.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return {name: getattr(self, name) for name in type(self)._FIELDS}
-
-        @classmethod
-        def get_fields(cls) -> Mapping[str, Any]:
-            """Returns the field definitions.
-
-            Returns:
-                A mapping of field names to their default values.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return cls._FIELDS
-
-        def to_render_args(
-            self, render_cls: type[Renderable] | None = None
-        ) -> RenderArgs:
-            """Creates a set of render arguments from the namespace.
-
-            Args:
-                render_cls: A :term:`render class`, with which the namespace is
-                  compatible [#ran2]_.
-
-            Returns:
-                A set of render arguments associated with *render_cls* (or the
-                associated [#ran1]_ render class of the namespace, if ``None``) and
-                initialized with the namespace.
-
-            Propagates exceptions raised by the
-            :py:class:`~term_image.renderable.RenderArgs` constructor, as applicable.
-
-            .. seealso:: :py:meth:`__pos__`.
-            """
-            return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
-
-        def update(self, **fields: Any) -> RenderArgs.Namespace:
-            """Updates render argument fields.
-
-            Args:
-                fields: Render argument fields.
-
-            Returns:
-                A namespace with the given fields updated.
-
-            Raises:
-                UnknownArgsFieldError: Unknown field name(s).
-            """
-            if not fields:
-                return self
-
-            unknown = fields.keys() - type(self)._FIELDS.keys()
-            if unknown:
-                raise UnknownArgsFieldError(
-                    f"Unknown render argument field(s) {tuple(unknown)} for "
-                    f"{type(self)._RENDER_CLS.__name__!r}"
-                )
-
-            new = type(self).__new__(type(self))
-            new_fields = self.as_dict()
-            new_fields.update(fields)
-            super(__class__, new).__init__(new_fields)
-
-            return new
 
 
 class RenderData(RenderArgsData):
@@ -1020,7 +1197,7 @@ class RenderData(RenderArgsData):
         except AttributeError:  # Unsuccessful initialization
             pass
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> RenderData.Namespace:
+    def __getitem__(self, render_cls: Type[Renderable]) -> DataNamespace:
         """Returns a constituent namespace.
 
         Args:
@@ -1052,7 +1229,7 @@ class RenderData(RenderArgsData):
                 f"{render_cls.__name__!r}"
             ) from None
 
-    def __iter__(self) -> Iterator[RenderData.Namespace]:
+    def __iter__(self) -> Iterator[DataNamespace]:
         """Returns an iterator that yields the constituent namespaces.
 
         Returns:
@@ -1096,148 +1273,8 @@ class RenderData(RenderArgsData):
             finally:
                 self.finalized = True
 
-    # Inner Classes ============================================================
-
-    class Namespace(RenderArgsData.Namespace):
-        """Namespace()
-
-        :term:`Render class`\\ -specific render data namespace.
-
-        Raises:
-            UnassociatedNamespaceError: The namespace class hasn't been associated
-              [#rdn1]_ with a render class.
-
-        Subclassing, defining (and inheriting) fields and associating with a render
-        class are just as they are for :ref:`args-namespace`, except that values
-        assigned to the class attributes are not used.
-
-        Every field is **uninitialized** immediately after instantiation of a
-        namespace. The fields are expected to be initialized within the
-        :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
-        render class associated [#rdn1]_ with the namespace or at some other point
-        during a render operation, if necessary.
-
-        NOTE:
-            * Fields are exposed as instance attributes.
-            * Instances are mutable and fields can be updated **in-place**, either
-              individually by assignment to an attribute reference or in batch via
-              :py:meth:`update`.
-            * An instance shouldn't be copied by any means because finalizing its
-              containing :py:class:`RenderData` instance may invalidate all copies of
-              the namespace.
-
-        .. Completed in /docs/source/api/renderable.rst
-        """
-
-        def __init__(self) -> None:
-            pass
-
-        def __repr__(self) -> str:
-            fields_repr = {}
-            for name in type(self)._FIELDS:
-                try:
-                    fields_repr[name] = repr(getattr(self, name))
-                except UninitializedDataFieldError:
-                    fields_repr[name] = "<uninitialized>"
-
-            return "".join(
-                (
-                    f"<{type(self)._RENDER_CLS.__name__}._Data_: ",
-                    ", ".join(
-                        f"{name}={value_repr}"
-                        for name, value_repr in fields_repr.items()
-                    ),
-                    ">",
-                )
-            )
-
-        def __getattr__(self, attr):
-            if attr in type(self)._FIELDS:
-                raise UninitializedDataFieldError(
-                    f"The render data field {attr!r} of "
-                    f"{type(self)._RENDER_CLS.__name__!r} has not been initialized"
-                )
-
-            raise UnknownDataFieldError(
-                f"Unknown render data field {attr!r} for "
-                f"{type(self)._RENDER_CLS.__name__!r}"
-            )
-
-        def __setattr__(self, attr, value):
-            try:
-                super().__setattr__(attr, value)
-            except AttributeError:
-                raise UnknownDataFieldError(
-                    f"Unknown render data field {attr!r} for "
-                    f"{type(self)._RENDER_CLS.__name__!r}"
-                ) from None
-
-        def as_dict(self) -> dict[str, Any]:
-            """Copies the namespace as a dictionary.
-
-            Returns:
-                A dictionary mapping field names to their current values.
-
-            Raises:
-              UninitializedDataFieldError: A field has not been initialized.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return {name: getattr(self, name) for name in type(self)._FIELDS}
-
-        @classmethod
-        def get_fields(cls) -> tuple[str]:
-            """Returns the field names.
-
-            Returns:
-                A tuple of field names.
-
-            WARNING:
-                The number and order of fields is guaranteed to be the same for a
-                subclass that defines fields, its subclasses (that inherit its fields)
-                and all their instances but beyond this, should not be relied upon as
-                the details (such as the specific number or order) may change without
-                notice.
-
-                The order is an implementation detail of the Render Arguments/Data API
-                and the number should be considered an implementation detail of the
-                specific namespace subclass.
-            """
-            return tuple(cls._FIELDS)
-
-        def update(self, **fields: Any) -> None:
-            """Updates render data fields.
-
-            Args:
-                fields: Render data fields.
-
-            Raises:
-                UnknownDataFieldError: Unknown field name(s).
-            """
-            if fields:
-                unknown = fields.keys() - type(self)._FIELDS.keys()
-                if unknown:
-                    raise UnknownDataFieldError(
-                        f"Unknown render data field(s) {tuple(unknown)} for "
-                        f"{type(self)._RENDER_CLS.__name__!r}"
-                    )
-
-                setattr_ = super().__setattr__
-                for field in fields.items():
-                    setattr_(*field)
-
 
 # Variables ====================================================================
-
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)
 
