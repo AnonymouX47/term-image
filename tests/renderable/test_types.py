@@ -4,6 +4,8 @@ import pytest
 
 from term_image.geometry import Size
 from term_image.renderable import (
+    ArgsNamespace,
+    DataNamespace,
     Frame,
     IncompatibleArgsNamespaceError,
     IncompatibleRenderArgsError,
@@ -14,12 +16,13 @@ from term_image.renderable import (
     RenderArgsDataError,
     RenderArgsError,
     RenderData,
+    RenderDataError,
     UnassociatedNamespaceError,
     UninitializedDataFieldError,
     UnknownArgsFieldError,
     UnknownDataFieldError,
 )
-from term_image.renderable._types import RenderArgsData
+from term_image.renderable._types import ArgsDataNamespace
 
 # Renderables ==================================================================
 
@@ -30,19 +33,21 @@ class Foo(Renderable):
         render_data[__class__].bar = render_data[__class__].foo
         super()._finalize_render_data_(render_data)
 
-    class Args(RenderArgs.Namespace):
-        foo: Any = "FOO"
-        bar: Any = "BAR"
 
-    class _Data_(RenderData.Namespace):
-        foo: Any
-        bar: Any
+class FooArgs(ArgsNamespace, render_cls=Foo):
+    foo: Any = "FOO"
+    bar: Any = "BAR"
+
+
+class FooData(DataNamespace, render_cls=Foo):
+    foo: Any
+    bar: Any
 
 
 # Utils ========================================================================
 
 
-class NamespaceBase(RenderArgsData.Namespace, _base=True):
+class NamespaceBase(ArgsDataNamespace, _base=True):
     def __init__(self, fields=None):
         super().__init__(fields or {})
 
@@ -111,10 +116,10 @@ class TestNamespaceMeta:
             pass
 
         class A(NamespaceBase):
-            a: None
+            pass
 
         class B(NamespaceBase):
-            b: None
+            pass
 
         with pytest.raises(RenderArgsDataError, match="Multiple base classes"):
 
@@ -131,15 +136,6 @@ class TestNamespaceMeta:
             class C(A, B):  # noqa: F811
                 pass
 
-    def test_unassociated_namespace_base(self):
-        class A(NamespaceBase):
-            a: None
-
-        with pytest.raises(RenderArgsDataError, match="Unassociated .*base"):
-
-            class B(A):
-                pass
-
     class TestFields:
         def test_no_fields(self):
             class Namespace(NamespaceBase):
@@ -150,7 +146,7 @@ class TestNamespaceMeta:
             assert Namespace._FIELDS == {}
 
         def test_define(self):
-            class Namespace(NamespaceBase):
+            class Namespace(NamespaceBase, render_cls=Renderable):
                 foo: None
                 bar: None
 
@@ -158,8 +154,7 @@ class TestNamespaceMeta:
             assert Namespace._FIELDS == {"foo": None, "bar": None}
 
         def test_inherit(self):
-            class A(NamespaceBase):
-                _RENDER_CLS = Renderable
+            class A(NamespaceBase, render_cls=Renderable):
                 a: None
                 b: None
 
@@ -170,8 +165,7 @@ class TestNamespaceMeta:
             assert B._FIELDS == {"a": None, "b": None}
 
         def test_inherit_and_define(self):
-            class A(NamespaceBase):
-                _RENDER_CLS = Renderable
+            class A(NamespaceBase, render_cls=Renderable):
                 a: None
                 b: None
 
@@ -181,35 +175,132 @@ class TestNamespaceMeta:
                     c: None
                     d: None
 
-    class TestRequiredConstructorParameters:
-        def test_new(self):
-            with pytest.raises(TypeError, match="__new__.* required parameter"):
+    class TestUnassociated:
+        def test_without_fields(self):
+            class Namespace(NamespaceBase):
+                pass
 
-                class Namespace(NamespaceBase):  # noqa: F811
-                    foo: None
+            assert Namespace._RENDER_CLS is None
 
-                    def __new__(self, foo):
-                        pass
+            class Namespace(NamespaceBase, render_cls=None):
+                pass
 
-        def test_init(self):
-            with pytest.raises(TypeError, match="__init__.* required parameter"):
+            assert Namespace._RENDER_CLS is None
+
+        def test_with_fields(self):
+            with pytest.raises(RenderArgsDataError, match="Unassociated.* with fields"):
 
                 class Namespace(NamespaceBase):
                     foo: None
 
+            with pytest.raises(RenderArgsDataError, match="Unassociated.* with fields"):
+
+                class Namespace(NamespaceBase, render_cls=None):  # noqa: F811
+                    foo: None
+
+    class TestAssociation:
+        class Foo(Renderable):
+            pass
+
+        class Bar(Renderable):
+            pass
+
+        def test_subclass_reassociation(self):
+            class Namespace(NamespaceBase, render_cls=self.Foo):
+                foo: None
+
+            with pytest.raises(
+                RenderArgsDataError,
+                match="Cannot reassociate.*; the base class.* 'Foo'",
+            ):
+
+                class SubNamespace(Namespace, render_cls=self.Bar):
+                    pass
+
+        def test_no_fields(self):
+            with pytest.raises(
+                RenderArgsDataError, match="Cannot associate.* no fields"
+            ):
+
+                class Namespace(NamespaceBase, render_cls=Renderable):
+                    pass
+
+        @pytest.mark.parametrize("render_cls", [2, NamespaceBase])
+        def test_invalid_render_cls(self, render_cls):
+            with pytest.raises(TypeError, match="'render_cls'"):
+
+                class Namespace(NamespaceBase, render_cls=render_cls):
+                    foo: None
+
+        @pytest.mark.parametrize("render_cls", [Foo, Bar])
+        def test_associated(self, render_cls):
+            class Namespace(NamespaceBase, render_cls=render_cls):
+                foo: None
+
+            assert Namespace._RENDER_CLS is render_cls
+
+    class TestRequiredConstructorParameters:
+        class TestWithoutFields:
+            def test_new(self):
+                class Namespace(NamespaceBase):
+                    pass
+
+                    def __new__(self, foo):
+                        pass
+
+            def test_init(self):
+                class Namespace(NamespaceBase):
+                    pass
+
                     def __init__(self, foo):
                         pass
 
+        class TestWithFields:
+            def test_new(self):
+                with pytest.raises(TypeError, match="__new__.* required parameter"):
+
+                    class Namespace(NamespaceBase, render_cls=Renderable):
+                        foo: None
+
+                        def __new__(self, foo):
+                            pass
+
+            def test_init(self):
+                with pytest.raises(TypeError, match="__init__.* required parameter"):
+
+                    class Namespace(NamespaceBase, render_cls=Renderable):
+                        foo: None
+
+                        def __init__(self, foo):
+                            pass
+
+        class TestSubclassWithFields:
+            class Namespace(NamespaceBase, render_cls=Renderable):
+                foo: None
+
+            def test_new(self):
+                with pytest.raises(TypeError, match="__new__.* required parameter"):
+
+                    class SubNamespace(self.Namespace):
+                        def __new__(self, foo):
+                            pass
+
+            def test_init(self):
+                with pytest.raises(TypeError, match="__init__.* required parameter"):
+
+                    class SubNamespace(self.Namespace):
+                        def __init__(self, foo):
+                            pass
+
 
 class TestNamespace:
-    class Namespace(NamespaceBase):
-        _RENDER_CLS = Renderable
+    class Namespace(NamespaceBase, render_cls=Renderable):
         foo: int
         bar: int
 
     def test_cannot_instantiate_unassociated(self):
         class Namespace(NamespaceBase):
-            foo: None
+            pass
 
         with pytest.raises(UnassociatedNamespaceError):
             Namespace()
@@ -222,22 +313,24 @@ class TestNamespace:
             del namespace.bar
 
     class TestGetRenderCls:
-        def test_association(self):
+        def test_unassociated(self):
             class Namespace(NamespaceBase):
-                foo: None
+                pass
 
             with pytest.raises(UnassociatedNamespaceError):
                 Namespace.get_render_cls()
 
-            Namespace._RENDER_CLS = Renderable
+        def test_associated(self):
+            class Namespace(NamespaceBase, render_cls=Renderable):
+                foo: None
+
             assert Namespace.get_render_cls() is Renderable
 
             namespace = Namespace(dict(foo=None))
             assert namespace.get_render_cls() is Renderable
 
         def test_inheritance(self):
-            class A(NamespaceBase):
-                _RENDER_CLS = Renderable
+            class A(NamespaceBase, render_cls=Renderable):
                 a: None
 
             class B(A):
@@ -278,16 +371,22 @@ class TestRenderArgs:
     class TestNamespaces:
         class TestCompatibility:
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    foo: None = None
+                pass
+
+            class AArgs(ArgsNamespace, render_cls=A):
+                foo: None = None
 
             class B(A):
-                class Args(RenderArgs.Namespace):
-                    foo: None = None
+                pass
+
+            class BArgs(ArgsNamespace, render_cls=B):
+                foo: None = None
 
             class C(A):
-                class Args(RenderArgs.Namespace):
-                    foo: None = None
+                pass
+
+            class CArgs(ArgsNamespace, render_cls=C):
+                foo: None = None
 
             @pytest.mark.parametrize(
                 "cls1, cls2", [(A, A), (B, A), (B, B), (C, A), (C, C)]
@@ -377,12 +476,16 @@ class TestRenderArgs:
 
     def test_eq(self):
         class Bar(Renderable):
-            class Args(RenderArgs.Namespace):
-                bar: str = "BAR"
+            pass
+
+        class BarArgs(ArgsNamespace, render_cls=Bar):
+            bar: str = "BAR"
 
         class Baz(Bar):
-            class Args(RenderArgs.Namespace):
-                baz: str = "BAZ"
+            pass
+
+        class BazArgs(ArgsNamespace, render_cls=Baz):
+            baz: str = "BAZ"
 
         bar_args = RenderArgs(Bar)
         assert bar_args == RenderArgs(Bar)
@@ -465,16 +568,22 @@ class TestRenderArgs:
 
     def test_iter(self):
         class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                foo: None = None
+            pass
+
+        class AArgs(ArgsNamespace, render_cls=A):
+            foo: None = None
 
         class B(A):
-            class Args(RenderArgs.Namespace):
-                foo: None = None
+            pass
+
+        class BArgs(ArgsNamespace, render_cls=B):
+            foo: None = None
 
         class C(B):
-            class Args(RenderArgs.Namespace):
-                foo: None = None
+            pass
+
+        class CArgs(ArgsNamespace, render_cls=C):
+            foo: None = None
 
         assert {*RenderArgs(A)} == {A.Args()}
         assert {*RenderArgs(B)} == {A.Args(), B.Args()}
@@ -482,20 +591,28 @@ class TestRenderArgs:
 
     class TestConvert:
         class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                a: str = "a"
+            pass
+
+        class AArgs(ArgsNamespace, render_cls=A):
+            a: str = "a"
 
         class B(Renderable):
-            class Args(RenderArgs.Namespace):
-                b: str = "b"
+            pass
+
+        class BArgs(ArgsNamespace, render_cls=B):
+            b: str = "b"
 
         class C(A, B):
-            class Args(RenderArgs.Namespace):
-                c: str = "c"
+            pass
+
+        class CArgs(ArgsNamespace, render_cls=C):
+            c: str = "c"
 
         class D(C):
-            class Args(RenderArgs.Namespace):
-                d: str = "d"
+            pass
+
+        class DArgs(ArgsNamespace, render_cls=D):
+            d: str = "d"
 
         args = (A.Args("1"), B.Args("2"), C.Args("3"), D.Args("4"))
 
@@ -605,16 +722,22 @@ class TestRenderArgs:
 
     def test_namespace_source_precedence(self):
         class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                a: int = 1
+            pass
+
+        class AArgs(ArgsNamespace, render_cls=A):
+            a: int = 1
 
         class B(A):
-            class Args(RenderArgs.Namespace):
-                b: int = 2
+            pass
+
+        class BArgs(ArgsNamespace, render_cls=B):
+            b: int = 2
 
         class C(B):
-            class Args(RenderArgs.Namespace):
-                c: int = 3
+            pass
+
+        class CArgs(ArgsNamespace, render_cls=C):
+            c: int = 3
 
         init_render_args = RenderArgs(B, A.Args(10), B.Args(20))
         namespace = A.Args(100)
@@ -674,16 +797,22 @@ class TestRenderArgs:
         # Actually interned by `RenderableMeta`; testing that they're being used
         def test_default_namespaces_interned(self):
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    a: None = None
+                pass
+
+            class AArgs(ArgsNamespace, render_cls=A):
+                a: None = None
 
             class B(A):
-                class Args(RenderArgs.Namespace):
-                    b: None = None
+                pass
+
+            class BArgs(ArgsNamespace, render_cls=B):
+                b: None = None
 
             class C(B):
-                class Args(RenderArgs.Namespace):
-                    c: None = None
+                pass
+
+            class CArgs(ArgsNamespace, render_cls=C):
+                c: None = None
 
             assert RenderArgs(A)[A] is RenderArgs(B)[A]
             assert RenderArgs(A)[A] is RenderArgs(C)[A]
@@ -693,7 +822,7 @@ class TestRenderArgs:
 class TestArgsNamespaceMeta:
     class TestFields:
         def test_no_fields(self):
-            class Namespace(RenderArgs.Namespace):
+            class Namespace(ArgsNamespace):
                 pass
 
             assert "_FIELDS" not in Namespace.__dict__
@@ -702,33 +831,86 @@ class TestArgsNamespaceMeta:
         def test_no_default(self):
             with pytest.raises(RenderArgsError, match="'bar' .* no default"):
 
-                class Namespace(RenderArgs.Namespace):
+                class Namespace(ArgsNamespace):
                     foo: None = None
                     bar: None
                     baz: None = None
 
         def test_defaults(self):
-            class Namespace(RenderArgs.Namespace):
+            class Namespace(ArgsNamespace, render_cls=Renderable):
                 foo: str = "FOO"
                 bar: str = "BAR"
 
             assert Namespace._FIELDS == dict(foo="FOO", bar="BAR")
 
+    class TestAssociation:
+        class A(Renderable):
+            pass
+
+        class AArgs(ArgsNamespace, render_cls=A):
+            foo: None = None
+
+        class B(Renderable):
+            pass
+
+        class BArgs(ArgsNamespace, render_cls=B):
+            foo: None = None
+
+        class C(A, B):
+            pass
+
+        class CArgs(ArgsNamespace, render_cls=C):
+            foo: None = None
+
+        def test_render_cls_already_has_a_namespace(self):
+            class Foo(Renderable):
+                pass
+
+            class Args1(ArgsNamespace, render_cls=Foo):
+                foo: None = None
+
+            with pytest.raises(
+                RenderArgsError, match="'Foo' already has.* argument.* 'Args1'"
+            ):
+
+                class Args2(ArgsNamespace, render_cls=Foo):
+                    foo: None = None
+
+        @pytest.mark.parametrize("bases", [(Renderable,), (A,), (B,), (A, B), (C,)])
+        def test_render_cls_update(self, bases):
+            class Foo(*bases):
+                pass
+
+            all_default_args = Foo._ALL_DEFAULT_ARGS.copy()
+            assert Foo.Args is None
+            assert Foo not in all_default_args
+
+            class Args(ArgsNamespace, render_cls=Foo):
+                foo: None = None
+
+            assert Foo.Args is Args
+            assert Foo._ALL_DEFAULT_ARGS == {Foo: Args(), **all_default_args}  # Value
+            assert (*Foo._ALL_DEFAULT_ARGS,) == (Foo, *all_default_args)  # Order
+
 
 class TestArgsNamespace:
     class Bar(Renderable):
-        class Args(RenderArgs.Namespace):
-            foo: str = "FOO"
-            bar: str = "BAR"
+        pass
+
+    class BarArgs(ArgsNamespace, render_cls=Bar):
+        foo: str = "FOO"
+        bar: str = "BAR"
 
     Namespace = Bar.Args
 
     class TestConstructor:
         class Bar(Renderable):
-            class Args(RenderArgs.Namespace):
-                foo: str = "FOO"
-                bar: str = "BAR"
-                baz: str = "BAZ"
+            pass
+
+        class BarArgs(ArgsNamespace, render_cls=Bar):
+            foo: str = "FOO"
+            bar: str = "BAR"
+            baz: str = "BAZ"
 
         Namespace = Bar.Args
 
@@ -845,16 +1027,22 @@ class TestArgsNamespace:
 
     class TestOr:
         class A(Renderable):
-            class Args(RenderArgs.Namespace):
-                a: int = 0
+            pass
+
+        class AArgs(ArgsNamespace, render_cls=A):
+            a: int = 0
 
         class B(A):
-            class Args(RenderArgs.Namespace):
-                b: int = 0
+            pass
+
+        class BArgs(ArgsNamespace, render_cls=B):
+            b: int = 0
 
         class C(A):
-            class Args(RenderArgs.Namespace):
-                c: int = 0
+            pass
+
+        class CArgs(ArgsNamespace, render_cls=C):
+            c: int = 0
 
         def test_invalid_type(self):
             A = TestArgsNamespace.TestOr.A
@@ -951,8 +1139,10 @@ class TestArgsNamespace:
 
         def test_invalid_type(self):
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    a: int = 0
+                pass
+
+            class AArgs(ArgsNamespace, render_cls=A):
+                a: int = 0
 
             a = A.Args()
             with pytest.raises(TypeError):
@@ -961,8 +1151,10 @@ class TestArgsNamespace:
         class TestNamespace:
             def test_same_render_cls(self):
                 class A(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        a: int = 0
+                    pass
+
+                class AArgs(ArgsNamespace, render_cls=A):
+                    a: int = 0
 
                 class SubArgs(A.Args):
                     def __ror__(self, other):  # See docstring of `TestRor`
@@ -974,15 +1166,19 @@ class TestArgsNamespace:
             # Render class of *other* is a child of that of *self*
             def test_compatible_child_render_cls(self):
                 class A(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        a: int = 0
+                    pass
+
+                class AArgs(ArgsNamespace, render_cls=A):
+                    a: int = 0
 
                 class B(A):
-                    class Args(RenderArgs.Namespace):
-                        b: int = 0
+                    pass
 
-                        def __or__(self, other):  # See docstring of `TestRor`
-                            return NotImplemented
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: int = 0
+
+                    def __or__(self, other):  # See docstring of `TestRor`
+                        return NotImplemented
 
                 a, b = A.Args(1), B.Args(2)
                 assert b | a == RenderArgs(B, a, b)
@@ -990,30 +1186,38 @@ class TestArgsNamespace:
             # Render class of *other* is a parent of that of *self*
             def test_compatible_parent_render_cls(self):
                 class A(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        a: int = 0
+                    pass
 
-                        def __or__(self, other):  # See docstring of `TestRor`
-                            return NotImplemented
+                class AArgs(ArgsNamespace, render_cls=A):
+                    a: int = 0
+
+                    def __or__(self, other):  # See docstring of `TestRor`
+                        return NotImplemented
 
                 class B(A):
-                    class Args(RenderArgs.Namespace):
-                        b: int = 0
+                    pass
+
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: int = 0
 
                 a, b = A.Args(1), B.Args(2)
                 assert a | b == RenderArgs(B, a, b)
 
             def test_incompatible_render_cls(self):
                 class B(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        b: int = 0
+                    pass
 
-                        def __or__(self, other):  # See docstring of `TestRor`
-                            return NotImplemented
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: int = 0
+
+                    def __or__(self, other):  # See docstring of `TestRor`
+                        return NotImplemented
 
                 class C(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        c: int = 0
+                    pass
+
+                class CArgs(ArgsNamespace, render_cls=C):
+                    c: int = 0
 
                 b, c = B.Args(2), C.Args(3)
                 with pytest.raises(IncompatibleArgsNamespaceError):
@@ -1021,16 +1225,22 @@ class TestArgsNamespace:
 
         class TestRenderArgs:
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    a: int = 0
+                pass
+
+            class AArgs(ArgsNamespace, render_cls=A):
+                a: int = 0
 
             class B(A):
-                class Args(RenderArgs.Namespace):
-                    b: int = 0
+                pass
+
+            class BArgs(ArgsNamespace, render_cls=B):
+                b: int = 0
 
             class C(A):
-                class Args(RenderArgs.Namespace):
-                    c: int = 0
+                pass
+
+            class CArgs(ArgsNamespace, render_cls=C):
+                c: int = 0
 
             # Render class of *other* is a child of that of *self*
             def test_compatible_child_render_cls(self):
@@ -1067,7 +1277,7 @@ class TestArgsNamespace:
 
     class TestGetFields:
         def test_no_fields(self):
-            class Namespace(RenderArgs.Namespace):
+            class Namespace(ArgsNamespace):
                 pass
 
             assert Namespace.get_fields() == {}
@@ -1080,12 +1290,16 @@ class TestArgsNamespace:
 
     class TestToRenderArgs:
         class Bar(Foo):
-            class Args(RenderArgs.Namespace):
-                bar: str = "BAR"
+            pass
+
+        class BarArgs(ArgsNamespace, render_cls=Bar):
+            bar: str = "BAR"
 
         class Baz(Bar):
-            class Args(RenderArgs.Namespace):
-                baz: str = "BAZ"
+            pass
+
+        class BazArgs(ArgsNamespace, render_cls=Baz):
+            baz: str = "BAZ"
 
         args_default = Bar.Args()
         args = Bar.Args("bar")
@@ -1174,16 +1388,22 @@ class TestRenderData:
     # really see any reasonable/neat way around that for now
     def test_iter(self):
         class A(Renderable):
-            class _Data_(RenderData.Namespace):
-                foo: None = None
+            pass
+
+        class AData(DataNamespace, render_cls=A):
+            foo: None = None
 
         class B(A):
-            class _Data_(RenderData.Namespace):
-                foo: None = None
+            pass
+
+        class BData(DataNamespace, render_cls=B):
+            foo: None = None
 
         class C(B):
-            class _Data_(RenderData.Namespace):
-                foo: None = None
+            pass
+
+        class CData(DataNamespace, render_cls=C):
+            foo: None = None
 
         a_data, base_data = tuple(RenderData(A))
         assert isinstance(a_data, A._Data_)
@@ -1221,19 +1441,74 @@ class TestRenderData:
         assert render_data[Foo].bar == "FOO"
 
 
+class TestDataNamespaceMeta:
+    class TestAssociation:
+        class A(Renderable):
+            pass
+
+        class AData(DataNamespace, render_cls=A):
+            foo: None = None
+
+        class B(Renderable):
+            pass
+
+        class BData(DataNamespace, render_cls=B):
+            foo: None = None
+
+        class C(A, B):
+            pass
+
+        class CData(DataNamespace, render_cls=C):
+            foo: None = None
+
+        def test_render_cls_already_has_a_namespace(self):
+            class Foo(Renderable):
+                pass
+
+            class Data1(DataNamespace, render_cls=Foo):
+                foo: None = None
+
+            with pytest.raises(
+                RenderDataError, match="'Foo' already has.* data.* 'Data1'"
+            ):
+
+                class Data2(DataNamespace, render_cls=Foo):
+                    foo: None = None
+
+        @pytest.mark.parametrize("bases", [(Renderable,), (A,), (B,), (A, B), (C,)])
+        def test_render_cls_update(self, bases):
+            class Foo(*bases):
+                pass
+
+            render_data_mro = Foo._RENDER_DATA_MRO.copy()
+            assert Foo._Data_ is None
+            assert Foo not in render_data_mro
+
+            class Data(DataNamespace, render_cls=Foo):
+                foo: None = None
+
+            assert Foo._Data_ is Data
+            assert Foo._RENDER_DATA_MRO == {Foo: Data, **render_data_mro}  # Value
+            assert (*Foo._RENDER_DATA_MRO,) == (Foo, *render_data_mro)  # Order
+
+
 class TestDataNamespace:
     class Bar(Renderable):
-        class _Data_(RenderData.Namespace):
-            foo: str
-            bar: str
+        pass
+
+    class BarData(DataNamespace, render_cls=Bar):
+        foo: str
+        bar: str
 
     Namespace = Bar._Data_
 
     class TestGetattrAndSetattr:
         class Bar(Renderable):
-            class _Data_(RenderData.Namespace):
-                foo: str
-                bar: str
+            pass
+
+        class BarData(DataNamespace, render_cls=Bar):
+            foo: str
+            bar: str
 
         Namespace = Bar._Data_
 
@@ -1287,7 +1562,7 @@ class TestDataNamespace:
 
     class TestGetFields:
         def test_no_fields(self):
-            class Namespace(RenderData.Namespace):
+            class Namespace(DataNamespace):
                 pass
 
             assert Namespace.get_fields() == ()
@@ -1300,9 +1575,11 @@ class TestDataNamespace:
 
     class TestUpdate:
         class Bar(Renderable):
-            class _Data_(RenderData.Namespace):
-                foo: str
-                bar: str
+            pass
+
+        class BarData(DataNamespace, render_cls=Bar):
+            foo: str
+            bar: str
 
         Namespace = Bar._Data_
 
