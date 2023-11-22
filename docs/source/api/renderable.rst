@@ -239,10 +239,10 @@ ArgsNamespace
 
    .. attention::
 
-      Due to the design of the API, if a render class is intended to have a namespace
-      class asssociated, the namespace class should be associated with it before it
-      is subclassed or any :py:class:`~term_image.renderable.RenderArgs` instance
-      associated with it is created.
+      Due to the design of the Renderable API, if a render class is intended to have
+      a namespace class asssociated, the namespace class should be associated with it
+      before it is subclassed or any :py:class:`~term_image.renderable.RenderArgs`
+      instance associated with it is created.
 
 
    .. _inheriting-fields:
