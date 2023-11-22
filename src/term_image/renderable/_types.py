@@ -576,13 +576,13 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta):
 
     Subclassing, defining (and inheriting) fields and associating with a render
     class are just as they are for :ref:`args-namespace`, except that values
-    assigned to the class attributes are not used.
+    assigned to class attributes are neither required nor used.
 
-    Every field is **uninitialized** immediately after instantiation of a
-    namespace. The fields are expected to be initialized within the
+    Every field of a namespace is **uninitialized** immediately after instantiation.
+    The fields are expected to be initialized within the
     :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
-    render class with which the namespace is associated [#rdn1]_ or at some other point
-    during a render operation, if necessary.
+    render class with which the namespace is associated [#rdn1]_ or at some other
+    point during a render operation, if necessary.
 
     NOTE:
         * Fields are exposed as instance attributes.
@@ -790,7 +790,8 @@ class RenderArgs(RenderArgsData):
         IncompatibleArgsNamespaceError: Incompatible [#ran2]_ render argument namespace.
 
     A set of render arguments (an instance of this class) is basically a container of
-    render argument namespaces (instances of :py:class:`RenderArgs.Namespace`); one for
+    render argument namespaces (instances of
+    :py:class:`~term_image.renderable.ArgsNamespace`); one for
     each :term:`render class`, which defines render arguments, in the Method Resolution
     Order of its associated [#ra2]_ render class.
 
@@ -804,10 +805,10 @@ class RenderArgs(RenderArgsData):
     NOTE:
         Instances are immutable but updated copies can be created via :py:meth:`update`.
 
-    TIP:
-        See the ``Args`` attribute (subclass of :py:class:`RenderArgs.Namespace`)
-        of :term:`render classes`, if not ``None``, for their respective render
-        argument namespaces.
+    .. seealso::
+
+       :py:attr:`~term_image.renderable.Renderable.Args`
+          Render class-specific render arguments.
 
     .. Completed in /docs/source/api/renderable.rst
     """
@@ -1116,8 +1117,8 @@ class RenderArgs(RenderArgsData):
         Propagates exceptions raised by:
 
         * the class constructor, for the **first** form.
-        * :py:meth:`__getitem__` and :py:meth:`RenderArgs.Namespace.update`, for the
-          **second** form.
+        * :py:meth:`__getitem__` and :py:meth:`ArgsNamespace.update()
+          <term_image.renderable.ArgsNamespace.update>`, for the **second** form.
         """
         if isinstance(render_cls_or_namespace, RenderableMeta):
             if namespaces:
@@ -1153,9 +1154,9 @@ class RenderData(RenderArgsData):
         render_cls: A :term:`render class`.
 
     An instance of this class is basically a container of render data namespaces
-    (instances of :py:class:`RenderData.Namespace`); one for each :term:`render class`,
-    which defines render data, in the Method Resolution Order of its associated
-    [#rd1]_ render class.
+    (instances of :py:class:`~term_image.renderable.DataNamespace`); one for each
+    :term:`render class`, which defines render data, in the Method Resolution Order
+    of its associated [#rd1]_ render class.
 
     NOTE:
         * Instances are immutable but the constituent namespaces are mutable.
@@ -1164,10 +1165,10 @@ class RenderData(RenderArgsData):
         * Instances should always be explicitly finalized as soon as they're no longer
           needed.
 
-    TIP:
-        See the ``_Data_`` attribute (subclass of :py:class:`RenderData.Namespace`)
-        of :term:`render classes`, if not ``None``, for their respective render
-        data namespaces.
+    .. seealso::
+
+       :py:attr:`~term_image.renderable.Renderable._Data_`
+          Render class-specific render data.
     """
 
     # Class Attributes =========================================================

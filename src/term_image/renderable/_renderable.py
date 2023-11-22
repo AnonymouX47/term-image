@@ -119,6 +119,151 @@ class Renderable(metaclass=RenderableMeta, _base=True):
 
     # Class Attributes =========================================================
 
+    # Initialized by `RenderableMeta` and may be updated by `ArgsNamespaceMeta`
+    Args: ClassVar[type[ArgsNamespace] | None]
+    """:term:`Render class`\\ -specific render arguments.
+
+    This is either:
+
+    - a render argument namespace class (subclass of :py:class:`ArgsNamespace`)
+      associated [#ran1]_ with the render class, or
+    - :py:data:`None`, if the render class has no render arguments.
+
+    If this is a class, an instance of it (or a subclass thereof) is contained within
+    any :py:class:`RenderArgs` instance associated [#ra2]_ with the render class or
+    any of its subclasses. Also, an instance of this class (or a subclass of it) is
+    returned by :py:meth:`render_args[render_cls]
+    <term_image.renderable.RenderArgs.__getitem__>`; where *render_args* is
+    an instance of :py:class:`~term_image.renderable.RenderArgs` as previously
+    described and *render_cls* is the render class with which this namespace class
+    is associated [#ran1]_.
+
+    .. collapse:: Example
+
+       >>> class Foo(Renderable):
+       ...     pass
+       ...
+       ... class FooArgs(ArgsNamespace, render_cls=Foo):
+       ...     foo: str | None = None
+       ...
+       >>> Foo.Args is FooArgs
+       True
+       >>>
+       >>> # default
+       >>> foo_args = Foo.Args()
+       >>> foo_args
+       FooArgs(foo=None)
+       >>> foo_args.foo is None
+       True
+       >>>
+       >>> render_args = RenderArgs(Foo)
+       >>> render_args[Foo]
+       FooArgs(foo=None)
+       >>>
+       >>> # non-default
+       >>> foo_args = Foo.Args("FOO")
+       >>> foo_args
+       FooArgs(foo='FOO')
+       >>> foo_args.foo
+       'FOO'
+       >>>
+       >>> render_args = RenderArgs(Foo, foo_args.update(foo="bar"))
+       >>> render_args[Foo]
+       FooArgs(foo='bar')
+
+    On the other hand, if this is :py:data:`None`, it implies the render class has no
+    render arguments.
+
+    .. collapse:: Example
+
+       >>> class Bar(Renderable):
+       ...     pass
+       ...
+       >>> Bar.Args is None
+       True
+       >>> render_args = RenderArgs(Bar)
+       >>> render_args[Bar]
+       Traceback (most recent call last):
+         ...
+       NoArgsNamespaceError: 'Bar' defines no render arguments
+    """
+
+    # Initialized by `RenderableMeta` and may be updated by `DataNamespaceMeta`
+    _Data_: ClassVar[type[DataNamespace] | None]
+    """:term:`Render class`\\ -specific render data.
+
+    This is either:
+
+    - a render data namespace class (subclass of :py:class:`DataNamespace`)
+      associated [#rdn1]_ with the render class, or
+    - :py:data:`None`, if the render class has no render data.
+
+    If this is a class, an instance of it (or a subclass thereof) is contained within
+    any :py:class:`RenderData` instance associated [#rd1]_ with the render class or
+    any of its subclasses. Also, an instance of this class (or a subclass of it) is
+    returned by :py:meth:`render_data[render_cls]
+    <term_image.renderable.RenderData.__getitem__>`; where *render_data* is
+    an instance of :py:class:`~term_image.renderable.RenderData` as previously
+    described and *render_cls* is the render class with which this namespace class
+    is associated [#rdn1]_.
+
+    .. collapse:: Example
+
+       >>> class Foo(Renderable):
+       ...     pass
+       ...
+       ... class _Data_(DataNamespace, render_cls=Foo):
+       ...     foo: str | None
+       ...
+       >>> Foo._Data_ is FooData
+       True
+       >>>
+       >>> foo_data = Foo._Data_()
+       >>> foo_data
+       <FooData: foo=<uninitialized>>
+       >>> foo_data.foo
+       Traceback (most recent call last):
+         ...
+       UninitializedDataFieldError: The render data field 'foo' of 'Foo' has not \
+been initialized
+       >>>
+       >>> foo_data.foo = "FOO"
+       >>> foo_data
+       <FooData: foo='FOO'>
+       >>> foo_data.foo
+       'FOO'
+       >>>
+       >>> render_data = RenderData(Foo)
+       >>> render_data[Foo]
+       <FooData: foo=<uninitialized>>
+       >>>
+       >>> render_data[Foo].foo = "bar"
+       >>> render_data[Foo]
+       <FooData: foo='bar'>
+
+    On the other hand, if this is :py:data:`None`, it implies the render class has no
+    render data.
+
+    .. collapse:: Example
+
+       >>> class Bar(Renderable):
+       ...     pass
+       ...
+       >>> Bar._Data_ is None
+       True
+       >>>
+       >>> render_data = RenderData(Bar)
+       >>> render_data[Bar]
+       Traceback (most recent call last):
+         ...
+       NoDataNamespaceError: 'Bar' defines no render data
+
+    .. seealso::
+
+       :py:class:`~term_image.renderable.RenderableData`
+          Render data for :py:class:`~term_image.renderable.Renderable`.
+    """
+
     _EXPORTED_ATTRS_: ClassVar[tuple[str]]
     """Exported attributes.
 
