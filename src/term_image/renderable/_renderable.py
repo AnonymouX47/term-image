@@ -185,7 +185,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
        >>> render_args[Bar]
        Traceback (most recent call last):
          ...
-       NoArgsNamespaceError: 'Bar' defines no render arguments
+       NoArgsNamespaceError: 'Bar' has no render arguments
     """
 
     # Initialized by `RenderableMeta` and may be updated by `DataNamespaceMeta`
@@ -256,7 +256,7 @@ been initialized
        >>> render_data[Bar]
        Traceback (most recent call last):
          ...
-       NoDataNamespaceError: 'Bar' defines no render data
+       NoDataNamespaceError: 'Bar' has no render data
 
     .. seealso::
 

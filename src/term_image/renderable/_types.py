@@ -69,13 +69,13 @@ class IncompatibleRenderArgsError(RenderArgsError):
 
 class NoArgsNamespaceError(RenderArgsError):
     """Raised when an attempt is made to get a render argument namespace for a
-    :term:`render class` that defines no render arguments.
+    :term:`render class` that has no render arguments.
     """
 
 
 class NoDataNamespaceError(RenderDataError):
     """Raised when an attempt is made to get a render data namespace for a
-    :term:`render class` that defines no render data.
+    :term:`render class` that has no render data.
     """
 
 
@@ -792,7 +792,7 @@ class RenderArgs(RenderArgsData):
     A set of render arguments (an instance of this class) is basically a container of
     render argument namespaces (instances of
     :py:class:`~term_image.renderable.ArgsNamespace`); one for
-    each :term:`render class`, which defines render arguments, in the Method Resolution
+    each :term:`render class`, which has render arguments, in the Method Resolution
     Order of its associated [#ra2]_ render class.
 
     The namespace for each render class is derived from the following sources, in
@@ -967,7 +967,7 @@ class RenderArgs(RenderArgsData):
 
         Args:
             render_cls: A :term:`render class` of which :py:attr:`render_cls` is a
-              subclass (which may be :py:attr:`render_cls` itself) and which defines
+              subclass (which may be :py:attr:`render_cls` itself) and which has
               render arguments.
 
         Returns:
@@ -976,7 +976,7 @@ class RenderArgs(RenderArgsData):
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
-            NoArgsNamespaceError: *render_cls* defines no render arguments.
+            NoArgsNamespaceError: *render_cls* has no render arguments.
         """
         try:
             return self._namespaces[render_cls]
@@ -986,7 +986,7 @@ class RenderArgs(RenderArgsData):
 
             if issubclass(self.render_cls, render_cls):
                 raise NoArgsNamespaceError(
-                    f"{render_cls.__name__!r} defines no render arguments"
+                    f"{render_cls.__name__!r} has no render arguments"
                 ) from None
 
             raise ValueError(
@@ -1098,7 +1098,7 @@ class RenderArgs(RenderArgsData):
 
             render_cls (Type[Renderable]): A :term:`render class` of which
               :py:attr:`render_cls` is a subclass (which may be :py:attr:`render_cls`
-              itself) and which defines render arguments.
+              itself) and which has render arguments.
             fields: Render argument fields.
 
               The keywords must be names of render argument fields for *render_cls*.
@@ -1155,7 +1155,7 @@ class RenderData(RenderArgsData):
 
     An instance of this class is basically a container of render data namespaces
     (instances of :py:class:`~term_image.renderable.DataNamespace`); one for each
-    :term:`render class`, which defines render data, in the Method Resolution Order
+    :term:`render class`, which has render data, in the Method Resolution Order
     of its associated [#rd1]_ render class.
 
     NOTE:
@@ -1203,7 +1203,7 @@ class RenderData(RenderArgsData):
 
         Args:
             render_cls: A :term:`render class` of which :py:attr:`render_cls` is a
-              subclass (which may be :py:attr:`render_cls` itself) and which defines
+              subclass (which may be :py:attr:`render_cls` itself) and which has
               render data.
 
         Returns:
@@ -1212,7 +1212,7 @@ class RenderData(RenderArgsData):
         Raises:
             TypeError: An argument is of an inappropriate type.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
-            NoDataNamespaceError: *render_cls* defines no render data.
+            NoDataNamespaceError: *render_cls* has no render data.
         """
         try:
             return self._namespaces[render_cls]
@@ -1222,7 +1222,7 @@ class RenderData(RenderArgsData):
 
             if issubclass(self.render_cls, render_cls):
                 raise NoDataNamespaceError(
-                    f"{render_cls.__name__!r} defines no render data"
+                    f"{render_cls.__name__!r} has no render data"
                 ) from None
 
             raise ValueError(
