@@ -137,8 +137,8 @@ class ArgsDataNamespaceMeta(type):
                 if fields:
                     raise RenderArgsDataError("Cannot both inherit and define fields")
             elif fields:
-                for name in fields:
-                    namespace.pop(name, None)
+                for field_name in fields:
+                    namespace.pop(field_name, None)
                 namespace["_FIELDS"] = MappingProxyType(dict.fromkeys(fields))
 
             namespace["__slots__"] = tuple(fields)
