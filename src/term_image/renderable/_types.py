@@ -464,11 +464,10 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
             A dictionary mapping field names to their values.
 
         WARNING:
-            The number and order of fields is guaranteed to be the same for a
-            subclass that defines fields, its subclasses (that inherit its fields)
-            and all their instances but beyond this, should not be relied upon as
-            the details (such as the specific number or order) may change without
-            notice.
+            The number and order of fields are guaranteed to be the same for a
+            namespace class that defines fields, its subclasses, and all their
+            instances; but beyond this, should not be relied upon as the details
+            (such as the specific number or order) may change without notice.
 
             The order is an implementation detail of the Render Arguments/Data API
             and the number should be considered an implementation detail of the
@@ -484,11 +483,10 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
             A mapping of field names to their default values.
 
         WARNING:
-            The number and order of fields is guaranteed to be the same for a
-            subclass that defines fields, its subclasses (that inherit its fields)
-            and all their instances but beyond this, should not be relied upon as
-            the details (such as the specific number or order) may change without
-            notice.
+            The number and order of fields are guaranteed to be the same for a
+            namespace class that defines fields, its subclasses, and all their
+            instances; but beyond this, should not be relied upon as the details
+            (such as the specific number or order) may change without notice.
 
             The order is an implementation detail of the Render Arguments/Data API
             and the number should be considered an implementation detail of the
@@ -648,11 +646,10 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta):
           UninitializedDataFieldError: A field has not been initialized.
 
         WARNING:
-            The number and order of fields is guaranteed to be the same for a
-            subclass that defines fields, its subclasses (that inherit its fields)
-            and all their instances but beyond this, should not be relied upon as
-            the details (such as the specific number or order) may change without
-            notice.
+            The number and order of fields are guaranteed to be the same for a
+            namespace class that defines fields, its subclasses, and all their
+            instances; but beyond this, should not be relied upon as the details
+            (such as the specific number or order) may change without notice.
 
             The order is an implementation detail of the Render Arguments/Data API
             and the number should be considered an implementation detail of the
@@ -668,11 +665,10 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta):
             A tuple of field names.
 
         WARNING:
-            The number and order of fields is guaranteed to be the same for a
-            subclass that defines fields, its subclasses (that inherit its fields)
-            and all their instances but beyond this, should not be relied upon as
-            the details (such as the specific number or order) may change without
-            notice.
+            The number and order of fields are guaranteed to be the same for a
+            namespace class that defines fields, its subclasses, and all their
+            instances; but beyond this, should not be relied upon as the details
+            (such as the specific number or order) may change without notice.
 
             The order is an implementation detail of the Render Arguments/Data API
             and the number should be considered an implementation detail of the
