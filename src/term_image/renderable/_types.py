@@ -290,9 +290,8 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
 
         if len(values) > len(default_fields):
             raise TypeError(
-                f"{type(self)._RENDER_CLS.__name__!r} defines "
-                f"{len(default_fields)} render argument field(s) but "
-                f"{len(values)} values were given"
+                f"{type(self).__name__!r} defines {len(default_fields)} render "
+                f"argument field(s) but {len(values)} values were given"
             )
         value_fields = dict(zip(default_fields, values))
 

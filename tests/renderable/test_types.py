@@ -915,7 +915,7 @@ class TestArgsNamespace:
         Namespace = Bar.Args
 
         def test_args(self):
-            with pytest.raises(TypeError, match="'Bar' defines 3 .* 4 .* given"):
+            with pytest.raises(TypeError, match="'BarArgs' defines 3 .* 4 .* given"):
                 self.Namespace("", "", "", "")
 
             with pytest.raises(UnknownArgsFieldError, match="'dude'"):
