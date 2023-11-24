@@ -8,19 +8,25 @@ Classes
 
 .. automodulesumm:: term_image.renderable
    :autosummary-no-titles:
-   :autosummary-members: Renderable, RenderArgs, Frame
+   :autosummary-members: Renderable, RenderArgs, ArgsNamespace, Frame
 
 
 .. autoclass:: Renderable
+   :no-autosummary:
    :special-members: __iter__, __str__
+   :exclude-members: Args
+
+   .. autoclasssumm:: Renderable
+      :autosummary-special-members: __iter__, __str__
+
+   .. autoattribute:: Args()
+      :no-value:
 
 |
 
 .. autoclass:: RenderArgs
-   :autosummary-exclude-members:
    :special-members: __eq__, __getitem__, __hash__, __iter__
    :inherited-members: render_cls
-   :exclude-members: Namespace
 
    .. rubric:: Footnotes
 
@@ -33,7 +39,7 @@ Classes
 
 |
 
-.. autoclass:: term_image.renderable.RenderArgs.Namespace
+.. autoclass:: ArgsNamespace
    :special-members: __eq__, __hash__, __or__, __pos__, __ror__
    :inherited-members: get_render_cls
 
@@ -42,11 +48,10 @@ Classes
    .. rubric:: Footnotes
 
    .. [#ran1]
-      A render argument namespace class, its subclasses and their instances are
-      associated with the :term:`render class` that defines (not inherits) the namespace
-      class as its :ref:`Args <renderable-args>` attribute **at its creation**.
-      The associated render class is accessible via
-      :py:meth:`~term_image.renderable.RenderArgs.Namespace.get_render_cls`.
+      A render argument namespace class (**that has fields**), along with its
+      subclasses and their instances, is associated with the :term:`render class`
+      that was :ref:`specified <associating-namespace>` **at its creation**.
+      The associated render class is accessible via :py:meth:`get_render_cls`.
    .. [#ran2]
       A render argument namespace is compatible with its associated [#ran1]_
       :term:`render class` and the subclasses thereof.
@@ -138,6 +143,7 @@ Renderable
 
    .. autoclasssumm:: Renderable
       :autosummary-members:
+        _Data_,
         _EXPORTED_ATTRS_,
         _EXPORTED_DESCENDANT_ATTRS_,
         _animate_,
@@ -148,8 +154,9 @@ Renderable
         _handle_interrupted_draw_,
         _init_render_,
         _render_,
-        _Data_,
 
+   .. autoattribute:: _Data_()
+      :no-value:
    .. autoattribute:: _EXPORTED_ATTRS_
    .. autoattribute:: _EXPORTED_DESCENDANT_ATTRS_
    .. automethod:: _animate_
@@ -162,179 +169,21 @@ Renderable
    .. automethod:: _init_render_
    .. automethod:: _render_
 
-.. autoclass:: term_image.renderable.Renderable._Data_
-
-|
-
-.. _renderable-args:
-
-Renderable.Args
-"""""""""""""""
-.. py:attribute:: Renderable.Args
-   :noindex:
-   :type: typing.ClassVar[type[RenderArgs.Namespace] | None]
-
-   :term:`Render class`\ -specific render arguments.
-
-   If this is a class, it must be a subclass of :py:class:`RenderArgs.Namespace` that
-   **has fields** and **has NOT been associated** with a render class. It defines the
-   render arguments of the render class defining this attribute.
-
-   An instance of this class (``Args``), is contained in any :py:class:`RenderArgs`
-   instance associated [#ra2]_ with the render class defining this attribute or any
-   of its subclasses.
-
-   Also, an instance of this class (``Args``) is returned by
-   :py:meth:`render_args[render_cls] <RenderArgs.__getitem__>`, where *render_args* is
-   an instance of :py:class:`~term_image.renderable.RenderArgs` as previously described
-   and *render_cls* is the render class defining this attribute.
-
-   .. collapse:: Example
-
-      >>> class Foo(Renderable):
-      ...     class Args(RenderArgs.Namespace):
-      ...         foo: str | None = None
-      ...
-      >>> # default
-      >>> Foo.Args()
-      Foo.Args(foo=None)
-      >>> render_args = RenderArgs(Foo)
-      >>> render_args[Foo]
-      Foo.Args(foo=None)
-      >>>
-      >>> # non-default
-      >>> foo_args = Foo.Args("FOO")
-      >>> foo_args
-      Foo.Args(foo='FOO')
-      >>> render_args = RenderArgs(Foo, foo_args.update(foo="bar"))
-      >>> render_args[Foo]
-      Foo.Args(foo='bar')
-
-   On the other hand, if this is ``None``, it implies the render class defines no
-   render arguments.
-
-   .. collapse:: Example
-
-      >>> class Bar(Renderable):
-      ...     pass
-      ...
-      >>> assert Bar.Args is None
-      >>> render_args = RenderArgs(Bar)
-      >>> render_args[Bar]
-      Traceback (most recent call last):
-        ...
-      NoArgsNamespaceError: 'Bar' defines no render arguments
-
-   .. note::
-
-      * If this attribute is not defined at creation of a render class, it's set to
-        ``None``.
-      * If this attribute is intended to be a class, it must be defined before the
-        creation of the render class.
-      * Modifying this attribute after creation of the render class neither associates
-        nor disassociates a render argument namespace class.
-
-|
-
-.. _renderable-data:
-
-Renderable._Data_
-"""""""""""""""""
-.. py:attribute:: Renderable._Data_
-   :noindex:
-   :type: typing.ClassVar[type[RenderData.Namespace] | None]
-
-   :term:`Render class`\ -specific render data.
-
-   If this is a class, it must be a subclass of :py:class:`RenderData.Namespace` that
-   **has fields** and **has NOT been associated** with a render class. It defines the
-   render data of the render class defining this attribute.
-
-   An instance of this class (``_Data_``), is contained in any :py:class:`RenderData`
-   instance associated [#rd1]_ with the render class defining this attribute or any
-   of its subclasses.
-
-   Also, an instance of this class (``_Data_``) is returned by
-   :py:meth:`render_data[render_cls] <RenderData.__getitem__>`, where *render_data* is
-   an instance of :py:class:`~term_image.renderable.RenderData` as previously described
-   and *render_cls* is the render class defining this attribute.
-
-   .. collapse:: Example
-
-      >>> class Foo(Renderable):
-      ...     class _Data_(RenderData.Namespace):
-      ...         foo: str | None
-      ...
-      >>> foo_data = Foo._Data_()
-      >>> foo_data
-      <Foo._Data_: foo=<uninitialized>>
-      >>> foo_data.foo
-      Traceback (most recent call last):
-        ...
-      UninitializedDataFieldError: The render data field 'foo' of 'Foo' has not been initialized
-      >>>
-      >>> foo_data.foo = "FOO"
-      >>> foo_data
-      <Foo._Data_: foo='FOO'>
-      >>> assert foo_data.foo == "FOO"
-      >>>
-      >>> render_data = RenderData(Foo)
-      >>> render_data[Foo]
-      <Foo._Data_: foo=<uninitialized>>
-      >>>
-      >>> render_data[Foo].foo = "bar"
-      >>> render_data[Foo]
-      <Foo._Data_: foo='bar'>
-
-   On the other hand, if this is ``None``, it implies the render class defines no
-   render data.
-
-   .. collapse:: Example
-
-      >>> class Bar(Renderable):
-      ...     pass
-      ...
-      >>> assert Bar._Data_ is None
-      >>>
-      >>> render_data = RenderData(Bar)
-      >>> render_data[Bar]
-      Traceback (most recent call last):
-        ...
-      NoDataNamespaceError: 'Bar' defines no render data
-
-   .. note::
-
-      * If this attribute is not defined at creation of a render class, it's set to
-        ``None``.
-      * If this attribute is intended to be a class, it must be defined before the
-        creation of the render class.
-      * Modifying this attribute after creation of the render class neither associates
-        nor disassociates a render data namespace class.
-
-   .. seealso:: :py:class:`Renderable._Data_ <term_image.renderable.Renderable._Data_>`.
-
 |
 
 .. _args-namespace:
 
-RenderArgs.Namespace
+ArgsNamespace
 ^^^^^^^^^^^^^^^^^^^^
 
-.. py:class:: RenderArgs.Namespace
+.. py:class:: ArgsNamespace
    :noindex:
 
-   See :py:class:`RenderArgs.Namespace <term_image.renderable.RenderArgs.Namespace>`
-   for the public API.
+   See :py:class:`~term_image.renderable.ArgsNamespace` for the public API.
 
-   .. rubric:: Subclassing
 
-   * A subclass cannot have multiple base classes.
-   * A subclass that **has fields** cannot be further subclassed until it is
-     associated with a render class.
-   * Every subclass, of a subclass that **has fields**, must not define fields.
-   * A subclass' constructor must not have required parameters.
-
-   .. rubric:: Defining Fields
+   Defining Fields
+   """""""""""""""
 
    Fields are defined as **annotated** class attributes. All annotated attributes of a
    subclass are taken to be fields. Every such attribute must be assigned a value which
@@ -342,49 +191,106 @@ RenderArgs.Namespace
 
    .. collapse:: Example
 
-      >>> class Args(RenderArgs.Namespace):
+      >>> class Foo(Renderable):
+      ...     pass
+      ...
+      >>> class FooArgs(ArgsNamespace, render_cls=Foo):
       ...     foo: str = "FOO"
       ...     bar: str = "BAR"
       ...
-      >>> Args.get_fields()
+      >>> FooArgs.get_fields()
       mappingproxy({'foo': 'FOO', 'bar': 'BAR'})
 
    The attribute annotations are only used to identify the fields, they're never
    evaluated or used otherwise by any part of the Renderable API.
    The field names will be unbound from their assigned values (the default field
-   values) during the creation of the subclass.
+   values) during the creation of the class.
 
-   .. rubric:: Inheriting Fields
+   .. note::
 
-   Fields may be inherited from any associated render argument namespace class
-   (i.e any subclass of this class that has been associated with a render class) by
-   subclassing it. The new subclass inherits the fields and associated render class of
-   its parent.
+      A subclass that :ref:`inherits <inheriting-fields>` fields must not define fields.
+
+
+   .. _associating-namespace:
+
+   Associating With a Render Class
+   """""""""""""""""""""""""""""""
+
+   To associate a namespace class with a render class, the render class should be
+   specified via the *render_cls* keyword argument in the class definition header.
 
    .. collapse:: Example
 
-      >>> class Args1(RenderArgs.Namespace):
-      ...     foo: str = "FOO"
-      ...
-      >>> Args1.get_fields()
-      mappingproxy({'foo': 'FOO'})
-      >>>
       >>> class Foo(Renderable):
-      ...     Args = Args1
-      ...
-      >>> assert Args1.get_render_cls() is Foo
-      >>>
-      >>> class Args2(Args1):
       ...     pass
       ...
-      >>> assert Args2.get_render_cls() is Foo
-      >>> Args2.get_fields()
+      >>> class FooArgs(ArgsNamespace, render_cls=Foo):
+      ...     foo: str = "FOO"
+      ...
+      >>> FooArgs.get_render_cls() is Foo
+      True
+
+   .. note::
+
+      * A subclass that **has fields** must be associated [#ran1]_ with a render class.
+      * A subclass that **has NO fields** cannot be associated with a render class.
+      * A subclass that :ref:`inherits <inheriting-fields>` fields cannot be
+        reassociated with another render class.
+
+   .. attention::
+
+      Due to the design of the Renderable API, if a render class is intended to have
+      a namespace class asssociated, the namespace class should be associated with it
+      before it is subclassed or any :py:class:`~term_image.renderable.RenderArgs`
+      instance associated with it is created.
+
+
+   .. _inheriting-fields:
+
+   Inheriting Fields
+   """""""""""""""""
+
+   Fields are inherited from any associated [#ran1]_ render argument namespace class
+   (i.e anyone that **has fields**) by subclassing it. The new subclass inherits both
+   the fields and associated render class of its parent.
+
+   .. collapse:: Example
+
+      >>> class Foo(Renderable):
+      ...     pass
+      ...
+      >>> class FooArgs(ArgsNamespace, render_cls=Foo):
+      ...     foo: str = "FOO"
+      ...
+      >>> FooArgs.get_render_cls() is Foo
+      True
+      >>> FooArgs.get_fields()
+      mappingproxy({'foo': 'FOO'})
+      >>>
+      >>> class SubFooArgs(FooArgs):
+      ...     pass
+      ...
+      >>> SubFooArgs.get_render_cls() is Foo
+      True
+      >>> SubFooArgs.get_fields()
       mappingproxy({'foo': 'FOO'})
 
-   .. rubric:: Associating With a Render Class
+   .. note::
 
-   * A subclass that **has NO fields** cannot be associated with a render class.
-   * A subclass that **has fields** may be associated with **only one** render class.
+      A subclass that inherits fields:
+
+      * must not define fields.
+      * cannot be reassociated with another render class.
+
+
+   Other Notes
+   """""""""""
+
+   .. note::
+
+      * A subclass cannot have multiple base classes.
+      * The constructor of any subclass that **has fields** must not have required
+        parameters.
 
    .. tip::
 
@@ -406,25 +312,26 @@ RenderArgs.Namespace
           containing such a namespace) may be in use in an asynchronous render
           operation,
         * different sets of render arguments may contain the same namespace, and
-        * different namespaces may contain the same object as the field values.
+        * different namespaces may contain the same object as field values.
 
       * be **hashable**.
 
         Otherwise, the namespace and any containing set of render arguments will also
         not be hashable.
 
-   .. seealso:: :ref:`renderable-args`.
-
 |
 
-RenderData
-^^^^^^^^^^
+Other Classes
+^^^^^^^^^^^^^
+
+.. automodulesumm:: term_image.renderable
+   :autosummary-no-titles:
+   :autosummary-members: RenderData, DataNamespace, RenderableData
+
 
 .. autoclass:: RenderData
-   :autosummary-exclude-members:
    :special-members: __getitem__, __iter__
    :inherited-members: render_cls
-   :exclude-members: Namespace
 
    .. rubric:: Footnotes
 
@@ -434,14 +341,17 @@ RenderData
 
 |
 
-.. autoclass:: term_image.renderable.RenderData.Namespace
+.. autoclass:: DataNamespace
    :inherited-members: get_render_cls
 
    .. rubric:: Footnotes
 
    .. [#rdn1]
-      A render data namespace class, its subclasses and their instances are associated
-      with the :term:`render class` that defines (not inherits) the namespace class as
-      its :ref:`_Data_ <renderable-data>` attribute **at its creation**.
-      The associated render class is accessible via
-      :py:meth:`~term_image.renderable.RenderData.Namespace.get_render_cls`.
+      A render data namespace class (**that has fields**), along with its
+      subclasses and their instances, is associated with the :term:`render class`
+      that was :ref:`specified <associating-namespace>` **at its creation**.
+      The associated render class is accessible via :py:meth:`get_render_cls`.
+
+|
+
+.. autoclass:: RenderableData

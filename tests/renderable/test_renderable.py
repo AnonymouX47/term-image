@@ -15,6 +15,8 @@ from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
 from term_image.render import RenderIterator
 from term_image.renderable import (
+    ArgsNamespace,
+    DataNamespace,
     Frame,
     FrameCount,
     FrameDuration,
@@ -27,7 +29,6 @@ from term_image.renderable import (
     RenderData,
     RenderSizeOutofRangeError,
     Seek,
-    UnassociatedNamespaceError,
 )
 
 from .. import get_terminal_size
@@ -93,8 +94,9 @@ class IndefiniteSpace(Space):
         )
         return render_data
 
-    class _Data_(RenderData.Namespace):
-        frames: Iterator[int] | None
+
+class IndefiniteSpaceData(DataNamespace, render_cls=IndefiniteSpace):
+    frames: Iterator[int] | None
 
 
 class CacheSpace(Space):
@@ -126,8 +128,9 @@ class Char(Renderable):
             render_args=render_args,
         )
 
-    class Args(RenderArgs.Namespace):
-        char: str = " "
+
+class CharArgs(ArgsNamespace, render_cls=Char):
+    char: str = " "
 
 
 class FrameFill(Renderable):
@@ -235,43 +238,7 @@ class TestMeta:
             assert isinstance(Renderable._ALL_DEFAULT_ARGS, MappingProxyType)
             assert Renderable._ALL_DEFAULT_ARGS == {}
 
-        def test_invalid_type(self):
-            with pytest.raises(TypeError, match="'Foo.Args'"):
-
-                class Foo(Renderable):
-                    Args = Ellipsis
-
-        def test_not_a_subclass(self):
-            with pytest.raises(
-                RenderableError,
-                match="'Foo.Args' .* subclass of 'RenderArgs.Namespace'",
-            ):
-
-                class Foo(Renderable):
-                    class Args:
-                        pass
-
-        def test_no_fields(self):
-            with pytest.raises(RenderableError, match="'Foo.Args' has no fields"):
-
-                class Foo(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        pass
-
-        def test_already_associated(self):
-            class Foo(Renderable):
-                class Args(RenderArgs.Namespace):
-                    foo: None = None
-
-            with pytest.raises(
-                RenderableError, match="'Bar.Args' .* associated with .* 'Foo'"
-            ):
-
-                class Bar(Renderable):
-                    class Args(Foo.Args):
-                        pass
-
-        def test_no_args(self):
+        def test_default(self):
             class Foo(Renderable):
                 pass
 
@@ -280,124 +247,92 @@ class TestMeta:
             assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
             assert Foo._ALL_DEFAULT_ARGS == Renderable._ALL_DEFAULT_ARGS
 
-        def test_args_none(self):
-            class Foo(Renderable):
-                Args = None
-
-            assert Foo.Args is None
-            assert "_ALL_DEFAULT_ARGS" in Foo.__dict__
-            assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
-            assert Foo._ALL_DEFAULT_ARGS == Renderable._ALL_DEFAULT_ARGS
-
-        def test_has_args(self):
-            class Args(RenderArgs.Namespace):
-                foo: None = None
-
-            Foo = type(Renderable)("Foo", (Renderable,), {"Args": Args})
-
-            assert Foo.Args is Args
-            assert "_ALL_DEFAULT_ARGS" in Foo.__dict__
-            assert isinstance(Foo._ALL_DEFAULT_ARGS, MappingProxyType)
-            assert Foo._ALL_DEFAULT_ARGS == {
-                **Renderable._ALL_DEFAULT_ARGS,
-                Foo: Foo.Args(),
-            }
-
-        def test_association(self):
-            class Args(RenderArgs.Namespace):
-                foo: None = None
-
-            with pytest.raises(UnassociatedNamespaceError):
-                Args.get_render_cls()
-
-            Foo = type(Renderable)("Foo", (Renderable,), {"Args": Args})
-            assert Args.get_render_cls() is Foo
-
         class TestInheritance:
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    a: None = None
+                pass
 
-            def test_child_with_no_args(self):
-                class B(self.A):
-                    pass
-
-                assert B._ALL_DEFAULT_ARGS == {
-                    **Renderable._ALL_DEFAULT_ARGS,
-                    self.A: self.A.Args(),
-                }
+            class AArgs(ArgsNamespace, render_cls=A):
+                a: None = None
 
             def test_parent_with_no_args(self):
                 class B(Renderable):
                     pass
 
                 class C(B):
-                    class Args(RenderArgs.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._ALL_DEFAULT_ARGS == {
                     **Renderable._ALL_DEFAULT_ARGS,
-                    C: C.Args(),
                 }
 
-            def test_multi_level(self):
+            def test_parent_with_args(self):
                 class B(self.A):
-                    class Args(RenderArgs.Namespace):
-                        b: None = None
+                    pass
 
                 assert B._ALL_DEFAULT_ARGS == {
                     **Renderable._ALL_DEFAULT_ARGS,
                     self.A: self.A.Args(),
-                    B: B.Args(),
                 }
 
+            def test_multi_level(self):
+                class B(self.A):
+                    pass
+
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: None = None
+
                 class C(B):
-                    class Args(RenderArgs.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._ALL_DEFAULT_ARGS == {
                     **Renderable._ALL_DEFAULT_ARGS,
                     self.A: self.A.Args(),
                     B: B.Args(),
-                    C: C.Args(),
                 }
 
             def test_multiple(self):
                 class B(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        b: None = None
+                    pass
+
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: None = None
 
                 class C(self.A, B):
-                    class Args(RenderArgs.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._ALL_DEFAULT_ARGS == {
                     **Renderable._ALL_DEFAULT_ARGS,
                     self.A: self.A.Args(),
                     B: B.Args(),
-                    C: C.Args(),
                 }
 
             def test_complex(self):
                 class B(self.A):
-                    class Args(RenderArgs.Namespace):
-                        b: None = None
+                    pass
+
+                class BArgs(ArgsNamespace, render_cls=B):
+                    b: None = None
 
                 class C(self.A):
-                    class Args(RenderArgs.Namespace):
-                        c: None = None
+                    pass
+
+                class CArgs(ArgsNamespace, render_cls=C):
+                    c: None = None
 
                 class D(B, C):
-                    class Args(RenderArgs.Namespace):
-                        d: None = None
+                    pass
+
+                class DArgs(ArgsNamespace, render_cls=D):
+                    d: None = None
 
                 class E(Renderable):
-                    class Args(RenderArgs.Namespace):
-                        e: None = None
+                    pass
+
+                class EArgs(ArgsNamespace, render_cls=E):
+                    e: None = None
 
                 class F(D, E):
-                    class Args(RenderArgs.Namespace):
-                        f: None = None
+                    pass
 
                 assert F._ALL_DEFAULT_ARGS == {
                     **Renderable._ALL_DEFAULT_ARGS,
@@ -406,21 +341,23 @@ class TestMeta:
                     C: C.Args(),
                     D: D.Args(),
                     E: E.Args(),
-                    F: F.Args(),
                 }
 
         def test_optimization_default_namespaces_interned(self):
             class A(Renderable):
-                class Args(RenderArgs.Namespace):
-                    a: None = None
+                pass
+
+            class AArgs(ArgsNamespace, render_cls=A):
+                a: None = None
 
             class B(A):
-                class Args(RenderArgs.Namespace):
-                    b: None = None
+                pass
+
+            class BArgs(ArgsNamespace, render_cls=B):
+                b: None = None
 
             class C(B):
-                class Args(RenderArgs.Namespace):
-                    c: None = None
+                pass
 
             assert A._ALL_DEFAULT_ARGS[A] is B._ALL_DEFAULT_ARGS[A]
             assert A._ALL_DEFAULT_ARGS[A] is C._ALL_DEFAULT_ARGS[A]
@@ -432,43 +369,7 @@ class TestMeta:
             assert isinstance(Renderable._RENDER_DATA_MRO, MappingProxyType)
             assert Renderable._RENDER_DATA_MRO == {Renderable: Renderable._Data_}
 
-        def test_invalid_type(self):
-            with pytest.raises(TypeError, match="'Foo._Data_'"):
-
-                class Foo(Renderable):
-                    _Data_ = Ellipsis
-
-        def test_not_a_subclass(self):
-            with pytest.raises(
-                RenderableError,
-                match="'Foo._Data_' .* subclass of 'RenderData.Namespace'",
-            ):
-
-                class Foo(Renderable):
-                    class _Data_:
-                        pass
-
-        def test_no_fields(self):
-            with pytest.raises(RenderableError, match="'Foo._Data_' has no fields"):
-
-                class Foo(Renderable):
-                    class _Data_(RenderData.Namespace):
-                        pass
-
-        def test_already_associated(self):
-            class Foo(Renderable):
-                class _Data_(RenderData.Namespace):
-                    foo: None = None
-
-            with pytest.raises(
-                RenderableError, match="'Bar._Data_' .* associated with .* 'Foo'"
-            ):
-
-                class Bar(Renderable):
-                    class _Data_(Foo._Data_):
-                        pass
-
-        def test_no_data(self):
+        def test_default(self):
             class Foo(Renderable):
                 pass
 
@@ -477,125 +378,92 @@ class TestMeta:
             assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
             assert Foo._RENDER_DATA_MRO == Renderable._RENDER_DATA_MRO
 
-        def test_data_none(self):
-            class Foo(Renderable):
-                _Data_ = None
-
-            assert Foo._Data_ is None
-            assert "_RENDER_DATA_MRO" in Foo.__dict__
-            assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
-            assert Foo._RENDER_DATA_MRO == Renderable._RENDER_DATA_MRO
-
-        def test_has_data(self):
-            class _Data_(RenderData.Namespace):
-                foo: None = None
-
-            Foo = type(Renderable)("Foo", (Renderable,), {"_Data_": _Data_})
-
-            assert Foo._Data_ is _Data_
-            assert "_RENDER_DATA_MRO" in Foo.__dict__
-            assert isinstance(Foo._RENDER_DATA_MRO, MappingProxyType)
-            assert Foo._RENDER_DATA_MRO == {
-                **Renderable._RENDER_DATA_MRO,
-                Foo: Foo._Data_,
-            }
-
-        def test_association(self):
-            class _Data_(RenderData.Namespace):
-                foo: None = None
-
-            with pytest.raises(UnassociatedNamespaceError):
-                _Data_.get_render_cls()
-
-            Foo = type(Renderable)("Foo", (Renderable,), {"_Data_": _Data_})
-
-            assert _Data_.get_render_cls() is Foo
-
         class TestInheritance:
             class A(Renderable):
-                class _Data_(RenderData.Namespace):
-                    a: None = None
+                pass
 
-            def test_child_with_no_data(self):
-                class B(self.A):
-                    pass
-
-                assert B._RENDER_DATA_MRO == {
-                    **Renderable._RENDER_DATA_MRO,
-                    self.A: self.A._Data_,
-                }
+            class AData(DataNamespace, render_cls=A):
+                a: None = None
 
             def test_parent_with_no_data(self):
                 class B(Renderable):
                     pass
 
                 class C(B):
-                    class _Data_(RenderData.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._RENDER_DATA_MRO == {
                     **Renderable._RENDER_DATA_MRO,
-                    C: C._Data_,
                 }
 
-            def test_multi_level(self):
+            def test_parent_with_data(self):
                 class B(self.A):
-                    class _Data_(RenderData.Namespace):
-                        b: None = None
+                    pass
 
                 assert B._RENDER_DATA_MRO == {
                     **Renderable._RENDER_DATA_MRO,
                     self.A: self.A._Data_,
-                    B: B._Data_,
                 }
 
+            def test_multi_level(self):
+                class B(self.A):
+                    pass
+
+                class BData(DataNamespace, render_cls=B):
+                    b: None = None
+
                 class C(B):
-                    class _Data_(RenderData.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._RENDER_DATA_MRO == {
                     **Renderable._RENDER_DATA_MRO,
                     self.A: self.A._Data_,
                     B: B._Data_,
-                    C: C._Data_,
                 }
 
             def test_multiple(self):
                 class B(Renderable):
-                    class _Data_(RenderData.Namespace):
-                        b: None = None
+                    pass
+
+                class BData(DataNamespace, render_cls=B):
+                    b: None = None
 
                 class C(self.A, B):
-                    class _Data_(RenderData.Namespace):
-                        c: None = None
+                    pass
 
                 assert C._RENDER_DATA_MRO == {
                     **Renderable._RENDER_DATA_MRO,
                     self.A: self.A._Data_,
                     B: B._Data_,
-                    C: C._Data_,
                 }
 
             def test_complex(self):
                 class B(self.A):
-                    class _Data_(RenderData.Namespace):
-                        b: None = None
+                    pass
+
+                class BData(DataNamespace, render_cls=B):
+                    b: None = None
 
                 class C(self.A):
-                    class _Data_(RenderData.Namespace):
-                        c: None = None
+                    pass
+
+                class CData(DataNamespace, render_cls=C):
+                    c: None = None
 
                 class D(B, C):
-                    class _Data_(RenderData.Namespace):
-                        d: None = None
+                    pass
+
+                class DData(DataNamespace, render_cls=D):
+                    d: None = None
 
                 class E(Renderable):
-                    class _Data_(RenderData.Namespace):
-                        e: None = None
+                    pass
+
+                class EData(DataNamespace, render_cls=E):
+                    e: None = None
 
                 class F(D, E):
-                    class _Data_(RenderData.Namespace):
-                        f: None = None
+                    pass
 
                 assert F._RENDER_DATA_MRO == {
                     **Renderable._RENDER_DATA_MRO,
@@ -604,7 +472,6 @@ class TestMeta:
                     C: C._Data_,
                     D: D._Data_,
                     E: E._Data_,
-                    F: F._Data_,
                 }
 
     class TestExportedAttrs:
@@ -1594,8 +1461,8 @@ class TestAnimate:
                 )
                 self.interrupted = True
 
-            class Args(RenderArgs.Namespace):
-                foo: bool = False
+        class InterruptedFrameFillArgs(ArgsNamespace, render_cls=InterruptedFrameFill):
+            foo: bool = False
 
         def wrap_write(write_method, marker=None):
             def write_wrapper(string):
@@ -1717,8 +1584,8 @@ class TestInitRender:
                 render_data[__class__].foo = self.__data
                 return render_data
 
-            class _Data_(RenderData.Namespace):
-                foo: Any
+        class FooData(DataNamespace, render_cls=Foo):
+            foo: Any
 
         @pytest.mark.parametrize("renderable", [space, char])
         def test_arguments(self, renderable):

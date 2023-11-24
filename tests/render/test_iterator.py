@@ -9,12 +9,12 @@ from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding
 from term_image.render import FinalizedIteratorError, RenderIterator
 from term_image.renderable import (
+    DataNamespace,
     FrameCount,
     FrameDuration,
     IncompatibleRenderArgsError,
     Renderable,
     RenderArgs,
-    RenderData,
     Seek,
 )
 
@@ -89,8 +89,9 @@ class IndefiniteFrameFill(Renderable):
         )
         return render_data
 
-    class _Data_(RenderData.Namespace):
-        frames: Iterator[int] | None
+
+class IndefiniteFrameFillData(DataNamespace, render_cls=IndefiniteFrameFill):
+    frames: Iterator[int] | None
 
 
 class CacheFrameFill(FrameFill):

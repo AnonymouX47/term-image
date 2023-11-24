@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("Renderable",)
+__all__ = ("Renderable", "RenderableData")
 
 import sys
 from abc import ABCMeta, abstractmethod
@@ -26,7 +26,7 @@ from ._exceptions import (
     RenderableError,
     RenderSizeOutofRangeError,
 )
-from ._types import Frame, RenderArgs, RenderData
+from ._types import ArgsNamespace, DataNamespace, Frame, RenderArgs, RenderData
 
 try:
     import termios
@@ -46,67 +46,13 @@ class RenderableMeta(ABCMeta):
         if not _base and not any(issubclass(base, Renderable) for base in bases):
             raise RenderableError(f"{name!r} is not a subclass of 'Renderable'")
 
-        try:
-            args_cls = namespace["Args"]
-        except KeyError:
-            args_cls = None
-
-        if args_cls is not None:
-            if not isinstance(args_cls, type):
-                raise arg_type_error(f"'{name}.Args'", args_cls)
-            if not issubclass(args_cls, RenderArgs.Namespace):
-                raise RenderableError(
-                    f"'{name}.Args' is not a subclass of 'RenderArgs.Namespace'"
-                )
-            if not args_cls._FIELDS:
-                raise RenderableError(f"'{name}.Args' has no fields")
-            if args_cls._RENDER_CLS:
-                raise RenderableError(
-                    f"'{name}.Args' is already associated with render class "
-                    f"{args_cls._RENDER_CLS.__name__!r}"
-                )
-
-        try:
-            data_cls = namespace["_Data_"]
-        except KeyError:
-            data_cls = None
-
-        if data_cls is not None:
-            if not isinstance(data_cls, type):
-                raise arg_type_error(f"'{name}._Data_'", data_cls)
-            if not issubclass(data_cls, RenderData.Namespace):
-                raise RenderableError(
-                    f"'{name}._Data_' is not a subclass of 'RenderData.Namespace'"
-                )
-            if not data_cls._FIELDS:
-                raise RenderableError(f"'{name}._Data_' has no fields")
-            if data_cls._RENDER_CLS:
-                raise RenderableError(
-                    f"'{name}._Data_' is already associated with render class "
-                    f"{data_cls._RENDER_CLS.__name__!r}"
-                )
-
         new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
 
-        if args_cls:
-            args_cls._RENDER_CLS = new_cls
-        else:
-            new_cls.Args = None
+        all_default_args = {}
+        render_data_mro = {}
+        all_exported_descendant_attrs = set()  # removes duplicates
 
-        if data_cls:
-            data_cls._RENDER_CLS = new_cls
-        else:
-            new_cls._Data_ = None
-
-        if _base:  # Renderable
-            all_default_args = {}
-            render_data_mro = {new_cls: new_cls._Data_}
-            all_exported_descendant_attrs = frozenset()
-        else:
-            all_default_args = {new_cls: args_cls()} if args_cls else {}
-            render_data_mro = {new_cls: data_cls} if data_cls else {}
-            all_exported_descendant_attrs = set()  # remove duplicates
-
+        if not _base:  # Subclass of `Renderable`
             for mro_cls in new_cls.__mro__:
                 if not issubclass(mro_cls, Renderable):
                     continue
@@ -115,7 +61,7 @@ class RenderableMeta(ABCMeta):
                     if mro_cls.Args:
                         all_default_args[mro_cls] = mro_cls._ALL_DEFAULT_ARGS[mro_cls]
                     if mro_cls._Data_:
-                        render_data_mro[mro_cls] = mro_cls._RENDER_DATA_MRO[mro_cls]
+                        render_data_mro[mro_cls] = mro_cls._Data_
                 try:
                     all_exported_descendant_attrs.update(
                         mro_cls.__dict__["_EXPORTED_DESCENDANT_ATTRS_"]
@@ -128,6 +74,7 @@ class RenderableMeta(ABCMeta):
         new_cls._ALL_EXPORTED_ATTRS = tuple(
             all_exported_descendant_attrs.union(namespace.get("_EXPORTED_ATTRS_", ()))
         )
+        new_cls.Args = new_cls._Data_ = None
 
         return new_cls
 
@@ -171,6 +118,151 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     """
 
     # Class Attributes =========================================================
+
+    # Initialized by `RenderableMeta` and may be updated by `ArgsNamespaceMeta`
+    Args: ClassVar[type[ArgsNamespace] | None]
+    """:term:`Render class`\\ -specific render arguments.
+
+    This is either:
+
+    - a render argument namespace class (subclass of :py:class:`ArgsNamespace`)
+      associated [#ran1]_ with the render class, or
+    - :py:data:`None`, if the render class has no render arguments.
+
+    If this is a class, an instance of it (or a subclass thereof) is contained within
+    any :py:class:`RenderArgs` instance associated [#ra2]_ with the render class or
+    any of its subclasses. Also, an instance of this class (or a subclass of it) is
+    returned by :py:meth:`render_args[render_cls]
+    <term_image.renderable.RenderArgs.__getitem__>`; where *render_args* is
+    an instance of :py:class:`~term_image.renderable.RenderArgs` as previously
+    described and *render_cls* is the render class with which this namespace class
+    is associated [#ran1]_.
+
+    .. collapse:: Example
+
+       >>> class Foo(Renderable):
+       ...     pass
+       ...
+       ... class FooArgs(ArgsNamespace, render_cls=Foo):
+       ...     foo: str | None = None
+       ...
+       >>> Foo.Args is FooArgs
+       True
+       >>>
+       >>> # default
+       >>> foo_args = Foo.Args()
+       >>> foo_args
+       FooArgs(foo=None)
+       >>> foo_args.foo is None
+       True
+       >>>
+       >>> render_args = RenderArgs(Foo)
+       >>> render_args[Foo]
+       FooArgs(foo=None)
+       >>>
+       >>> # non-default
+       >>> foo_args = Foo.Args("FOO")
+       >>> foo_args
+       FooArgs(foo='FOO')
+       >>> foo_args.foo
+       'FOO'
+       >>>
+       >>> render_args = RenderArgs(Foo, foo_args.update(foo="bar"))
+       >>> render_args[Foo]
+       FooArgs(foo='bar')
+
+    On the other hand, if this is :py:data:`None`, it implies the render class has no
+    render arguments.
+
+    .. collapse:: Example
+
+       >>> class Bar(Renderable):
+       ...     pass
+       ...
+       >>> Bar.Args is None
+       True
+       >>> render_args = RenderArgs(Bar)
+       >>> render_args[Bar]
+       Traceback (most recent call last):
+         ...
+       NoArgsNamespaceError: 'Bar' has no render arguments
+    """
+
+    # Initialized by `RenderableMeta` and may be updated by `DataNamespaceMeta`
+    _Data_: ClassVar[type[DataNamespace] | None]
+    """:term:`Render class`\\ -specific render data.
+
+    This is either:
+
+    - a render data namespace class (subclass of :py:class:`DataNamespace`)
+      associated [#rdn1]_ with the render class, or
+    - :py:data:`None`, if the render class has no render data.
+
+    If this is a class, an instance of it (or a subclass thereof) is contained within
+    any :py:class:`RenderData` instance associated [#rd1]_ with the render class or
+    any of its subclasses. Also, an instance of this class (or a subclass of it) is
+    returned by :py:meth:`render_data[render_cls]
+    <term_image.renderable.RenderData.__getitem__>`; where *render_data* is
+    an instance of :py:class:`~term_image.renderable.RenderData` as previously
+    described and *render_cls* is the render class with which this namespace class
+    is associated [#rdn1]_.
+
+    .. collapse:: Example
+
+       >>> class Foo(Renderable):
+       ...     pass
+       ...
+       ... class _Data_(DataNamespace, render_cls=Foo):
+       ...     foo: str | None
+       ...
+       >>> Foo._Data_ is FooData
+       True
+       >>>
+       >>> foo_data = Foo._Data_()
+       >>> foo_data
+       <FooData: foo=<uninitialized>>
+       >>> foo_data.foo
+       Traceback (most recent call last):
+         ...
+       UninitializedDataFieldError: The render data field 'foo' of 'Foo' has not \
+been initialized
+       >>>
+       >>> foo_data.foo = "FOO"
+       >>> foo_data
+       <FooData: foo='FOO'>
+       >>> foo_data.foo
+       'FOO'
+       >>>
+       >>> render_data = RenderData(Foo)
+       >>> render_data[Foo]
+       <FooData: foo=<uninitialized>>
+       >>>
+       >>> render_data[Foo].foo = "bar"
+       >>> render_data[Foo]
+       <FooData: foo='bar'>
+
+    On the other hand, if this is :py:data:`None`, it implies the render class has no
+    render data.
+
+    .. collapse:: Example
+
+       >>> class Bar(Renderable):
+       ...     pass
+       ...
+       >>> Bar._Data_ is None
+       True
+       >>>
+       >>> render_data = RenderData(Bar)
+       >>> render_data[Bar]
+       Traceback (most recent call last):
+         ...
+       NoDataNamespaceError: 'Bar' has no render data
+
+    .. seealso::
+
+       :py:class:`~term_image.renderable.RenderableData`
+          Render data for :py:class:`~term_image.renderable.Renderable`.
+    """
 
     _EXPORTED_ATTRS_: ClassVar[tuple[str]]
     """Exported attributes.
@@ -1008,7 +1100,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             The rendered frame.
 
             * *render_size* = :py:attr:`render_data[Renderable].size
-              <term_image.renderable.Renderable._Data_.size>`.
+              <term_image.renderable.RenderableData.size>`.
             * The :py:attr:`~term_image.renderable.Frame.render_output` field holds the
               :term:`render output`. This string should:
 
@@ -1033,11 +1125,11 @@ class Renderable(metaclass=RenderableMeta, _base=True):
             * The value of the :py:attr:`~term_image.renderable.Frame.duration` field
               should be determined from the frame data source (or a default/fallback
               value, if undeterminable), if :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.Renderable._Data_.duration>` is
+              <term_image.renderable.RenderableData.duration>` is
               :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
               Otherwise, it should be equal to
               :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.Renderable._Data_.duration>`.
+              <term_image.renderable.RenderableData.duration>`.
 
         Raises:
             StopIteration: End of iteration for an animated renderable with
@@ -1047,135 +1139,139 @@ class Renderable(metaclass=RenderableMeta, _base=True):
         NOTE:
             :py:class:`StopIteration` may be raised if and only if
             :py:attr:`render_data[Renderable].iteration
-            <term_image.renderable.Renderable._Data_.iteration>` is ``True``.
+            <term_image.renderable.RenderableData.iteration>` is ``True``.
             Otherwise, it would be out of place.
 
-        .. seealso:: :py:class:`~term_image.renderable.Renderable._Data_`.
+        .. seealso:: :py:class:`~term_image.renderable.RenderableData`.
         """
         raise NotImplementedError
 
-    # Inner classes ============================================================
 
-    class _Data_(RenderData.Namespace):
-        """_Data_()
-
-        Render data namespace for :py:class:`~term_image.renderable.Renderable`.
-
-        .. seealso::
-
-           :ref:`renderable-data`,
-           :py:meth:`~term_image.renderable.Renderable._render_`.
-        """
-
-        size: geometry.Size
-        """:term:`Render size`
-
-        See :py:meth:`~term_image.renderable.Renderable._render_`.
-        """
-
-        frame_offset: int
-        """Frame number/offset
-
-        If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
-        renderable (that generated the data) is:
-
-        * *definite* (i.e an integer); the value of this field is a **non-negative**
-          integer **less than the frame count**, the number of the frame to be rendered.
-        * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`, the value range and
-          interpretation of this field depends on the value of :py:attr:`iteration`
-          and :py:attr:`seek_whence`.
-
-          If :py:attr:`iteration` is ``False``, the value is always **zero** and
-          anything (such as a placeholder frame) may be rendered, as renderables with
-          :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count are
-          typically meant for iteration/animation.
-
-          If :py:attr:`iteration` is ``True`` and :py:attr:`seek_whence` is:
-
-          * :py:attr:`~term_image.renderable.Seek.CURRENT`, the value of this field
-            may be:
-
-            * **zero**, denoting that the next frame on the stream should be rendered.
-            * **positive**, denoting that the stream should be seeked **forward** by
-              :py:attr:`frame_offset` frames and then the new next frame should be
-              rendered.
-            * **negative**, denoting that the stream should be seeked **backward** by
-              -:py:attr:`frame_offset` frames and then the new next frame should be
-              rendered.
-
-          * :py:attr:`~term_image.renderable.Seek.START`, the value of this field
-            may be:
-
-            * **zero**, denoting that the stream should be seeked to its beginning
-              and then the first frame should be rendered.
-            * **positive**, denoting that the stream should be seeked to the
-              (:py:attr:`frame_offset`)th frame **after the first** and then the new
-              next frame should be rendered.
-
-          * :py:attr:`~term_image.renderable.Seek.END`, the value of this field
-            may be:
-
-            * **zero**, denoting that the stream should be seeked to its end
-              and then the last frame should be rendered.
-            * **negative**, denoting that the stream should be seeked to the
-              (-:py:attr:`frame_offset`)th frame **before the last** and then the new
-              next frame should be rendered.
-
-            If the end of the stream cannot be determined (yet), such as with a live
-            source, the furthest available frame in the **forward** direction should
-            be taken to be the end.
-
-          .. note::
-             * If any seek operation is not supported by the underlying source, it
-               should be ignored and the next frame on the stream should be rendered.
-             * If forward seek is supported but the offset is out of the range of
-               available frames, the stream should be seeked to the furthest available
-               frame in the forward direction if its end cannot be determined (yet),
-               such as with a live source.
-               Otherwise i.e if the offset is determined to be beyond the end of the
-               stream, :py:class:`StopIteration` should be raised
-               (see :py:meth:`~term_image.renderable.Renderable._render_`).
-             * If backward seek is supported but the offset is out of the range of
-               available frames, the stream should be seeked to its beginning or the
-               furthest available frame in the backward direction.
-
-          .. tip::
-             A :term:`render class` that implements
-             :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count should
-             specify which seek operations it supports and any necessary details.
-        """
-
-        seek_whence: Seek
-        """Reference position for :py:attr:`frame_offset`
-
-        If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
-        renderable (that generated the data) is *definite*, or
-        :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` but
-        :py:attr:`iteration` is ``False``; the value of this
-        field is always :py:attr:`~term_image.renderable.Seek.START`.
-        Otherwise i.e if :py:attr:`~term_image.renderable.Renderable.frame_count`
-        is :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` and
-        :py:attr:`iteration` is ``True``, it may be any member of
-        :py:class:`~term_image.renderable.Seek`.
-        """
-
-        duration: int | FrameDuration | None
-        """Frame duration
-
-        The possible values and their interpretation are the same as for
-        :py:attr:`~term_image.renderable.Renderable.frame_duration`.
-        See :py:meth:`~term_image.renderable.Renderable._render_`.
-        """
-
-        iteration: bool
-        """:term:`Render` operation kind
-
-        ``True`` if the render is part of a render operation involving a sequence of
-        renders (most likely of different frames). Otherwise i.e if it's a one-off
-        render, ``False``.
-        """
-
-
+# NOTE: The position of these assignments is critical, as they're required for the
+# creation of render argument and data namespace classes.
 _types.Renderable = Renderable
 _types.RenderableMeta = RenderableMeta
 _types.BASE_RENDER_ARGS.__init__(Renderable)
+
+
+class RenderableData(DataNamespace, render_cls=Renderable):
+    """RenderableData()
+
+    Render data namespace for :py:class:`~term_image.renderable.Renderable`.
+
+    .. seealso::
+
+       :py:attr:`~term_image.renderable.Renderable._Data_`
+          Render class-specific render data.
+
+       :py:meth:`~term_image.renderable.Renderable._render_`
+          Renders a frame of a renderable.
+    """
+
+    size: geometry.Size
+    """:term:`Render size`
+
+    See :py:meth:`~term_image.renderable.Renderable._render_`.
+    """
+
+    frame_offset: int
+    """Frame number/offset
+
+    If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
+    renderable (that generated the data) is:
+
+    * *definite* (i.e an integer); the value of this field is a **non-negative**
+      integer **less than the frame count**, the number of the frame to be rendered.
+    * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`, the value range and
+      interpretation of this field depends on the value of :py:attr:`iteration`
+      and :py:attr:`seek_whence`.
+
+      If :py:attr:`iteration` is ``False``, the value is always **zero** and
+      anything (such as a placeholder frame) may be rendered, as renderables with
+      :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count are
+      typically meant for iteration/animation.
+
+      If :py:attr:`iteration` is ``True`` and :py:attr:`seek_whence` is:
+
+      * :py:attr:`~term_image.renderable.Seek.CURRENT`, the value of this field
+        may be:
+
+        * **zero**, denoting that the next frame on the stream should be rendered.
+        * **positive**, denoting that the stream should be seeked **forward** by
+          :py:attr:`frame_offset` frames and then the new next frame should be
+          rendered.
+        * **negative**, denoting that the stream should be seeked **backward** by
+          -:py:attr:`frame_offset` frames and then the new next frame should be
+          rendered.
+
+      * :py:attr:`~term_image.renderable.Seek.START`, the value of this field
+        may be:
+
+        * **zero**, denoting that the stream should be seeked to its beginning
+          and then the first frame should be rendered.
+        * **positive**, denoting that the stream should be seeked to the
+          (:py:attr:`frame_offset`)th frame **after the first** and then the new
+          next frame should be rendered.
+
+      * :py:attr:`~term_image.renderable.Seek.END`, the value of this field
+        may be:
+
+        * **zero**, denoting that the stream should be seeked to its end
+          and then the last frame should be rendered.
+        * **negative**, denoting that the stream should be seeked to the
+          (-:py:attr:`frame_offset`)th frame **before the last** and then the new
+          next frame should be rendered.
+
+        If the end of the stream cannot be determined (yet), such as with a live
+        source, the furthest available frame in the **forward** direction should
+        be taken to be the end.
+
+      .. note::
+         * If any seek operation is not supported by the underlying source, it
+           should be ignored and the next frame on the stream should be rendered.
+         * If forward seek is supported but the offset is out of the range of
+           available frames, the stream should be seeked to the furthest available
+           frame in the forward direction if its end cannot be determined (yet),
+           such as with a live source.
+           Otherwise i.e if the offset is determined to be beyond the end of the
+           stream, :py:class:`StopIteration` should be raised
+           (see :py:meth:`~term_image.renderable.Renderable._render_`).
+         * If backward seek is supported but the offset is out of the range of
+           available frames, the stream should be seeked to its beginning or the
+           furthest available frame in the backward direction.
+
+      .. tip::
+         A :term:`render class` that implements
+         :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count should
+         specify which seek operations it supports and any necessary details.
+    """
+
+    seek_whence: Seek
+    """Reference position for :py:attr:`frame_offset`
+
+    If the :py:attr:`~term_image.renderable.Renderable.frame_count` of the
+    renderable (that generated the data) is *definite*, or
+    :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` but
+    :py:attr:`iteration` is ``False``; the value of this
+    field is always :py:attr:`~term_image.renderable.Seek.START`.
+    Otherwise i.e if :py:attr:`~term_image.renderable.Renderable.frame_count`
+    is :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` and
+    :py:attr:`iteration` is ``True``, it may be any member of
+    :py:class:`~term_image.renderable.Seek`.
+    """
+
+    duration: int | FrameDuration | None
+    """Frame duration
+
+    The possible values and their interpretation are the same as for
+    :py:attr:`~term_image.renderable.Renderable.frame_duration`.
+    See :py:meth:`~term_image.renderable.Renderable._render_`.
+    """
+
+    iteration: bool
+    """:term:`Render` operation kind
+
+    ``True`` if the render is part of a render operation involving a sequence of
+    renders (most likely of different frames). Otherwise i.e if it's a one-off
+    render, ``False``.
+    """

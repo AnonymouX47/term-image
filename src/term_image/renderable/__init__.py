@@ -7,7 +7,10 @@ from __future__ import annotations
 __all__ = (
     "Renderable",
     "RenderArgs",
+    "ArgsNamespace",
     "RenderData",
+    "DataNamespace",
+    "RenderableData",
     "Frame",
     "FrameCount",
     "FrameDuration",
@@ -38,8 +41,10 @@ from ._exceptions import (
     RenderError,
     RenderSizeOutofRangeError,
 )
-from ._renderable import Renderable
+from ._renderable import Renderable, RenderableData
 from ._types import (
+    ArgsNamespace,
+    DataNamespace,
     Frame,
     IncompatibleArgsNamespaceError,
     IncompatibleRenderArgsError,
