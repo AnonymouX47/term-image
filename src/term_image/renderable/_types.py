@@ -454,7 +454,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
         ):
             return RenderArgs(type(self)._RENDER_CLS, self)
 
-        return self.__or__(other)  # All other cases are commutative
+        return type(self).__or__(self, other)  # All other cases are commutative
 
     def as_dict(self) -> dict[str, Any]:
         """Copies the namespace as a dictionary.
