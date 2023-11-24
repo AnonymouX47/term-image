@@ -87,8 +87,14 @@ test-all := $(test) $(test-url)
 
 ## Targets
 
-test-all test test-renderable test-render test-text test-graphics test-image test-widget \
-test-top test-geometry test-padding test-base test-block test-kitty test-iterm2 test-url test-others test-iterator test-urwid:
+test-top \
+test-geometry \
+test-padding \
+test-renderable test-renderable-renderable test-renderable-types \
+test-render test-render-iterator \
+test-image test-base test-text test-graphics test-block test-kitty test-iterm2 test-url test-others test-iterator \
+test-widget test-urwid \
+test test-all:
 	$(pytest) $($@)
 
 
