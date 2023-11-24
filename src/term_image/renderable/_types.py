@@ -939,6 +939,19 @@ class RenderArgs(RenderArgsData):
         cls.__interned = {}
         super().__init_subclass__(**kwargs)
 
+    def __contains__(self, namespace: ArgsNamespace) -> bool:
+        """Checks if a render argument namespace is contained in this set of render
+        arguments.
+
+        Args:
+            namespace: A render argument namespace.
+
+        Returns:
+            ``True`` if the given namespace is equal to any of the namespaces
+            contained in this set of render arguments. Otherwise, ``False``.
+        """
+        return None is not self._namespaces.get(namespace._RENDER_CLS) == namespace
+
     def __eq__(self, other: RenderArgs) -> bool:
         """Compares this set of render arguments with another.
 

@@ -491,6 +491,33 @@ class TestRenderArgs:
             assert render_args == init_render_args
             assert render_args[Foo] is self.namespace
 
+    class TestContains:
+        class Bar(Foo):
+            pass
+
+        class BarArgs(ArgsNamespace, render_cls=Bar):
+            bar: str = "BAR"
+
+        class Baz(Bar):
+            pass
+
+        class BazArgs(ArgsNamespace, render_cls=Baz):
+            baz: str = "BAZ"
+
+        render_args = FooArgs("foo") | BarArgs("bar") | BazArgs("baz")
+
+        @pytest.mark.parametrize(
+            "namespace", [FooArgs("foo"), BarArgs("bar"), BazArgs("baz")]
+        )
+        def test_in(self, namespace):
+            assert namespace in self.render_args
+
+        @pytest.mark.parametrize(
+            "namespace", [FooArgs("FOO"), BarArgs("BAR"), BazArgs("BAZ")]
+        )
+        def test_not_in(self, namespace):
+            assert namespace not in self.render_args
+
     def test_eq(self):
         class Bar(Renderable):
             pass

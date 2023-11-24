@@ -25,7 +25,7 @@ Classes
 |
 
 .. autoclass:: RenderArgs
-   :special-members: __eq__, __getitem__, __hash__, __iter__
+   :special-members: __contains__, __eq__, __getitem__, __hash__, __iter__
    :inherited-members: render_cls
 
    .. rubric:: Footnotes
