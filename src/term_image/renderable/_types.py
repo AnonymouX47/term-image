@@ -829,7 +829,7 @@ class RenderArgs(RenderArgsData):
     ) -> RenderArgs:
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, cls):
+        elif isinstance(init_or_namespace, __class__):
             init_render_args = init_or_namespace
         elif isinstance(init_or_namespace, ArgsNamespace):
             init_render_args = None
@@ -863,6 +863,7 @@ class RenderArgs(RenderArgsData):
 
         if (
             init_render_args
+            and type(init_render_args) is cls
             and init_render_args.render_cls is render_cls
             and not namespaces
         ):
@@ -882,7 +883,7 @@ class RenderArgs(RenderArgsData):
 
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, type(self)):
+        elif isinstance(init_or_namespace, __class__):
             init_render_args = init_or_namespace
         else:
             init_render_args = None
@@ -904,7 +905,7 @@ class RenderArgs(RenderArgsData):
             intern = False
 
         if init_render_args:
-            if init_render_args.render_cls is render_cls and not namespaces:
+            if init_render_args is self:
                 return
         # `render_cls` wasn't validated in `__new__()`
         elif not isinstance(render_cls, RenderableMeta):
