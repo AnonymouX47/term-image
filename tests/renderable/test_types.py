@@ -419,6 +419,15 @@ class TestRenderArgs:
             assert render_args[Foo] is namespace_foo
 
     class TestInitRenderArgs:
+        class SubRenderArgs(RenderArgs):
+            pass
+
+        class SubSubRenderArgs(SubRenderArgs):
+            pass
+
+        # Used to ensure `init_render_args` is non-default
+        namespace = Foo.Args("bar", "foo")
+
         class TestCompatibility:
             class A(Renderable):
                 pass
@@ -468,11 +477,19 @@ class TestRenderArgs:
             assert render_args == RenderArgs(Foo, None)
 
         def test_non_default(self):
-            init_render_args = RenderArgs(Foo, Foo.Args("bar", "foo"))
+            init_render_args = RenderArgs(Foo, self.namespace)
             render_args = RenderArgs(Foo, init_render_args)
             assert render_args == init_render_args
-            assert render_args[Foo] == Foo.Args("bar", "foo")
-            assert render_args[Foo] is init_render_args[Foo]
+            assert render_args[Foo] is self.namespace
+
+        @pytest.mark.parametrize(
+            "init_render_args_cls", [RenderArgs, SubRenderArgs, SubSubRenderArgs]
+        )
+        def test_subclasses(self, init_render_args_cls):
+            init_render_args = init_render_args_cls(Foo, self.namespace)
+            render_args = self.SubRenderArgs(Foo, init_render_args)
+            assert render_args == init_render_args
+            assert render_args[Foo] is self.namespace
 
     def test_eq(self):
         class Bar(Renderable):
@@ -782,19 +799,47 @@ class TestRenderArgs:
                 assert isinstance(render_args, SubRenderArgs)
                 assert render_args is SubRenderArgs(Foo)
 
-        def test_init_render_args_with_same_render_cls_and_without_namespaces(self):
+        class TestInitRenderArgsWithSameRenderClsAndWithoutNamespaces:
             class Bar(Foo):
                 pass
 
-            namespace = Foo.Args(foo="bar", bar="foo")
+            # Used to ensure `init_render_args` is non-default
+            namespace = Foo.Args("bar", "foo")
 
-            foo_render_args = RenderArgs(Foo, namespace)
-            assert RenderArgs(Foo, foo_render_args) is foo_render_args
+            @pytest.mark.parametrize("render_cls", [Foo, Bar])
+            def test_base_render_args(self, render_cls):
+                init_render_args = RenderArgs(render_cls, self.namespace)
+                assert RenderArgs(render_cls, init_render_args) is init_render_args
 
-            bar_render_args = RenderArgs(Bar, namespace)
-            assert RenderArgs(Bar, bar_render_args) is bar_render_args
+            class TestSubClasses:
+                class SubRenderArgs(RenderArgs):
+                    pass
 
-        # Actually interned by `RenderableMeta`; testing that they're being used
+                # Used to ensure `init_render_args` is non-default
+                namespace = Foo.Args("bar", "foo")
+
+                def test_base_class_init_render_args(self):
+                    init_render_args = RenderArgs(Foo, self.namespace)
+                    render_args = self.SubRenderArgs(Foo, init_render_args)
+                    assert init_render_args is not render_args
+                    assert type(render_args) is self.SubRenderArgs
+
+                def test_same_class_init_render_args(self):
+                    init_render_args = self.SubRenderArgs(Foo, self.namespace)
+                    render_args = self.SubRenderArgs(Foo, init_render_args)
+                    assert init_render_args is render_args
+                    assert type(render_args) is self.SubRenderArgs
+
+                def test_strict_subclass_init_render_args(self):
+                    class SubSubRenderArgs(self.SubRenderArgs):
+                        pass
+
+                    init_render_args = SubSubRenderArgs(Foo, self.namespace)
+                    render_args = self.SubRenderArgs(Foo, init_render_args)
+                    assert init_render_args is not render_args
+                    assert type(render_args) is self.SubRenderArgs
+
+        # Actually interned by `ArgsNamespaceMeta`; testing that they're being used
         def test_default_namespaces_interned(self):
             class A(Renderable):
                 pass
