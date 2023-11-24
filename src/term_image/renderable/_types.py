@@ -850,24 +850,24 @@ class RenderArgs(RenderArgsData):
                     f"{render_cls.__name__!r} "
                 )
 
-        # has default values only
-        if not namespaces and (
-            not init_render_args
-            or init_render_args is BASE_RENDER_ARGS
-            or cls.__interned.get(init_render_args.render_cls) is init_render_args
-        ):
-            try:
-                return cls.__interned[render_cls]
-            except KeyError:
-                pass
+        if not namespaces:
+            # has default namespaces only
+            if (
+                not init_render_args
+                or init_render_args is BASE_RENDER_ARGS
+                or cls.__interned.get(init_render_args.render_cls) is init_render_args
+            ):
+                try:
+                    return cls.__interned[render_cls]
+                except KeyError:
+                    pass
 
-        if (
-            init_render_args
-            and type(init_render_args) is cls
-            and init_render_args.render_cls is render_cls
-            and not namespaces
-        ):
-            return init_render_args
+            if (
+                init_render_args
+                and type(init_render_args) is cls
+                and init_render_args.render_cls is render_cls
+            ):
+                return init_render_args
 
         return super().__new__(cls)
 
@@ -889,7 +889,7 @@ class RenderArgs(RenderArgsData):
             init_render_args = None
             namespaces = (init_or_namespace, *namespaces)
 
-        # has default values only
+        # has default namespaces only
         if not namespaces and (
             not init_render_args
             or init_render_args is BASE_RENDER_ARGS
@@ -907,13 +907,13 @@ class RenderArgs(RenderArgsData):
         if init_render_args:
             if init_render_args is self:
                 return
-        # `render_cls` wasn't validated in `__new__()`
+        # Otherwise, `render_cls` wasn't validated in `__new__()`
         elif not isinstance(render_cls, RenderableMeta):
             raise arg_type_error("render_cls", render_cls)
 
         namespaces_dict = render_cls._ALL_DEFAULT_ARGS.copy()
 
-        # if non-default
+        # if `init_render_args` is non-default
         if init_render_args and BASE_RENDER_ARGS is not init_render_args is not (
             type(self).__interned.get(init_render_args.render_cls)
         ):
