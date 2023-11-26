@@ -327,9 +327,7 @@ been initialized
         elif not isinstance(frame_count, FrameCount):
             raise arg_type_error("frame_count", frame_count)
 
-        if frame_count == 1:
-            self.__frame_duration = None
-        else:
+        if frame_count != 1:
             if isinstance(frame_duration, int):
                 if frame_duration <= 0:
                     raise arg_value_error_range("frame_duration", frame_duration)
@@ -392,34 +390,35 @@ been initialized
         return self.__frame_count
 
     @property
-    def frame_duration(self) -> int | FrameDuration | None:
+    def frame_duration(self) -> int | FrameDuration:
         """Frame duration
 
         GET:
             Returns
 
-            * ``None``, if the renderable is non-animated.
-            * Otherwise,
-
-              * A static duration (in **milliseconds**) i.e the same duration applies
-                to every frame, or
-              * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
+            * a positive integer, a static duration (in **milliseconds**) i.e the
+              same duration applies to every frame; or
+            * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
 
         SET:
-            If the renderable is
+            If the value is
 
-            * :term:`animated` and the value is
+            * a positive integer, it implies a static duration (in **milliseconds**)
+              i.e the same duration applies to every frame.
+            * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
+              enum member's description.
 
-              * a positive integer, it implies a static duration (in **milliseconds**)
-                i.e the same duration applies to every frame.
-              * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
-                enum member's description.
-
-            * non-animated,
-              :py:class:`~term_image.renderable.NonAnimatedFrameDurationError`
-              is raised.
+        Raises:
+            NonAnimatedFrameDurationError: The renderable is non-animated.
         """
-        return self.__frame_duration
+        try:
+            return self.__frame_duration
+        except AttributeError:
+            if not self.animated:
+                raise NonAnimatedFrameDurationError(
+                    "Non-animated renderables have no frame duration"
+                ) from None
+            raise
 
     @frame_duration.setter
     def frame_duration(self, duration: int | FrameDuration) -> None:
