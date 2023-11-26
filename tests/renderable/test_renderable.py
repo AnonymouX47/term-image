@@ -641,9 +641,14 @@ class TestFrameCount:
 
 class TestFrameDuration:
     @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
-    def test_get(self, duration):
-        assert Space(1, duration).frame_duration is None
-        assert Space(2, duration).frame_duration == duration
+    class TestGet:
+        def test_non_animated(self, duration):
+            space = Space(1, duration)
+            with pytest.raises(NonAnimatedFrameDurationError):
+                space.frame_duration
+
+        def test_animated(self, duration):
+            assert Space(2, duration).frame_duration == duration
 
     class TestSet:
         space = Space(1, 1)
@@ -652,8 +657,6 @@ class TestFrameDuration:
         def test_non_animated(self, duration):
             with pytest.raises(NonAnimatedFrameDurationError):
                 self.space.frame_duration = duration
-
-            assert self.space.frame_duration is None
 
         class TestAnimated:
             anim_space = Space(2, 1)
