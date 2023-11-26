@@ -718,9 +718,9 @@ class Frame(NamedTuple):
     number: int
     """Frame number
 
-    The number of the rendered frame (a non-negative integer), if the frame belongs to
-    a renderable with *definite* frame count. Otherwise, the value range and meaning
-    of this field is unspecified.
+    The number of the rendered frame (a non-negative integer), if the frame was
+    rendered by a renderable with *definite* frame count. Otherwise, the value range
+    and meaning of this field is unspecified.
     """
 
     duration: int | None

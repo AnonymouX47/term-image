@@ -1099,20 +1099,19 @@ been initialized
         Returns:
             The rendered frame.
 
-            * *render_size* = :py:attr:`render_data[Renderable].size
+            * The :py:attr:`~term_image.renderable.Frame.render_size` field =
+              :py:attr:`render_data[Renderable].size
               <term_image.renderable.RenderableData.size>`.
             * The :py:attr:`~term_image.renderable.Frame.render_output` field holds the
               :term:`render output`. This string should:
 
-              * contain as many lines as :py:attr:`render_size.height
-                <term_image.geometry.Size.height>` i.e exactly
+              * contain as many lines as ``render_size.height`` i.e exactly
                 ``render_size.height - 1`` occurrences of ``\\n`` (the newline
                 sequence).
-              * occupy exactly :py:attr:`render_size.height
-                <term_image.geometry.Size.height>` lines and
-                :py:attr:`render_size.width <term_image.geometry.Size.width>` columns
-                on each line when drawn onto a terminal screen, **at least** when the
-                render **size** it not greater than the terminal size on either axis.
+              * occupy exactly ``render_size.height`` lines and ``render_size.width``
+                columns on each line when drawn onto a terminal screen, **at least**
+                when the render **size** it not greater than the terminal size on
+                either axis.
 
                 .. tip::
                   If for any reason, the output behaves differently when the render
