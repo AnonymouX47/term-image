@@ -723,11 +723,16 @@ class Frame(NamedTuple):
     and meaning of this field is unspecified.
     """
 
-    duration: int | None
+    duration: int
     """Frame duration (in **milliseconds**)
 
-    ``None``, if the frame belongs to a non-animated renderable. Otherwise, a positive
-    integer.
+    The duration of the rendered frame (a non-negative integer), if the frame was
+    rendered by an **animated** renderable. Otherwise, the value range and meaning
+    of this field is unspecified.
+
+    HINT:
+        For animated renderables, a zero value indicates that the next frame should
+        be displayed immediately after (without any delay), except stated otherwise.
     """
 
     render_size: geometry.Size
