@@ -12,7 +12,7 @@ Constants
 Enumerations
 ------------
 
-.. autoclass:: AutoCellRatio
+.. autoclass:: AutoCellRatio()
 
 
 Functions

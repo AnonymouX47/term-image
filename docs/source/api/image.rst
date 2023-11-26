@@ -35,12 +35,12 @@ Enumerations
    :autosummary-no-titles:
 
 
-.. autoclass:: ImageSource
+.. autoclass:: ImageSource()
    :autosummary-sections: None
 
 |
 
-.. autoclass:: Size
+.. autoclass:: Size()
    :autosummary-sections: None
 
 

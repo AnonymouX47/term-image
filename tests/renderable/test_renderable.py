@@ -29,6 +29,7 @@ from term_image.renderable import (
     RenderData,
     RenderSizeOutofRangeError,
     Seek,
+    UninitializedDataFieldError,
 )
 
 from .. import get_terminal_size
@@ -68,7 +69,11 @@ class Space(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
+            (
+                1
+                if not self.animated or data.duration is FrameDuration.DYNAMIC
+                else data.duration
+            ),
             data.size,
             "\n".join((" " * width,) * height),
             renderable=self,
@@ -120,7 +125,11 @@ class Char(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
+            (
+                1
+                if not self.animated or data.duration is FrameDuration.DYNAMIC
+                else data.duration
+            ),
             data.size,
             "\n".join((render_args[Char].char * width,) * height),
             renderable=self,
@@ -148,7 +157,11 @@ class FrameFill(Renderable):
         width, height = data.size
         return DummyFrame(
             data.frame_offset,
-            1 if data.duration is FrameDuration.DYNAMIC else data.duration,
+            (
+                1
+                if not self.animated or data.duration is FrameDuration.DYNAMIC
+                else data.duration
+            ),
             data.size,
             "\n".join((str(data.frame_offset) * width,) * height),
             renderable=self,
@@ -165,12 +178,16 @@ class DummyFrame(Frame):
 
     def __new__(cls, *args, renderable, render_data, render_args):
         new = super().__new__(cls, *args)
+
+        if not renderable.animated:
+            render_data[Renderable].duration = 0
         __class__._extra_data[id(new)] = (
             renderable,
             render_data,
             render_args,
             SimpleNamespace(**render_data[Renderable].as_dict()),
         )
+
         return new
 
     def __del__(self):
@@ -624,9 +641,14 @@ class TestFrameCount:
 
 class TestFrameDuration:
     @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
-    def test_get(self, duration):
-        assert Space(1, duration).frame_duration is None
-        assert Space(2, duration).frame_duration == duration
+    class TestGet:
+        def test_non_animated(self, duration):
+            space = Space(1, duration)
+            with pytest.raises(NonAnimatedFrameDurationError):
+                space.frame_duration
+
+        def test_animated(self, duration):
+            assert Space(2, duration).frame_duration == duration
 
     class TestSet:
         space = Space(1, 1)
@@ -635,8 +657,6 @@ class TestFrameDuration:
         def test_non_animated(self, duration):
             with pytest.raises(NonAnimatedFrameDurationError):
                 self.space.frame_duration = duration
-
-            assert self.space.frame_duration is None
 
         class TestAnimated:
             anim_space = Space(2, 1)
@@ -1552,11 +1572,20 @@ class TestGetRenderData:
             assert render_data[Renderable].seek_whence == Seek.START
 
     @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
-    def test_duration(self, duration):
-        self.anim_space.frame_duration = duration
-        render_data = self.anim_space._get_render_data_(iteration=False)
-        duration = render_data[Renderable].duration
-        assert duration == duration
+    class TestDuration:
+        anim_space = Space(10, 1)
+
+        def test_non_animated(self, duration):
+            space = Space(1, duration)
+            render_data = space._get_render_data_(iteration=False)
+            with pytest.raises(UninitializedDataFieldError):
+                render_data[Renderable].duration
+
+        def test_animated(self, duration):
+            self.anim_space.frame_duration = duration
+            render_data = self.anim_space._get_render_data_(iteration=False)
+            duration = render_data[Renderable].duration
+            assert duration == duration
 
     @pytest.mark.parametrize("iteration", [False, True])
     def test_iteration(self, iteration):

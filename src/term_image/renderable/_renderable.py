@@ -327,9 +327,7 @@ been initialized
         elif not isinstance(frame_count, FrameCount):
             raise arg_type_error("frame_count", frame_count)
 
-        if frame_count == 1:
-            self.__frame_duration = None
-        else:
+        if frame_count != 1:
             if isinstance(frame_duration, int):
                 if frame_duration <= 0:
                     raise arg_value_error_range("frame_duration", frame_duration)
@@ -392,34 +390,35 @@ been initialized
         return self.__frame_count
 
     @property
-    def frame_duration(self) -> int | FrameDuration | None:
+    def frame_duration(self) -> int | FrameDuration:
         """Frame duration
 
         GET:
             Returns
 
-            * ``None``, if the renderable is non-animated.
-            * Otherwise,
-
-              * A static duration (in **milliseconds**) i.e the same duration applies
-                to every frame, or
-              * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
+            * a positive integer, a static duration (in **milliseconds**) i.e the
+              same duration applies to every frame; or
+            * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
 
         SET:
-            If the renderable is
+            If the value is
 
-            * :term:`animated` and the value is
+            * a positive integer, it implies a static duration (in **milliseconds**)
+              i.e the same duration applies to every frame.
+            * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
+              enum member's description.
 
-              * a positive integer, it implies a static duration (in **milliseconds**)
-                i.e the same duration applies to every frame.
-              * :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`, see the
-                enum member's description.
-
-            * non-animated,
-              :py:class:`~term_image.renderable.NonAnimatedFrameDurationError`
-              is raised.
+        Raises:
+            NonAnimatedFrameDurationError: The renderable is non-animated.
         """
-        return self.__frame_duration
+        try:
+            return self.__frame_duration
+        except AttributeError:
+            if not self.animated:
+                raise NonAnimatedFrameDurationError(
+                    "Non-animated renderables have no frame duration"
+                ) from None
+            raise
 
     @frame_duration.setter
     def frame_duration(self, duration: int | FrameDuration) -> None:
@@ -942,13 +941,15 @@ been initialized
             :py:meth:`~term_image.renderable.Renderable._init_render_`.
         """
         render_data = RenderData(type(self))
-        render_data[__class__].update(
+        renderable_data = render_data[__class__]
+        renderable_data.update(
             size=self._get_render_size_(),
             frame_offset=self.__frame,
             seek_whence=Seek.START,
-            duration=self.__frame_duration,
             iteration=iteration,
         )
+        if self.animated:
+            renderable_data.duration = self.__frame_duration
 
         return render_data
 
@@ -1099,20 +1100,19 @@ been initialized
         Returns:
             The rendered frame.
 
-            * *render_size* = :py:attr:`render_data[Renderable].size
+            * The :py:attr:`~term_image.renderable.Frame.render_size` field =
+              :py:attr:`render_data[Renderable].size
               <term_image.renderable.RenderableData.size>`.
             * The :py:attr:`~term_image.renderable.Frame.render_output` field holds the
               :term:`render output`. This string should:
 
-              * contain as many lines as :py:attr:`render_size.height
-                <term_image.geometry.Size.height>` i.e exactly
+              * contain as many lines as ``render_size.height`` i.e exactly
                 ``render_size.height - 1`` occurrences of ``\\n`` (the newline
                 sequence).
-              * occupy exactly :py:attr:`render_size.height
-                <term_image.geometry.Size.height>` lines and
-                :py:attr:`render_size.width <term_image.geometry.Size.width>` columns
-                on each line when drawn onto a terminal screen, **at least** when the
-                render **size** it not greater than the terminal size on either axis.
+              * occupy exactly ``render_size.height`` lines and ``render_size.width``
+                columns on each line when drawn onto a terminal screen, **at least**
+                when the render **size** it not greater than the terminal size on
+                either axis.
 
                 .. tip::
                   If for any reason, the output behaves differently when the render
@@ -1122,14 +1122,19 @@ been initialized
 
               * **not** end with ``\\n`` (the newline sequence).
 
-            * The value of the :py:attr:`~term_image.renderable.Frame.duration` field
-              should be determined from the frame data source (or a default/fallback
-              value, if undeterminable), if :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.RenderableData.duration>` is
-              :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
-              Otherwise, it should be equal to
-              :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.RenderableData.duration>`.
+            * As for the :py:attr:`~term_image.renderable.Frame.duration` field, if
+              the renderable is:
+
+              * **animated**; the value should be determined from the frame data
+                source (or a default/fallback value, if undeterminable), if
+                :py:attr:`render_data[Renderable].duration
+                <term_image.renderable.RenderableData.duration>` is
+                :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
+                Otherwise, it should be equal to
+                :py:attr:`render_data[Renderable].duration
+                <term_image.renderable.RenderableData.duration>`.
+              * **non-animated**; the value range is unspecified i.e it may be given
+                any value.
 
         Raises:
             StopIteration: End of iteration for an animated renderable with
@@ -1260,12 +1265,16 @@ class RenderableData(DataNamespace, render_cls=Renderable):
     :py:class:`~term_image.renderable.Seek`.
     """
 
-    duration: int | FrameDuration | None
+    duration: int | FrameDuration
     """Frame duration
 
-    The possible values and their interpretation are the same as for
+    The possible values and their respective interpretations are the same as for
     :py:attr:`~term_image.renderable.Renderable.frame_duration`.
-    See :py:meth:`~term_image.renderable.Renderable._render_`.
+    See :py:meth:`~term_image.renderable.Renderable._render_` for usage details.
+
+    ATTENTION:
+        This field is left **uninitialized** for render data generated by/for
+        **non-animated** renderables.
     """
 
     iteration: bool
