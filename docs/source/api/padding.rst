@@ -32,12 +32,12 @@ Enumerations
    :autosummary-no-titles:
 
 
-.. autoclass:: HAlign
+.. autoclass:: HAlign()
    :autosummary-sections: None
 
 |
 
-.. autoclass:: VAlign
+.. autoclass:: VAlign()
    :autosummary-sections: None
 
 |

@@ -71,17 +71,17 @@ Enumerations
    :autosummary-no-titles:
 
 
-.. autoclass:: FrameCount
+.. autoclass:: FrameCount()
    :autosummary-sections: None
 
 |
 
-.. autoclass:: FrameDuration
+.. autoclass:: FrameDuration()
    :autosummary-sections: None
 
 |
 
-.. autoclass:: Seek
+.. autoclass:: Seek()
    :autosummary-sections: None
    :undoc-members:
 
