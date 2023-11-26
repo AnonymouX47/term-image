@@ -1121,14 +1121,19 @@ been initialized
 
               * **not** end with ``\\n`` (the newline sequence).
 
-            * The value of the :py:attr:`~term_image.renderable.Frame.duration` field
-              should be determined from the frame data source (or a default/fallback
-              value, if undeterminable), if :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.RenderableData.duration>` is
-              :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
-              Otherwise, it should be equal to
-              :py:attr:`render_data[Renderable].duration
-              <term_image.renderable.RenderableData.duration>`.
+            * As for the :py:attr:`~term_image.renderable.Frame.duration` field, if
+              the renderable is:
+
+              * **animated**; the value should be determined from the frame data
+                source (or a default/fallback value, if undeterminable), if
+                :py:attr:`render_data[Renderable].duration
+                <term_image.renderable.RenderableData.duration>` is
+                :py:attr:`~term_image.renderable.FrameDuration.DYNAMIC`.
+                Otherwise, it should be equal to
+                :py:attr:`render_data[Renderable].duration
+                <term_image.renderable.RenderableData.duration>`.
+              * **non-animated**; the value range is unspecified i.e it may be given
+                any value.
 
         Raises:
             StopIteration: End of iteration for an animated renderable with
