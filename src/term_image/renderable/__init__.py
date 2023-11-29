@@ -31,6 +31,7 @@ __all__ = (
     "UninitializedDataFieldError",
     "UnknownArgsFieldError",
     "UnknownDataFieldError",
+    "OptionalPaddingT",
 )
 
 from ._enum import FrameCount, FrameDuration, Seek
@@ -41,7 +42,7 @@ from ._exceptions import (
     RenderError,
     RenderSizeOutofRangeError,
 )
-from ._renderable import Renderable, RenderableData
+from ._renderable import OptionalPaddingT, Renderable, RenderableData
 from ._types import (
     ArgsNamespace,
     DataNamespace,

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__all__ = ("Renderable", "RenderableData")
+__all__ = ("Renderable", "RenderableData", "OptionalPaddingT")
 
 import sys
 from abc import ABCMeta, abstractmethod
