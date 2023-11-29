@@ -8,9 +8,11 @@ __all__ = ("Renderable", "RenderableData")
 
 import sys
 from abc import ABCMeta, abstractmethod
+from collections.abc import Callable
 from time import perf_counter_ns, sleep
 from types import MappingProxyType
-from typing import Any, Callable, ClassVar, TextIO
+
+from typing_extensions import Any, ClassVar, Literal, TextIO, TypeVar, overload
 
 import term_image
 
@@ -35,6 +37,10 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
+T = TypeVar("T")
+RenderableMetaT = TypeVar("RenderableMetaT", bound="RenderableMeta")
+OptionalPaddingT = TypeVar("OptionalPaddingT", bound="Padding | None")
+
 
 class RenderableMeta(ABCMeta):
     """Base metaclass of the Renderable API.
@@ -42,15 +48,29 @@ class RenderableMeta(ABCMeta):
     Implements certain internal/private aspects of the API.
     """
 
-    def __new__(cls, name, bases, namespace, _base: bool = False, **kwargs):
+    Args: type[ArgsNamespace] | None
+    _Data_: type[DataNamespace] | None
+
+    _ALL_DEFAULT_ARGS: MappingProxyType[type[Renderable], ArgsNamespace]
+    _RENDER_DATA_MRO: MappingProxyType[type[Renderable], type[DataNamespace]]
+    _ALL_EXPORTED_ATTRS: tuple[str, ...]
+
+    def __new__(
+        cls: type[RenderableMetaT],
+        name: str,
+        bases: tuple[type, ...],
+        namespace: dict[str, Any],
+        _base: bool = False,
+        **kwargs: Any,
+    ) -> RenderableMetaT:
         if not _base and not any(issubclass(base, Renderable) for base in bases):
             raise RenderableError(f"{name!r} is not a subclass of 'Renderable'")
 
         new_cls = super().__new__(cls, name, bases, namespace, **kwargs)
 
-        all_default_args = {}
-        render_data_mro = {}
-        all_exported_descendant_attrs = set()  # removes duplicates
+        all_default_args: dict[type[Renderable], ArgsNamespace] = {}
+        render_data_mro: dict[type[Renderable], type[DataNamespace]] = {}
+        all_exported_descendant_attrs: set[str] = set()  # removes duplicates
 
         if not _base:  # Subclass of `Renderable`
             for mro_cls in new_cls.__mro__:
@@ -264,7 +284,7 @@ been initialized
           Render data for :py:class:`~term_image.renderable.Renderable`.
     """
 
-    _EXPORTED_ATTRS_: ClassVar[tuple[str]]
+    _EXPORTED_ATTRS_: ClassVar[tuple[str, ...]]
     """Exported attributes.
 
     This specifies class attributes defined by the class (not a parent) on itself
@@ -285,7 +305,7 @@ been initialized
         subprocesses.
     """
 
-    _EXPORTED_DESCENDANT_ATTRS_: ClassVar[tuple[str]]
+    _EXPORTED_DESCENDANT_ATTRS_: ClassVar[tuple[str, ...]]
     """Exported :term:`descendant` attributes.
 
     This specifies class attributes defined by the class (not a parent) on itself
@@ -309,10 +329,18 @@ been initialized
         class across subprocesses.
     """
 
+    _ALL_DEFAULT_ARGS: ClassVar[MappingProxyType[type[Renderable], ArgsNamespace]]
+    _RENDER_DATA_MRO: ClassVar[MappingProxyType[type[Renderable], type[DataNamespace]]]
+    _ALL_EXPORTED_ATTRS: ClassVar[tuple[str, ...]]
+
     # Instance Attributes ======================================================
 
     animated: bool
     """``True`` if the renderable is :term:`animated`. Otherwise, ``False``."""
+
+    __frame: int
+    __frame_count: int | FrameCount
+    __frame_duration: int | FrameDuration
 
     # Special Methods ==========================================================
 
@@ -375,7 +403,7 @@ been initialized
     # Properties ===============================================================
 
     @property
-    def frame_count(self) -> int | FrameCount:
+    def frame_count(self) -> int | Literal[FrameCount.INDEFINITE]:
         """Frame count
 
         GET:
@@ -526,9 +554,11 @@ been initialized
         not_echo_input = OS_IS_UNIX and not echo_input and output.isatty()
         hide_cursor = hide_cursor and output.isatty()
 
-        # Validate size and get render data
-        (render_data, render_args), padding = self._init_render_(
-            lambda *args: args,
+        # Validate size and get render data and args
+        render_data: RenderData
+        real_render_args: RenderArgs
+        (render_data, real_render_args), padding = self._init_render_(
+            lambda *args: args,  # type: ignore[arg-type]
             render_args,
             padding,
             iteration=animation,
@@ -549,9 +579,11 @@ been initialized
                 termios.tcsetattr(output_fd, termios.TCSAFLUSH, new_attr)
 
             if animation:
-                self._animate_(render_data, render_args, padding, loops, cache, output)
+                self._animate_(
+                    render_data, real_render_args, padding, loops, cache, output
+                )
             else:
-                frame = self._render_(render_data, render_args)
+                frame = self._render_(render_data, real_render_args)
                 padded_size = padding.get_padded_size(frame.render_size)
                 render = (
                     frame.render_output
@@ -562,7 +594,9 @@ been initialized
                     output.write(render)
                     output.flush()
                 except KeyboardInterrupt:
-                    self._handle_interrupted_draw_(render_data, render_args, output)
+                    self._handle_interrupted_draw_(
+                        render_data, real_render_args, output
+                    )
                     raise
         finally:
             output.write("\n")
@@ -716,10 +750,10 @@ been initialized
         """
         from term_image.render import RenderIterator
 
-        width, height = render_data[__class__].size
-        pad_left, _, _, pad_bottom = padding._get_exact_dimensions_(
-            render_data[__class__].size
-        )
+        width, height = render_size = render_data[
+            Renderable  # type: ignore[type-abstract]
+        ].size
+        pad_left, _, _, pad_bottom = padding._get_exact_dimensions_(render_size)
         render_iter = RenderIterator._from_render_data_(
             self,
             render_data,
@@ -877,7 +911,7 @@ been initialized
             the *finalize* parameter of :py:meth:`_init_render_`.
         """
 
-    def _get_frame_count_(self) -> int | FrameCount:
+    def _get_frame_count_(self) -> int | Literal[FrameCount.INDEFINITE]:
         """Implements :py:attr:`~term_image.renderable.FrameCount.POSTPONED` frame
         count evaluation.
 
@@ -941,7 +975,7 @@ been initialized
             :py:meth:`~term_image.renderable.Renderable._init_render_`.
         """
         render_data = RenderData(type(self))
-        renderable_data = render_data[__class__]
+        renderable_data = render_data[Renderable]  # type: ignore[type-abstract]
         renderable_data.update(
             size=self._get_render_size_(),
             frame_offset=self.__frame,
@@ -994,9 +1028,52 @@ been initialized
             may write ``CSI 0 m`` to *output*.
         """
 
+    # *render_args*, no *padding*; or neither
+    @overload
     def _init_render_(
         self,
-        renderer: Callable[[RenderData, RenderArgs], Any],
+        renderer: Callable[[RenderData, RenderArgs], T],
+        render_args: RenderArgs | None = None,
+        *,
+        iteration: bool = False,
+        finalize: bool = True,
+        check_size: bool = False,
+        allow_scroll: bool = False,
+    ) -> tuple[T, None]:
+        ...
+
+    # both *render_args* and *padding*
+    @overload
+    def _init_render_(
+        self,
+        renderer: Callable[[RenderData, RenderArgs], T],
+        render_args: RenderArgs | None,
+        padding: OptionalPaddingT,
+        *,
+        iteration: bool = False,
+        finalize: bool = True,
+        check_size: bool = False,
+        allow_scroll: bool = False,
+    ) -> tuple[T, OptionalPaddingT]:
+        ...
+
+    # *padding*, no *render_args*
+    @overload
+    def _init_render_(
+        self,
+        renderer: Callable[[RenderData, RenderArgs], T],
+        *,
+        padding: OptionalPaddingT,
+        iteration: bool = False,
+        finalize: bool = True,
+        check_size: bool = False,
+        allow_scroll: bool = False,
+    ) -> tuple[T, OptionalPaddingT]:
+        ...
+
+    def _init_render_(
+        self,
+        renderer: Callable[[RenderData, RenderArgs], T],
         render_args: RenderArgs | None = None,
         padding: Padding | None = None,
         *,
@@ -1004,14 +1081,14 @@ been initialized
         finalize: bool = True,
         check_size: bool = False,
         allow_scroll: bool = False,
-    ) -> tuple[Any, Padding | None]:
+    ) -> tuple[T, Padding | None]:
         """Initiates a render operation.
 
         Args:
             renderer: Performs a render operation or extracts render data and arguments
               for a render operation to be performed later on.
             render_args: Render arguments.
-            padding: :term:`Render output` padding.
+            padding (:py:data:`OptionalPaddingT`): :term:`Render output` padding.
             iteration: Whether the render operation involves a sequence of renders
               (most likely of different frames), or it's a one-off render.
             finalize: Whether to finalize the render data passed to *renderer*
@@ -1032,6 +1109,8 @@ been initialized
             IncompatibleRenderArgsError: Incompatible render arguments.
             RenderSizeOutofRangeError: *check_size* is ``True`` and the [padded]
               :term:`render size` cannot fit into the :term:`terminal size`.
+
+        :rtype: tuple[T, :py:data:`OptionalPaddingT`]
 
         After preparing render data and processing arguments, *renderer* is called with
         the following positional arguments:
@@ -1067,7 +1146,9 @@ been initialized
                 padding = padding.resolve(terminal_size)
 
             if check_size:
-                render_size = render_data[__class__].size
+                render_size = render_data[
+                    Renderable  # type: ignore[type-abstract]
+                ].size
                 width, height = (
                     padding.get_padded_size(render_size) if padding else render_size
                 )
@@ -1152,11 +1233,10 @@ been initialized
         raise NotImplementedError
 
 
-# NOTE: The position of these assignments is critical, as they're required for the
+# NOTE: The position of these is critical, as they're required for the
 # creation of render argument and data namespace classes.
-_types.Renderable = Renderable
-_types.RenderableMeta = RenderableMeta
-_types.BASE_RENDER_ARGS.__init__(Renderable)
+_types.RenderableMeta = RenderableMeta  # type: ignore[attr-defined]
+_types.BASE_RENDER_ARGS.__init__(Renderable)  # type: ignore[misc]
 
 
 class RenderableData(DataNamespace, render_cls=Renderable):

@@ -27,9 +27,18 @@ from inspect import Parameter, signature
 from types import MappingProxyType
 from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Sequence, Type
 
+from typing_extensions import TYPE_CHECKING
+
 from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
 from ._exceptions import RenderableError
+
+if TYPE_CHECKING:
+    # `RenderableMeta` is set from `._renderable` later on, as a top-level import
+    # will result in a circular import and localized imports are just unnecessarily
+    # costly (no matter how minimal).
+    from ._renderable import Renderable, RenderableMeta
+
 
 # Exceptions ===================================================================
 
@@ -1292,7 +1301,3 @@ class RenderData(RenderArgsData):
 # Variables ====================================================================
 
 BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)
-
-# Updated from `._renderable`
-Renderable = "Renderable"
-RenderableMeta = "RenderableMeta"
