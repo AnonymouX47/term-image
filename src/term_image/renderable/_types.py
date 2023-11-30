@@ -118,8 +118,9 @@ class UnknownDataFieldError(RenderDataError, AttributeError):
 class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
+    _associated: bool = False
     _FIELDS: MappingProxyType[str, Any] = {}
-    _RENDER_CLS: type[Renderable] | None = None
+    _RENDER_CLS: type[Renderable]
 
     def __new__(
         cls,
@@ -153,7 +154,7 @@ class ArgsDataNamespaceMeta(type):
             namespace["__slots__"] = tuple(fields)
 
             if render_cls:
-                if base._RENDER_CLS:
+                if base._associated:
                     raise RenderArgsDataError(
                         "Cannot reassociate a namespace subclass; the base class "
                         f"is already associated with {base._RENDER_CLS.__name__!r}"
@@ -165,7 +166,9 @@ class ArgsDataNamespaceMeta(type):
                 if not isinstance(render_cls, RenderableMeta):
                     raise arg_type_error("render_cls", render_cls)
 
+                namespace["_associated"] = True
                 namespace["_RENDER_CLS"] = render_cls
+
             elif fields:
                 raise RenderArgsDataError("Unassociated namespace class with fields")
 
@@ -195,7 +198,7 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
     """:term:`Render class`\\ -specific argument/data namespace."""
 
     def __new__(cls, *args, **kwargs):
-        if not cls._RENDER_CLS:
+        if not cls._associated:
             raise UnassociatedNamespaceError(
                 "Cannot instantiate a render argument/data namespace class "
                 "that hasn't been associated with a render class"
@@ -223,7 +226,7 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
             UnassociatedNamespaceError: The namespace class hasn't been associated
               with a render class.
         """
-        if not cls._RENDER_CLS:
+        if not cls._associated:
             raise UnassociatedNamespaceError(
                 "This namespace class hasn't been associated with a render class"
             )

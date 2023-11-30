@@ -180,12 +180,12 @@ class TestNamespaceMeta:
             class Namespace(NamespaceBase):
                 pass
 
-            assert Namespace._RENDER_CLS is None
+            assert Namespace._associated is False
 
             class Namespace(NamespaceBase, render_cls=None):
                 pass
 
-            assert Namespace._RENDER_CLS is None
+            assert Namespace._associated is False
 
         def test_with_fields(self):
             with pytest.raises(RenderArgsDataError, match="Unassociated.* with fields"):
