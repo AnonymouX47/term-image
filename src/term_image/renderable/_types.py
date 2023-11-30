@@ -109,7 +109,7 @@ class UnknownDataFieldError(RenderDataError, AttributeError):
 class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
-    _FIELDS: MappingProxyType[str, Any] = {}
+    _FIELDS: MappingProxyType[str, Any] = MappingProxyType({})
     _RENDER_CLS: type[Renderable] | None = None
 
     def __new__(
