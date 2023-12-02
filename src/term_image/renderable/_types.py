@@ -119,7 +119,7 @@ class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
     _associated: bool = False
-    _FIELDS: MappingProxyType[str, Any] = {}
+    _FIELDS: MappingProxyType[str, Any] = MappingProxyType({})
     _RENDER_CLS: type[Renderable]
 
     def __new__(
@@ -237,34 +237,39 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
 class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render argument namespaces."""
 
-    def __new__(cls, name, bases, namespace, **kwargs):
-        try:
-            defaults = {
-                name: namespace[name] for name in namespace.get("__annotations__", ())
-            }
-        except KeyError as e:
-            raise RenderArgsError(f"Field {e.args[0]!r} has no default value") from None
-
-        args_cls = super().__new__(cls, name, bases, namespace, **kwargs)
-
-        if "_FIELDS" in args_cls.__dict__:
-            args_cls._FIELDS = MappingProxyType(defaults)
-
-        if render_cls := args_cls.__dict__.get("_RENDER_CLS"):
-            if render_cls.Args:
+    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+        if not _base:
+            try:
+                defaults = {
+                    name: namespace[name]
+                    for name in namespace.get("__annotations__", ())
+                }
+            except KeyError as e:
                 raise RenderArgsError(
-                    f"{render_cls.__name__!r} already has an associated render "
-                    f"argument namespace class {render_cls.Args.__name__!r}"
+                    f"Field {e.args[0]!r} has no default value"
+                ) from None
+
+        args_cls = super().__new__(cls, name, bases, namespace, _base=_base, **kwargs)
+
+        if not _base:
+            if "_FIELDS" in args_cls.__dict__:
+                args_cls._FIELDS = MappingProxyType(defaults)
+
+            if render_cls := args_cls.__dict__.get("_RENDER_CLS"):
+                if render_cls.Args:
+                    raise RenderArgsError(
+                        f"{render_cls.__name__!r} already has an associated render "
+                        f"argument namespace class {render_cls.Args.__name__!r}"
+                    )
+                render_cls.Args = args_cls
+                render_cls._ALL_DEFAULT_ARGS = MappingProxyType(
+                    {render_cls: args_cls(), **render_cls._ALL_DEFAULT_ARGS}
                 )
-            render_cls.Args = args_cls
-            render_cls._ALL_DEFAULT_ARGS = MappingProxyType(
-                {render_cls: args_cls(), **render_cls._ALL_DEFAULT_ARGS}
-            )
 
         return args_cls
 
 
-class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
+class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
     """ArgsNamespace(*values, **fields)
 
     :term:`Render class`\\ -specific render argument namespace.
@@ -357,10 +362,13 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
             :term:`render class` and have equal field values.
             Otherwise, ``False``.
         """
-        if type(other) is type(self):
-            return self is other or all(
-                getattr(self, name) == getattr(other, name)
-                for name in type(self)._FIELDS
+        if isinstance(other, ArgsNamespace):
+            return self is other or (
+                type(self)._RENDER_CLS is type(other)._RENDER_CLS
+                and all(
+                    getattr(self, name) == getattr(other, name)
+                    for name in type(self)._FIELDS
+                )
             )
 
         return NotImplemented
@@ -557,10 +565,10 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
 class DataNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render data namespaces."""
 
-    def __new__(cls, name, bases, namespace, **kwargs):
-        data_cls = super().__new__(cls, name, bases, namespace, **kwargs)
+    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+        data_cls = super().__new__(cls, name, bases, namespace, _base=_base, **kwargs)
 
-        if render_cls := data_cls.__dict__.get("_RENDER_CLS"):
+        if not _base and (render_cls := data_cls.__dict__.get("_RENDER_CLS")):
             if render_cls._Data_:
                 raise RenderDataError(
                     f"{render_cls.__name__!r} already has an associated render "
@@ -574,7 +582,7 @@ class DataNamespaceMeta(ArgsDataNamespaceMeta):
         return data_cls
 
 
-class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta):
+class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
     """DataNamespace()
 
     :term:`Render class`\\ -specific render data namespace.
@@ -979,7 +987,7 @@ class RenderArgs(RenderArgsData):
             ``True`` if both are associated with the same :term:`render class`
             and have equal argument values. Otherwise, ``False``.
         """
-        if isinstance(other, type(self)):
+        if isinstance(other, RenderArgs):
             return (
                 self is other
                 or self.render_cls is other.render_cls
