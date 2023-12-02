@@ -970,7 +970,7 @@ class RenderArgs(RenderArgsData):
             ``True`` if both are associated with the same :term:`render class`
             and have equal argument values. Otherwise, ``False``.
         """
-        if isinstance(other, type(self)):
+        if isinstance(other, RenderArgs):
             return (
                 self is other
                 or self.render_cls is other.render_cls

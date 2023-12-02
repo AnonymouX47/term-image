@@ -518,61 +518,93 @@ class TestRenderArgs:
         def test_not_in(self, namespace):
             assert namespace not in self.render_args
 
-    def test_eq(self):
+    class TestEq:
+        class SubRenderArgs(RenderArgs):
+            pass
+
         class Bar(Renderable):
             pass
 
         class BarArgs(ArgsNamespace, render_cls=Bar):
             bar: str = "BAR"
 
-        class Baz(Bar):
-            pass
+        def test_base_class(self):
+            Bar = self.Bar
 
-        class BazArgs(ArgsNamespace, render_cls=Baz):
-            baz: str = "BAZ"
+            class Baz(Bar):
+                pass
 
-        bar_args = RenderArgs(Bar)
-        assert bar_args == RenderArgs(Bar)
-        assert bar_args == RenderArgs(Bar, Bar.Args())
+            class BazArgs(ArgsNamespace, render_cls=Baz):
+                baz: str = "BAZ"
 
-        bar_args_bar = RenderArgs(Bar, Bar.Args("bar"))
-        assert bar_args_bar == RenderArgs(Bar, Bar.Args("bar"))
-        assert bar_args_bar != bar_args
+            bar_args = RenderArgs(Bar)
+            assert bar_args == RenderArgs(Bar)
+            assert bar_args == RenderArgs(Bar, Bar.Args())
 
-        baz_args = RenderArgs(Baz)
-        assert baz_args == RenderArgs(Baz)
-        assert baz_args == RenderArgs(Baz, Bar.Args())
-        assert baz_args == RenderArgs(Baz, Baz.Args())
-        assert baz_args == RenderArgs(Baz, Bar.Args(), Baz.Args())
-        assert baz_args == RenderArgs(Baz, Baz.Args(), Bar.Args())
-        assert baz_args != bar_args
-        assert baz_args != bar_args_bar
+            bar_args_bar = RenderArgs(Bar, Bar.Args("bar"))
+            assert bar_args_bar == RenderArgs(Bar, Bar.Args("bar"))
+            assert bar_args_bar != bar_args
 
-        baz_args_bar = RenderArgs(Baz, Bar.Args("bar"))
-        assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"))
-        assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"), Baz.Args())
-        assert baz_args_bar == RenderArgs(Baz, Baz.Args(), Bar.Args("bar"))
-        assert baz_args_bar != bar_args
-        assert baz_args_bar != bar_args_bar
-        assert baz_args_bar != baz_args
+            baz_args = RenderArgs(Baz)
+            assert baz_args == RenderArgs(Baz)
+            assert baz_args == RenderArgs(Baz, Bar.Args())
+            assert baz_args == RenderArgs(Baz, Baz.Args())
+            assert baz_args == RenderArgs(Baz, Bar.Args(), Baz.Args())
+            assert baz_args == RenderArgs(Baz, Baz.Args(), Bar.Args())
+            assert baz_args != bar_args
+            assert baz_args != bar_args_bar
 
-        baz_args_baz = RenderArgs(Baz, Baz.Args("baz"))
-        assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"))
-        assert baz_args_baz == RenderArgs(Baz, Bar.Args(), Baz.Args("baz"))
-        assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args())
-        assert baz_args_baz != bar_args
-        assert baz_args_baz != bar_args_bar
-        assert baz_args_baz != baz_args
-        assert baz_args_baz != baz_args_bar
+            baz_args_bar = RenderArgs(Baz, Bar.Args("bar"))
+            assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"))
+            assert baz_args_bar == RenderArgs(Baz, Bar.Args("bar"), Baz.Args())
+            assert baz_args_bar == RenderArgs(Baz, Baz.Args(), Bar.Args("bar"))
+            assert baz_args_bar != bar_args
+            assert baz_args_bar != bar_args_bar
+            assert baz_args_bar != baz_args
 
-        baz_args_bar_baz = RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
-        assert baz_args_bar_baz == RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
-        assert baz_args_bar_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args("bar"))
-        assert baz_args_bar_baz != bar_args
-        assert baz_args_bar_baz != bar_args_bar
-        assert baz_args_bar_baz != baz_args
-        assert baz_args_bar_baz != baz_args_bar
-        assert baz_args_bar_baz != baz_args_baz
+            baz_args_baz = RenderArgs(Baz, Baz.Args("baz"))
+            assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"))
+            assert baz_args_baz == RenderArgs(Baz, Bar.Args(), Baz.Args("baz"))
+            assert baz_args_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args())
+            assert baz_args_baz != bar_args
+            assert baz_args_baz != bar_args_bar
+            assert baz_args_baz != baz_args
+            assert baz_args_baz != baz_args_bar
+
+            baz_args_bar_baz = RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
+            assert baz_args_bar_baz == RenderArgs(Baz, Bar.Args("bar"), Baz.Args("baz"))
+            assert baz_args_bar_baz == RenderArgs(Baz, Baz.Args("baz"), Bar.Args("bar"))
+            assert baz_args_bar_baz != bar_args
+            assert baz_args_bar_baz != bar_args_bar
+            assert baz_args_bar_baz != baz_args
+            assert baz_args_bar_baz != baz_args_bar
+            assert baz_args_bar_baz != baz_args_baz
+
+        def test_base_vs_sub(self):
+            # Same render class
+            assert RenderArgs(Foo) == self.SubRenderArgs(Foo)
+            assert RenderArgs(Foo, Foo.Args("bar", "foo")) == self.SubRenderArgs(
+                Foo, Foo.Args("bar", "foo")
+            )
+            assert RenderArgs(Foo, Foo.Args("foo")) != self.SubRenderArgs(
+                Foo, Foo.Args("bar")
+            )
+
+            # Different render classes
+            assert RenderArgs(Foo) != self.SubRenderArgs(self.Bar)
+
+        def test_sub_vs_base(self):
+            # Same render class
+            assert self.SubRenderArgs(Foo) == RenderArgs(Foo)
+            assert self.SubRenderArgs(Foo, Foo.Args("bar", "foo")) == RenderArgs(
+                Foo, Foo.Args("bar", "foo")
+            )
+            assert self.SubRenderArgs(Foo, Foo.Args("foo")) != RenderArgs(
+                Foo, Foo.Args("bar")
+            )
+
+            # Different render classes
+            assert self.SubRenderArgs(Foo) != RenderArgs(self.Bar)
 
     def test_getitem(self):
         class Bar(Foo):
