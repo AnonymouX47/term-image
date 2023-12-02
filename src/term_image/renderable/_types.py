@@ -345,10 +345,13 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta):
             :term:`render class` and have equal field values.
             Otherwise, ``False``.
         """
-        if type(other) is type(self):
-            return self is other or all(
-                getattr(self, name) == getattr(other, name)
-                for name in type(self)._FIELDS
+        if isinstance(other, ArgsNamespace):
+            return self is other or (
+                type(self)._RENDER_CLS is type(other)._RENDER_CLS
+                and all(
+                    getattr(self, name) == getattr(other, name)
+                    for name in type(self)._FIELDS
+                )
             )
 
         return NotImplemented

@@ -1063,28 +1063,60 @@ class TestArgsNamespace:
         with pytest.raises(AttributeError):
             namespace.bar = "foo"
 
-    def test_eq(self):
-        namespace_default = self.Namespace()
-        assert namespace_default == self.Namespace()
-        assert namespace_default == self.Namespace("FOO", "BAR")
+    class TestEq:
+        class TestSameRenderCls:
+            class SubFooArgs(FooArgs):
+                pass
 
-        namespace_foo = self.Namespace(foo="foo")
-        assert namespace_foo == self.Namespace("foo", "BAR")
-        assert namespace_foo == self.Namespace(foo="foo")
-        assert namespace_foo != namespace_default
+            def test_same_class(self):
+                Namespace = FooArgs
 
-        namespace_bar = self.Namespace(bar="bar")
-        assert namespace_bar == self.Namespace("FOO", "bar")
-        assert namespace_bar == self.Namespace(bar="bar")
-        assert namespace_bar != namespace_default
-        assert namespace_bar != namespace_foo
+                namespace_default = Namespace()
+                assert namespace_default == Namespace()
+                assert namespace_default == Namespace("FOO", "BAR")
 
-        namespace_foo_bar = self.Namespace("foo", "bar")
-        assert namespace_foo_bar == self.Namespace("foo", "bar")
-        assert namespace_foo_bar == self.Namespace(foo="foo", bar="bar")
-        assert namespace_foo_bar != namespace_default
-        assert namespace_foo_bar != namespace_foo
-        assert namespace_foo_bar != namespace_bar
+                namespace_foo = Namespace(foo="foo")
+                assert namespace_foo == namespace_foo
+                assert namespace_foo == Namespace("foo", "BAR")
+                assert namespace_foo == Namespace(foo="foo")
+                assert namespace_foo != namespace_default
+
+                namespace_bar = Namespace(bar="bar")
+                assert namespace_bar == namespace_bar
+                assert namespace_bar == Namespace("FOO", "bar")
+                assert namespace_bar == Namespace(bar="bar")
+                assert namespace_bar != namespace_default
+                assert namespace_bar != namespace_foo
+
+                namespace_foo_bar = Namespace("foo", "bar")
+                assert namespace_foo_bar == namespace_foo_bar
+                assert namespace_foo_bar == Namespace("foo", "bar")
+                assert namespace_foo_bar == Namespace(foo="foo", bar="bar")
+                assert namespace_foo_bar != namespace_default
+                assert namespace_foo_bar != namespace_foo
+                assert namespace_foo_bar != namespace_bar
+
+            def test_parent_vs_child(self):
+                assert FooArgs() == self.SubFooArgs()
+                assert FooArgs("bar", "foo") == self.SubFooArgs("bar", "foo")
+                assert FooArgs("bar", "foo") != self.SubFooArgs("foo", "bar")
+
+            def test_child_vs_parent(self):
+                assert self.SubFooArgs() == FooArgs()
+                assert self.SubFooArgs("bar", "foo") == FooArgs("bar", "foo")
+                assert self.SubFooArgs("bar", "foo") != FooArgs("foo", "bar")
+
+        def test_different_render_cls(self):
+            class Bar(Renderable):
+                pass
+
+            class BarArgs(ArgsNamespace, render_cls=Bar):
+                foo: str = "FOO"
+                bar: str = "BAR"
+
+            assert Foo.Args() != Bar.Args()
+            assert Foo.Args("", "") != Bar.Args("", "")
+            assert Foo.Args("bar", "foo") != Bar.Args("bar", "foo")
 
     def test_hash(self):
         namespace_default = self.Namespace()
