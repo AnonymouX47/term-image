@@ -123,7 +123,7 @@ class Padding(metaclass=ABCMeta):
 
     def __init__(self, fill: str = " ") -> None:
         # Subclasses are to be "immutable", `super()` is costlier
-        __class__.__setattr__(self, "fill", fill)  # type: ignore[name-defined]
+        Padding.__setattr__(self, "fill", fill)
 
     # Public Methods ===========================================================
 

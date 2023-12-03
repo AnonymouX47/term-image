@@ -6,9 +6,7 @@ from __future__ import annotations
 
 __all__ = ("RawSize", "Size")
 
-from typing import NamedTuple
-
-from typing_extensions import Self
+from typing_extensions import NamedTuple, Self
 
 from .utils import arg_value_error_range
 
