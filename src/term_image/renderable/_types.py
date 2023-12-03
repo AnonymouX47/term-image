@@ -816,10 +816,13 @@ class RenderArgsData:
 
     __slots__ = ("render_cls", "_namespaces")
 
+    render_cls: type[Renderable]
+    _namespaces: MappingProxyType[type[Renderable], ArgsDataNamespace]
+
     def __init__(
         self,
         render_cls: type[Renderable],
-        namespaces: dict[type[Renderable], ArgsDataNamespace],
+        namespaces: Mapping[type[Renderable], ArgsDataNamespace],
     ) -> None:
         self.render_cls = render_cls
         self._namespaces = MappingProxyType(namespaces)
@@ -878,11 +881,12 @@ class RenderArgs(RenderArgsData):
 
     __slots__ = ()
 
-    __interned: ClassVar[dict[type[Renderable], RenderArgs]] = {}
+    __interned: ClassVar[dict[type[Renderable], Self]] = {}
+    _namespaces: MappingProxyType[type[Renderable], ArgsNamespace]
 
     # Instance Attributes ======================================================
 
-    render_cls: Type[Renderable]
+    render_cls: type[Renderable]
     """The associated :term:`render class`"""
 
     # Special Methods ==========================================================
@@ -892,10 +896,10 @@ class RenderArgs(RenderArgsData):
         render_cls: type[Renderable],
         init_or_namespace: RenderArgs | ArgsNamespace | None = None,
         *namespaces: ArgsNamespace,
-    ) -> RenderArgs:
+    ) -> Self:
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, __class__):
+        elif isinstance(init_or_namespace, RenderArgs):
             init_render_args = init_or_namespace
         elif isinstance(init_or_namespace, ArgsNamespace):
             init_render_args = None
@@ -924,7 +928,7 @@ class RenderArgs(RenderArgsData):
                 or cls.__interned.get(init_render_args.render_cls) is init_render_args
             ):
                 try:
-                    return cls.__interned[render_cls]
+                    return cls.__interned[render_cls]  # type: ignore[return-value]
                 except KeyError:
                     pass
 
@@ -949,7 +953,7 @@ class RenderArgs(RenderArgsData):
 
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, __class__):
+        elif isinstance(init_or_namespace, RenderArgs):
             init_render_args = init_or_namespace
         else:
             init_render_args = None
@@ -1001,7 +1005,7 @@ class RenderArgs(RenderArgsData):
         if intern:
             type(self).__interned[render_cls] = self
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         cls.__interned = {}
         super().__init_subclass__(**kwargs)
 
@@ -1018,7 +1022,7 @@ class RenderArgs(RenderArgsData):
         """
         return None is not self._namespaces.get(namespace._RENDER_CLS) == namespace
 
-    def __eq__(self, other: RenderArgs) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Compares this set of render arguments with another.
 
         Args:
@@ -1037,7 +1041,7 @@ class RenderArgs(RenderArgsData):
 
         return NotImplemented
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> ArgsNamespace:
+    def __getitem__(self, render_cls: type[Renderable]) -> Any:
         """Returns a constituent namespace.
 
         Args:
@@ -1112,7 +1116,7 @@ class RenderArgs(RenderArgsData):
 
     # Public Methods ===========================================================
 
-    def convert(self, render_cls: Type[Renderable]) -> RenderArgs:
+    def convert(self, render_cls: type[Renderable]) -> RenderArgs:
         """Converts the set of render arguments to one for a related render class.
 
         Args:
@@ -1155,7 +1159,7 @@ class RenderArgs(RenderArgsData):
 
     def update(
         self,
-        render_cls_or_namespace: Type[Renderable] | ArgsNamespace,
+        render_cls_or_namespace: type[Renderable] | ArgsNamespace,
         *namespaces: ArgsNamespace,
         **fields: Any,
     ) -> RenderArgs:
@@ -1171,7 +1175,7 @@ class RenderArgs(RenderArgsData):
               .. note:: If multiple namespaces associated with the same :term:`render
                  class` are given, the last of them takes precedence.
 
-            render_cls (Type[Renderable]): A :term:`render class` of which
+            render_cls (type[Renderable]): A :term:`render class` of which
               :py:attr:`render_cls` is a subclass (which may be :py:attr:`render_cls`
               itself) and which has render arguments.
             fields: Render argument fields.
@@ -1255,8 +1259,10 @@ class RenderData(RenderArgsData):
     finalized: bool
     """Finalization status"""
 
-    render_cls: Type[Renderable]
+    render_cls: type[Renderable]
     """The associated :term:`render class`"""
+
+    _namespaces: MappingProxyType[type[Renderable], DataNamespace]
 
     # Special Methods ==========================================================
 
@@ -1267,13 +1273,13 @@ class RenderData(RenderArgsData):
         )
         self.finalized = False
 
-    def __del__(self):
+    def __del__(self) -> None:
         try:
             self.finalize()
         except AttributeError:  # Unsuccessful initialization
             pass
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> DataNamespace:
+    def __getitem__(self, render_cls: type[Renderable]) -> Any:
         """Returns a constituent namespace.
 
         Args:
@@ -1352,4 +1358,4 @@ class RenderData(RenderArgsData):
 
 # Variables ====================================================================
 
-BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)
+BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)  # type: ignore[arg-type]
