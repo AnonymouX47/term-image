@@ -1056,6 +1056,20 @@ class RenderArgs(RenderArgsData):
             TypeError: An argument is of an inappropriate type.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoArgsNamespaceError: *render_cls* has no render arguments.
+
+        NOTE:
+            The return type hint is :py:class:`~typing.Any` only for compatibility
+            with static type checking, as this aspect of the interface seems too
+            dynamic to be correctly expressed with the exisiting type system.
+
+            Regardless, the return value is guaranteed to always be an instance
+            of a render argument namespace class associated with *render_cls*.
+            For instance, the following would always be valid for
+            :py:class:`~term_image.renderable.Renderable`::
+
+               renderable_args: RenderableArgs = render_args[Renderable]
+
+            and similar idioms are encouraged to be used for other render classes.
         """
         try:
             return self._namespaces[render_cls]
@@ -1294,6 +1308,20 @@ class RenderData(RenderArgsData):
             TypeError: An argument is of an inappropriate type.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoDataNamespaceError: *render_cls* has no render data.
+
+        NOTE:
+            The return type hint is :py:class:`~typing.Any` only for compatibility
+            with static type checking, as this aspect of the interface seems too
+            dynamic to be correctly expressed with the exisiting type system.
+
+            Regardless, the return value is guaranteed to always be an instance
+            of a render data namespace class associated with *render_cls*.
+            For instance, the following would always be valid for
+            :py:class:`~term_image.renderable.Renderable`::
+
+               renderable_data: RenderableData = render_data[Renderable]
+
+            and similar idioms are encouraged to be used for other render classes.
         """
         try:
             return self._namespaces[render_cls]
