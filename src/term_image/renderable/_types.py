@@ -1139,11 +1139,11 @@ class RenderArgs(RenderArgsData):
             raise arg_type_error("render_cls", render_cls)
 
         if issubclass(render_cls, self.render_cls):
-            return type(self)(render_cls, self)
+            return RenderArgs(render_cls, self)
 
         if issubclass(self.render_cls, render_cls):
             render_cls_args_mro = render_cls._ALL_DEFAULT_ARGS
-            return type(self)(
+            return RenderArgs(
                 render_cls,
                 *[
                     namespace
@@ -1219,7 +1219,7 @@ class RenderArgs(RenderArgsData):
                 "Invalid type for the first argument", render_cls_or_namespace
             )
 
-        return type(self)(
+        return RenderArgs(
             self.render_cls,
             self,
             *((self[render_cls].update(**fields),) if render_cls else namespaces),
