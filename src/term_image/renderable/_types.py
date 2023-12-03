@@ -23,21 +23,37 @@ __all__ = (
     "UnknownDataFieldError",
 )
 
+from collections.abc import Iterator, Mapping, Sequence
 from inspect import Parameter, signature
 from types import MappingProxyType
-from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Sequence, Type
 
-from typing_extensions import TYPE_CHECKING
+from typing_extensions import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    NamedTuple,
+    Never,
+    Self,
+    TypeVar,
+)
 
 from .. import geometry
 from ..utils import arg_type_error, arg_type_error_msg
 from ._exceptions import RenderableError
+
+# Type Variables, Aliases, etc =================================================
 
 if TYPE_CHECKING:
     # `RenderableMeta` is set from `._renderable` later on, as a top-level import
     # will result in a circular import and localized imports are just unnecessarily
     # costly (no matter how minimal).
     from ._renderable import Renderable, RenderableMeta
+
+ArgsDataNamespaceMetaT = TypeVar(
+    "ArgsDataNamespaceMetaT", bound="ArgsDataNamespaceMeta"
+)
+ArgsNamespaceMetaT = TypeVar("ArgsNamespaceMetaT", bound="ArgsNamespaceMeta")
+DataNamespaceMetaT = TypeVar("DataNamespaceMetaT", bound="DataNamespaceMeta")
 
 
 # Exceptions ===================================================================
@@ -119,19 +135,19 @@ class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
     _associated: bool = False
-    _FIELDS: MappingProxyType[str, Any] = MappingProxyType({})
+    _FIELDS: MappingProxyType[str, None] = MappingProxyType({})
     _RENDER_CLS: type[Renderable]
 
     def __new__(
-        cls,
-        name,
-        bases,
-        namespace,
+        cls: type[ArgsDataNamespaceMetaT],
+        name: str,
+        bases: tuple[type[ArgsDataNamespaceMeta]],
+        namespace: dict[str, Any],
         *,
         render_cls: type[Renderable] | None = None,
         _base: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> ArgsDataNamespaceMetaT:
         if _base:
             namespace["__slots__"] = ()
         else:
@@ -197,7 +213,11 @@ class ArgsDataNamespaceMeta(type):
 class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
     """:term:`Render class`\\ -specific argument/data namespace."""
 
-    def __new__(cls, *args, **kwargs):
+    _associated: ClassVar[bool]
+    _FIELDS: ClassVar[MappingProxyType[str, None]]
+    _RENDER_CLS: ClassVar[type[Renderable]]
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
         if not cls._associated:
             raise UnassociatedNamespaceError(
                 "Cannot instantiate a render argument/data namespace class "
@@ -207,15 +227,16 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
         return super().__new__(cls)
 
     def __init__(self, fields: Mapping[str, Any]) -> None:
-        setattr_ = __class__.__setattr__  # Subclass(es) redefine `__setattr__()`
+        # Subclass(es) redefine `__setattr__()`
+        setattr_ = ArgsDataNamespace.__setattr__
         for name in type(self)._FIELDS:
             setattr_(self, name, fields[name])
 
-    def __delattr__(self, _):
+    def __delattr__(self, name: str) -> Never:
         raise AttributeError("Cannot delete field")
 
     @classmethod
-    def get_render_cls(cls) -> Type[Renderable]:
+    def get_render_cls(cls) -> type[Renderable]:
         """Returns the associated :term:`render class`.
 
         Returns:
@@ -237,7 +258,17 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
 class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render argument namespaces."""
 
-    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+    _FIELDS: MappingProxyType[str, Any]
+
+    def __new__(
+        cls: type[ArgsNamespaceMetaT],
+        name: str,
+        bases: tuple[type[ArgsNamespaceMeta]],
+        namespace: dict[str, Any],
+        *,
+        _base: bool = False,
+        **kwargs: Any,
+    ) -> ArgsNamespaceMetaT:
         if not _base:
             try:
                 defaults = {
@@ -302,6 +333,8 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
     .. Completed in /docs/source/api/renderable.rst
     """
 
+    _FIELDS: ClassVar[MappingProxyType[str, Any]]
+
     def __init__(self, *values: Any, **fields: Any) -> None:
         default_fields = type(self)._FIELDS
 
@@ -338,20 +371,20 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
             )
         )
 
-    def __getattr__(self, attr):
+    def __getattr__(self, name: str) -> Never:
         raise UnknownArgsFieldError(
-            f"Unknown render argument field {attr!r} for "
+            f"Unknown render argument field {name!r} for "
             f"{type(self)._RENDER_CLS.__name__!r}"
         )
 
-    def __setattr__(self, *_):
+    def __setattr__(self, name: str, value: Any) -> Never:
         raise AttributeError(
             "Cannot modify render argument fields, use the `update()` method "
             "of the namespace or the containing `RenderArgs` instance, as "
             "applicable, instead"
         )
 
-    def __eq__(self, other: ArgsNamespace) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Compares the namespace with another.
 
         Args:
@@ -419,7 +452,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         """
         self_render_cls = type(self)._RENDER_CLS
 
-        if isinstance(other, __class__):
+        if isinstance(other, ArgsNamespace):
             other_render_cls = type(other)._RENDER_CLS
             if self_render_cls is other_render_cls:
                 return RenderArgs(other_render_cls, other)
@@ -469,7 +502,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
             precedence.
         """
         # Not commutative
-        if isinstance(other, __class__) and (
+        if isinstance(other, ArgsNamespace) and (
             type(self)._RENDER_CLS is type(other)._RENDER_CLS
         ):
             return RenderArgs(type(self)._RENDER_CLS, self)
@@ -532,7 +565,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         """
         return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
 
-    def update(self, **fields: Any) -> ArgsNamespace:
+    def update(self, **fields: Any) -> Self:
         """Updates render argument fields.
 
         Args:
@@ -557,7 +590,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         new = type(self).__new__(type(self))
         new_fields = self.as_dict()
         new_fields.update(fields)
-        super(__class__, new).__init__(new_fields)
+        super(ArgsNamespace, new).__init__(new_fields)
 
         return new
 
@@ -565,7 +598,15 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 class DataNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render data namespaces."""
 
-    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+    def __new__(
+        cls: type[DataNamespaceMetaT],
+        name: str,
+        bases: tuple[type[DataNamespaceMeta]],
+        namespace: dict[str, Any],
+        *,
+        _base: bool = False,
+        **kwargs: Any,
+    ) -> DataNamespaceMetaT:
         data_cls = super().__new__(cls, name, bases, namespace, _base=_base, **kwargs)
 
         if not _base and (render_cls := data_cls.__dict__.get("_RENDER_CLS")):
@@ -634,24 +675,24 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
             )
         )
 
-    def __getattr__(self, attr):
-        if attr in type(self)._FIELDS:
+    def __getattr__(self, name: str) -> Never:
+        if name in type(self)._FIELDS:
             raise UninitializedDataFieldError(
-                f"The render data field {attr!r} of "
+                f"The render data field {name!r} of "
                 f"{type(self)._RENDER_CLS.__name__!r} has not been initialized"
             )
 
         raise UnknownDataFieldError(
-            f"Unknown render data field {attr!r} for "
+            f"Unknown render data field {name!r} for "
             f"{type(self)._RENDER_CLS.__name__!r}"
         )
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         try:
-            super().__setattr__(attr, value)
+            super().__setattr__(name, value)
         except AttributeError:
             raise UnknownDataFieldError(
-                f"Unknown render data field {attr!r} for "
+                f"Unknown render data field {name!r} for "
                 f"{type(self)._RENDER_CLS.__name__!r}"
             ) from None
 
@@ -677,7 +718,7 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
         return {name: getattr(self, name) for name in type(self)._FIELDS}
 
     @classmethod
-    def get_fields(cls) -> tuple[str]:
+    def get_fields(cls) -> tuple[str, ...]:
         """Returns the field names.
 
         Returns:
