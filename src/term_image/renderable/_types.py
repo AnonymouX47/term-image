@@ -35,6 +35,7 @@ from typing_extensions import (
     Never,
     Self,
     TypeVar,
+    dataclass_transform,
 )
 
 from .. import geometry
@@ -300,6 +301,7 @@ class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
         return args_cls
 
 
+@dataclass_transform(eq_default=True, frozen_default=True)
 class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
     """ArgsNamespace(*values, **fields)
 
@@ -377,7 +379,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
             f"{type(self)._RENDER_CLS.__name__!r}"
         )
 
-    def __setattr__(self, name: str, value: Any) -> Never:
+    def __setattr__(self, name: str, value: Never) -> Never:
         raise AttributeError(
             "Cannot modify render argument fields, use the `update()` method "
             "of the namespace or the containing `RenderArgs` instance, as "
