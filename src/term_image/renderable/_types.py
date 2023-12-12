@@ -36,6 +36,7 @@ from typing_extensions import (
     Self,
     TypeVar,
     dataclass_transform,
+    overload,
 )
 
 from .. import geometry
@@ -1173,9 +1174,28 @@ class RenderArgs(RenderArgsData):
             f"{self.render_cls.__name__!r}"
         )
 
+    @overload
+    def update(
+        self,
+        namespace: ArgsNamespace,
+        /,
+        *namespaces: ArgsNamespace,
+    ) -> RenderArgs:
+        ...
+
+    @overload
+    def update(
+        self,
+        render_cls: type[Renderable],
+        /,
+        **fields: Any,
+    ) -> RenderArgs:
+        ...
+
     def update(
         self,
         render_cls_or_namespace: type[Renderable] | ArgsNamespace,
+        /,
         *namespaces: ArgsNamespace,
         **fields: Any,
     ) -> RenderArgs:
@@ -1185,6 +1205,7 @@ class RenderArgs(RenderArgsData):
         Replaces or updates render argument namespaces.
 
         Args:
+            namespace (ArgsNamespace): Prepended to *namespaces*.
             namespaces: Render argument namespaces compatible [#ran2]_ with
               :py:attr:`render_cls`.
 
