@@ -137,7 +137,7 @@ class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
     _associated: bool = False
-    _FIELDS: MappingProxyType[str, None] = MappingProxyType({})
+    _FIELDS: MappingProxyType[str, Any] = MappingProxyType({})
     _RENDER_CLS: type[Renderable]
 
     def __new__(
@@ -216,7 +216,7 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
     """:term:`Render class`\\ -specific argument/data namespace."""
 
     _associated: ClassVar[bool]
-    _FIELDS: ClassVar[MappingProxyType[str, None]]
+    _FIELDS: ClassVar[MappingProxyType[str, Any]]
     _RENDER_CLS: ClassVar[type[Renderable]]
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
@@ -259,8 +259,6 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
 
 class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render argument namespaces."""
-
-    _FIELDS: MappingProxyType[str, Any]
 
     def __new__(
         cls: type[ArgsNamespaceMetaT],
@@ -335,8 +333,6 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 
     .. Completed in /docs/source/api/renderable.rst
     """
-
-    _FIELDS: ClassVar[MappingProxyType[str, Any]]
 
     def __init__(self, *values: Any, **fields: Any) -> None:
         default_fields = type(self)._FIELDS
@@ -601,6 +597,8 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 class DataNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render data namespaces."""
 
+    _FIELDS: MappingProxyType[str, None]
+
     def __new__(
         cls: type[DataNamespaceMetaT],
         name: str,
@@ -656,6 +654,8 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
 
     .. Completed in /docs/source/api/renderable.rst
     """
+
+    _FIELDS: ClassVar[MappingProxyType[str, None]]
 
     def __init__(self) -> None:
         pass
