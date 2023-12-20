@@ -6,7 +6,9 @@ from __future__ import annotations
 
 __all__ = ("RenderIterator", "RenderIteratorError", "FinalizedIteratorError")
 
-from typing import Generator
+from collections.abc import Generator
+
+from typing_extensions import Any, Self
 
 from ..exceptions import TermImageError
 from ..geometry import Size
@@ -107,6 +109,17 @@ class RenderIterator:
         Modifying this doesn't affect the iterator.
     """
 
+    _cached: bool
+    _closed: bool
+    _finalize_data: bool
+    _iterator: Generator[Frame, None, None]
+    _loops: int
+    _padding: Padding
+    _padded_size: Size
+    _render_args: RenderArgs
+    _render_data: RenderData
+    _renderable: Renderable
+
     # Special Methods ==========================================================
 
     def __init__(
@@ -130,7 +143,7 @@ class RenderIterator:
         except AttributeError:
             pass
 
-    def __iter__(self) -> RenderIterator:
+    def __iter__(self) -> Self:
         return self
 
     def __next__(self) -> Frame:
@@ -447,10 +460,10 @@ class RenderIterator:
         render_data: RenderData,
         render_args: RenderArgs | None = None,
         padding: Padding = ExactPadding(),
-        *args,
+        *args: Any,
         finalize: bool = True,
-        **kwargs,
-    ) -> RenderIterator:
+        **kwargs: Any,
+    ) -> Self:
         """Constructs an iterator with pre-generated render data.
 
         Args:
@@ -547,7 +560,7 @@ class RenderIterator:
             if indefinite
             else cache
             if isinstance(cache, bool)
-            else renderable.frame_count <= cache
+            else renderable.frame_count <= cache  # type: ignore[operator]
         )
 
     def _iterate(
@@ -569,9 +582,14 @@ class RenderIterator:
             frame_count = 1
         definite = frame_count > 1
         loop = self.loop
-        cache = [(None,) * 4] * frame_count if self._cached else None
         CURRENT = Seek.CURRENT
         renderable_data.frame_offset = 0
+        cache: list[tuple[Frame | None, Size, int | FrameDuration, RenderArgs]] | None
+        cache = (
+            [(None,) * 4] * frame_count  # type: ignore[list-item]
+            if self._cached
+            else None
+        )
 
         yield Frame(0, None, Size(1, 1), " ")
 
@@ -579,13 +597,17 @@ class RenderIterator:
         frame_no = renderable_data.frame_offset * definite
         while loop:
             while frame_no < frame_count:
-                frame, *frame_details = cache[frame_no] if cache else (None,)
+                if cache:
+                    frame = (cache_entry := cache[frame_no])[0]
+                    frame_details = cache_entry[1:]
+                else:
+                    frame = None
 
-                if not frame or frame_details != [
+                if not frame or frame_details != (
                     renderable_data.size,
                     renderable_data.duration,
                     self._render_args,
-                ]:
+                ):
                     # NOTE: Re-render is required even when only `duration` changes
                     # and the new value is *static* because frame duration may affect
                     # the render output of some renderables.
