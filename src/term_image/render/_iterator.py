@@ -18,6 +18,7 @@ from ..renderable import (
     FrameCount,
     FrameDuration,
     Renderable,
+    RenderableData,
     RenderArgs,
     RenderData,
     Seek,
@@ -119,6 +120,7 @@ class RenderIterator:
     _render_args: RenderArgs
     _render_data: RenderData
     _renderable: Renderable
+    _renderable_data: RenderableData
 
     # Special Methods ==========================================================
 
@@ -325,7 +327,7 @@ class RenderIterator:
             raise arg_type_error("offset", offset)
 
         frame_count = self._renderable.frame_count
-        renderable_data = self._render_data[Renderable]
+        renderable_data = self._renderable_data
         if frame_count is FrameCount.INDEFINITE:
             if whence is Seek.START and offset < 0 or whence is Seek.END and offset > 0:
                 raise arg_value_error_range("offset", offset, f"whence={whence.name}")
@@ -373,7 +375,7 @@ class RenderIterator:
         if isinstance(duration, int) and duration <= 0:
             raise arg_value_error_range("duration", duration)
 
-        self._render_data[Renderable].duration = duration
+        self._renderable_data.duration = duration
 
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
@@ -399,7 +401,7 @@ class RenderIterator:
             if isinstance(padding, AlignedPadding) and padding.relative
             else padding
         )
-        self._padded_size = padding.get_padded_size(self._render_data[Renderable].size)
+        self._padded_size = padding.get_padded_size(self._renderable_data.size)
 
     def set_render_args(self, render_args: RenderArgs) -> None:
         """Sets the render arguments.
@@ -448,7 +450,7 @@ class RenderIterator:
         if not isinstance(render_size, Size):
             raise arg_type_error("render_size", render_size)
 
-        self._render_data[Renderable].size = render_size
+        self._renderable_data.size = render_size
         self._padded_size = self._padding.get_padded_size(render_size)
 
     # Extension methods ========================================================
@@ -495,7 +497,7 @@ class RenderIterator:
             )
         if render_data.finalized:
             raise ValueError("The render data has been finalized")
-        if not render_data[Renderable].iteration:
+        if not render_data[Renderable].iteration:  # type: ignore[type-abstract]
             raise arg_value_error_msg("Invalid render data for iteration", render_data)
 
         if not (render_args and render_args.render_cls is type(renderable)):
@@ -572,7 +574,10 @@ class RenderIterator:
         # Instance init completion
         self._render_data = render_data
         self._render_args = render_args
-        renderable_data = render_data[Renderable]
+        renderable_data: RenderableData
+        self._renderable_data = renderable_data = render_data[
+            Renderable  # type: ignore[type-abstract]
+        ]
         self._padded_size = self._padding.get_padded_size(renderable_data.size)
 
         # Setup
