@@ -28,6 +28,10 @@ from ..utils import (
     get_terminal_size,
 )
 
+# Variables ====================================================================
+
+DUMMY_FRAME: Frame = Frame(0, 0, Size(1, 1), " ")
+
 # Classes ======================================================================
 
 
@@ -573,7 +577,10 @@ class RenderIterator:
         CURRENT = Seek.CURRENT
         renderable_data.frame_offset = 0
 
-        yield Frame(0, None, Size(1, 1), " ")
+        # Initial dummy frame, yielded but unused by initializers.
+        # Acts as a breakpoint between completion of instance init + iteration setup
+        # and render iteration.
+        yield DUMMY_FRAME
 
         # Render iteration
         frame_no = renderable_data.frame_offset * definite
