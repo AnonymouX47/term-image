@@ -501,7 +501,7 @@ class RenderIterator:
             )
         if render_data.finalized:
             raise ValueError("The render data has been finalized")
-        if not render_data[Renderable].iteration:  # type: ignore[type-abstract]
+        if not render_data[Renderable].iteration:
             raise arg_value_error_msg("Invalid render data for iteration", render_data)
 
         if not (render_args and render_args.render_cls is type(renderable)):
@@ -579,9 +579,7 @@ class RenderIterator:
         self._render_data = render_data
         self._render_args = render_args
         renderable_data: RenderableData
-        self._renderable_data = renderable_data = render_data[
-            Renderable  # type: ignore[type-abstract]
-        ]
+        self._renderable_data = renderable_data = render_data[Renderable]
         self._padded_size = self._padding.get_padded_size(renderable_data.size)
 
         # Setup

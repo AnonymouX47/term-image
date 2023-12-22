@@ -751,7 +751,7 @@ been initialized
         """
         from term_image.render import RenderIterator
 
-        render_size: Size = render_data[Renderable].size  # type: ignore[type-abstract]
+        render_size: Size = render_data[Renderable].size
         height = render_size.height
         pad_left, _, _, pad_bottom = padding._get_exact_dimensions_(render_size)
         render_iter = RenderIterator._from_render_data_(
@@ -975,9 +975,7 @@ been initialized
             :py:meth:`~term_image.renderable.Renderable._init_render_`.
         """
         render_data = RenderData(type(self))
-        renderable_data: RenderableData = render_data[
-            Renderable  # type: ignore[type-abstract]
-        ]
+        renderable_data: RenderableData = render_data[Renderable]
         renderable_data.update(
             size=self._get_render_size_(),
             frame_offset=self.__frame,
@@ -1148,9 +1146,7 @@ been initialized
                 padding = padding.resolve(terminal_size)
 
             if check_size:
-                render_size: Size = render_data[
-                    Renderable  # type: ignore[type-abstract]
-                ].size
+                render_size: Size = render_data[Renderable].size
                 width, height = (
                     padding.get_padded_size(render_size) if padding else render_size
                 )
@@ -1238,7 +1234,7 @@ been initialized
 # NOTE: The position of these is critical, as they're required for the
 # creation of render argument and data namespace classes.
 _types.RenderableMeta = RenderableMeta  # type: ignore[attr-defined]
-_types.BASE_RENDER_ARGS.__init__(Renderable)  # type: ignore[misc]
+RenderArgs.__init__(_types.BASE_RENDER_ARGS, Renderable)
 
 
 class RenderableData(DataNamespace, render_cls=Renderable):

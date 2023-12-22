@@ -5,6 +5,14 @@ build-backend = "setuptools.build_meta"
 [tool.mypy]
 strict = true
 
+[[tool.mypy.overrides]]
+module = [
+    'term_image.renderable.*',
+    'term_image.render.*',
+    'term_image.image.*',
+]
+disable_error_code = ["type-abstract"]
+
 # These modules will go through massive changes real soon
 [[tool.mypy.overrides]]
 module = [
