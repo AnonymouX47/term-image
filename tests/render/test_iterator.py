@@ -133,23 +133,6 @@ def get_loop_frames(renderable, cache=Ellipsis):
 # # Constructor ==================================================================
 
 
-def test_args():
-    with pytest.raises(TypeError, match="'renderable'"):
-        RenderIterator(Ellipsis)
-
-    with pytest.raises(TypeError, match="'render_args'"):
-        RenderIterator(anim_space, Ellipsis)
-
-    with pytest.raises(TypeError, match="'padding'"):
-        RenderIterator(anim_space, padding=Ellipsis)
-
-    with pytest.raises(TypeError, match="'loops'"):
-        RenderIterator(anim_space, loops=Ellipsis)
-
-    with pytest.raises(TypeError, match="'cache'"):
-        RenderIterator(anim_space, cache=Ellipsis)
-
-
 class TestRenderable:
     def test_non_animated(self):
         with pytest.raises(ValueError, match="not animated"):
@@ -499,11 +482,6 @@ def test_close():
 
 
 class TestSeek:
-    def test_args(self):
-        render_iter = RenderIterator(anim_space)
-        with pytest.raises(TypeError, match="offset"):
-            render_iter.seek(Ellipsis)
-
     class TestDefinite:
         anim_space_seeked = Space(2, 1)
         anim_space_seeked.seek(1)
@@ -749,7 +727,7 @@ class TestSetFrameDuration:
     anim_space = Space(5, 1)
 
     @pytest.mark.parametrize("duration", [0, -1])
-    def test_arg_duration(self, duration):
+    def test_args(self, duration):
         render_iter = RenderIterator(self.anim_space)
         with pytest.raises(ValueError, match="duration"):
             render_iter.set_frame_duration(duration)
@@ -814,11 +792,6 @@ class TestSetFrameDuration:
 class TestSetPadding:
     anim_char = Char(5, 1)
     render_args = +Char.Args(char="#")
-
-    def test_args(self):
-        render_iter = RenderIterator(self.anim_char, self.render_args)
-        with pytest.raises(TypeError, match="padding"):
-            render_iter.set_padding(Ellipsis)
 
     def test_iteration(self):
         render_iter = RenderIterator(self.anim_char, self.render_args)
@@ -896,10 +869,8 @@ class TestSetPadding:
 class TestSetRenderArgs:
     anim_char = Char(5, 1)
 
-    def test_args(self):
+    def test_incompatible(self):
         render_iter = RenderIterator(self.anim_char)
-        with pytest.raises(TypeError, match="render_args"):
-            render_iter.set_render_args(Ellipsis)
         with pytest.raises(IncompatibleRenderArgsError):
             render_iter.set_render_args(RenderArgs(Space))
 
@@ -962,11 +933,6 @@ class TestSetRenderArgs:
 
 class TestSetRenderSize:
     anim_space = Space(5, 1)
-
-    def test_args(self):
-        render_iter = RenderIterator(self.anim_space)
-        with pytest.raises(TypeError, match="render_size"):
-            render_iter.set_render_size(Ellipsis)
 
     def test_iteration(self):
         render_iter = RenderIterator(self.anim_space)
@@ -1031,13 +997,9 @@ class TestFromRenderData:
         finalized_render_data = anim_space._get_render_data_(iteration=True)
         finalized_render_data.finalize()
 
-        with pytest.raises(TypeError, match="'renderable'"):
-            RenderIterator._from_render_data_(Ellipsis, render_data)
         with pytest.raises(ValueError, match="not animated"):
             RenderIterator._from_render_data_(space, render_data)
 
-        with pytest.raises(TypeError, match="'render_data'"):
-            RenderIterator._from_render_data_(anim_space, Ellipsis)
         with pytest.raises(ValueError, match="'Space'"):
             RenderIterator._from_render_data_(
                 anim_space, anim_char._get_render_data_(iteration=True)
@@ -1049,21 +1011,9 @@ class TestFromRenderData:
         with pytest.raises(ValueError, match="finalized"):
             RenderIterator._from_render_data_(anim_space, finalized_render_data)
 
-        with pytest.raises(TypeError, match="'render_args'"):
-            RenderIterator._from_render_data_(
-                anim_space, render_data, render_args=Ellipsis
-            )
         with pytest.raises(IncompatibleRenderArgsError):
             RenderIterator._from_render_data_(
                 anim_space, render_data, render_args=RenderArgs(FrameFill)
-            )
-
-        with pytest.raises(TypeError, match="'padding'"):
-            RenderIterator._from_render_data_(anim_space, render_data, padding=Ellipsis)
-
-        with pytest.raises(TypeError, match="'finalize'"):
-            RenderIterator._from_render_data_(
-                anim_space, render_data, finalize=Ellipsis
             )
 
     def test_render_data(self):

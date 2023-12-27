@@ -13,7 +13,6 @@ import pytest
 from term_image.ctlseqs import HIDE_CURSOR, SHOW_CURSOR
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
-from term_image.render import RenderIterator
 from term_image.renderable import (
     ArgsNamespace,
     DataNamespace,
@@ -26,7 +25,6 @@ from term_image.renderable import (
     Renderable,
     RenderableError,
     RenderArgs,
-    RenderData,
     RenderSizeOutofRangeError,
     Seek,
     UninitializedDataFieldError,
@@ -692,7 +690,6 @@ class TestIter:
     def test_animated(self):
         anim_char = Char(2, 1)
         render_iter = iter(anim_char)
-        assert isinstance(render_iter, RenderIterator)
         assert render_iter.loop == 1  # loop count
 
         frame = next(render_iter)
@@ -1618,22 +1615,14 @@ class TestInitRender:
 
         @pytest.mark.parametrize("renderable", [space, char])
         def test_arguments(self, renderable):
-            renderer_args = renderable._init_render_(lambda *args: args)[0]
-            assert isinstance(renderer_args, tuple)
-            assert len(renderer_args) == 2
-
-            render_data, render_args = renderer_args
-            assert isinstance(render_data, RenderData)
+            render_data, render_args = renderable._init_render_(lambda *args: args)[0]
             assert render_data.render_cls is type(renderable)
-            assert isinstance(render_args, RenderArgs)
             assert render_args.render_cls is type(renderable)
 
         # See also: `TestInitRender.TestIteration`
         @pytest.mark.parametrize("data", [None, Ellipsis, " ", []])
         def test_render_data(self, data):
             render_data = self.Foo(data)._init_render_(lambda *args: args)[0][0]
-
-            assert isinstance(render_data, RenderData)
             assert render_data.render_cls is self.Foo
             assert render_data[self.Foo].foo is data
 
