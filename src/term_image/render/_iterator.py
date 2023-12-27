@@ -66,8 +66,7 @@ class RenderIterator:
             :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
 
     Raises:
-        ValueError: An argument is of an appropriate type but has an
-          unexpected/invalid value.
+        ValueError: An argument has an invalid value.
         IncompatibleRenderArgsError: Incompatible render arguments.
 
     The iterator yields a :py:class:`~term_image.renderable.Frame` instance on every

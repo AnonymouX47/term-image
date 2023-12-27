@@ -124,8 +124,7 @@ class Renderable(metaclass=RenderableMeta, _base=True):
           i.e the renderable is non-animated.
 
     Raises:
-        ValueError: An argument is of an appropriate type but has an
-          unexpected/invalid value.
+        ValueError: An argument has an invalid value.
 
     ATTENTION:
         This is an abstract base class. Hence, only **concrete** subclasses can be
