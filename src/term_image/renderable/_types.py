@@ -40,7 +40,7 @@ from typing_extensions import (
 )
 
 from .. import geometry
-from ..utils import arg_type_error, arg_type_error_msg
+from ..utils import arg_type_error
 from ._exceptions import RenderableError
 
 # Type Variables, Aliases, etc =================================================
@@ -851,7 +851,6 @@ class RenderArgs(RenderArgsData):
              class` are given, the last of them takes precedence.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
         IncompatibleRenderArgsError: *init_render_args* is incompatible [#ra1]_ with
           *render_cls*.
         IncompatibleArgsNamespaceError: Incompatible [#ran2]_ render argument namespace.
@@ -904,24 +903,16 @@ class RenderArgs(RenderArgsData):
             init_render_args = None
         elif isinstance(init_or_namespace, RenderArgs):
             init_render_args = init_or_namespace
-        elif isinstance(init_or_namespace, ArgsNamespace):
+        else:
             init_render_args = None
             namespaces = (init_or_namespace, *namespaces)
-        else:
-            raise arg_type_error_msg(
-                "Invalid type for the second argument", init_or_namespace
+
+        if init_render_args and not issubclass(render_cls, init_render_args.render_cls):
+            raise IncompatibleRenderArgsError(
+                f"'init_render_args' (associated with "
+                f"{init_render_args.render_cls.__name__!r}) is incompatible with "
+                f"{render_cls.__name__!r} "
             )
-
-        if init_render_args:
-            if not isinstance(render_cls, RenderableMeta):
-                raise arg_type_error("render_cls", render_cls)
-
-            if not issubclass(render_cls, init_render_args.render_cls):
-                raise IncompatibleRenderArgsError(
-                    f"'init_render_args' (associated with "
-                    f"{init_render_args.render_cls.__name__!r}) is incompatible with "
-                    f"{render_cls.__name__!r} "
-                )
 
         if not namespaces:
             # has default namespaces only
@@ -950,10 +941,6 @@ class RenderArgs(RenderArgsData):
         init_or_namespace: RenderArgs | ArgsNamespace | None = None,
         *namespaces: ArgsNamespace,
     ) -> None:
-        # `init_or_namespace` is validated in `__new__()`.
-        # `render_cls` is validated in `__new__()`, if and only if `init_or_namespace`
-        # is a `RenderArgs` instance.
-
         if init_or_namespace is None:
             init_render_args = None
         elif isinstance(init_or_namespace, RenderArgs):
@@ -977,12 +964,8 @@ class RenderArgs(RenderArgsData):
         else:
             intern = False
 
-        if init_render_args:
-            if init_render_args is self:
-                return
-        # Otherwise, `render_cls` wasn't validated in `__new__()`
-        elif not isinstance(render_cls, RenderableMeta):
-            raise arg_type_error("render_cls", render_cls)
+        if init_render_args is self:
+            return
 
         namespaces_dict = render_cls._ALL_DEFAULT_ARGS.copy()
 
@@ -993,8 +976,6 @@ class RenderArgs(RenderArgsData):
             namespaces_dict.update(init_render_args._namespaces)
 
         for index, namespace in enumerate(namespaces):
-            if not isinstance(namespace, ArgsNamespace):
-                raise arg_type_error(f"namespaces[{index}]", namespace)
             if namespace._RENDER_CLS not in render_cls._ALL_DEFAULT_ARGS:
                 raise IncompatibleArgsNamespaceError(
                     f"'namespaces[{index}]' (associated with "
@@ -1146,14 +1127,10 @@ class RenderArgs(RenderArgsData):
             arguments, *self*) that are compatible [#ran2]_ with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             ValueError: *render_cls* is not a parent or child of :py:attr:`render_cls`.
         """
         if render_cls is self.render_cls:
             return self
-
-        if not isinstance(render_cls, RenderableMeta):
-            raise arg_type_error("render_cls", render_cls)
 
         if issubclass(render_cls, self.render_cls):
             return RenderArgs(render_cls, self)
@@ -1227,7 +1204,6 @@ class RenderArgs(RenderArgsData):
             for *render_cls* updated, if any.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             TypeError: The arguments given do not conform to any of the expected forms.
 
         Propagates exceptions raised by:
@@ -1243,7 +1219,7 @@ class RenderArgs(RenderArgsData):
                     "is a render class"
                 )
             render_cls = render_cls_or_namespace
-        elif isinstance(render_cls_or_namespace, ArgsNamespace):
+        else:
             if fields:
                 raise TypeError(
                     "No keyword argument is expected when the first argument is "
@@ -1251,10 +1227,6 @@ class RenderArgs(RenderArgsData):
                 )
             render_cls = None
             namespaces = (render_cls_or_namespace, *namespaces)
-        else:
-            raise arg_type_error_msg(
-                "Invalid type for the first argument", render_cls_or_namespace
-            )
 
         return RenderArgs(
             self.render_cls,

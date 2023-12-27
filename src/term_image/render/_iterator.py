@@ -24,7 +24,6 @@ from ..renderable import (
     Seek,
 )
 from ..utils import (
-    arg_type_error,
     arg_value_error,
     arg_value_error_msg,
     arg_value_error_range,
@@ -67,7 +66,6 @@ class RenderIterator:
             :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
         IncompatibleRenderArgsError: Incompatible render arguments.
@@ -207,7 +205,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
             ValueError: *offset* is out of range.
 
         The value range for *offset* depends on the
@@ -327,8 +324,6 @@ class RenderIterator:
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-        if not isinstance(offset, int):
-            raise arg_type_error("offset", offset)
 
         frame_count = self._renderable.frame_count
         renderable_data = self._renderable_data
@@ -389,16 +384,12 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next [#ri-nf]_ rendered frame.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
 
         self._padding = (
             padding.resolve(get_terminal_size())
@@ -415,7 +406,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
             IncompatibleRenderArgsError: Incompatible render arguments.
 
         NOTE:
@@ -423,9 +413,6 @@ class RenderIterator:
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-
-        if not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
 
         render_cls = type(self._renderable)
         self._render_args = (
@@ -443,16 +430,12 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next [#ri-nf]_ rendered frame.
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-
-        if not isinstance(render_size, Size):
-            raise arg_type_error("render_size", render_size)
 
         self._renderable_data.size = render_size
         self._padded_size = self._padding.get_padded_size(render_size)
@@ -491,8 +474,6 @@ class RenderIterator:
         new = cls.__new__(cls)
         new._init(renderable, render_args, padding, *args, **kwargs)
 
-        if not isinstance(render_data, RenderData):
-            raise arg_type_error("render_data", render_data)
         if render_data.render_cls is not type(renderable):
             raise arg_value_error_msg(
                 "Invalid render data for renderable of type "
@@ -507,9 +488,6 @@ class RenderIterator:
         if not (render_args and render_args.render_cls is type(renderable)):
             # Validate compatibility (and convert, if compatible)
             render_args = RenderArgs(type(renderable), render_args)
-
-        if not isinstance(finalize, bool):
-            raise arg_type_error("finalize", finalize)
 
         new._padding = (
             padding.resolve(get_terminal_size())
@@ -536,24 +514,10 @@ class RenderIterator:
 
         Performs the part of the initialization common to all constructors.
         """
-        if not isinstance(renderable, Renderable):
-            raise arg_type_error("renderable", renderable)
         if not renderable.animated:
             raise arg_value_error_msg("'renderable' is not animated", renderable)
-
-        if render_args and not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-
-        if not isinstance(loops, int):
-            raise arg_type_error("loops", loops)
         if not loops:
             raise arg_value_error("loops", loops)
-
-        if not isinstance(cache, int):  # `bool` is a subclass of `int`
-            raise arg_type_error("cache", cache)
         if False is not cache <= 0:
             raise arg_value_error_range("cache", cache)
 

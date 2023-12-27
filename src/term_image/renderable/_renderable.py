@@ -20,7 +20,7 @@ from .. import geometry
 from ..ctlseqs import HIDE_CURSOR, SHOW_CURSOR, cursor_down, cursor_forward, cursor_up
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
-from ..utils import arg_type_error, arg_value_error_range, get_terminal_size
+from ..utils import arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import (
@@ -124,7 +124,6 @@ class Renderable(metaclass=RenderableMeta, _base=True):
           i.e the renderable is non-animated.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
         ValueError: An argument is of an appropriate type but has an
           unexpected/invalid value.
 
@@ -350,19 +349,12 @@ been initialized
         frame_count: int | FrameCount,
         frame_duration: int | FrameDuration,
     ) -> None:
-        if isinstance(frame_count, int):
-            if frame_count < 1:
-                raise arg_value_error_range("frame_count", frame_count)
-        elif not isinstance(frame_count, FrameCount):
-            raise arg_type_error("frame_count", frame_count)
+        if isinstance(frame_count, int) and frame_count < 1:
+            raise arg_value_error_range("frame_count", frame_count)
 
         if frame_count != 1:
-            if isinstance(frame_duration, int):
-                if frame_duration <= 0:
-                    raise arg_value_error_range("frame_duration", frame_duration)
-            elif not isinstance(frame_duration, FrameDuration):
-                raise arg_type_error("frame_duration", frame_duration)
-
+            if isinstance(frame_duration, int) and frame_duration <= 0:
+                raise arg_value_error_range("frame_duration", frame_duration)
             self.__frame_duration = frame_duration
 
         self.animated = frame_count != 1
@@ -456,11 +448,8 @@ been initialized
                 "Cannot set frame duration for a non-animated renderable"
             )
 
-        if isinstance(duration, int):
-            if duration <= 0:
-                raise arg_value_error_range("frame_duration", duration)
-        elif not isinstance(duration, FrameDuration):
-            raise arg_type_error("frame_duration", duration)
+        if isinstance(duration, int) and duration <= 0:
+            raise arg_value_error_range("frame_duration", duration)
 
         self.__frame_duration = duration
 
@@ -514,7 +503,6 @@ been initialized
                    therefore, the output (especially for animations).
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             RenderSizeOutofRangeError: The padded :term:`render size` can not fit into
               the :term:`terminal size`.
             IncompatibleRenderArgsError: Incompatible render arguments.
@@ -536,20 +524,6 @@ been initialized
               looped but can be terminated with :py:data:`~signal.SIGINT`
               (``CTRL + C``), **without** raising :py:class:`KeyboardInterrupt`.
         """
-        if render_args and not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-        if self.animated and not isinstance(animate, bool):
-            raise arg_type_error("animate", animate)
-
-        # Validation of *loops* and *cache* is delegated to `RenderIterator`.
-
-        if not isinstance(check_size, bool):
-            raise arg_type_error("check_size", check_size)
-        if not isinstance(allow_scroll, bool):
-            raise arg_type_error("allow_scroll", allow_scroll)
-
         animation = self.animated and animate
         output = sys.stdout
         not_echo_input = OS_IS_UNIX and not echo_input and output.isatty()
@@ -623,15 +597,9 @@ been initialized
             The rendered frame.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             IncompatibleRenderArgsError: Incompatible render arguments.
             RenderError: An error occurred during :term:`rendering`.
         """
-        if render_args and not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-
         frame, padding = self._init_render_(self._render_, render_args, padding)
         padded_size = padding.get_padded_size(frame.render_size)
 
@@ -659,7 +627,6 @@ been initialized
         Raises:
             IndefiniteSeekError: The renderable has
               :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
-            TypeError: An argument is of an inappropriate type.
             ValueError: *offset* is out of range.
 
         The value range for *offset* depends on *whence*:
@@ -685,8 +652,6 @@ been initialized
             raise IndefiniteSeekError(
                 "Cannot seek a renderable with INDEFINITE frame count"
             )
-        if not isinstance(offset, int):
-            raise arg_type_error("offset", offset)
 
         frame = (
             offset
