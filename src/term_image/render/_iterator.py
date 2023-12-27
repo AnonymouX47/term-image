@@ -529,7 +529,8 @@ class RenderIterator:
             False
             if indefinite
             else cache
-            if isinstance(cache, bool)
+            # `isinstance` is much costlier on failure and `bool` cannot be subclassed
+            if type(cache) is bool
             else renderable.frame_count <= cache  # type: ignore[operator]
         )
 

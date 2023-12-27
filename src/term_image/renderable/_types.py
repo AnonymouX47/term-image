@@ -976,7 +976,7 @@ class RenderArgs(RenderArgsData):
             namespaces_dict.update(init_render_args._namespaces)
 
         for index, namespace in enumerate(namespaces):
-            if namespace._RENDER_CLS not in render_cls._ALL_DEFAULT_ARGS:
+            if namespace._RENDER_CLS not in namespaces_dict:
                 raise IncompatibleArgsNamespaceError(
                     f"'namespaces[{index}]' (associated with "
                     f"{namespace._RENDER_CLS.__name__!r}) is incompatible with "
@@ -1037,7 +1037,7 @@ class RenderArgs(RenderArgsData):
             The constituent namespace associated with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
+            TypeError: *render_cls* is not a render class.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoArgsNamespaceError: *render_cls* has no render arguments.
 
@@ -1057,7 +1057,9 @@ class RenderArgs(RenderArgsData):
         """
         try:
             return self._namespaces[render_cls]
-        except (TypeError, KeyError):
+        except TypeError:
+            raise arg_type_error("render_cls", render_cls) from None
+        except KeyError:
             if not isinstance(render_cls, RenderableMeta):
                 raise arg_type_error("render_cls", render_cls) from None
 
@@ -1300,7 +1302,7 @@ class RenderData(RenderArgsData):
             The constituent namespace associated with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
+            TypeError: *render_cls* is not a render class.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoDataNamespaceError: *render_cls* has no render data.
 
@@ -1320,7 +1322,9 @@ class RenderData(RenderArgsData):
         """
         try:
             return self._namespaces[render_cls]
-        except (TypeError, KeyError):
+        except TypeError:
+            raise arg_type_error("render_cls", render_cls) from None
+        except KeyError:
             if not isinstance(render_cls, RenderableMeta):
                 raise arg_type_error("render_cls", render_cls) from None
 
