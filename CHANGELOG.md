@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `term_image.padding` submodule ([#97]).
   - `Padding`, `AlignedPadding`, `ExactPadding`, etc.
 - Support for Pillow 10. ([8cfebe2])
+- Static Typing & Type Checking Support ([#100]).
 
 ### Changed
 - `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
