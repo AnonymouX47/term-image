@@ -532,7 +532,7 @@ been initialized
         render_data: RenderData
         real_render_args: RenderArgs
         (render_data, real_render_args), padding = self._init_render_(
-            lambda *args: args,  # type: ignore[arg-type]
+            lambda *args: args,
             render_args,
             padding,
             iteration=animation,

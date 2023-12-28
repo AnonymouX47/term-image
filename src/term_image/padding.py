@@ -476,13 +476,13 @@ class ExactPadding(Padding):
         GET:
             Returns the padding dimensions, ``(left, top, right, bottom)``.
         """
-        return astuple(self)[:4]  # type: ignore[return-value]
+        return astuple(self)[:4]
 
     # Extension methods ========================================================
 
     @override
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
-        return astuple(self)[:4]  # type: ignore[return-value]
+        return astuple(self)[:4]
 
 
 # Exceptions ===================================================================

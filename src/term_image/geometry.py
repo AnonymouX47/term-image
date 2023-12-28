@@ -56,4 +56,4 @@ class Size(RawSize):
             raise arg_value_error_range("height", height)
 
         # Using `tuple` directly instead of `super()` for performance
-        return tuple.__new__(cls, (width, height))  # type: ignore[type-var]
+        return tuple.__new__(cls, (width, height))
