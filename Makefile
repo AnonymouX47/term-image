@@ -35,10 +35,13 @@ py_files := *.py src/ docs/source/conf.py tests/
 
 ## Code Checks
 
-check-code: lint check-format check-imports
+check-code: lint type check-format check-imports
 
 lint:
 	flake8 $(py_files) && echo
+
+type:
+	mypy src/term_image && echo
 
 check-format:
 	black --check --diff --color $(py_files) && echo

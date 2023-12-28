@@ -23,13 +23,40 @@ __all__ = (
     "UnknownDataFieldError",
 )
 
+from collections.abc import Iterator, Mapping, Sequence
 from inspect import Parameter, signature
 from types import MappingProxyType
-from typing import Any, ClassVar, Iterator, Mapping, NamedTuple, Sequence, Type
+
+from typing_extensions import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    NamedTuple,
+    Never,
+    Self,
+    TypeVar,
+    dataclass_transform,
+    overload,
+)
 
 from .. import geometry
-from ..utils import arg_type_error, arg_type_error_msg
+from ..utils import arg_type_error
 from ._exceptions import RenderableError
+
+# Type Variables, Aliases, etc =================================================
+
+if TYPE_CHECKING:
+    # `RenderableMeta` is set from `._renderable` later on, as a top-level import
+    # will result in a circular import and localized imports are just unnecessarily
+    # costly (no matter how minimal).
+    from ._renderable import Renderable, RenderableMeta
+
+ArgsDataNamespaceMetaT = TypeVar(
+    "ArgsDataNamespaceMetaT", bound="ArgsDataNamespaceMeta"
+)
+ArgsNamespaceMetaT = TypeVar("ArgsNamespaceMetaT", bound="ArgsNamespaceMeta")
+DataNamespaceMetaT = TypeVar("DataNamespaceMetaT", bound="DataNamespaceMeta")
+
 
 # Exceptions ===================================================================
 
@@ -109,19 +136,20 @@ class UnknownDataFieldError(RenderDataError, AttributeError):
 class ArgsDataNamespaceMeta(type):
     """Metaclass of render argument/data namespaces."""
 
+    _associated: bool = False
     _FIELDS: MappingProxyType[str, Any] = MappingProxyType({})
-    _RENDER_CLS: type[Renderable] | None = None
+    _RENDER_CLS: type[Renderable]
 
     def __new__(
-        cls,
-        name,
-        bases,
-        namespace,
+        cls: type[ArgsDataNamespaceMetaT],
+        name: str,
+        bases: tuple[type[ArgsDataNamespaceMeta]],
+        namespace: dict[str, Any],
         *,
         render_cls: type[Renderable] | None = None,
         _base: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> ArgsDataNamespaceMetaT:
         if _base:
             namespace["__slots__"] = ()
         else:
@@ -144,7 +172,7 @@ class ArgsDataNamespaceMeta(type):
             namespace["__slots__"] = tuple(fields)
 
             if render_cls:
-                if base._RENDER_CLS:
+                if base._associated:
                     raise RenderArgsDataError(
                         "Cannot reassociate a namespace subclass; the base class "
                         f"is already associated with {base._RENDER_CLS.__name__!r}"
@@ -156,7 +184,9 @@ class ArgsDataNamespaceMeta(type):
                 if not isinstance(render_cls, RenderableMeta):
                     raise arg_type_error("render_cls", render_cls)
 
+                namespace["_associated"] = True
                 namespace["_RENDER_CLS"] = render_cls
+
             elif fields:
                 raise RenderArgsDataError("Unassociated namespace class with fields")
 
@@ -185,8 +215,12 @@ class ArgsDataNamespaceMeta(type):
 class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
     """:term:`Render class`\\ -specific argument/data namespace."""
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._RENDER_CLS:
+    _associated: ClassVar[bool]
+    _FIELDS: ClassVar[MappingProxyType[str, Any]]
+    _RENDER_CLS: ClassVar[type[Renderable]]
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
+        if not cls._associated:
             raise UnassociatedNamespaceError(
                 "Cannot instantiate a render argument/data namespace class "
                 "that hasn't been associated with a render class"
@@ -195,15 +229,16 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
         return super().__new__(cls)
 
     def __init__(self, fields: Mapping[str, Any]) -> None:
-        setattr_ = __class__.__setattr__  # Subclass(es) redefine `__setattr__()`
+        # Subclass(es) redefine `__setattr__()`
+        setattr_ = ArgsDataNamespace.__setattr__
         for name in type(self)._FIELDS:
             setattr_(self, name, fields[name])
 
-    def __delattr__(self, _):
+    def __delattr__(self, name: str) -> Never:
         raise AttributeError("Cannot delete field")
 
     @classmethod
-    def get_render_cls(cls) -> Type[Renderable]:
+    def get_render_cls(cls) -> type[Renderable]:
         """Returns the associated :term:`render class`.
 
         Returns:
@@ -214,7 +249,7 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
             UnassociatedNamespaceError: The namespace class hasn't been associated
               with a render class.
         """
-        if not cls._RENDER_CLS:
+        if not cls._associated:
             raise UnassociatedNamespaceError(
                 "This namespace class hasn't been associated with a render class"
             )
@@ -225,7 +260,15 @@ class ArgsDataNamespace(metaclass=ArgsDataNamespaceMeta, _base=True):
 class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render argument namespaces."""
 
-    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+    def __new__(
+        cls: type[ArgsNamespaceMetaT],
+        name: str,
+        bases: tuple[type[ArgsNamespaceMeta]],
+        namespace: dict[str, Any],
+        *,
+        _base: bool = False,
+        **kwargs: Any,
+    ) -> ArgsNamespaceMetaT:
         if not _base:
             try:
                 defaults = {
@@ -257,6 +300,7 @@ class ArgsNamespaceMeta(ArgsDataNamespaceMeta):
         return args_cls
 
 
+@dataclass_transform(eq_default=True, frozen_default=True)
 class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
     """ArgsNamespace(*values, **fields)
 
@@ -326,20 +370,20 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
             )
         )
 
-    def __getattr__(self, attr):
+    def __getattr__(self, name: str) -> Never:
         raise UnknownArgsFieldError(
-            f"Unknown render argument field {attr!r} for "
+            f"Unknown render argument field {name!r} for "
             f"{type(self)._RENDER_CLS.__name__!r}"
         )
 
-    def __setattr__(self, *_):
+    def __setattr__(self, name: str, value: Never) -> Never:
         raise AttributeError(
             "Cannot modify render argument fields, use the `update()` method "
             "of the namespace or the containing `RenderArgs` instance, as "
             "applicable, instead"
         )
 
-    def __eq__(self, other: ArgsNamespace) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Compares the namespace with another.
 
         Args:
@@ -407,7 +451,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         """
         self_render_cls = type(self)._RENDER_CLS
 
-        if isinstance(other, __class__):
+        if isinstance(other, ArgsNamespace):
             other_render_cls = type(other)._RENDER_CLS
             if self_render_cls is other_render_cls:
                 return RenderArgs(other_render_cls, other)
@@ -457,7 +501,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
             precedence.
         """
         # Not commutative
-        if isinstance(other, __class__) and (
+        if isinstance(other, ArgsNamespace) and (
             type(self)._RENDER_CLS is type(other)._RENDER_CLS
         ):
             return RenderArgs(type(self)._RENDER_CLS, self)
@@ -520,7 +564,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         """
         return RenderArgs(render_cls or type(self)._RENDER_CLS, self)
 
-    def update(self, **fields: Any) -> ArgsNamespace:
+    def update(self, **fields: Any) -> Self:
         """Updates render argument fields.
 
         Args:
@@ -545,7 +589,7 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         new = type(self).__new__(type(self))
         new_fields = self.as_dict()
         new_fields.update(fields)
-        super(__class__, new).__init__(new_fields)
+        super(ArgsNamespace, new).__init__(new_fields)
 
         return new
 
@@ -553,7 +597,17 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 class DataNamespaceMeta(ArgsDataNamespaceMeta):
     """Metaclass of render data namespaces."""
 
-    def __new__(cls, name, bases, namespace, *, _base=False, **kwargs):
+    _FIELDS: MappingProxyType[str, None]
+
+    def __new__(
+        cls: type[DataNamespaceMetaT],
+        name: str,
+        bases: tuple[type[DataNamespaceMeta]],
+        namespace: dict[str, Any],
+        *,
+        _base: bool = False,
+        **kwargs: Any,
+    ) -> DataNamespaceMetaT:
         data_cls = super().__new__(cls, name, bases, namespace, _base=_base, **kwargs)
 
         if not _base and (render_cls := data_cls.__dict__.get("_RENDER_CLS")):
@@ -601,6 +655,8 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
     .. Completed in /docs/source/api/renderable.rst
     """
 
+    _FIELDS: ClassVar[MappingProxyType[str, None]]
+
     def __init__(self) -> None:
         pass
 
@@ -622,24 +678,24 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
             )
         )
 
-    def __getattr__(self, attr):
-        if attr in type(self)._FIELDS:
+    def __getattr__(self, name: str) -> Never:
+        if name in type(self)._FIELDS:
             raise UninitializedDataFieldError(
-                f"The render data field {attr!r} of "
+                f"The render data field {name!r} of "
                 f"{type(self)._RENDER_CLS.__name__!r} has not been initialized"
             )
 
         raise UnknownDataFieldError(
-            f"Unknown render data field {attr!r} for "
+            f"Unknown render data field {name!r} for "
             f"{type(self)._RENDER_CLS.__name__!r}"
         )
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         try:
-            super().__setattr__(attr, value)
+            super().__setattr__(name, value)
         except AttributeError:
             raise UnknownDataFieldError(
-                f"Unknown render data field {attr!r} for "
+                f"Unknown render data field {name!r} for "
                 f"{type(self)._RENDER_CLS.__name__!r}"
             ) from None
 
@@ -665,7 +721,7 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
         return {name: getattr(self, name) for name in type(self)._FIELDS}
 
     @classmethod
-    def get_fields(cls) -> tuple[str]:
+    def get_fields(cls) -> tuple[str, ...]:
         """Returns the field names.
 
         Returns:
@@ -763,10 +819,13 @@ class RenderArgsData:
 
     __slots__ = ("render_cls", "_namespaces")
 
+    render_cls: type[Renderable]
+    _namespaces: MappingProxyType[type[Renderable], ArgsDataNamespace]
+
     def __init__(
         self,
         render_cls: type[Renderable],
-        namespaces: dict[type[Renderable], ArgsDataNamespace],
+        namespaces: Mapping[type[Renderable], ArgsDataNamespace],
     ) -> None:
         self.render_cls = render_cls
         self._namespaces = MappingProxyType(namespaces)
@@ -792,7 +851,6 @@ class RenderArgs(RenderArgsData):
              class` are given, the last of them takes precedence.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
         IncompatibleRenderArgsError: *init_render_args* is incompatible [#ra1]_ with
           *render_cls*.
         IncompatibleArgsNamespaceError: Incompatible [#ran2]_ render argument namespace.
@@ -825,11 +883,12 @@ class RenderArgs(RenderArgsData):
 
     __slots__ = ()
 
-    __interned: ClassVar[dict[type[Renderable], RenderArgs]] = {}
+    __interned: ClassVar[dict[type[Renderable], Self]] = {}
+    _namespaces: MappingProxyType[type[Renderable], ArgsNamespace]
 
     # Instance Attributes ======================================================
 
-    render_cls: Type[Renderable]
+    render_cls: type[Renderable]
     """The associated :term:`render class`"""
 
     # Special Methods ==========================================================
@@ -839,29 +898,21 @@ class RenderArgs(RenderArgsData):
         render_cls: type[Renderable],
         init_or_namespace: RenderArgs | ArgsNamespace | None = None,
         *namespaces: ArgsNamespace,
-    ) -> RenderArgs:
+    ) -> Self:
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, __class__):
+        elif isinstance(init_or_namespace, RenderArgs):
             init_render_args = init_or_namespace
-        elif isinstance(init_or_namespace, ArgsNamespace):
+        else:
             init_render_args = None
             namespaces = (init_or_namespace, *namespaces)
-        else:
-            raise arg_type_error_msg(
-                "Invalid type for the second argument", init_or_namespace
+
+        if init_render_args and not issubclass(render_cls, init_render_args.render_cls):
+            raise IncompatibleRenderArgsError(
+                f"'init_render_args' (associated with "
+                f"{init_render_args.render_cls.__name__!r}) is incompatible with "
+                f"{render_cls.__name__!r} "
             )
-
-        if init_render_args:
-            if not isinstance(render_cls, RenderableMeta):
-                raise arg_type_error("render_cls", render_cls)
-
-            if not issubclass(render_cls, init_render_args.render_cls):
-                raise IncompatibleRenderArgsError(
-                    f"'init_render_args' (associated with "
-                    f"{init_render_args.render_cls.__name__!r}) is incompatible with "
-                    f"{render_cls.__name__!r} "
-                )
 
         if not namespaces:
             # has default namespaces only
@@ -871,7 +922,7 @@ class RenderArgs(RenderArgsData):
                 or cls.__interned.get(init_render_args.render_cls) is init_render_args
             ):
                 try:
-                    return cls.__interned[render_cls]
+                    return cls.__interned[render_cls]  # type: ignore[return-value]
                 except KeyError:
                     pass
 
@@ -890,13 +941,9 @@ class RenderArgs(RenderArgsData):
         init_or_namespace: RenderArgs | ArgsNamespace | None = None,
         *namespaces: ArgsNamespace,
     ) -> None:
-        # `init_or_namespace` is validated in `__new__()`.
-        # `render_cls` is validated in `__new__()`, if and only if `init_or_namespace`
-        # is a `RenderArgs` instance.
-
         if init_or_namespace is None:
             init_render_args = None
-        elif isinstance(init_or_namespace, __class__):
+        elif isinstance(init_or_namespace, RenderArgs):
             init_render_args = init_or_namespace
         else:
             init_render_args = None
@@ -917,12 +964,8 @@ class RenderArgs(RenderArgsData):
         else:
             intern = False
 
-        if init_render_args:
-            if init_render_args is self:
-                return
-        # Otherwise, `render_cls` wasn't validated in `__new__()`
-        elif not isinstance(render_cls, RenderableMeta):
-            raise arg_type_error("render_cls", render_cls)
+        if init_render_args is self:
+            return
 
         namespaces_dict = render_cls._ALL_DEFAULT_ARGS.copy()
 
@@ -933,9 +976,7 @@ class RenderArgs(RenderArgsData):
             namespaces_dict.update(init_render_args._namespaces)
 
         for index, namespace in enumerate(namespaces):
-            if not isinstance(namespace, ArgsNamespace):
-                raise arg_type_error(f"namespaces[{index}]", namespace)
-            if namespace._RENDER_CLS not in render_cls._ALL_DEFAULT_ARGS:
+            if namespace._RENDER_CLS not in namespaces_dict:
                 raise IncompatibleArgsNamespaceError(
                     f"'namespaces[{index}]' (associated with "
                     f"{namespace._RENDER_CLS.__name__!r}) is incompatible with "
@@ -948,7 +989,7 @@ class RenderArgs(RenderArgsData):
         if intern:
             type(self).__interned[render_cls] = self
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         cls.__interned = {}
         super().__init_subclass__(**kwargs)
 
@@ -965,7 +1006,7 @@ class RenderArgs(RenderArgsData):
         """
         return None is not self._namespaces.get(namespace._RENDER_CLS) == namespace
 
-    def __eq__(self, other: RenderArgs) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Compares this set of render arguments with another.
 
         Args:
@@ -984,7 +1025,7 @@ class RenderArgs(RenderArgsData):
 
         return NotImplemented
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> ArgsNamespace:
+    def __getitem__(self, render_cls: type[Renderable]) -> Any:
         """Returns a constituent namespace.
 
         Args:
@@ -996,13 +1037,29 @@ class RenderArgs(RenderArgsData):
             The constituent namespace associated with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
+            TypeError: *render_cls* is not a render class.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoArgsNamespaceError: *render_cls* has no render arguments.
+
+        NOTE:
+            The return type hint is :py:class:`~typing.Any` only for compatibility
+            with static type checking, as this aspect of the interface seems too
+            dynamic to be correctly expressed with the exisiting type system.
+
+            Regardless, the return value is guaranteed to always be an instance
+            of a render argument namespace class associated with *render_cls*.
+            For instance, the following would always be valid for
+            :py:class:`~term_image.renderable.Renderable`::
+
+               renderable_args: RenderableArgs = render_args[Renderable]
+
+            and similar idioms are encouraged to be used for other render classes.
         """
         try:
             return self._namespaces[render_cls]
-        except (TypeError, KeyError):
+        except TypeError:
+            raise arg_type_error("render_cls", render_cls) from None
+        except KeyError:
             if not isinstance(render_cls, RenderableMeta):
                 raise arg_type_error("render_cls", render_cls) from None
 
@@ -1059,7 +1116,7 @@ class RenderArgs(RenderArgsData):
 
     # Public Methods ===========================================================
 
-    def convert(self, render_cls: Type[Renderable]) -> RenderArgs:
+    def convert(self, render_cls: type[Renderable]) -> RenderArgs:
         """Converts the set of render arguments to one for a related render class.
 
         Args:
@@ -1072,21 +1129,17 @@ class RenderArgs(RenderArgsData):
             arguments, *self*) that are compatible [#ran2]_ with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             ValueError: *render_cls* is not a parent or child of :py:attr:`render_cls`.
         """
         if render_cls is self.render_cls:
             return self
 
-        if not isinstance(render_cls, RenderableMeta):
-            raise arg_type_error("render_cls", render_cls)
-
         if issubclass(render_cls, self.render_cls):
-            return type(self)(render_cls, self)
+            return RenderArgs(render_cls, self)
 
         if issubclass(self.render_cls, render_cls):
             render_cls_args_mro = render_cls._ALL_DEFAULT_ARGS
-            return type(self)(
+            return RenderArgs(
                 render_cls,
                 *[
                     namespace
@@ -1100,9 +1153,28 @@ class RenderArgs(RenderArgsData):
             f"{self.render_cls.__name__!r}"
         )
 
+    @overload
     def update(
         self,
-        render_cls_or_namespace: Type[Renderable] | ArgsNamespace,
+        namespace: ArgsNamespace,
+        /,
+        *namespaces: ArgsNamespace,
+    ) -> RenderArgs:
+        ...
+
+    @overload
+    def update(
+        self,
+        render_cls: type[Renderable],
+        /,
+        **fields: Any,
+    ) -> RenderArgs:
+        ...
+
+    def update(
+        self,
+        render_cls_or_namespace: type[Renderable] | ArgsNamespace,
+        /,
         *namespaces: ArgsNamespace,
         **fields: Any,
     ) -> RenderArgs:
@@ -1112,13 +1184,14 @@ class RenderArgs(RenderArgsData):
         Replaces or updates render argument namespaces.
 
         Args:
+            namespace (ArgsNamespace): Prepended to *namespaces*.
             namespaces: Render argument namespaces compatible [#ran2]_ with
               :py:attr:`render_cls`.
 
               .. note:: If multiple namespaces associated with the same :term:`render
                  class` are given, the last of them takes precedence.
 
-            render_cls (Type[Renderable]): A :term:`render class` of which
+            render_cls (type[Renderable]): A :term:`render class` of which
               :py:attr:`render_cls` is a subclass (which may be :py:attr:`render_cls`
               itself) and which has render arguments.
             fields: Render argument fields.
@@ -1133,7 +1206,6 @@ class RenderArgs(RenderArgsData):
             for *render_cls* updated, if any.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
             TypeError: The arguments given do not conform to any of the expected forms.
 
         Propagates exceptions raised by:
@@ -1149,7 +1221,7 @@ class RenderArgs(RenderArgsData):
                     "is a render class"
                 )
             render_cls = render_cls_or_namespace
-        elif isinstance(render_cls_or_namespace, ArgsNamespace):
+        else:
             if fields:
                 raise TypeError(
                     "No keyword argument is expected when the first argument is "
@@ -1157,12 +1229,8 @@ class RenderArgs(RenderArgsData):
                 )
             render_cls = None
             namespaces = (render_cls_or_namespace, *namespaces)
-        else:
-            raise arg_type_error_msg(
-                "Invalid type for the first argument", render_cls_or_namespace
-            )
 
-        return type(self)(
+        return RenderArgs(
             self.render_cls,
             self,
             *((self[render_cls].update(**fields),) if render_cls else namespaces),
@@ -1202,8 +1270,10 @@ class RenderData(RenderArgsData):
     finalized: bool
     """Finalization status"""
 
-    render_cls: Type[Renderable]
+    render_cls: type[Renderable]
     """The associated :term:`render class`"""
+
+    _namespaces: MappingProxyType[type[Renderable], DataNamespace]
 
     # Special Methods ==========================================================
 
@@ -1214,13 +1284,13 @@ class RenderData(RenderArgsData):
         )
         self.finalized = False
 
-    def __del__(self):
+    def __del__(self) -> None:
         try:
             self.finalize()
         except AttributeError:  # Unsuccessful initialization
             pass
 
-    def __getitem__(self, render_cls: Type[Renderable]) -> DataNamespace:
+    def __getitem__(self, render_cls: type[Renderable]) -> Any:
         """Returns a constituent namespace.
 
         Args:
@@ -1232,13 +1302,29 @@ class RenderData(RenderArgsData):
             The constituent namespace associated with *render_cls*.
 
         Raises:
-            TypeError: An argument is of an inappropriate type.
+            TypeError: *render_cls* is not a render class.
             ValueError: :py:attr:`render_cls` is not a subclass of *render_cls*.
             NoDataNamespaceError: *render_cls* has no render data.
+
+        NOTE:
+            The return type hint is :py:class:`~typing.Any` only for compatibility
+            with static type checking, as this aspect of the interface seems too
+            dynamic to be correctly expressed with the exisiting type system.
+
+            Regardless, the return value is guaranteed to always be an instance
+            of a render data namespace class associated with *render_cls*.
+            For instance, the following would always be valid for
+            :py:class:`~term_image.renderable.Renderable`::
+
+               renderable_data: RenderableData = render_data[Renderable]
+
+            and similar idioms are encouraged to be used for other render classes.
         """
         try:
             return self._namespaces[render_cls]
-        except (TypeError, KeyError):
+        except TypeError:
+            raise arg_type_error("render_cls", render_cls) from None
+        except KeyError:
             if not isinstance(render_cls, RenderableMeta):
                 raise arg_type_error("render_cls", render_cls) from None
 
@@ -1299,8 +1385,4 @@ class RenderData(RenderArgsData):
 
 # Variables ====================================================================
 
-BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)
-
-# Updated from `._renderable`
-Renderable = "Renderable"
-RenderableMeta = "RenderableMeta"
+BASE_RENDER_ARGS = RenderArgs.__new__(RenderArgs, None)  # type: ignore[arg-type]

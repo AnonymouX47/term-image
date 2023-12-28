@@ -19,6 +19,8 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import astuple, dataclass
 from enum import IntEnum, auto
 
+from typing_extensions import override
+
 from .ctlseqs import cursor_forward
 from .exceptions import TermImageError
 from .geometry import RawSize, Size
@@ -120,7 +122,8 @@ class Padding(metaclass=ABCMeta):
     # Special Methods ==========================================================
 
     def __init__(self, fill: str = " ") -> None:
-        __class__.__setattr__(self, "fill", fill)  # Subclasses are to be "immutable"
+        # Subclasses are to be "immutable", `super()` is costlier
+        Padding.__setattr__(self, "fill", fill)
 
     # Public Methods ===========================================================
 
@@ -340,6 +343,7 @@ class AlignedPadding(Padding):
 
     # Public Methods ===========================================================
 
+    @override
     def get_padded_size(self, render_size: Size) -> Size:
         """Computes an expected padded :term:`render size`.
 
@@ -351,7 +355,7 @@ class AlignedPadding(Padding):
         if self.relative:
             raise RelativePaddingDimensionError("Relative minimum render dimension(s)")
 
-        return Size(*map(max, (self.width, self.height), render_size))  # type: ignore
+        return Size(max(self.width, render_size[0]), max(self.height, render_size[1]))
 
     def resolve(self, terminal_size: os.terminal_size) -> AlignedPadding:
         """Resolves **relative** *minimum render dimensions*.
@@ -377,6 +381,7 @@ class AlignedPadding(Padding):
 
     # Extension methods ========================================================
 
+    @override
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
         if self.relative:
             raise RelativePaddingDimensionError("Relative minimum render dimension(s)")
@@ -471,12 +476,13 @@ class ExactPadding(Padding):
         GET:
             Returns the padding dimensions, ``(left, top, right, bottom)``.
         """
-        return astuple(self)[:4]  # type: ignore
+        return astuple(self)[:4]
 
     # Extension methods ========================================================
 
+    @override
     def _get_exact_dimensions_(self, render_size: Size) -> tuple[int, int, int, int]:
-        return astuple(self)[:4]  # type: ignore
+        return astuple(self)[:4]
 
 
 # Exceptions ===================================================================

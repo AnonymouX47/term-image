@@ -33,6 +33,7 @@ extensions = [
     "sphinx_toolbox.sidebar_links",
     "sphinx_toolbox.more_autosummary",
     "sphinx_toolbox.collapse",
+    "sphinx_toolbox.more_autodoc.typevars",
     "sphinxcontrib.prettyspecialmethods",
 ]
 

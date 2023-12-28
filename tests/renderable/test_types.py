@@ -180,12 +180,12 @@ class TestNamespaceMeta:
             class Namespace(NamespaceBase):
                 pass
 
-            assert Namespace._RENDER_CLS is None
+            assert Namespace._associated is False
 
             class Namespace(NamespaceBase, render_cls=None):
                 pass
 
-            assert Namespace._RENDER_CLS is None
+            assert Namespace._associated is False
 
         def test_with_fields(self):
             with pytest.raises(RenderArgsDataError, match="Unassociated.* with fields"):
@@ -343,19 +343,6 @@ class TestNamespace:
 
 
 class TestRenderArgs:
-    def test_args(self):
-        with pytest.raises(TypeError, match="'render_cls'"):
-            RenderArgs(Ellipsis)
-
-        with pytest.raises(TypeError, match="second argument"):
-            RenderArgs(Renderable, Ellipsis)
-
-        with pytest.raises(TypeError, match=r"'namespaces\[0\]'"):
-            RenderArgs(Renderable, RenderArgs(Renderable), Ellipsis)
-
-        with pytest.raises(TypeError, match=r"'namespaces\[1\]'"):
-            RenderArgs(Foo, Foo.Args(), Ellipsis)
-
     def test_base(self):
         render_args = RenderArgs(Renderable)
         assert render_args.render_cls is Renderable
@@ -615,11 +602,13 @@ class TestRenderArgs:
 
         render_args = RenderArgs(Bar)
 
-        with pytest.raises(TypeError, match="'render_cls'"):
-            render_args[Ellipsis]
-
+        # Unhashable
         with pytest.raises(TypeError, match="'render_cls'"):
             render_args[[]]
+
+        # Hashable but not a render class
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_args[Ellipsis]
 
         with pytest.raises(NoArgsNamespaceError):
             render_args[Bar]
@@ -692,11 +681,6 @@ class TestRenderArgs:
 
         args = (A.Args("1"), B.Args("2"), C.Args("3"), D.Args("4"))
 
-        def test_args(self):
-            render_args = RenderArgs(Foo)
-            with pytest.raises(TypeError, match="'render_cls'"):
-                render_args.convert(Ellipsis)
-
         def test_same_render_cls(self):
             render_args = RenderArgs(Foo, Foo.Args("bar", "foo"))
             assert render_args.convert(Foo) is render_args
@@ -735,9 +719,6 @@ class TestRenderArgs:
 
             render_args = RenderArgs(Foo)
 
-            with pytest.raises(TypeError, match="first argument"):
-                render_args.update(Ellipsis)
-
             with pytest.raises(TypeError, match="positional argument"):
                 render_args.update(Foo, Ellipsis)
 
@@ -745,9 +726,6 @@ class TestRenderArgs:
                 render_args.update(Foo.Args(), foo=Ellipsis)
 
             # propagated
-
-            with pytest.raises(TypeError, match=r"'namespaces\[1\]'"):
-                render_args.update(Foo.Args(), Ellipsis)
 
             with pytest.raises(ValueError, match="not a subclass"):
                 render_args.update(Bar)
@@ -851,11 +829,11 @@ class TestRenderArgs:
                     pass
 
                 render_args = SubRenderArgs(Renderable)
-                assert isinstance(render_args, SubRenderArgs)
+                assert type(render_args) is SubRenderArgs
                 assert render_args is SubRenderArgs(Renderable)
 
                 render_args = SubRenderArgs(Foo)
-                assert isinstance(render_args, SubRenderArgs)
+                assert type(render_args) is SubRenderArgs
                 assert render_args is SubRenderArgs(Foo)
 
         class TestInitRenderArgsWithSameRenderClsAndWithoutNamespaces:
@@ -1505,11 +1483,13 @@ class TestRenderData:
 
         render_data = RenderData(Bar)
 
-        with pytest.raises(TypeError, match="'render_cls'"):
-            render_data[Ellipsis]
-
+        # Unhashable
         with pytest.raises(TypeError, match="'render_cls'"):
             render_data[[]]
+
+        # Hashable but not a render class
+        with pytest.raises(TypeError, match="'render_cls'"):
+            render_data[Ellipsis]
 
         with pytest.raises(NoDataNamespaceError):
             render_data[Bar]

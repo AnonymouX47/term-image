@@ -17,6 +17,7 @@ import os
 import sys
 import warnings
 from array import array
+from collections.abc import Callable
 from functools import wraps
 from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
@@ -24,8 +25,16 @@ from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
 from time import monotonic
-from types import FunctionType
-from typing import Any, Callable, Optional, Tuple, Union
+
+from typing_extensions import (
+    Any,
+    Literal,
+    ParamSpec,
+    Tuple,
+    TypeVar,
+    no_type_check,
+    overload,
+)
 
 import term_image
 
@@ -47,31 +56,44 @@ else:
 # NOTE: Any cached feature using a query should have it's cache invalidated in
 # `term_image.enable_queries()`.
 
+# Type Variables and Aliases
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+ColorType = Tuple[int, int, int]
+
+# Variables
+
+HEX_RGB_FMT = "#" + "%02x" * 3
+
 # Decorator Classes
 
 
-class ClassInstanceMethod(classmethod):
+class ClassInstanceMethod(classmethod):  # type: ignore[type-arg]
     """A method which when invoked via the owner, behaves like a class method
     and when invoked via an instance, behaves like an instance method.
     """
 
-    def __init__(
-        self, f_owner: FunctionType, f_instance: Optional[FunctionType] = None
-    ):
+    @no_type_check  # This definition is to be removed soon
+    def __init__(self, f_owner, f_instance=None):
         super().__init__(f_owner)
         self.f_owner = f_owner
         self.f_instance = f_instance
 
+    @no_type_check  # This definition is to be removed soon
     def __get__(self, instance, owner=None):
         if instance:
             return self.f_instance.__get__(instance, owner)
         else:
             return super().__get__(instance, owner)
 
-    def classmethod(self, function: FunctionType) -> ClassInstanceMethod:
+    @no_type_check  # This definition is to be removed soon
+    def classmethod(self, function):
         return type(self)(function, self.f_instance)
 
-    def instancemethod(self, function: FunctionType) -> ClassInstanceMethod:
+    @no_type_check  # This definition is to be removed soon
+    def instancemethod(self, function):
         return type(self)(self.f_owner, function)
 
 
@@ -80,6 +102,7 @@ class ClassPropertyBase(property):
     instance.
     """
 
+    @no_type_check  # This definition is to be removed soon
     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
         super().__init__(fget, fset, fdel, doc)
         # `property` doesn't set `__doc__`, probably cos the subclass' `__doc__`
@@ -108,7 +131,7 @@ class ClassProperty(ClassPropertyBase):
 # Decorator Functions
 
 
-def no_redecorate(decor: FunctionType) -> FunctionType:
+def no_redecorate(decor: Callable[P, T]) -> Callable[P, T]:
     """Prevents a decorator from re-decorating objects.
 
     Args:
@@ -118,18 +141,19 @@ def no_redecorate(decor: FunctionType) -> FunctionType:
         return decor
 
     @wraps(decor)
-    def no_redecorate_wrapper(obj, *args, **kwargs):
-        if not getattr(obj, f"_{decor.__name__}_", False):
-            obj = decor(obj, *args, **kwargs)
+    def no_redecorate_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        if not getattr(args[0], f"_{decor.__name__}_", False):
+            obj = decor(*args, **kwargs)
             setattr(obj, f"_{decor.__name__}_", True)
         return obj
 
-    no_redecorate_wrapper._no_redecorate_ = True
+    setattr(no_redecorate_wrapper, "_no_redecorate_", True)
+
     return no_redecorate_wrapper
 
 
 @no_redecorate
-def cached(func: FunctionType) -> FunctionType:
+def cached(func: Callable[P, T]) -> Callable[P, T]:
     """Enables return value caching.
 
     Args:
@@ -147,7 +171,7 @@ def cached(func: FunctionType) -> FunctionType:
     """
 
     @wraps(func)
-    def cached_wrapper(*args, **kwargs):
+    def cached_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         arguments = (args, tuple(kwargs.items()))
         with lock:
             try:
@@ -155,19 +179,19 @@ def cached(func: FunctionType) -> FunctionType:
             except KeyError:
                 return cache.setdefault(arguments, func(*args, **kwargs))
 
-    def invalidate():
+    def invalidate() -> None:
         with lock:
             cache.clear()
 
-    cache = {}
+    cache: dict[tuple[P.args, tuple[tuple[str, Any], ...]], T] = {}
     lock = RLock()
-    cached_wrapper._invalidate_cache = invalidate
+    setattr(cached_wrapper, "_invalidate_cache", invalidate)
 
     return cached_wrapper
 
 
 @no_redecorate
-def lock_tty(func: FunctionType) -> FunctionType:
+def lock_tty(func: Callable[P, T]) -> Callable[P, T]:
     """Synchronizes access to the :term:`active terminal`.
 
     Args:
@@ -193,7 +217,7 @@ def lock_tty(func: FunctionType) -> FunctionType:
     """
 
     @wraps(func)
-    def lock_tty_wrapper(*args, **kwargs):
+    def lock_tty_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         # If a thread reaches this point while the lock is being changed
         # (the old lock has been acquired but hasn't been changed), after the lock has
         # been changed and the former lock is released, the waiting thread will acquire
@@ -222,7 +246,7 @@ def lock_tty(func: FunctionType) -> FunctionType:
 
 
 @no_redecorate
-def terminal_size_cached(func: FunctionType) -> FunctionType:
+def terminal_size_cached(func: Callable[P, T]) -> Callable[P, T]:
     """Enables return value caching based on the size of the :term:`active terminal`.
 
     Args:
@@ -240,28 +264,33 @@ def terminal_size_cached(func: FunctionType) -> FunctionType:
         It's thread-safe, i.e there is no race condition between calls to the same
         decorated callable across threads of the same process.
     """
+    cache: tuple[T, os.terminal_size] | None = None
+    lock = RLock()
 
     @wraps(func)
-    def terminal_size_cached_wrapper(*args, **kwargs):
+    def terminal_size_cached_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        nonlocal cache
+
         with lock:
             ts = get_terminal_size()
             if not cache or ts != cache[1]:
-                cache[:] = [func(*args, **kwargs), ts]
+                cache = (func(*args, **kwargs), ts)
+
         return cache[0]
 
-    def invalidate():
-        with lock:
-            cache.clear()
+    def invalidate() -> None:
+        nonlocal cache
 
-    cache = []
-    lock = RLock()
-    terminal_size_cached_wrapper._invalidate_terminal_size_cache = invalidate
+        with lock:
+            cache = None
+
+    setattr(terminal_size_cached_wrapper, "_invalidate_terminal_size_cache", invalidate)
 
     return terminal_size_cached_wrapper
 
 
 @no_redecorate
-def unix_tty_only(func: FunctionType) -> FunctionType:
+def unix_tty_only(func: Callable[P, T]) -> Callable[P, T | None]:
     """Disable invocation of a function on a non-unix-like platform or when there is no
     :term:`active terminal`.
 
@@ -270,8 +299,11 @@ def unix_tty_only(func: FunctionType) -> FunctionType:
     """
 
     @wraps(func)
-    def unix_only_wrapper(*args, **kwargs):
-        return _tty_fd and func(*args, **kwargs)
+    def unix_only_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+        return None if _tty_fd == -1 else func(*args, **kwargs)
+
+    if unix_only_wrapper.__doc__ is None:
+        unix_only_wrapper.__doc__ = ""
 
     unix_only_wrapper.__doc__ += """
     NOTE:
@@ -325,7 +357,7 @@ def arg_value_error_range(arg: str, value: Any, got_extra: str = "") -> ValueErr
     )
 
 
-def clear_queue(queue: Union[Queue, mp_Queue]):
+def clear_queue(queue: Queue[Any] | mp_Queue[Any]) -> None:
     """Purges the given queue"""
     while True:
         try:
@@ -335,7 +367,11 @@ def clear_queue(queue: Union[Queue, mp_Queue]):
 
 
 def color(
-    text: str, fg: Tuple[int] = (), bg: Tuple[int] = (), *, end: bool = False
+    text: str,
+    fg: tuple[int, int, int] | None = None,
+    bg: tuple[int, int, int] | None = None,
+    *,
+    end: bool = False,
 ) -> str:
     """Prepends *text* with direct-color escape sequences for the given foreground
     and/or background RGB values, optionally ending with the color reset sequence.
@@ -352,8 +388,8 @@ def color(
     The color code is omitted for any of *fg* or *bg* that is empty.
     """
     return (ctlseqs.SGR_FG_RGB * bool(fg) + ctlseqs.SGR_BG_RGB * bool(bg) + "%s") % (
-        *fg,
-        *bg,
+        *(fg or ()),
+        *(bg or ()),
         text,
     ) + ctlseqs.SGR_NORMAL * end
 
@@ -370,6 +406,11 @@ def get_cell_size() -> term_image.geometry.Size | None:
     """
     from term_image.geometry import Size
 
+    cell_size: tuple[int, ...]
+    text_area_size: tuple[int, ...]
+    cell_size = text_area_size = (0, 0)
+    got_text_area_size = False
+
     # If a thread reaches this point while the lock is being changed
     # (the old lock has been acquired but hasn't been changed), after the lock has
     # been changed and the former lock is released, the waiting thread will acquire
@@ -378,24 +419,22 @@ def get_cell_size() -> term_image.geometry.Size | None:
     # lock and be in sync.
     # NB: Multiple expressions are processed as multiple nested with statements.
     with _cell_size_lock, _cell_size_lock:
-        ts = get_terminal_size()
-        if ts == tuple(_cell_size_cache[:2]):
-            size = tuple(_cell_size_cache[2:])
-            return None if 0 in size else Size(*size)
-
-        size = text_area_size = None
+        terminal_size = get_terminal_size()
+        if terminal_size == tuple(_cell_size_cache[:2]):
+            cell_size = tuple(_cell_size_cache[2:])
+            return None if 0 in cell_size else Size(*cell_size)
 
         # First try ioctl
         buf = array("H", [0, 0, 0, 0])
         try:
             if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
                 text_area_size = tuple(buf[2:])
-                if 0 in text_area_size:
-                    text_area_size = None
+                if 0 not in text_area_size:
+                    got_text_area_size = True
         except OSError:
             pass
 
-        if not text_area_size:
+        if not got_text_area_size:
             # Then XTWINOPS
             # The last sequence is to speed up the entire query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
@@ -411,7 +450,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
                     )
             # XTWINOPS specifies (height, width)
             if cell_size_match:
-                size = tuple(map(int, cell_size_match.groups()))[::-1]
+                cell_size = tuple(map(int, cell_size_match.groups()))[::-1]
             elif text_area_size_match:
                 text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
 
@@ -421,26 +460,41 @@ def get_cell_size() -> term_image.geometry.Size | None:
                 if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
                     text_area_size = (text_area_size[0], text_area_size[1] * 2)
 
-        if text_area_size and _swap_win_size:
-            text_area_size = text_area_size[::-1]
-        size = size or (
-            tuple(map(floordiv, text_area_size, ts)) if text_area_size else (0, 0)
-        )
-        _cell_size_cache[:] = ts + size
+        if got_text_area_size:
+            if _swap_win_size:
+                text_area_size = text_area_size[::-1]
+            cell_size = tuple(map(floordiv, text_area_size, terminal_size))
 
-        return None if 0 in size else Size(*size)
+        _cell_size_cache[:] = terminal_size + cell_size
+
+        return None if 0 in cell_size else Size(*cell_size)
+
+
+@overload
+def get_fg_bg_colors(
+    *, hex: Literal[False]
+) -> tuple[ColorType | None, ColorType | None]:
+    ...
+
+
+@overload
+def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]:
+    ...
 
 
 @cached
 def get_fg_bg_colors(
-    *, hex: bool = False
-) -> Tuple[
-    Union[None, str, Tuple[int, int, int]], Union[None, str, Tuple[int, int, int]]
-]:
-    """Returns the default FG and BG colors of the :term:`active terminal`.
+    *, hex: Literal[False, True] = False
+) -> tuple[ColorType | str | None, ColorType | str | None]:
+    """
+    get_fg_bg_colors(*, hex: Literal[False]) \
+    -> tuple[ColorType | None, ColorType | None]
+    get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]
+
+    Returns the default FG and BG colors of the :term:`active terminal`.
 
     Returns:
-        For each color:
+        For each color,
 
         * an RGB 3-tuple, if *hex* is ``False``
         * an RGB hex string if *hex* is ``True``
@@ -466,13 +520,14 @@ def get_fg_bg_colors(
             elif c == "11":
                 bg = ctlseqs.x_parse_color(spec)
 
-    return tuple(
-        rgb and ("#" + ("{:02x}" * 3).format(*rgb) if hex else rgb) for rgb in (fg, bg)
+    return (
+        fg and (HEX_RGB_FMT % fg if hex else fg),
+        bg and (HEX_RGB_FMT % bg if hex else bg),
     )
 
 
 @cached
-def get_terminal_name_version() -> Tuple[Optional[str], Optional[str]]:
+def get_terminal_name_version() -> tuple[str | None, str | None]:
     """Returns the name and version of the :term:`active terminal`, if available.
 
     Returns:
@@ -517,14 +572,13 @@ def get_terminal_size() -> os.terminal_size:
         - gives different results in certain situations
         - is what this library works with
     """
-    if _tty_fd:
+    size = None
+    if _tty_fd != -1:
         # faster and gives correct results when output is redirected
         try:
             size = os.get_terminal_size(_tty_fd)
         except OSError:
-            size = None
-    else:
-        size = None
+            pass
 
     return size or _get_terminal_size()
 
@@ -532,8 +586,8 @@ def get_terminal_size() -> os.terminal_size:
 @unix_tty_only
 @lock_tty
 def query_terminal(
-    request: bytes, more: Callable[[bytearray], bool], timeout: float = None
-) -> Optional[bytes]:
+    request: bytes, more: Callable[[bytearray], bool], timeout: float | None = None
+) -> bytes | None:
     """Sends a query to the :term:`active terminal` and returns the response.
 
     Args:
@@ -577,11 +631,11 @@ def query_terminal(
 @lock_tty
 def read_tty(
     more: Callable[[bytearray], bool] = lambda _: True,
-    timeout: Optional[float] = None,
+    timeout: float | None = None,
     min: int = 0,
     *,
     echo: bool = False,
-) -> bytes:
+) -> bytes | None:
     """Reads input directly from the :term:`active terminal` with/without blocking.
 
     Args:
@@ -598,7 +652,7 @@ def read_tty(
 
     Returns:
         The input read (empty, if *min* == ``0`` (default) and no input is received
-        before *timeout* is up).
+        before *timeout* is up) or ``None`` if not supported.
 
     If *timeout* is ``None`` (default), all available input is read without blocking.
 
@@ -630,8 +684,10 @@ def read_tty(
 
     input = bytearray()
     try:
-        termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
+        w: list[int]
+        x: list[int]
         r, w, x = [_tty_fd], [], []
+        termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
 
         if timeout is None:
             # VMIN=0 does not work as expected on some platforms when there's no input
@@ -661,12 +717,12 @@ def read_tty(
 
 
 @unix_tty_only
-def read_tty_all() -> bytes:
+def read_tty_all() -> bytes | None:
     """Reads all available input directly from the :term:`active terminal` **without
     blocking**.
 
     Returns:
-        The input read.
+        The input read or ``None`` if not supported.
 
     IMPORTANT:
         Synchronized with :py:func:`~term_image.utils.lock_tty`.
@@ -689,6 +745,7 @@ def write_tty(data: bytes) -> None:
         pass
 
 
+@no_type_check
 def _process_start_wrapper(self, *args, **kwargs):
     global _tty_lock, _cell_size_cache, _cell_size_lock
 
@@ -733,6 +790,7 @@ def _process_start_wrapper(self, *args, **kwargs):
     return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
 
 
+@no_type_check
 def _process_run_wrapper(self, *args, **kwargs):
     global _tty_lock, _cell_size_cache, _cell_size_lock
 
@@ -747,9 +805,9 @@ def _process_run_wrapper(self, *args, **kwargs):
 
 # Private internal variables
 _query_timeout = 0.1
-_queries_enabled: bool = True
-_swap_win_size: bool = False
-_tty_fd: Optional[int] = None
+_queries_enabled = True
+_swap_win_size = False
+_tty_fd = -1
 _tty_lock = RLock()
 _cell_size_cache = [0] * 4
 _cell_size_lock = RLock()
@@ -758,7 +816,11 @@ _rlock_type = type(_tty_lock)
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority
         try:
-            _tty_fd = os.ttyname(getattr(sys, f"__std{stream}__").fileno())
+            # A new file descriptor is required because, at least, both read and write
+            # access to the T/PTY are required.
+            _tty_fd = os.open(
+                os.ttyname(getattr(sys, f"__std{stream}__").fileno()), os.O_RDWR
+            )
             break
         except (OSError, AttributeError):
             pass
@@ -776,12 +838,14 @@ if OS_IS_UNIX:
                 "`TermImageWarning` won't be available).",
                 TermImageWarning,
             )
-    if _tty_fd:
-        if isinstance(_tty_fd, str):
-            _tty_fd = os.open(_tty_fd, os.O_RDWR)
 
-        Process.start = wraps(Process.start)(_process_start_wrapper)
-        Process.run = wraps(Process.run)(_process_run_wrapper)
+    if _tty_fd != -1:
+        Process.start = wraps(Process.start)(  # type: ignore[method-assign]
+            _process_start_wrapper
+        )
+        Process.run = wraps(Process.run)(  # type: ignore[method-assign]
+            _process_run_wrapper
+        )
 
         # Shouldn't be needed since we're getting our own separate file descriptors
         # but the validity of the assumed safety is still under probation

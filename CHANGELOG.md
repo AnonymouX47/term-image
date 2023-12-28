@@ -20,21 +20,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `term_image.padding` submodule ([#97]).
   - `Padding`, `AlignedPadding`, `ExactPadding`, etc.
 - Support for Pillow 10. ([8cfebe2])
+- Static Typing & Type Checking Support ([#100]).
 
 ### Changed
 - `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
 
 ### Removed
 - Support for Python 3.7. ([594d451])
+- Runtime argument type validation ([b790f0e] in [#100]).
 
 
 [#96]: https://github.com/AnonymouX47/term-image/pull/96
 [#97]: https://github.com/AnonymouX47/term-image/pull/97
+[#100]: https://github.com/AnonymouX47/term-image/pull/100
 [497d9b7]: https://github.com/AnonymouX47/term-image/commit/497d9b70dd74605e6589b81bea2fcac22efc684b
 [d296a31]: https://github.com/AnonymouX47/term-image/commit/d296a3110882449f6717959400abbc5fa1bd0891
 [5537037]: https://github.com/AnonymouX47/term-image/commit/5537037a10b1da7ae8467cefaf99dc7959ceb7bc
 [594d451]: https://github.com/AnonymouX47/term-image/commit/594d451d124a47c73a9dce61a4496a2a218261b1
 [8cfebe2]: https://github.com/AnonymouX47/term-image/commit/8cfebe27b63dcdd987fc9d0c71616e76777779a9
+[b790f0e]: https://github.com/AnonymouX47/term-image/commit/b790f0e7c5cd2afd7dafa7c14797136719b9dafb
 
 
 ## [0.7.0] - 2023-06-05

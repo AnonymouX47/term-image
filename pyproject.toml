@@ -2,6 +2,27 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.mypy]
+strict = true
+show_column_numbers = true
+implicit_reexport = false
+
+[[tool.mypy.overrides]]
+module = [
+    'term_image.renderable.*',
+    'term_image.render.*',
+    'term_image.image.*',
+]
+disable_error_code = ["type-abstract"]
+
+# These modules will go through massive changes real soon
+[[tool.mypy.overrides]]
+module = [
+    'term_image.image.*',
+    'term_image.widget.*',
+]
+ignore_errors = true
+
 [tool.isort]
 profile = "black"
 combine_as_imports = true

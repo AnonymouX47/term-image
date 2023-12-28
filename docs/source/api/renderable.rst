@@ -114,6 +114,14 @@ Exceptions
 
 |
 
+Type Variables and Aliases
+--------------------------
+
+.. autotypevar:: OptionalPaddingT
+   :no-type:
+
+|
+
 Extension API
 -------------
 

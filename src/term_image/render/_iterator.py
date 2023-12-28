@@ -6,7 +6,9 @@ from __future__ import annotations
 
 __all__ = ("RenderIterator", "RenderIteratorError", "FinalizedIteratorError")
 
-from typing import Generator
+from collections.abc import Generator
+
+from typing_extensions import Any, Self
 
 from ..exceptions import TermImageError
 from ..geometry import Size
@@ -16,12 +18,12 @@ from ..renderable import (
     FrameCount,
     FrameDuration,
     Renderable,
+    RenderableData,
     RenderArgs,
     RenderData,
     Seek,
 )
 from ..utils import (
-    arg_type_error,
     arg_value_error,
     arg_value_error_msg,
     arg_value_error_range,
@@ -64,9 +66,7 @@ class RenderIterator:
             :py:class:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
 
     Raises:
-        TypeError: An argument is of an inappropriate type.
-        ValueError: An argument is of an appropriate type but has an
-          unexpected/invalid value.
+        ValueError: An argument has an invalid value.
         IncompatibleRenderArgsError: Incompatible render arguments.
 
     The iterator yields a :py:class:`~term_image.renderable.Frame` instance on every
@@ -111,6 +111,18 @@ class RenderIterator:
         Modifying this doesn't affect the iterator.
     """
 
+    _cached: bool
+    _closed: bool
+    _finalize_data: bool
+    _iterator: Generator[Frame, None, None]
+    _loops: int
+    _padding: Padding
+    _padded_size: Size
+    _render_args: RenderArgs
+    _render_data: RenderData
+    _renderable: Renderable
+    _renderable_data: RenderableData
+
     # Special Methods ==========================================================
 
     def __init__(
@@ -134,7 +146,7 @@ class RenderIterator:
         except AttributeError:
             pass
 
-    def __iter__(self) -> RenderIterator:
+    def __iter__(self) -> Self:
         return self
 
     def __next__(self) -> Frame:
@@ -192,7 +204,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
             ValueError: *offset* is out of range.
 
         The value range for *offset* depends on the
@@ -312,11 +323,9 @@ class RenderIterator:
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-        if not isinstance(offset, int):
-            raise arg_type_error("offset", offset)
 
         frame_count = self._renderable.frame_count
-        renderable_data = self._render_data[Renderable]
+        renderable_data = self._renderable_data
         if frame_count is FrameCount.INDEFINITE:
             if whence is Seek.START and offset < 0 or whence is Seek.END and offset > 0:
                 raise arg_value_error_range("offset", offset, f"whence={whence.name}")
@@ -364,7 +373,7 @@ class RenderIterator:
         if isinstance(duration, int) and duration <= 0:
             raise arg_value_error_range("duration", duration)
 
-        self._render_data[Renderable].duration = duration
+        self._renderable_data.duration = duration
 
     def set_padding(self, padding: Padding) -> None:
         """Sets the :term:`render output` padding.
@@ -374,7 +383,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next [#ri-nf]_ rendered frame.
@@ -382,15 +390,12 @@ class RenderIterator:
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
 
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-
         self._padding = (
             padding.resolve(get_terminal_size())
             if isinstance(padding, AlignedPadding) and padding.relative
             else padding
         )
-        self._padded_size = padding.get_padded_size(self._render_data[Renderable].size)
+        self._padded_size = padding.get_padded_size(self._renderable_data.size)
 
     def set_render_args(self, render_args: RenderArgs) -> None:
         """Sets the render arguments.
@@ -400,7 +405,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
             IncompatibleRenderArgsError: Incompatible render arguments.
 
         NOTE:
@@ -408,9 +412,6 @@ class RenderIterator:
         """
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
-
-        if not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
 
         render_cls = type(self._renderable)
         self._render_args = (
@@ -428,7 +429,6 @@ class RenderIterator:
 
         Raises:
             FinalizedIteratorError: The iterator has been finalized.
-            TypeError: An argument is of an inappropriate type.
 
         NOTE:
             Takes effect from the next [#ri-nf]_ rendered frame.
@@ -436,10 +436,7 @@ class RenderIterator:
         if self._closed:
             raise FinalizedIteratorError("This iterator has been finalized") from None
 
-        if not isinstance(render_size, Size):
-            raise arg_type_error("render_size", render_size)
-
-        self._render_data[Renderable].size = render_size
+        self._renderable_data.size = render_size
         self._padded_size = self._padding.get_padded_size(render_size)
 
     # Extension methods ========================================================
@@ -451,10 +448,10 @@ class RenderIterator:
         render_data: RenderData,
         render_args: RenderArgs | None = None,
         padding: Padding = ExactPadding(),
-        *args,
+        *args: Any,
         finalize: bool = True,
-        **kwargs,
-    ) -> RenderIterator:
+        **kwargs: Any,
+    ) -> Self:
         """Constructs an iterator with pre-generated render data.
 
         Args:
@@ -476,8 +473,6 @@ class RenderIterator:
         new = cls.__new__(cls)
         new._init(renderable, render_args, padding, *args, **kwargs)
 
-        if not isinstance(render_data, RenderData):
-            raise arg_type_error("render_data", render_data)
         if render_data.render_cls is not type(renderable):
             raise arg_value_error_msg(
                 "Invalid render data for renderable of type "
@@ -492,9 +487,6 @@ class RenderIterator:
         if not (render_args and render_args.render_cls is type(renderable)):
             # Validate compatibility (and convert, if compatible)
             render_args = RenderArgs(type(renderable), render_args)
-
-        if not isinstance(finalize, bool):
-            raise arg_type_error("finalize", finalize)
 
         new._padding = (
             padding.resolve(get_terminal_size())
@@ -521,24 +513,10 @@ class RenderIterator:
 
         Performs the part of the initialization common to all constructors.
         """
-        if not isinstance(renderable, Renderable):
-            raise arg_type_error("renderable", renderable)
         if not renderable.animated:
             raise arg_value_error_msg("'renderable' is not animated", renderable)
-
-        if render_args and not isinstance(render_args, RenderArgs):
-            raise arg_type_error("render_args", render_args)
-
-        if not isinstance(padding, Padding):
-            raise arg_type_error("padding", padding)
-
-        if not isinstance(loops, int):
-            raise arg_type_error("loops", loops)
         if not loops:
             raise arg_value_error("loops", loops)
-
-        if not isinstance(cache, int):  # `bool` is a subclass of `int`
-            raise arg_type_error("cache", cache)
         if False is not cache <= 0:
             raise arg_value_error_range("cache", cache)
 
@@ -550,8 +528,9 @@ class RenderIterator:
             False
             if indefinite
             else cache
-            if isinstance(cache, bool)
-            else renderable.frame_count <= cache
+            # `isinstance` is much costlier on failure and `bool` cannot be subclassed
+            if type(cache) is bool
+            else renderable.frame_count <= cache  # type: ignore[operator]
         )
 
     def _iterate(
@@ -563,7 +542,8 @@ class RenderIterator:
         # Instance init completion
         self._render_data = render_data
         self._render_args = render_args
-        renderable_data = render_data[Renderable]
+        renderable_data: RenderableData
+        self._renderable_data = renderable_data = render_data[Renderable]
         self._padded_size = self._padding.get_padded_size(renderable_data.size)
 
         # Setup
@@ -573,9 +553,14 @@ class RenderIterator:
             frame_count = 1
         definite = frame_count > 1
         loop = self.loop
-        cache = [(None,) * 4] * frame_count if self._cached else None
         CURRENT = Seek.CURRENT
         renderable_data.frame_offset = 0
+        cache: list[tuple[Frame | None, Size, int | FrameDuration, RenderArgs]] | None
+        cache = (
+            [(None,) * 4] * frame_count  # type: ignore[list-item]
+            if self._cached
+            else None
+        )
 
         # Initial dummy frame, yielded but unused by initializers.
         # Acts as a breakpoint between completion of instance init + iteration setup
@@ -586,13 +571,17 @@ class RenderIterator:
         frame_no = renderable_data.frame_offset * definite
         while loop:
             while frame_no < frame_count:
-                frame, *frame_details = cache[frame_no] if cache else (None,)
+                if cache:
+                    frame = (cache_entry := cache[frame_no])[0]
+                    frame_details = cache_entry[1:]
+                else:
+                    frame = None
 
-                if not frame or frame_details != [
+                if not frame or frame_details != (
                     renderable_data.size,
                     renderable_data.duration,
                     self._render_args,
-                ]:
+                ):
                     # NOTE: Re-render is required even when only `duration` changes
                     # and the new value is *static* because frame duration may affect
                     # the render output of some renderables.
