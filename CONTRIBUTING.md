@@ -181,14 +181,30 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 
 - **NAMES tell WHAT... CODE tells HOW... COMMENTS tell WHY, when necessary (and WHAT, when impossible/unreasonable to make it obvious with NAMES)**.
 - Maximum line length is 88 characters.
-- All functions (including methods) should be adequately annotated.
-  - **Note:** Currently, annotations are only for documentation purposes and better/quicker comprehension of the defined interfaces by the users and developers.
 - Try to keep things (definitions, names, dictionary keys, list items, etc)
 
   - **grouped** (preferably by the most dominant criterium e.g object/definition type)
   - **sorted** (preferably lexicographically, with the exception of depended-upon definitions e.g decorators, metaclasses, baseclasses, etc)
 
   wherever **reasonably** possible. Makes things organized and quicker and easier to find 😃.
+
+- All functions (including methods), variables and attributes should be duely type-annotated.
+
+  - Class and instance attributes (public and private) should be explicitly annotated, immediately within the class body.
+  - Module-scope and local variables should be explicitly annotated **only when neccessary**, such as
+
+    - exported/documented module-scope variables,
+    - when the type cannot be [correctly] inferred from the initial value,
+    - it's not initialized immediately, or
+    - the type is too complex or nested to be inferred from the initializer by a human reader at a glance.
+
+  - Any typing construct that incurs a runtime cost (no matter how "little"), such as `typing.cast()`, must not be used anywhere it may be executed more than once.
+  - **Note:**
+
+    - Type annotations are primarily for documentation purposes and better/quicker comprehension of defined interfaces by users and contributors, though they're also required to pass static type checking.
+    - This project doesn't depend primarily on static type checking for correctness. Hence, it is not an alternative to tests.
+
+  - Finally, please do not submit any pull request with code mindlessly written to satisfy a static type checker e.g at an unjustifiable cost of conciseness, readability and/or performance.
 
 - For any matter of style not directly/indirectly addressed here, please try as much as possible to follow formats or styles already established in the project.
 - Any questions or suggestions about the above can be asked or given in [this discussion](https://github.com/AnonymouX47/term-image/discussions/7).
