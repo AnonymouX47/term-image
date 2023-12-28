@@ -39,6 +39,7 @@ setup(
         "requests>=2.23,<3",
         "typing_extensions>=4.8,<5",
     ],
+    include_package_data=True,
     project_urls={
         "Changelog": "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md",
         "Documentation": "https://term-image.readthedocs.io/",
