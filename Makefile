@@ -60,7 +60,7 @@ imports:
 
 # Tests
 
-pytest := pytest -v
+pytest := pytest -v -r a
 
 ## Filepath variables
 
@@ -77,14 +77,16 @@ test-iterm2 := tests/test_image/test_iterm2.py
 test-url := tests/test_image/test_url.py
 test-others := tests/test_image/test_others.py
 test-iterator := tests/test_iterator.py
-test-urwid := tests/test_widget/test_urwid.py
+test-widget-urwid-main := tests/widget/urwid/test_main.py
+test-widget-urwid-screen := tests/widget/urwid/test_screen.py
 
 test-renderable := $(test-renderable-renderable) $(test-renderable-types)
 test-render := $(test-render-iterator)
 test-text := $(test-block)
 test-graphics := $(test-kitty) $(test-iterm2)
 test-image := $(test-base) $(test-text) $(test-graphics) $(test-others)
-test-widget := $(test-urwid)
+test-widget-urwid := $(test-widget-urwid-main) $(test-widget-urwid-screen)
+test-widget := $(test-widget-urwid)
 test := $(test-top) $(test-geometry) $(test-padding) $(test-renderable) $(test-render) $(test-image) $(test-iterator) $(test-widget)
 test-all := $(test) $(test-url)
 
@@ -96,7 +98,7 @@ test-padding \
 test-renderable test-renderable-renderable test-renderable-types \
 test-render test-render-iterator \
 test-image test-base test-text test-graphics test-block test-kitty test-iterm2 test-url test-others test-iterator \
-test-widget test-urwid \
+test-widget test-widget-urwid test-widget-urwid-main test-widget-urwid-screen \
 test test-all:
 	$(pytest) $($@)
 
