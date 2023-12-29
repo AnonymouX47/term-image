@@ -22,6 +22,18 @@ class TestRawSize:
         assert size[0] == 1
         assert size[1] == -1
 
+    class TestNew:
+        def test_instance_type(self):
+            class SubRawSize(RawSize):
+                pass
+
+            assert type(RawSize._new(1, 1)) is RawSize
+            assert type(SubRawSize._new(1, 1)) is SubRawSize
+
+        @pytest.mark.parametrize("size", [(1, 10), (0, 1), (0, 0), (-1, 0), (-10, -1)])
+        def test_equal_to_normally_constructed(self, size):
+            assert RawSize._new(*size) == RawSize(*size)
+
 
 class TestSize:
     @pytest.mark.parametrize("value", [0, -1])
