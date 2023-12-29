@@ -23,7 +23,7 @@ from typing_extensions import override
 
 from .ctlseqs import cursor_forward
 from .exceptions import TermImageError
-from .geometry import RawSize, Size
+from .geometry import RawSize, Size, _RawSize, _Size
 from .utils import arg_value_error_range
 
 # Variables ====================================================================
@@ -140,7 +140,7 @@ class Padding(metaclass=ABCMeta):
         left, top, right, bottom = self._get_exact_dimensions_(render_size)
         width, height = render_size
 
-        return Size(left + width + right, top + height + bottom)
+        return _Size(left + width + right, top + height + bottom)
 
     def pad(self, render: str, render_size: Size) -> str:
         """Pads a :term:`render output`.
@@ -339,7 +339,7 @@ class AlignedPadding(Padding):
         GET:
             Returns the *minimum render dimensions*.
         """
-        return RawSize(self.width, self.height)
+        return _RawSize(self.width, self.height)
 
     # Public Methods ===========================================================
 
@@ -355,7 +355,7 @@ class AlignedPadding(Padding):
         if self.relative:
             raise RelativePaddingDimensionError("Relative minimum render dimension(s)")
 
-        return Size(max(self.width, render_size[0]), max(self.height, render_size[1]))
+        return _Size(max(self.width, render_size[0]), max(self.height, render_size[1]))
 
     def resolve(self, terminal_size: os.terminal_size) -> AlignedPadding:
         """Resolves **relative** *minimum render dimensions*.

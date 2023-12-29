@@ -404,7 +404,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
     The speed of this implementation is almost entirely dependent on the terminal; the
     method it supports and its response time if it has to be queried.
     """
-    from term_image.geometry import Size
+    from term_image.geometry import _Size
 
     cell_size: tuple[int, ...]
     text_area_size: tuple[int, ...]
@@ -422,7 +422,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
         terminal_size = get_terminal_size()
         if terminal_size == tuple(_cell_size_cache[:2]):
             cell_size = tuple(_cell_size_cache[2:])
-            return None if 0 in cell_size else Size(*cell_size)
+            return None if 0 in cell_size else _Size(*cell_size)
 
         # First try ioctl
         buf = array("H", [0, 0, 0, 0])
@@ -467,7 +467,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
 
         _cell_size_cache[:] = terminal_size + cell_size
 
-        return None if 0 in cell_size else Size(*cell_size)
+        return None if 0 in cell_size else _Size(*cell_size)
 
 
 @overload

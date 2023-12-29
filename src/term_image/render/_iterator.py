@@ -11,7 +11,7 @@ from collections.abc import Generator
 from typing_extensions import Any, Self
 
 from ..exceptions import TermImageError
-from ..geometry import Size
+from ..geometry import Size, _Size
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..renderable import (
     Frame,
@@ -32,7 +32,7 @@ from ..utils import (
 
 # Variables ====================================================================
 
-DUMMY_FRAME: Frame = Frame(0, 0, Size(1, 1), " ")
+DUMMY_FRAME: Frame = Frame(0, 0, _Size(1, 1), " ")
 
 # Classes ======================================================================
 
