@@ -21,7 +21,7 @@ from term_image.renderable import (
     FrameDuration,
     IncompatibleRenderArgsError,
     IndefiniteSeekError,
-    NonAnimatedFrameDurationError,
+    NonAnimatedRenderableError,
     Renderable,
     RenderableError,
     RenderArgs,
@@ -642,7 +642,7 @@ class TestFrameDuration:
     class TestGet:
         def test_non_animated(self, duration):
             space = Space(1, duration)
-            with pytest.raises(NonAnimatedFrameDurationError):
+            with pytest.raises(NonAnimatedRenderableError):
                 space.frame_duration
 
         def test_animated(self, duration):
@@ -653,7 +653,7 @@ class TestFrameDuration:
 
         @pytest.mark.parametrize("duration", [100, FrameDuration.DYNAMIC, 0, -100])
         def test_non_animated(self, duration):
-            with pytest.raises(NonAnimatedFrameDurationError):
+            with pytest.raises(NonAnimatedRenderableError):
                 self.space.frame_duration = duration
 
         class TestAnimated:

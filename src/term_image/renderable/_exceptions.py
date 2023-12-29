@@ -5,7 +5,7 @@
 __all__ = (
     "RenderableError",
     "IndefiniteSeekError",
-    "NonAnimatedFrameDurationError",
+    "NonAnimatedRenderableError",
     "RenderError",
     "RenderSizeOutofRangeError",
 )
@@ -27,10 +27,9 @@ class IndefiniteSeekError(RenderableError):
     """
 
 
-class NonAnimatedFrameDurationError(RenderableError):
-    """Raised when attempting to set
-    :py:attr:`~term_image.renderable.Renderable.frame_duration` on a non-animated
-    renderable.
+class NonAnimatedRenderableError(RenderableError):
+    """Raised when attempting to perform certain operations meant for animated
+    renderables on a non-animated renderable.
     """
 
 

@@ -25,7 +25,7 @@ from . import _types
 from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import (
     IndefiniteSeekError,
-    NonAnimatedFrameDurationError,
+    NonAnimatedRenderableError,
     RenderableError,
     RenderSizeOutofRangeError,
 )
@@ -430,13 +430,13 @@ been initialized
               enum member's description.
 
         Raises:
-            NonAnimatedFrameDurationError: The renderable is non-animated.
+            NonAnimatedRenderableError: The renderable is non-animated.
         """
         try:
             return self._frame_duration
         except AttributeError:
             if not self.animated:
-                raise NonAnimatedFrameDurationError(
+                raise NonAnimatedRenderableError(
                     "Non-animated renderables have no frame duration"
                 ) from None
             raise
@@ -444,7 +444,7 @@ been initialized
     @frame_duration.setter
     def frame_duration(self, duration: int | FrameDuration) -> None:
         if not self.animated:
-            raise NonAnimatedFrameDurationError(
+            raise NonAnimatedRenderableError(
                 "Cannot set frame duration for a non-animated renderable"
             )
 
