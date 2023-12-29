@@ -61,6 +61,7 @@ class RenderableMeta(ABCMeta):
         name: str,
         bases: tuple[type, ...],
         namespace: dict[str, Any],
+        *,
         _base: bool = False,
         **kwargs: Any,
     ) -> RenderableMetaT:
@@ -337,9 +338,9 @@ been initialized
     animated: bool
     """``True`` if the renderable is :term:`animated`. Otherwise, ``False``."""
 
-    __frame: int
-    __frame_count: int | FrameCount
-    __frame_duration: int | FrameDuration
+    _frame: int
+    _frame_count: int | FrameCount
+    _frame_duration: int | FrameDuration
 
     # Special Methods ==========================================================
 
@@ -354,11 +355,11 @@ been initialized
         if frame_count != 1:
             if isinstance(frame_duration, int) and frame_duration <= 0:
                 raise arg_value_error_range("frame_duration", frame_duration)
-            self.__frame_duration = frame_duration
+            self._frame_duration = frame_duration
 
         self.animated = frame_count != 1
-        self.__frame_count = frame_count
-        self.__frame = 0
+        self._frame_count = frame_count
+        self._frame = 0
 
     def __iter__(self) -> term_image.render.RenderIterator:
         """Returns a render iterator.
@@ -379,7 +380,7 @@ been initialized
         return RenderIterator(self, cache=False)
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: frame_count={self.__frame_count}>"
+        return f"<{type(self).__name__}: frame_count={self._frame_count}>"
 
     def __str__(self) -> str:
         """:term:`Renders` the current frame with default arguments and no padding.
@@ -404,10 +405,10 @@ been initialized
             * the number of frames the renderable has, or
             * :py:attr:`~term_image.renderable.FrameCount.INDEFINITE`.
         """
-        if self.__frame_count is FrameCount.POSTPONED:
-            self.__frame_count = self._get_frame_count_()
+        if self._frame_count is FrameCount.POSTPONED:
+            self._frame_count = self._get_frame_count_()
 
-        return self.__frame_count
+        return self._frame_count
 
     @property
     def frame_duration(self) -> int | FrameDuration:
@@ -432,7 +433,7 @@ been initialized
             NonAnimatedFrameDurationError: The renderable is non-animated.
         """
         try:
-            return self.__frame_duration
+            return self._frame_duration
         except AttributeError:
             if not self.animated:
                 raise NonAnimatedFrameDurationError(
@@ -450,7 +451,7 @@ been initialized
         if isinstance(duration, int) and duration <= 0:
             raise arg_value_error_range("frame_duration", duration)
 
-        self.__frame_duration = duration
+        self._frame_duration = duration
 
     @property
     def render_size(self) -> geometry.Size:
@@ -655,7 +656,7 @@ been initialized
         frame = (
             offset
             if whence is Seek.START
-            else self.__frame + offset
+            else self._frame + offset
             if whence is Seek.CURRENT
             else frame_count + offset - 1
         )
@@ -665,10 +666,10 @@ been initialized
                 offset,
                 (
                     f"whence={whence.name}, frame_count={frame_count}"
-                    + (f", current={self.__frame}" if whence is Seek.CURRENT else "")
+                    + (f", current={self._frame}" if whence is Seek.CURRENT else "")
                 ),
             )
-        self.__frame = frame
+        self._frame = frame
 
         return frame
 
@@ -680,7 +681,7 @@ been initialized
             :py:attr:`~term_image.renderable.FrameCount.INDEFINITE` frame count.
             Otherwise, the current frame number.
         """
-        return self.__frame
+        return self._frame
 
     # Extension methods ========================================================
 
@@ -942,12 +943,12 @@ been initialized
         renderable_data: RenderableData = render_data[Renderable]
         renderable_data.update(
             size=self._get_render_size_(),
-            frame_offset=self.__frame,
+            frame_offset=self._frame,
             seek_whence=Seek.START,
             iteration=iteration,
         )
         if self.animated:
-            renderable_data.duration = self.__frame_duration
+            renderable_data.duration = self._frame_duration
 
         return render_data
 

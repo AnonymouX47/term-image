@@ -883,7 +883,7 @@ class RenderArgs(RenderArgsData):
 
     __slots__ = ()
 
-    __interned: ClassVar[dict[type[Renderable], Self]] = {}
+    _interned: ClassVar[dict[type[Renderable], Self]] = {}
     _namespaces: MappingProxyType[type[Renderable], ArgsNamespace]
 
     # Instance Attributes ======================================================
@@ -919,10 +919,10 @@ class RenderArgs(RenderArgsData):
             if (
                 not init_render_args
                 or init_render_args is BASE_RENDER_ARGS
-                or cls.__interned.get(init_render_args.render_cls) is init_render_args
+                or cls._interned.get(init_render_args.render_cls) is init_render_args
             ):
                 try:
-                    return cls.__interned[render_cls]  # type: ignore[return-value]
+                    return cls._interned[render_cls]  # type: ignore[return-value]
                 except KeyError:
                     pass
 
@@ -954,11 +954,11 @@ class RenderArgs(RenderArgsData):
             not init_render_args
             or init_render_args is BASE_RENDER_ARGS
             or (
-                type(self).__interned.get(init_render_args.render_cls)
+                type(self)._interned.get(init_render_args.render_cls)
                 is init_render_args
             )
         ):
-            if render_cls in type(self).__interned:  # has been initialized
+            if render_cls in type(self)._interned:  # has been initialized
                 return
             intern = True
         else:
@@ -971,7 +971,7 @@ class RenderArgs(RenderArgsData):
 
         # if `init_render_args` is non-default
         if init_render_args and BASE_RENDER_ARGS is not init_render_args is not (
-            type(self).__interned.get(init_render_args.render_cls)
+            type(self)._interned.get(init_render_args.render_cls)
         ):
             namespaces_dict.update(init_render_args._namespaces)
 
@@ -987,10 +987,10 @@ class RenderArgs(RenderArgsData):
         super().__init__(render_cls, namespaces_dict)
 
         if intern:
-            type(self).__interned[render_cls] = self
+            type(self)._interned[render_cls] = self
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        cls.__interned = {}
+        cls._interned = {}
         super().__init_subclass__(**kwargs)
 
     def __contains__(self, namespace: ArgsNamespace) -> bool:
