@@ -684,7 +684,7 @@ def test_render_size():
 class TestIter:
     def test_non_animated(self):
         char = Char(1, 1)
-        with pytest.raises(ValueError, match="not animated"):
+        with pytest.raises(NonAnimatedRenderableError):
             iter(char)
 
     def test_animated(self):

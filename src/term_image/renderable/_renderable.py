@@ -370,14 +370,19 @@ been initialized
             default values).
 
         Raises:
-            ValueError: The renderable is non-animated.
+            NonAnimatedRenderableError: The renderable is non-animated.
 
         :term:`Animated` renderables are iterable i.e they can be used with various
         means of iteration such as the ``for`` statement and iterable unpacking.
         """
         from term_image.render import RenderIterator
 
-        return RenderIterator(self, cache=False)
+        try:
+            return RenderIterator(self, cache=False)
+        except ValueError:
+            raise NonAnimatedRenderableError(
+                "Non-animated renderables are not iterable"
+            ) from None
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: frame_count={self._frame_count}>"
