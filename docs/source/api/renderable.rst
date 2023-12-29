@@ -30,12 +30,12 @@ Classes
 
    .. rubric:: Footnotes
 
-   .. [#ra1]
-      An set of render arguments (an instance of this class) is compatible with its
-      associated [#ra2]_ :term:`render class` and its subclasses.
-   .. [#ra2]
+   .. [#ra-ass]
       The associated :term:`render class` of a set of render arguments (an instance of
       this class) is *render_cls*, accessible via :py:attr:`render_cls`.
+   .. [#ra-com]
+      An set of render arguments (an instance of this class) is compatible with its
+      associated [#ra-ass]_ :term:`render class` and its subclasses.
 
 |
 
@@ -47,13 +47,13 @@ Classes
 
    .. rubric:: Footnotes
 
-   .. [#ran1]
+   .. [#an-ass]
       A render argument namespace class (**that has fields**), along with its
       subclasses and their instances, is associated with the :term:`render class`
       that was :ref:`specified <associating-namespace>` **at its creation**.
       The associated render class is accessible via :py:meth:`get_render_cls`.
-   .. [#ran2]
-      A render argument namespace is compatible with its associated [#ran1]_
+   .. [#an-com]
+      A render argument namespace is compatible with its associated [#an-ass]_
       :term:`render class` and the subclasses thereof.
 
 |
@@ -240,7 +240,7 @@ ArgsNamespace
 
    .. note::
 
-      * A subclass that **has fields** must be associated [#ran1]_ with a render class.
+      * A subclass that **has fields** must be associated [#an-ass]_ with a render class.
       * A subclass that **has NO fields** cannot be associated with a render class.
       * A subclass that :ref:`inherits <inheriting-fields>` fields cannot be
         reassociated with another render class.
@@ -258,7 +258,7 @@ ArgsNamespace
    Inheriting Fields
    """""""""""""""""
 
-   Fields are inherited from any associated [#ran1]_ render argument namespace class
+   Fields are inherited from any associated [#an-ass]_ render argument namespace class
    (i.e anyone that **has fields**) by subclassing it. The new subclass inherits both
    the fields and associated render class of its parent.
 
@@ -343,7 +343,7 @@ Other Classes
 
    .. rubric:: Footnotes
 
-   .. [#rd1]
+   .. [#rd-ass]
       The associated :term:`render class` of a set of render data (an instance of this
       class) is *render_cls*, accessible via :py:attr:`render_cls`.
 
@@ -354,7 +354,7 @@ Other Classes
 
    .. rubric:: Footnotes
 
-   .. [#rdn1]
+   .. [#dn-ass]
       A render data namespace class (**that has fields**), along with its
       subclasses and their instances, is associated with the :term:`render class`
       that was :ref:`specified <associating-namespace>` **at its creation**.

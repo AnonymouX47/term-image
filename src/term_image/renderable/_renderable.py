@@ -146,17 +146,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     This is either:
 
     - a render argument namespace class (subclass of :py:class:`ArgsNamespace`)
-      associated [#ran1]_ with the render class, or
+      associated [#an-ass]_ with the render class, or
     - :py:data:`None`, if the render class has no render arguments.
 
     If this is a class, an instance of it (or a subclass thereof) is contained within
-    any :py:class:`RenderArgs` instance associated [#ra2]_ with the render class or
+    any :py:class:`RenderArgs` instance associated [#ra-ass]_ with the render class or
     any of its subclasses. Also, an instance of this class (or a subclass of it) is
     returned by :py:meth:`render_args[render_cls]
     <term_image.renderable.RenderArgs.__getitem__>`; where *render_args* is
     an instance of :py:class:`~term_image.renderable.RenderArgs` as previously
     described and *render_cls* is the render class with which this namespace class
-    is associated [#ran1]_.
+    is associated [#an-ass]_.
 
     .. collapse:: Example
 
@@ -215,17 +215,17 @@ class Renderable(metaclass=RenderableMeta, _base=True):
     This is either:
 
     - a render data namespace class (subclass of :py:class:`DataNamespace`)
-      associated [#rdn1]_ with the render class, or
+      associated [#dn-ass]_ with the render class, or
     - :py:data:`None`, if the render class has no render data.
 
     If this is a class, an instance of it (or a subclass thereof) is contained within
-    any :py:class:`RenderData` instance associated [#rd1]_ with the render class or
+    any :py:class:`RenderData` instance associated [#rd-ass]_ with the render class or
     any of its subclasses. Also, an instance of this class (or a subclass of it) is
     returned by :py:meth:`render_data[render_cls]
     <term_image.renderable.RenderData.__getitem__>`; where *render_data* is
     an instance of :py:class:`~term_image.renderable.RenderData` as previously
     described and *render_cls* is the render class with which this namespace class
-    is associated [#rdn1]_.
+    is associated [#dn-ass]_.
 
     .. collapse:: Example
 
@@ -926,8 +926,8 @@ been initialized
 
         IMPORTANT:
             The :py:class:`~term_image.renderable.RenderData` instance returned must be
-            associated [#rd1]_ with the type of the renderable on which this method is
-            called i.e ``type(self)``. This is always the case for the base
+            associated [#rd-ass]_ with the type of the renderable on which this method
+            is called i.e ``type(self)``. This is always the case for the base
             implementation of this method.
 
         NOTE:

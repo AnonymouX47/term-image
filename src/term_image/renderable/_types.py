@@ -83,13 +83,13 @@ class RenderDataError(RenderArgsDataError):
 
 
 class IncompatibleArgsNamespaceError(RenderArgsError):
-    """Raised when a given render argument namespace is incompatible [#ran2]_ with a
+    """Raised when a given render argument namespace is incompatible [#an-com]_ with a
     certain :term:`render class`.
     """
 
 
 class IncompatibleRenderArgsError(RenderArgsError):
-    """Raised when a given set of render arguments is incompatible [#ra1]_ with a
+    """Raised when a given set of render arguments is incompatible [#ra-com]_ with a
     certain :term:`render class`.
     """
 
@@ -108,7 +108,7 @@ class NoDataNamespaceError(RenderDataError):
 
 class UnassociatedNamespaceError(RenderArgsDataError):
     """Raised when certain operations are attempted on a render argument/data namespace
-    class that hasn't been associated [#ran1]_ [#rdn1]_ with a :term:`render class`.
+    class that hasn't been associated [#an-ass]_ [#dn-ass]_ with a :term:`render class`.
     """
 
 
@@ -315,11 +315,11 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
         fields: Render argument fields.
 
           The keywords must be names of render argument fields for the associated
-          [#ran1]_ render class.
+          [#an-ass]_ render class.
 
     Raises:
         UnassociatedNamespaceError: The namespace class hasn't been associated
-          [#ran1]_ with a render class.
+          [#an-ass]_ with a render class.
         TypeError: More values (positional arguments) than there are fields.
         UnknownArgsFieldError: Unknown field name(s).
         TypeError: Multiple values given for a field.
@@ -436,10 +436,10 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 
         Raises:
             IncompatibleArgsNamespaceError: *other* is a render argument namespace
-              and neither operand is compatible [#ra1]_ [#ran2]_ with the
+              and neither operand is compatible [#ra-com]_ [#an-com]_ with the
               associated :term:`render class` of the other.
             IncompatibleRenderArgsError: *other* is a set of render arguments
-              and neither operand is compatible [#ra1]_ [#ran2]_ with the
+              and neither operand is compatible [#ra-com]_ [#an-com]_ with the
               associated :term:`render class` of the other.
 
         NOTE:
@@ -550,11 +550,11 @@ class ArgsNamespace(ArgsDataNamespace, metaclass=ArgsNamespaceMeta, _base=True):
 
         Args:
             render_cls: A :term:`render class`, with which the namespace is
-              compatible [#ran2]_.
+              compatible [#an-com]_.
 
         Returns:
             A set of render arguments associated with *render_cls* (or the
-            associated [#ran1]_ render class of the namespace, if ``None``) and
+            associated [#an-ass]_ render class of the namespace, if ``None``) and
             initialized with the namespace.
 
         Propagates exceptions raised by the
@@ -631,7 +631,7 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
 
     Raises:
         UnassociatedNamespaceError: The namespace class hasn't been associated
-          [#rdn1]_ with a render class.
+          [#dn-ass]_ with a render class.
 
     Subclassing, defining (and inheriting) fields and associating with a render
     class are just as they are for :ref:`args-namespace`, except that values
@@ -640,7 +640,7 @@ class DataNamespace(ArgsDataNamespace, metaclass=DataNamespaceMeta, _base=True):
     Every field of a namespace is **uninitialized** immediately after instantiation.
     The fields are expected to be initialized within the
     :py:meth:`~term_image.renderable.Renderable._get_render_data_` method of the
-    render class with which the namespace is associated [#rdn1]_ or at some other
+    render class with which the namespace is associated [#dn-ass]_ or at some other
     point during a render operation, if necessary.
 
     NOTE:
@@ -842,24 +842,25 @@ class RenderArgs(RenderArgsData):
         init_render_args (RenderArgs | None): A set of render arguments.
           If not ``None``,
 
-          * it must be compatible [#ra1]_ with *render_cls*,
+          * it must be compatible [#ra-com]_ with *render_cls*,
           * it'll be used to initialize the render arguments.
 
-        namespaces: Render argument namespaces compatible [#ran2]_ with *render_cls*.
+        namespaces: Render argument namespaces compatible [#an-com]_ with *render_cls*.
 
           .. note:: If multiple namespaces associated with the same :term:`render
              class` are given, the last of them takes precedence.
 
     Raises:
-        IncompatibleRenderArgsError: *init_render_args* is incompatible [#ra1]_ with
+        IncompatibleRenderArgsError: *init_render_args* is incompatible [#ra-com]_ with
           *render_cls*.
-        IncompatibleArgsNamespaceError: Incompatible [#ran2]_ render argument namespace.
+        IncompatibleArgsNamespaceError: Incompatible [#an-com]_ render argument
+          namespace.
 
     A set of render arguments (an instance of this class) is basically a container of
     render argument namespaces (instances of
     :py:class:`~term_image.renderable.ArgsNamespace`); one for
     each :term:`render class`, which has render arguments, in the Method Resolution
-    Order of its associated [#ra2]_ render class.
+    Order of its associated [#ra-ass]_ render class.
 
     The namespace for each render class is derived from the following sources, in
     [descending] order of precedence:
@@ -1095,9 +1096,9 @@ class RenderArgs(RenderArgsData):
 
         WARNING:
             The number and order of namespaces is guaranteed to be the same across all
-            instances associated [#ra2]_ with the same :term:`render class` but beyond
-            this, should not be relied upon as the details (such as the specific
-            number or order) may change without notice.
+            instances associated [#ra-ass]_ with the same :term:`render class` but
+            beyond this, should not be relied upon as the details (such as the
+            specific number or order) may change without notice.
 
             The order is an implementation detail of the Renderable API and the number
             should be considered alike with respect to the associated render class.
@@ -1124,9 +1125,9 @@ class RenderArgs(RenderArgsData):
               parent or child (which may be :py:attr:`render_cls` itself).
 
         Returns:
-            A set of render arguments associated [#ra2]_ with *render_cls* and
+            A set of render arguments associated [#ra-ass]_ with *render_cls* and
             initialized with all constituent namespaces (of this set of render
-            arguments, *self*) that are compatible [#ran2]_ with *render_cls*.
+            arguments, *self*) that are compatible [#an-com]_ with *render_cls*.
 
         Raises:
             ValueError: *render_cls* is not a parent or child of :py:attr:`render_cls`.
@@ -1185,7 +1186,7 @@ class RenderArgs(RenderArgsData):
 
         Args:
             namespace (ArgsNamespace): Prepended to *namespaces*.
-            namespaces: Render argument namespaces compatible [#ran2]_ with
+            namespaces: Render argument namespaces compatible [#an-com]_ with
               :py:attr:`render_cls`.
 
               .. note:: If multiple namespaces associated with the same :term:`render
@@ -1246,7 +1247,7 @@ class RenderData(RenderArgsData):
     An instance of this class is basically a container of render data namespaces
     (instances of :py:class:`~term_image.renderable.DataNamespace`); one for each
     :term:`render class`, which has render data, in the Method Resolution Order
-    of its associated [#rd1]_ render class.
+    of its associated [#rd-ass]_ render class.
 
     NOTE:
         * Instances are immutable but the constituent namespaces are mutable.
@@ -1346,9 +1347,9 @@ class RenderData(RenderArgsData):
 
         WARNING:
             The number and order of namespaces is guaranteed to be the same across all
-            instances associated [#rd1]_ with the same :term:`render class` but beyond
-            this, should not be relied upon as the details (such as the specific
-            number or order) may change without notice.
+            instances associated [#rd-ass]_ with the same :term:`render class` but
+            beyond this, should not be relied upon as the details (such as the
+            specific number or order) may change without notice.
 
             The order is an implementation detail of the Renderable API and the number
             should be considered alike with respect to the associated render class.
