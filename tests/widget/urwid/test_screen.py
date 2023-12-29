@@ -22,12 +22,27 @@ kitty_image = KittyImage(python_img)
 trans = BlockImage.from_file("tests/images/trans.png")
 
 
-class TestScreen:
-    class TestStartStop:
-        def test_supported(self):
-            buf = io.StringIO()
-            screen = UrwidImageScreen(sys.__stdin__, buf)
+class TestStartStop:
+    def test_supported(self):
+        buf = io.StringIO()
+        screen = UrwidImageScreen(sys.__stdin__, buf)
 
+        screen.start()
+        start_output = buf.getvalue()
+        buf.seek(0)
+        buf.truncate()
+        screen.stop()
+        stop_output = buf.getvalue()
+
+        assert start_output.endswith(ctlseqs.KITTY_DELETE_ALL)
+        assert stop_output.startswith(ctlseqs.KITTY_DELETE_ALL)
+
+    def test_not_supported(self):
+        buf = io.StringIO()
+        screen = UrwidImageScreen(sys.__stdin__, buf)
+
+        KittyImage._supported = False
+        try:
             screen.start()
             start_output = buf.getvalue()
             buf.seek(0)
@@ -35,40 +50,25 @@ class TestScreen:
             screen.stop()
             stop_output = buf.getvalue()
 
-            assert start_output.endswith(ctlseqs.KITTY_DELETE_ALL)
-            assert stop_output.startswith(ctlseqs.KITTY_DELETE_ALL)
+            assert ctlseqs.KITTY_DELETE_ALL not in start_output
+            assert ctlseqs.KITTY_DELETE_ALL not in stop_output
+        finally:
+            KittyImage._supported = True
 
-        def test_not_supported(self):
-            buf = io.StringIO()
-            screen = UrwidImageScreen(sys.__stdin__, buf)
 
-            KittyImage._supported = False
-            try:
-                screen.start()
-                start_output = buf.getvalue()
-                buf.seek(0)
-                buf.truncate()
-                screen.stop()
-                stop_output = buf.getvalue()
+def test_synced_output():
+    widget = urwid.SolidFill("x")
+    buf = io.StringIO()
+    screen = UrwidImageScreen(sys.__stdin__, buf)
+    screen.start()
 
-                assert ctlseqs.KITTY_DELETE_ALL not in start_output
-                assert ctlseqs.KITTY_DELETE_ALL not in stop_output
-            finally:
-                KittyImage._supported = True
+    buf.seek(0)
+    buf.truncate()
+    screen.draw_screen(_size, widget.render(_size))
+    output = buf.getvalue()
 
-    def test_synced_output(self):
-        widget = urwid.SolidFill("x")
-        buf = io.StringIO()
-        screen = UrwidImageScreen(sys.__stdin__, buf)
-        screen.start()
-
-        buf.seek(0)
-        buf.truncate()
-        screen.draw_screen(_size, widget.render(_size))
-        output = buf.getvalue()
-
-        assert output.startswith(ctlseqs.BEGIN_SYNCED_UPDATE)
-        assert output.endswith(ctlseqs.END_SYNCED_UPDATE)
+    assert output.startswith(ctlseqs.BEGIN_SYNCED_UPDATE)
+    assert output.endswith(ctlseqs.END_SYNCED_UPDATE)
 
 
 buf = io.StringIO()
@@ -94,7 +94,7 @@ def setup_clear_buffers():
         urwid.write_tty = write_tty
 
 
-class TestScreenClearImages:
+class TestClearImages:
     class TestNowFalse:
         def test_single(self):
             image_ws = [UrwidImage(kitty_image) for _ in range(4)]
@@ -239,7 +239,7 @@ widget = urwid.Overlay(
 )
 
 
-class TestScreenAutoClearImages:
+class TestAutoClearImages:
     def test_image_cviews(self):
         assert screen._ti_image_cviews == frozenset()
         screen.draw_screen(_size, widget.render(_size))
