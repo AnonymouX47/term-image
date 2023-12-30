@@ -1,6 +1,74 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+# See:
+# - https://setuptools.pypa.io/en/latest/history.html#v66-1-0
+# - https://github.com/pypa/setuptools/issues/3779
+requires = ["setuptools >= 66.1"]
 build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "term-image"
+dependencies = [
+    "pillow>=9.1,<11",
+    "requests>=2.23,<3",
+    "typing_extensions>=4.8,<5",
+]
+requires-python = ">=3.8"
+authors = [
+    {name = "Toluwaleke Ogundipe", email = "anonymoux47@gmail.com"},
+]
+description = "Display images in the terminal"
+readme = "README.md"
+license = {text = "MIT License"}
+keywords = [
+    "image",
+    "terminal",
+    "viewer",
+    "PIL",
+    "Pillow",
+    "console",
+    "xterm",
+    "library",
+    "cli",
+    "tui",
+    "ANSI",
+    "ASCII-Art",
+    "kitty",
+    "iterm2",
+    "sixel",
+    "graphics",
+]
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Android",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Terminals :: Terminal Emulators/X Terminals",
+    "Topic :: Multimedia :: Graphics :: Viewers",
+]
+
+[project.urls]
+Homepage = "https://github.com/AnonymouX47/term-image"
+Documentation = "https://term-image.readthedocs.io/"
+Source = "https://github.com/AnonymouX47/term-image"
+Repository = "https://github.com/AnonymouX47/term-image.git"
+Issues = "https://github.com/AnonymouX47/term-image/issues"
+Changelog = "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md"
+Funding = "https://github.com/AnonymouX47/term-image#sponsor-this-project"
+
+[tool.setuptools.dynamic]
+version = {attr = "term_image.version_info"}
 
 [tool.mypy]
 strict = true
