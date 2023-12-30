@@ -24,6 +24,7 @@ module = [
 ignore_errors = true
 
 [tool.isort]
+py_version = "auto"
 profile = "black"
 combine_as_imports = true
 
