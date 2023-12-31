@@ -387,7 +387,9 @@ def color(
 
     The color code is omitted for any of *fg* or *bg* that is empty.
     """
-    return (ctlseqs.SGR_FG_RGB * bool(fg) + ctlseqs.SGR_BG_RGB * bool(bg) + "%s") % (
+    return (
+        ctlseqs.SGR_FG_DIRECT * bool(fg) + ctlseqs.SGR_BG_DIRECT * bool(bg) + "%s"
+    ) % (
         *(fg or ()),
         *(bg or ()),
         text,

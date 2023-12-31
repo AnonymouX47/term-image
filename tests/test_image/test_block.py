@@ -1,6 +1,6 @@
 """BlockImage-specific tests"""
 
-from term_image.ctlseqs import SGR_BG_RGB, SGR_NORMAL
+from term_image.ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 
@@ -45,7 +45,7 @@ class TestRender:
         render = self.render_image(None)
         assert render == f"{self.trans:1.1#}"
         assert all(
-            line == SGR_BG_RGB % (0, 0, 0) + " " * self.trans.width + SGR_NORMAL
+            line == SGR_BG_DIRECT % (0, 0, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
 
@@ -57,7 +57,7 @@ class TestRender:
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"
             assert all(
-                line == SGR_BG_RGB % bg + " " * self.trans.width + SGR_NORMAL
+                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
                 for line in render.splitlines()
             )
         set_fg_bg_colors((0, 0, 0), (0, 0, 0))
@@ -65,27 +65,28 @@ class TestRender:
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
         assert all(
-            line == SGR_BG_RGB % (255, 0, 0) + " " * self.trans.width + SGR_NORMAL
+            line == SGR_BG_DIRECT % (255, 0, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # green
         render = self.render_image("#00ff00")
         assert render == f"{self.trans:1.1#00ff00}"
         assert all(
-            line == SGR_BG_RGB % (0, 255, 0) + " " * self.trans.width + SGR_NORMAL
+            line == SGR_BG_DIRECT % (0, 255, 0) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # blue
         render = self.render_image("#0000ff")
         assert render == f"{self.trans:1.1#0000ff}"
         assert all(
-            line == SGR_BG_RGB % (0, 0, 255) + " " * self.trans.width + SGR_NORMAL
+            line == SGR_BG_DIRECT % (0, 0, 255) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )
         # white
         render = self.render_image("#ffffff")
         assert render == f"{self.trans:1.1#ffffff}"
         assert all(
-            line == SGR_BG_RGB % (255, 255, 255) + " " * self.trans.width + SGR_NORMAL
+            line
+            == SGR_BG_DIRECT % (255, 255, 255) + " " * self.trans.width + SGR_NORMAL
             for line in render.splitlines()
         )

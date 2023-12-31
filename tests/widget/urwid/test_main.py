@@ -995,4 +995,6 @@ class TestCanvasTrim:
                     canv.content(trim_left, cols=_size[0] - trim_left)
                 )
                 for line in text:
-                    assert line.startswith(ctlseqs.SGR_BG_RGB_b % (16, 32, 48) + b" ")
+                    assert line.startswith(
+                        ctlseqs.SGR_BG_DIRECT_b % (16, 32, 48) + b" "
+                    )

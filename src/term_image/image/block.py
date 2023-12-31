@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..ctlseqs import SGR_BG_RGB, SGR_FG_RGB, SGR_NORMAL
+from ..ctlseqs import SGR_BG_DIRECT, SGR_FG_DIRECT, SGR_NORMAL
 from ..utils import get_fg_bg_colors
 from .common import TextImage
 
@@ -71,11 +71,11 @@ class BlockImage(TextImage):
                     buf_write(blank * n)
                 elif a_cluster1 == 0:  # up is transparent
                     buf_write(SGR_NORMAL)
-                    buf_write(SGR_FG_RGB % cluster2)
+                    buf_write(SGR_FG_DIRECT % cluster2)
                     buf_write(lower_pixel * n)
                 elif a_cluster2 == 0:  # down is transparent
                     buf_write(SGR_NORMAL)
-                    buf_write(SGR_FG_RGB % cluster1)
+                    buf_write(SGR_FG_DIRECT % cluster1)
                     buf_write(upper_pixel * n)
                 else:
                     no_alpha = True
@@ -85,11 +85,11 @@ class BlockImage(TextImage):
                 # Kitty does not render BG colors equal to the default BG color
                 if is_on_kitty and cluster2 == bg_color:
                     r += r < 255 or -1
-                buf_write(SGR_BG_RGB % (r, g, b))
+                buf_write(SGR_BG_DIRECT % (r, g, b))
                 if cluster1 == cluster2:
                     buf_write(blank * n)
                 else:
-                    buf_write(SGR_FG_RGB % cluster1)
+                    buf_write(SGR_FG_DIRECT % cluster1)
                     buf_write(upper_pixel * n)
 
         buffer = io.StringIO()
