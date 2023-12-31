@@ -21,7 +21,7 @@ from enum import IntEnum, auto
 
 from typing_extensions import override
 
-from .ctlseqs import cursor_forward
+from ._ctlseqs import cursor_forward
 from .exceptions import TermImageError
 from .geometry import RawSize, Size, _RawSize, _Size
 from .utils import arg_value_error_range

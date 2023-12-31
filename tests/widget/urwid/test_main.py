@@ -4,7 +4,7 @@ import pytest
 import urwid
 from PIL import Image
 
-from term_image import ctlseqs
+from term_image import _ctlseqs as ctlseqs
 from term_image.exceptions import RenderError, UrwidImageError
 from term_image.image import (
     BlockImage,

@@ -7,7 +7,7 @@ from zlib import decompress
 
 import pytest
 
-from term_image import ctlseqs
+from term_image import _ctlseqs as ctlseqs
 from term_image.exceptions import StyleError
 from term_image.image import kitty
 from term_image.image.kitty import LINES, WHOLE, KittyImage

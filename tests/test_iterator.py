@@ -4,7 +4,7 @@ from types import GeneratorType
 import pytest
 from PIL import Image
 
-from term_image.ctlseqs import SGR_NORMAL
+from term_image._ctlseqs import SGR_NORMAL
 from term_image.exceptions import TermImageError
 from term_image.image import BlockImage, ImageIterator, Size
 

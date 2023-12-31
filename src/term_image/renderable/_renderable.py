@@ -17,7 +17,7 @@ from typing_extensions import Any, ClassVar, Literal, TextIO, TypeVar, overload
 import term_image
 
 from .. import geometry
-from ..ctlseqs import HIDE_CURSOR, SHOW_CURSOR, cursor_down, cursor_forward, cursor_up
+from .._ctlseqs import HIDE_CURSOR, SHOW_CURSOR, cursor_down, cursor_forward, cursor_up
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
 from ..utils import arg_value_error_range, get_terminal_size

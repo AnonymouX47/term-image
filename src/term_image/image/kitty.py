@@ -12,10 +12,10 @@ from zlib import compress, decompress
 
 import PIL
 
-from .. import ctlseqs
+from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
-from ..ctlseqs import (
+from .._ctlseqs import (
     CURSOR_FORWARD,
     ERASE_CHARS,
     KITTY_DELETE_CURSOR,

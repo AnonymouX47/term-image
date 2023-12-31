@@ -8,10 +8,10 @@ from typing import Optional, Tuple
 
 import urwid
 
-from .. import ctlseqs
+from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
-from ..ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
+from .._ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
 from ..utils import arg_type_error, get_terminal_name_version, lock_tty, write_tty

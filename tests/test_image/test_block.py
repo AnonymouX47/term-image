@@ -1,6 +1,6 @@
 """BlockImage-specific tests"""
 
-from term_image.ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
+from term_image._ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 

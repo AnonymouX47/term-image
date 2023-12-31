@@ -35,7 +35,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
-from ..ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
+from .._ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
 from ..exceptions import (
     InvalidSizeError,
     RenderError,

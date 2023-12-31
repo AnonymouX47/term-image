@@ -38,7 +38,7 @@ from typing_extensions import (
 
 import term_image
 
-from . import ctlseqs
+from . import _ctlseqs as ctlseqs
 from .exceptions import TermImageWarning
 
 # import logging

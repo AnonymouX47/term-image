@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from ..ctlseqs import SGR_BG_DIRECT, SGR_FG_DIRECT, SGR_NORMAL
+from .._ctlseqs import SGR_BG_DIRECT, SGR_FG_DIRECT, SGR_NORMAL
 from ..utils import get_fg_bg_colors
 from .common import TextImage
 

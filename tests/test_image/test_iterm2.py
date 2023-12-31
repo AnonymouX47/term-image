@@ -10,7 +10,7 @@ from PIL.GifImagePlugin import GifImageFile
 from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
-from term_image import ctlseqs
+from term_image import _ctlseqs as ctlseqs
 from term_image.exceptions import RenderError, StyleError, TermImageWarning
 from term_image.image import iterm2
 from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image

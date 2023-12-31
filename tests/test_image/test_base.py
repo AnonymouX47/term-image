@@ -11,7 +11,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from term_image import set_cell_ratio
-from term_image.ctlseqs import ESC
+from term_image._ctlseqs import ESC
 from term_image.exceptions import InvalidSizeError, TermImageError
 from term_image.image import BaseImage, BlockImage, ImageIterator, ImageSource, Size
 from term_image.image.common import _ALPHA_THRESHOLD

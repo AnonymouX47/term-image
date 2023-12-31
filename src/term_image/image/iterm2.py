@@ -13,10 +13,10 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 
 import PIL
 
-from .. import ctlseqs
+from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
-from ..ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
+from .._ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
 from ..exceptions import RenderError, TermImageWarning
 from ..utils import (
     ClassInstanceProperty,

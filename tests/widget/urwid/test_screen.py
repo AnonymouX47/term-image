@@ -6,7 +6,7 @@ import pytest
 import urwid
 from PIL import Image
 
-from term_image import ctlseqs
+from term_image import _ctlseqs as ctlseqs
 from term_image.image import BlockImage, ITerm2Image, KittyImage
 from term_image.widget import UrwidImage, UrwidImageCanvas, UrwidImageScreen
 

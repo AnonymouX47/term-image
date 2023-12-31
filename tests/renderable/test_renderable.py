@@ -10,7 +10,7 @@ from typing import Any, Iterator
 
 import pytest
 
-from term_image.ctlseqs import HIDE_CURSOR, SHOW_CURSOR
+from term_image._ctlseqs import HIDE_CURSOR, SHOW_CURSOR
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding, HAlign, VAlign
 from term_image.renderable import (

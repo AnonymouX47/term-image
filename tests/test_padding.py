@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from term_image.ctlseqs import CURSOR_FORWARD
+from term_image._ctlseqs import CURSOR_FORWARD
 from term_image.geometry import RawSize, Size
 from term_image.padding import (
     AlignedPadding,
