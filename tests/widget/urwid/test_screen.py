@@ -78,11 +78,11 @@ screen.start()
 
 @contextmanager
 def setup_clear_buffers():
-    from term_image.widget import urwid
+    from term_image.widget import _urwid
 
     tty_buf = io.BytesIO()
-    write_tty = urwid.write_tty
-    urwid.write_tty = tty_buf.write
+    write_tty = _urwid.write_tty
+    _urwid.write_tty = tty_buf.write
     buf.seek(0)
     buf.truncate()
     try:
@@ -91,7 +91,7 @@ def setup_clear_buffers():
         buf.seek(0)
         buf.truncate()
         tty_buf.close()
-        urwid.write_tty = write_tty
+        _urwid.write_tty = write_tty
 
 
 class TestClearImages:
