@@ -21,7 +21,7 @@ from .._ctlseqs import (
     KITTY_DELETE_CURSOR,
     KITTY_TRANSMISSION,
 )
-from ..utils import (
+from .._utils import (
     arg_type_error,
     arg_value_error_msg,
     arg_value_error_range,

@@ -36,14 +36,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
 from .._ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
-from ..exceptions import (
-    InvalidSizeError,
-    RenderError,
-    StyleError,
-    TermImageError,
-    URLNotFoundError,
-)
-from ..utils import (
+from .._utils import (
     ClassInstanceMethod,
     ClassProperty,
     arg_type_error,
@@ -56,6 +49,13 @@ from ..utils import (
     get_terminal_name_version,
     get_terminal_size,
     no_redecorate,
+)
+from ..exceptions import (
+    InvalidSizeError,
+    RenderError,
+    StyleError,
+    TermImageError,
+    URLNotFoundError,
 )
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold

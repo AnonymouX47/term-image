@@ -6,7 +6,7 @@
 from sphinx_toolbox.collapse import CollapseNode
 from sphinxcontrib import prettyspecialmethods
 
-from term_image import __version__, utils
+from term_image import __version__, _utils
 from term_image.image.common import ImageMeta
 from term_image.image.iterm2 import ITerm2ImageMeta
 
@@ -104,9 +104,9 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
         else:
             raise err
 
-        if isinstance(obj, utils.ClassProperty):
+        if isinstance(obj, _utils.ClassProperty):
             return "Class Properties"
-        if isinstance(obj, utils.ClassInstanceProperty):
+        if isinstance(obj, _utils.ClassInstanceProperty):
             return "Class/Instance Properties"
         if isinstance(obj, property):
             return "Instance Properties"
@@ -116,7 +116,7 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
                 if name.startswith("__") and name.endswith("__")
                 else "Instance Methods"
             )
-        if isinstance(obj, utils.ClassInstanceMethod):
+        if isinstance(obj, _utils.ClassInstanceMethod):
             return "Class/Instance Methods"
         if isinstance(obj, classmethod):
             return "Class Methods"
@@ -139,7 +139,7 @@ def setup(app):
 # property defined by the class
 for meta in (ImageMeta, ITerm2ImageMeta):
     for attr, value in tuple(vars(meta).items()):
-        if isinstance(value, utils.ClassPropertyBase):
+        if isinstance(value, _utils.ClassPropertyBase):
             delattr(meta, attr)
 
 # # -- prettyspecialmethods ------------------------------------------------------

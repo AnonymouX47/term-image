@@ -18,9 +18,9 @@ import term_image
 
 from .. import geometry
 from .._ctlseqs import HIDE_CURSOR, SHOW_CURSOR, cursor_down, cursor_forward, cursor_up
+from .._utils import arg_value_error_range, get_terminal_size
 from ..geometry import Size
 from ..padding import AlignedPadding, ExactPadding, Padding
-from ..utils import arg_value_error_range, get_terminal_size
 from . import _types
 from ._enum import FrameCount, FrameDuration, Seek
 from ._exceptions import (

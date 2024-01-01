@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Union
 import PIL
 
 from .._ctlseqs import SGR_BG_DIRECT, SGR_FG_DIRECT, SGR_NORMAL
-from ..utils import get_fg_bg_colors
+from .._utils import get_fg_bg_colors
 from .common import TextImage
 
 LOWER_PIXEL = "\u2584"  # lower-half block element

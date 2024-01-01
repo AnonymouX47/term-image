@@ -17,8 +17,7 @@ from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
 from .._ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
-from ..exceptions import RenderError, TermImageWarning
-from ..utils import (
+from .._utils import (
     ClassInstanceProperty,
     ClassProperty,
     arg_type_error,
@@ -26,6 +25,7 @@ from ..utils import (
     get_terminal_name_version,
     write_tty,
 )
+from ..exceptions import RenderError, TermImageWarning
 from .common import GraphicsImage, ImageMeta, ImageSource
 
 # Constants for render methods

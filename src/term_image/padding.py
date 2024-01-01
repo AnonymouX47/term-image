@@ -22,9 +22,9 @@ from enum import IntEnum, auto
 from typing_extensions import override
 
 from ._ctlseqs import cursor_forward
+from ._utils import arg_value_error_range
 from .exceptions import TermImageError
 from .geometry import RawSize, Size, _RawSize, _Size
-from .utils import arg_value_error_range
 
 # Variables ====================================================================
 

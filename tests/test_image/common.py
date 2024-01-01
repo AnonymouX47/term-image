@@ -11,9 +11,10 @@ from term_image import set_cell_ratio
 from term_image._ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
 from term_image.exceptions import StyleError
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
-from term_image.utils import get_fg_bg_colors, get_terminal_size
 
 from .. import (
+    get_fg_bg_colors,
+    get_terminal_size,
     reset_cell_size_ratio,
     set_cell_size,
     set_fg_bg_colors,
