@@ -812,10 +812,9 @@ class BaseImage(metaclass=ImageMeta):
         Raises:
             TypeError: *filepath* is of an inappropriate type.
             FileNotFoundError: The given path does not exist.
-            IsADirectoryError: Propagated from from :py:func:`PIL.Image.open`.
-            PIL.UnidentifiedImageError: Propagated from from :py:func:`PIL.Image.open`.
 
-        Also Propagates exceptions raised or propagated by the class constructor.
+        Propagates exceptions raised (or propagated) by :py:func:`PIL.Image.open` and
+        the class constructor.
         """
         if not isinstance(filepath, (str, os.PathLike)):
             raise arg_type_error("filepath", filepath)
