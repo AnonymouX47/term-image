@@ -109,7 +109,7 @@ class TestFromFile:
         with pytest.raises(FileNotFoundError):
             BlockImage.from_file(python_image + "e")
         for dir_path in ("tests", Path("tests"), BytesPath("tests")):
-            with pytest.raises(IsADirectoryError):
+            with pytest.raises(OSError):
                 BlockImage.from_file(dir_path)
         with pytest.raises(UnidentifiedImageError):
             BlockImage.from_file("LICENSE")
