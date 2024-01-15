@@ -207,7 +207,7 @@ class Response:
     ST_or_BEL = f"(?:{ST_escaped}|{BEL})"
     XTWINOPS = rf"{CSI_escaped}{Ps};(\d+);(\d+)t"
 
-    RGB_SPEC_re = rf"{OSC_escaped}(\d+);rgb:([\da-fA-F/]+){ST_or_BEL}"
+    RGB_SPEC_re = rf"{OSC_escaped}(\d+);(rgb:[\da-fA-F/]+){ST_or_BEL}"
     XTVERSION_re = rf"{DCS}>\|(\w+)[( ]([^){ESC}]+)\)?{ST_or_BEL}"
     TEXT_AREA_SIZE_PX_re = XTWINOPS % 4
     CELL_SIZE_PX_re = XTWINOPS % 6
@@ -261,7 +261,7 @@ def x_parse_color(spec: str) -> tuple[int, int, int]:
     NOTE:
         The older syntax isn't supported.
     """
-    rgb = spec.split("/")
+    rgb = spec.partition(":")[2].split("/")
     scale = len(rgb[0]) * 4  # One hex char -> 4 bits
     uint_scale_max = (1 << scale) - 1
     r, g, b = [int(component, 16) * 255 // uint_scale_max for component in rgb]
