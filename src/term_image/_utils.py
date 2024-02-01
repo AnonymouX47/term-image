@@ -44,9 +44,6 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
-# NOTE: Any cached feature using a query should have it's cache invalidated in
-# `term_image.enable_queries()`.
-
 # Type Variables and Aliases
 
 P = ParamSpec("P")
@@ -189,6 +186,9 @@ def cached_query(func: Callable[P, T]) -> Callable[P, T]:
     Args:
         func: The function to be wrapped.
 
+    Return values are cached if and only if queries are enabled
+    (see :py:func:`~term_image.enable_queries`).
+
     Cached values are stored in :py:data:`~term_image._utils.query_cache` using the
     decorated function's name as key.
 
@@ -201,6 +201,9 @@ def cached_query(func: Callable[P, T]) -> Callable[P, T]:
 
     @wraps(func)
     def cached_query_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        if not _queries_enabled:
+            return func(*args, **kwargs)
+
         cache: dict[tuple[P.args, tuple[tuple[str, Any], ...]], T]
         arguments = (args, tuple(kwargs.items()))
 
@@ -447,6 +450,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
     text_area_size: tuple[int, ...]
     cell_size = text_area_size = (0, 0)
     got_text_area_size = False
+    via_ioctl = False
 
     # If a thread reaches this point while the lock is being changed
     # (the old lock has been acquired but hasn't been changed), after the lock has
@@ -467,7 +471,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
             if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
                 text_area_size = tuple(buf[2:])
                 if 0 not in text_area_size:
-                    got_text_area_size = True
+                    got_text_area_size = via_ioctl = True
         except OSError:
             pass
 
@@ -499,7 +503,9 @@ def get_cell_size() -> term_image.geometry.Size | None:
                 text_area_size = text_area_size[::-1]
             cell_size = tuple(map(floordiv, text_area_size, terminal_size))
 
-        _cell_size_cache[:] = terminal_size + cell_size
+        # Cache query results only when queries are enabled.
+        if via_ioctl or _queries_enabled:
+            _cell_size_cache[:] = terminal_size + cell_size
 
         return None if 0 in cell_size else _Size(*cell_size)
 
