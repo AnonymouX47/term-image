@@ -21,7 +21,7 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from functools import wraps
+from functools import lru_cache, wraps
 from math import ceil
 from operator import gt, mul
 from shutil import rmtree
@@ -43,7 +43,6 @@ from .._utils import (
     arg_value_error,
     arg_value_error_msg,
     arg_value_error_range,
-    cached,
     get_cell_size,
     get_fg_bg_colors,
     get_terminal_name_version,
@@ -1943,7 +1942,7 @@ class TextImage(BaseImage):
     _pixel_ratio = property(lambda _: get_cell_ratio() * 2)
 
     @staticmethod
-    @cached
+    @lru_cache(maxsize=None)
     def _is_on_kitty() -> bool:
         return get_terminal_name_version()[0] == "kitty"
 

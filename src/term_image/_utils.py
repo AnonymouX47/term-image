@@ -141,44 +141,6 @@ def no_redecorate(decor: Callable[P, T]) -> Callable[P, T]:
 
 
 @no_redecorate
-def cached(func: Callable[P, T]) -> Callable[P, T]:
-    """Enables return value caching.
-
-    Args:
-        func: The function to be wrapped.
-
-    An *_invalidate_cache* function is set as an attribute of the returned wrapper
-    which when called clears the cache, so that the next call actually calls the
-    wrapped function, no matter the value of *_cached*.
-
-    NOTE:
-        It's thread-safe, i.e there is no race condition between calls to the same
-        decorated object across threads of the same process.
-
-        Only works when function arguments, if any, are hashable.
-    """
-
-    @wraps(func)
-    def cached_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        arguments = (args, tuple(kwargs.items()))
-        with lock:
-            try:
-                return cache[arguments]
-            except KeyError:
-                return cache.setdefault(arguments, func(*args, **kwargs))
-
-    def invalidate() -> None:
-        with lock:
-            cache.clear()
-
-    cache: dict[tuple[P.args, tuple[tuple[str, Any], ...]], T] = {}
-    lock = RLock()
-    setattr(cached_wrapper, "_invalidate_cache", invalidate)
-
-    return cached_wrapper
-
-
-@no_redecorate
 def cached_query(func: Callable[P, T]) -> Callable[P, T]:
     """Enables return value caching for functions returning values derived from
     terminal queries.
@@ -281,50 +243,6 @@ def lock_tty(func: Callable[P, T]) -> Callable[P, T]:
         )
 
     return lock_tty_wrapper
-
-
-@no_redecorate
-def terminal_size_cached(func: Callable[P, T]) -> Callable[P, T]:
-    """Enables return value caching based on the size of the :term:`active terminal`.
-
-    Args:
-        func: The function to be wrapped.
-
-    If the terminal size is the same as for the last call, the last return value is
-    returned. Otherwise the wrapped function is called and the new return value is
-    stored and returned.
-
-    An *_invalidate_terminal_size_cache* function is also set as an attribute of the
-    returned wrapper which when called clears the cache, so that the next call actually
-    calls the wrapped function.
-
-    NOTE:
-        It's thread-safe, i.e there is no race condition between calls to the same
-        decorated callable across threads of the same process.
-    """
-    cache: tuple[T, os.terminal_size] | None = None
-    lock = RLock()
-
-    @wraps(func)
-    def terminal_size_cached_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        nonlocal cache
-
-        with lock:
-            ts = get_terminal_size()
-            if not cache or ts != cache[1]:
-                cache = (func(*args, **kwargs), ts)
-
-        return cache[0]
-
-    def invalidate() -> None:
-        nonlocal cache
-
-        with lock:
-            cache = None
-
-    setattr(terminal_size_cached_wrapper, "_invalidate_terminal_size_cache", invalidate)
-
-    return terminal_size_cached_wrapper
 
 
 @no_redecorate
