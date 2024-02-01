@@ -385,17 +385,21 @@ def get_cell_size() -> Optional[Tuple[int, int]]:
                     text_area_size_match = ctlseqs.TEXT_AREA_SIZE_PX_re.match(
                         response.decode()
                     )
-            # XTWINOPS specifies (height, width)
-            if cell_size_match:
-                size = tuple(map(int, cell_size_match.groups()))[::-1]
-            elif text_area_size_match:
-                text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
 
-                # Termux seems to respond with (height / 2, width), though the values
-                # are incorrect as they change with different zoom levels but still
-                # always give a reasonable (almost always the same) cell size and ratio.
-                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                    text_area_size = (text_area_size[0], text_area_size[1] * 2)
+                # XTWINOPS specifies (height, width)
+                if cell_size_match:
+                    size = tuple(map(int, cell_size_match.groups()))[::-1]
+                elif text_area_size_match:
+                    text_area_size = tuple(  # fmt: skip
+                        map(int, text_area_size_match.groups())
+                    )[::-1]
+
+                    # Termux seems to respond with (height / 2, width), though the
+                    # values are incorrect as they change with different zoom levels
+                    # but still always give a reasonable (almost always the same)
+                    # cell size and ratio.
+                    if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                        text_area_size = (text_area_size[0], text_area_size[1] * 2)
 
         if text_area_size and _swap_win_size:
             text_area_size = text_area_size[::-1]
