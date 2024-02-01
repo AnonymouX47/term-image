@@ -182,6 +182,50 @@ def cached(func: Callable[P, T]) -> Callable[P, T]:
 
 
 @no_redecorate
+def cached_query(func: Callable[P, T]) -> Callable[P, T]:
+    """Enables return value caching for functions returning values derived from
+    terminal queries.
+
+    Args:
+        func: The function to be wrapped.
+
+    Cached values are stored in :py:data:`~term_image._utils.query_cache` using the
+    decorated function's name as key.
+
+    NOTE:
+        It's thread-safe, i.e there is no race condition between calls to the same
+        decorated function across threads of the same process.
+
+        Only works when function arguments, if any, are hashable.
+    """
+
+    @wraps(func)
+    def cached_query_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        cache: dict[tuple[P.args, tuple[tuple[str, Any], ...]], T]
+        arguments = (args, tuple(kwargs.items()))
+
+        lock.acquire()
+        try:
+            cache = query_cache[func_name]
+        except KeyError:
+            query_cache[func_name] = {arguments: (result := func(*args, **kwargs))}
+        else:
+            try:
+                result = cache[arguments]
+            except KeyError:
+                result = cache[arguments] = func(*args, **kwargs)
+        finally:
+            lock.release()
+
+        return result
+
+    func_name = func.__name__
+    lock = RLock()
+
+    return cached_query_wrapper
+
+
+@no_redecorate
 def lock_tty(func: Callable[P, T]) -> Callable[P, T]:
     """Synchronizes access to the :term:`active terminal`.
 
@@ -475,7 +519,7 @@ def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]:
     ...
 
 
-@cached
+@cached_query
 def get_fg_bg_colors(
     *, hex: Literal[False, True] = False
 ) -> tuple[ColorType | str | None, ColorType | str | None]:
@@ -519,7 +563,7 @@ def get_fg_bg_colors(
     )
 
 
-@cached
+@cached_query
 def get_terminal_name_version() -> tuple[str | None, str | None]:
     """Returns the name and version of the :term:`active terminal`, if available.
 
@@ -796,7 +840,7 @@ def _process_run_wrapper(self, *args, **kwargs):
     return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
 
 
-# Private internal variables
+# Internal variables
 _query_timeout = 0.1
 _queries_enabled = True
 _swap_win_size = False
@@ -805,6 +849,18 @@ _tty_lock = RLock()
 _cell_size_cache = [0] * 4
 _cell_size_lock = RLock()
 _rlock_type = type(_tty_lock)
+
+query_cache: dict[str, Any] = {}
+"""Global cache for terminal query results.
+
+An item may simply be removed in order to invalidate the cached result(s) of the
+corresponding query or the entire mapping cleared to invalidate for all queries.
+
+.. seealso::
+
+   :py:func:`@cached_query <term_image._utils.cached_query>`
+      Enables caching for terminal-querying functions.
+"""
 
 if OS_IS_UNIX:
     for stream in ("out", "in", "err"):  # In order of priority

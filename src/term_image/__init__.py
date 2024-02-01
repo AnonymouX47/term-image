@@ -120,8 +120,7 @@ def enable_queries() -> None:
     """
     if not _utils._queries_enabled:
         _utils._queries_enabled = True
-        getattr(_utils.get_fg_bg_colors, "_invalidate_cache")()
-        getattr(_utils.get_terminal_name_version, "_invalidate_cache")()
+        _utils.query_cache.clear()
         with _utils._cell_size_lock:
             _utils._cell_size_cache[:] = (0,) * 4
 
