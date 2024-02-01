@@ -102,5 +102,5 @@ combine_as_imports = true
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
-    "ignore:.+in a terminal:UserWarning:term_image.utils",
+    "ignore:.+in a terminal:UserWarning:term_image._utils",
 ]
