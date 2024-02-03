@@ -31,10 +31,3 @@ class URLNotFoundError(TermImageError, FileNotFoundError):
 
 class UrwidImageError(TermImageError):
     """Raised for errors specific to :py:class:`~term_image.widget.UrwidImage`."""
-
-
-__all__ = ["TermImageWarning"] + [
-    name
-    for name, obj in vars().items()
-    if isinstance(obj, type) and issubclass(obj, TermImageError)
-]
