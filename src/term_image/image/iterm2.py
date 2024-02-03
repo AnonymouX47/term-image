@@ -17,7 +17,7 @@ from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
 from .._ctlseqs import CURSOR_FORWARD, CURSOR_UP, ERASE_CHARS, ITERM2_START, ST
-from ..exceptions import RenderError, TermImageWarning
+from ..exceptions import RenderError, TermImageUserWarning
 from ..utils import (
     ClassInstanceProperty,
     ClassProperty,
@@ -386,7 +386,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
 
             Can not be reset via an instance.
 
-        :py:class:`~term_image.exceptions.TermImageWarning` is issued (and shown
+        :py:class:`~term_image.exceptions.TermImageUserWarning` is issued (and shown
         **only the first time**, except the warning filters are modified to do
         otherwise) if the image data size for a native animation is above this value.
 
@@ -628,7 +628,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
                 if compressed_image.tell() > self.native_anim_max_bytes:
                     warnings.warn(
                         "Image data size above the maximum for native animation",
-                        TermImageWarning,
+                        TermImageUserWarning,
                     )
 
                 control_data = "".join(

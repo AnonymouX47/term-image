@@ -5,8 +5,12 @@
 from __future__ import annotations
 
 
-class TermImageWarning(UserWarning):
-    """Package-specific warning category."""
+class TermImageWarning(Warning):
+    """Package-specific warning base category."""
+
+
+class TermImageUserWarning(TermImageWarning, UserWarning):
+    """Package-specific user warning sub-category."""
 
 
 class TermImageError(Exception):

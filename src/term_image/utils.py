@@ -39,7 +39,7 @@ from typing_extensions import (
 import term_image
 
 from . import _ctlseqs as ctlseqs
-from .exceptions import TermImageWarning
+from .exceptions import TermImageUserWarning
 
 # import logging
 
@@ -774,7 +774,7 @@ def _process_start_wrapper(self, *args, **kwargs):
                     "using `term_image.disable_queries()`.\n"
                     "Simply set an 'ignore' filter for this warning (before starting "
                     "any subprocess) if not using any of the affected features.",
-                    TermImageWarning,
+                    TermImageUserWarning,
                 )
         else:
             self._tty_lock = _tty_lock
@@ -837,8 +837,8 @@ if OS_IS_UNIX:
                 ".html#active-terminal\n"
                 "Any filter for this warning must be set before loading `term_image`, "
                 "using `UserWarning` with the warning message (since "
-                "`TermImageWarning` won't be available).",
-                TermImageWarning,
+                "`TermImageUserWarning` won't be available).",
+                TermImageUserWarning,
             )
 
     if _tty_fd != -1:
