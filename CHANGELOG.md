@@ -21,9 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Padding`, `AlignedPadding`, `ExactPadding`, etc.
 - Support for Pillow 10. ([8cfebe2])
 - Static Typing & Type Checking Support ([#100]).
+- `TermImageUserWarning` warning sub-category ([d710a9e]).
 
 ### Changed
 - `term_image.utils.get_cell_size()` now returns `term_image.geometry.Size` instances in place of tuples ([#96]).
+- `TermImageWarning` now inherits from `Warning` instead of `UserWarning` ([d710a9e]).
 
 ### Removed
 - Support for Python 3.7. ([594d451])
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [594d451]: https://github.com/AnonymouX47/term-image/commit/594d451d124a47c73a9dce61a4496a2a218261b1
 [8cfebe2]: https://github.com/AnonymouX47/term-image/commit/8cfebe27b63dcdd987fc9d0c71616e76777779a9
 [b790f0e]: https://github.com/AnonymouX47/term-image/commit/b790f0e7c5cd2afd7dafa7c14797136719b9dafb
+[d710a9e]: https://github.com/AnonymouX47/term-image/commit/d710a9e95e149868490f5d38eb3339df68716999
 
 
 ## [0.7.0] - 2023-06-05
