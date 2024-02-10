@@ -4,7 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.1] - 2023-02-10
+### Fixed
+- Undefined references in some top-level functions ([497d9b7], [4e8b3e7]).
+- Formatting of some `ValueError` exception messages ([d296a31]).
+- Typos in docs and comments ([#98]) by [**@kianmeng**](https://github.com/kianmeng).
+- `UnboundLocalError` in `term_image.utils.get_cell_size()` when ioctl fails and queries are disabled ([e12ffa8], [#104]).
+
+### Added
+- Support for Pillow v10 ([8cfebe2]).
+
+[#98]: https://github.com/AnonymouX47/term-image/pull/98
+[#104]: https://github.com/AnonymouX47/term-image/pull/104
+[497d9b7]: https://github.com/AnonymouX47/term-image/commit/497d9b70dd74605e6589b81bea2fcac22efc684b
+[d296a31]: https://github.com/AnonymouX47/term-image/commit/d296a3110882449f6717959400abbc5fa1bd0891
+[4e8b3e7]: https://github.com/AnonymouX47/term-image/commit/4e8b3e7cf39e9e96fc38532d69d498938db54f3e
+[8cfebe2]: https://github.com/AnonymouX47/term-image/commit/8cfebe27b63dcdd987fc9d0c71616e76777779a9
+[e12ffa8]: https://github.com/AnonymouX47/term-image/commit/e12ffa818eb06f78cb586504ccc1c58df1fab90e
 
 
 ## [0.7.0] - 2023-06-05
@@ -469,6 +485,7 @@ See the commit messages for [0.4.1] for the full logs.
 
 
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...HEAD
+[0.7.1]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.7.0
 [0.6.1]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...v0.6.0
