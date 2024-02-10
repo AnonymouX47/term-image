@@ -412,7 +412,9 @@ def get_cell_size() -> term_image.geometry.Size | None:
     text_area_size: tuple[int, ...]
     cell_size = text_area_size = (0, 0)
     got_text_area_size = False
-
+    cell_size_match = False
+    text_area_size_match = False
+    
     # If a thread reaches this point while the lock is being changed
     # (the old lock has been acquired but hasn't been changed), after the lock has
     # been changed and the former lock is released, the waiting thread will acquire
