@@ -11,7 +11,7 @@ from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
 from term_image import _ctlseqs as ctlseqs
-from term_image.exceptions import RenderError, StyleError, TermImageWarning
+from term_image.exceptions import RenderError, StyleError, TermImageUserWarning
 from term_image.image import iterm2
 from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image
 
@@ -1196,7 +1196,7 @@ class TestRenderAnim:
     # Image data size limit
     def test_max_bytes(self):
         ITerm2Image.native_anim_max_bytes = 300000
-        with pytest.warns(TermImageWarning, match="maximum for native animation"):
+        with pytest.warns(TermImageUserWarning, match="maximum for native animation"):
             self.render_native_anim(self.apng_image)
         self.render_native_anim(self.gif_image)
 

@@ -5,8 +5,12 @@
 from __future__ import annotations
 
 
-class TermImageWarning(UserWarning):
-    """Package-specific warning category."""
+class TermImageWarning(Warning):
+    """Package-specific warning base category."""
+
+
+class TermImageUserWarning(TermImageWarning, UserWarning):
+    """Package-specific user warning sub-category."""
 
 
 class TermImageError(Exception):
@@ -31,10 +35,3 @@ class URLNotFoundError(TermImageError, FileNotFoundError):
 
 class UrwidImageError(TermImageError):
     """Raised for errors specific to :py:class:`~term_image.widget.UrwidImage`."""
-
-
-__all__ = ["TermImageWarning"] + [
-    name
-    for name, obj in vars().items()
-    if isinstance(obj, type) and issubclass(obj, TermImageError)
-]

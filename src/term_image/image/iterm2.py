@@ -25,7 +25,7 @@ from .._utils import (
     get_terminal_name_version,
     write_tty,
 )
-from ..exceptions import RenderError, TermImageWarning
+from ..exceptions import RenderError, TermImageUserWarning
 from .common import GraphicsImage, ImageMeta, ImageSource
 
 # Constants for render methods
@@ -386,7 +386,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
 
             Can not be reset via an instance.
 
-        :py:class:`~term_image.exceptions.TermImageWarning` is issued (and shown
+        :py:class:`~term_image.exceptions.TermImageUserWarning` is issued (and shown
         **only the first time**, except the warning filters are modified to do
         otherwise) if the image data size for a native animation is above this value.
 
@@ -628,7 +628,7 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
                 if compressed_image.tell() > self.native_anim_max_bytes:
                     warnings.warn(
                         "Image data size above the maximum for native animation",
-                        TermImageWarning,
+                        TermImageUserWarning,
                     )
 
                 control_data = "".join(
