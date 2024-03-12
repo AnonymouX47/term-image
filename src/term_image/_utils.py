@@ -816,11 +816,3 @@ if OS_IS_UNIX:
         Process.run = wraps(Process.run)(  # type: ignore[method-assign]
             _process_run_wrapper
         )
-
-        # Shouldn't be needed since we're getting our own separate file descriptors
-        # but the validity of the assumed safety is still under probation
-        """
-        for name, value in vars(termios).items():
-            if isinstance(value, BuiltinFunctionType):
-                setattr(termios, name, lock_tty(value))
-        """
