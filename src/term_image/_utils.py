@@ -55,6 +55,13 @@ ColorType = Tuple[int, int, int]
 
 HEX_RGB_FMT = "#" + "%02x" * 3
 
+# Exceptions
+
+
+class NoActiveTerminalWarning(TermImageUserWarning):
+    """Issued when there is no :term:`active terminal`."""
+
+
 # Decorator Classes
 
 
@@ -256,7 +263,7 @@ def unix_tty_only(func: Callable[P, T]) -> Callable[P, T | None]:
 
     @wraps(func)
     def unix_only_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
-        return None if _tty_fd == -1 else func(*args, **kwargs)
+        return None if get_active_terminal() == -1 else func(*args, **kwargs)
 
     if unix_only_wrapper.__doc__ is None:
         unix_only_wrapper.__doc__ = ""
@@ -386,7 +393,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
         # First try ioctl
         buf = array("H", [0, 0, 0, 0])
         try:
-            if not fcntl.ioctl(_tty_fd, termios.TIOCGWINSZ, buf):
+            if not fcntl.ioctl(get_active_terminal(), termios.TIOCGWINSZ, buf):
                 text_area_size = tuple(buf[2:])
                 if 0 not in text_area_size:
                     got_text_area_size = via_ioctl = True
@@ -530,15 +537,62 @@ def get_terminal_size() -> os.terminal_size:
         - gives different results in certain situations
         - is what this library works with
     """
-    size = None
-    if _tty_fd != -1:
+    size: os.terminal_size | None = None
+    if (tty_fd := get_active_terminal()) != -1:
         # faster and gives correct results when output is redirected
         try:
-            size = os.get_terminal_size(_tty_fd)
+            size = os.get_terminal_size(tty_fd)
         except OSError:
             pass
 
     return size or _get_terminal_size()
+
+
+@lock_tty
+def get_active_terminal() -> int:
+    """Determines the :term:`active terminal`.
+
+    Returns:
+        - `-1`, on non-unix-like platforms or when there is no :term:`active terminal`,
+          OR
+        - a file descriptor for the :term:`active terminal`, with read/write access.
+
+    Warns:
+        NoActiveTerminalWarning: No :term:`active terminal`.
+    """
+    global _tty_fd
+
+    if _tty_fd is not None:
+        return _tty_fd
+
+    if not OS_IS_UNIX:
+        return (_tty_fd := -1)
+
+    _tty_fd = -1
+
+    for stream in ("out", "in", "err"):  # In order of priority
+        try:
+            # A new file descriptor is required because, at least, both read and write
+            # access to the TTY are required.
+            _tty_fd = os.open(
+                os.ttyname(getattr(sys, f"__std{stream}__").fileno()), os.O_RDWR
+            )
+            break
+        except (OSError, AttributeError):
+            pass
+    else:
+        try:
+            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+        except OSError:
+            warnings.warn(
+                "This process does not seem to be connected to a terminal. "
+                "Hence, some features will behave differently or be disabled.\n"
+                "See https://term-image.readthedocs.io/en/stable/guide/concepts"
+                ".html#active-terminal",
+                NoActiveTerminalWarning,
+            )
+
+    return _tty_fd
 
 
 @unix_tty_only
@@ -574,15 +628,16 @@ def query_terminal(
     if not _queries_enabled:
         return None
 
-    old_attr = termios.tcgetattr(_tty_fd)
-    new_attr = termios.tcgetattr(_tty_fd)
+    tty_fd = get_active_terminal()
+    old_attr = termios.tcgetattr(tty_fd)
+    new_attr = termios.tcgetattr(tty_fd)
     new_attr[3] &= ~termios.ECHO  # Disable input echo
     try:
-        termios.tcsetattr(_tty_fd, termios.TCSAFLUSH, new_attr)
+        termios.tcsetattr(tty_fd, termios.TCSAFLUSH, new_attr)
         write_tty(request)
         return read_tty(more, timeout or _query_timeout)
     finally:
-        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
+        termios.tcsetattr(tty_fd, termios.TCSANOW, old_attr)
 
 
 @unix_tty_only
@@ -629,8 +684,9 @@ def read_tty(
     Upon return or interruption, the :term:`active terminal` is **immediately** restored
     to the state in which it was met.
     """
-    old_attr = termios.tcgetattr(_tty_fd)
-    new_attr = termios.tcgetattr(_tty_fd)
+    tty_fd = get_active_terminal()
+    old_attr = termios.tcgetattr(tty_fd)
+    new_attr = termios.tcgetattr(tty_fd)
     new_attr[3] &= ~termios.ICANON  # Disable canonical mode
     new_attr[6][termios.VTIME] = 0  # Never block based on time
     if echo:
@@ -644,32 +700,32 @@ def read_tty(
     try:
         w: list[int]
         x: list[int]
-        r, w, x = [_tty_fd], [], []
-        termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
+        r, w, x = [tty_fd], [], []
+        termios.tcsetattr(tty_fd, termios.TCSANOW, new_attr)
 
         if timeout is None:
             # VMIN=0 does not work as expected on some platforms when there's no input
             while select(r, w, x, 0.0)[0]:
-                input.extend(os.read(_tty_fd, 100))
+                input.extend(os.read(tty_fd, 100))
         else:
             start = monotonic()
             if min > 0:
-                input.extend(os.read(_tty_fd, min))
+                input.extend(os.read(tty_fd, min))
 
                 # Don't block based on based on amount of bytes anymore
                 new_attr[6][termios.VMIN] = 0
-                termios.tcsetattr(_tty_fd, termios.TCSANOW, new_attr)
+                termios.tcsetattr(tty_fd, termios.TCSANOW, new_attr)
 
             duration = monotonic() - start
             while (timeout < 0 or duration < timeout) and more(input):
                 # Reduces CPU usage
                 # Also, VMIN=0 does not work on some platforms when there's no input
                 if select(r, w, x, None if timeout < 0 else timeout - duration)[0]:
-                    input.extend(os.read(_tty_fd, 1))
+                    input.extend(os.read(tty_fd, 1))
                 duration = monotonic() - start
             # logging.debug(duration)
     finally:
-        termios.tcsetattr(_tty_fd, termios.TCSANOW, old_attr)
+        termios.tcsetattr(tty_fd, termios.TCSANOW, old_attr)
 
     return bytes(input)
 
@@ -696,9 +752,10 @@ def write_tty(data: bytes) -> None:
     Args:
         data: Data to be written.
     """
-    os.write(_tty_fd, data)
+    tty_fd = get_active_terminal()
+    os.write(tty_fd, data)
     try:
-        termios.tcdrain(_tty_fd)
+        termios.tcdrain(tty_fd)
     except termios.error:  # "Permission denied" on some platforms e.g Termux
         pass
 
@@ -765,7 +822,7 @@ def _process_run_wrapper(self, *args, **kwargs):
 _query_timeout = 0.1
 _queries_enabled = True
 _swap_win_size = False
-_tty_fd = -1
+_tty_fd: int | None = None
 _tty_lock = RLock()
 _cell_size_cache = [0] * 4
 _cell_size_lock = RLock()
@@ -783,36 +840,10 @@ corresponding query or the entire mapping cleared to invalidate for all queries.
       Enables caching for terminal-querying functions.
 """
 
-if OS_IS_UNIX:
-    for stream in ("out", "in", "err"):  # In order of priority
-        try:
-            # A new file descriptor is required because, at least, both read and write
-            # access to the T/PTY are required.
-            _tty_fd = os.open(
-                os.ttyname(getattr(sys, f"__std{stream}__").fileno()), os.O_RDWR
-            )
-            break
-        except (OSError, AttributeError):
-            pass
-    else:
-        try:
-            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
-        except OSError:
-            warnings.warn(
-                "It seems this process is not running within a terminal. "
-                "Hence, some features will behave differently or be disabled.\n"
-                "See https://term-image.readthedocs.io/en/stable/guide/concepts"
-                ".html#active-terminal\n"
-                "Any filter for this warning must be set before loading `term_image`, "
-                "using `UserWarning` with the warning message (since "
-                "`TermImageUserWarning` won't be available).",
-                TermImageUserWarning,
-            )
-
-    if _tty_fd != -1:
-        Process.start = wraps(Process.start)(  # type: ignore[method-assign]
-            _process_start_wrapper
-        )
-        Process.run = wraps(Process.run)(  # type: ignore[method-assign]
-            _process_run_wrapper
-        )
+if get_active_terminal() != -1:
+    Process.start = wraps(Process.start)(  # type: ignore[method-assign]
+        _process_start_wrapper
+    )
+    Process.run = wraps(Process.run)(  # type: ignore[method-assign]
+        _process_run_wrapper
+    )
