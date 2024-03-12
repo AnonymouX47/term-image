@@ -11,10 +11,9 @@ Below are definitions of terms used across the API, exception messages and the d
    :sorted:
 
    active terminal
-      The terminal emulator connected to the first TTY device discovered upon loading
-      the ``term_image`` package.
+      The terminal emulator connected to the first PTY device (connected to the current process) discovered.
 
-      At times, this may also be used to refer to the TTY device itself.
+      At times, this may also be used to refer to the PTY device itself.
 
       .. seealso:: :ref:`active-terminal`
 
