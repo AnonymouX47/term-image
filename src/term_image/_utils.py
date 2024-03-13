@@ -19,6 +19,7 @@ from time import monotonic
 
 from typing_extensions import (
     Any,
+    ClassVar,
     Literal,
     ParamSpec,
     Tuple,
@@ -300,8 +301,11 @@ class TTYSyncProcess(Process):
         a function decorated with ``@lock_tty``.
     """
 
-    _tty_lock: RLock | None
-    _cell_size_cache: MutableSequence[int] | None
+    _cell_size_sync_attempted: ClassVar[bool] = False
+    _tty_sync_attempted: ClassVar[bool] = False
+
+    _tty_lock: RLock | None = None
+    _cell_size_cache: MutableSequence[int] | None = None
 
     def start(self) -> None:
         """See :py:meth:`multiprocessing.Process.start`.
@@ -318,43 +322,44 @@ class TTYSyncProcess(Process):
         # (may acquire the new lock in a nested call while still holding the old lock)
         # out of sync until it has fully released the old lock.
 
-        if isinstance(_tty_lock, _thread_rlock_type):
-            (old_tty_lock := _tty_lock).acquire()
-            try:
-                self._tty_lock = _tty_lock = mp_RLock()  # type: ignore[assignment]
-            except ImportError:
-                self._tty_lock = None
-                warnings.warn(
-                    "Multi-process synchronization is not supported on this platform!\n"
-                    "Hence, if any subprocess will be writing/reading to/from the "
-                    "active terminal, it may be unsafe to use any features requiring "
-                    "terminal queries.\n"
-                    "See https://term-image.readthedocs.io/en/stable/guide/concepts"
-                    ".html#terminal-queries\n"
-                    "If any related issues occur, it's advisable to disable queries "
-                    "using `term_image.disable_queries()`.",
-                    NoMultiProcessSyncWarning,
-                )
-            finally:
-                old_tty_lock.release()
-        else:
-            self._tty_lock = _tty_lock
+        with _tty_lock:
+            if TTYSyncProcess._tty_sync_attempted:
+                if isinstance(_tty_lock, _thread_rlock_type):
+                    self._tty_lock = _tty_lock
+            else:
+                TTYSyncProcess._tty_sync_attempted = True
+                try:
+                    self._tty_lock = _tty_lock = mp_RLock()  # type: ignore[assignment]
+                except ImportError:
+                    warnings.warn(
+                        "Multi-process synchronization is not supported on this "
+                        "platform!\n"
+                        "Hence, if any subprocess will be writing/reading to/from "
+                        "the active terminal, it may be unsafe to use any features "
+                        "requiring terminal queries.\n"
+                        "See https://term-image.readthedocs.io/en/stable/guide"
+                        "/concepts.html#terminal-queries\n"
+                        "If any related issues occur, it's advisable to disable "
+                        "queries using `term_image.disable_queries()`.",
+                        NoMultiProcessSyncWarning,
+                    )
 
-        if isinstance(_cell_size_lock, _thread_rlock_type):
-            (old_cell_size_lock := _cell_size_lock).acquire()
-            try:
-                self._cell_size_cache = _cell_size_cache = (  # type: ignore[assignment]
-                    Array("i", _cell_size_cache)  # type: ignore[assignment]
-                )
-                _cell_size_lock = (
-                    _cell_size_cache.get_lock()  # type: ignore[attr-defined]
-                )
-            except ImportError:
-                self._cell_size_cache = None
-            finally:
-                old_cell_size_lock.release()
-        else:
-            self._cell_size_cache = _cell_size_cache
+        with _cell_size_lock:
+            if TTYSyncProcess._cell_size_sync_attempted:
+                if isinstance(_cell_size_cache, list):
+                    self._cell_size_cache = _cell_size_cache
+            else:
+                TTYSyncProcess._cell_size_sync_attempted = True
+                try:
+                    _cell_size_cache = Array(  # type: ignore[assignment]
+                        "i", _cell_size_cache
+                    )
+                    _cell_size_lock = (
+                        _cell_size_cache.get_lock()  # type: ignore[attr-defined]
+                    )
+                    self._cell_size_cache = _cell_size_cache
+                except ImportError:
+                    pass
 
         return super().start()
 
@@ -366,6 +371,9 @@ class TTYSyncProcess(Process):
         if self._cell_size_cache:
             _cell_size_cache = self._cell_size_cache
             _cell_size_lock = _cell_size_cache.get_lock()  # type: ignore[attr-defined]
+
+        TTYSyncProcess._tty_sync_attempted = True
+        TTYSyncProcess._cell_size_sync_attempted = True
 
         return super().run()
 
