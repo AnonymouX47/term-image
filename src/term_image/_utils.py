@@ -304,6 +304,7 @@ class TTYSyncProcess(Process):
     _cell_size_sync_attempted: ClassVar[bool] = False
     _tty_sync_attempted: ClassVar[bool] = False
 
+    _tty_fd: int | None = None
     _tty_lock: RLock | None = None
     _cell_size_cache: MutableSequence[int] | None = None
 
@@ -323,6 +324,15 @@ class TTYSyncProcess(Process):
         # out of sync until it has fully released the old lock.
 
         with _tty_lock:
+            tty_fd = get_active_terminal()
+            try:
+                if tty_fd != -1:
+                    os.set_inheritable(tty_fd, True)
+            except OSError:
+                pass
+            else:  # tty_fd == `-1`, or inheritable flag was successfully set
+                self._tty_fd = tty_fd
+
             if TTYSyncProcess._tty_sync_attempted:
                 if isinstance(_tty_lock, _thread_rlock_type):
                     self._tty_lock = _tty_lock
@@ -364,8 +374,10 @@ class TTYSyncProcess(Process):
         return super().start()
 
     def run(self) -> None:
-        global _tty_lock, _cell_size_cache, _cell_size_lock
+        global _tty_fd, _tty_lock, _cell_size_cache, _cell_size_lock
 
+        if self._tty_fd is not None:
+            _tty_fd = self._tty_fd
         if self._tty_lock:
             _tty_lock = self._tty_lock
         if self._cell_size_cache:
