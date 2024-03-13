@@ -8,7 +8,7 @@ import os
 import sys
 import warnings
 from array import array
-from collections.abc import Callable
+from collections.abc import Callable, MutableSequence
 from functools import wraps
 from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
 from operator import floordiv
@@ -60,6 +60,12 @@ HEX_RGB_FMT = "#" + "%02x" * 3
 
 class NoActiveTerminalWarning(TermImageUserWarning):
     """Issued when there is no :term:`active terminal`."""
+
+
+class NoMultiProcessSyncWarning(TermImageUserWarning):
+    """Issued by :py:class:`~term_image.utils.TTYSyncProcess` when
+    :py:mod:`multiprocessing.synchronize` is not supported on the platform.
+    """
 
 
 # Decorator Classes
@@ -210,17 +216,11 @@ def lock_tty(func: Callable[P, T]) -> Callable[P, T]:
     fully released (i.e has been released as many times as acquired) by the current
     process or thread.
 
-    NOTE:
-        It works across parent-/sub-processes, started directly or indirectly via
-        :py:class:`multiprocessing.Process` (or a subclass of it), and their threads,
-        provided :py:mod:`multiprocessing.synchronize` is supported on the host
-        platform. Otherwise, a warning is issued when starting a subprocess.
-
-    WARNING:
-        If :py:mod:`multiprocessing.synchronize` is supported and a subprocess is
-        started within a call (possibly recursive) to a decorated function, the thread
-        in which that occurs will be out of sync until that call returns.
-        Hence, avoid starting a subprocess within a decorated function.
+    TIP:
+        It works across subprocesses (recursively) started directly or indirectly via
+        :py:class:`~term_image.utils.TTYSyncProcess` (along with their parent
+        process) and all their threads, provided :py:mod:`multiprocessing.synchronize`
+        is supported on the host platform.
     """
 
     @wraps(func)
@@ -277,7 +277,100 @@ def unix_tty_only(func: Callable[P, T]) -> Callable[P, T | None]:
     return unix_only_wrapper
 
 
-# Non-decorators
+# Non-decorator Classes
+
+
+class TTYSyncProcess(Process):
+    """A process for :term:`active terminal` access synchronization
+
+    This is a subclass of :py:class:`multiprocessing.Process` which provides support
+    for synchronizing access to the :term:`active terminal`
+    (via :py:func:`@lock_tty <term_image.utils.lock_tty>`) across processes
+    (the parent process, and all its child processes started via an instance of this
+    class - recursively).
+
+    WARNING:
+        If :py:mod:`multiprocessing.synchronize` is supported on the platform and a
+        subprocess is started (via an instance of **this class**) within a call
+        (possibly recursive) to a function decorated with ``@lock_tty``, the thread
+        in which that occurs will be out of sync until the call (to the decorated
+        function) returns.
+
+        Hence, avoid starting a subprocess (via an instance of **this class**) within
+        a function decorated with ``@lock_tty``.
+    """
+
+    _tty_lock: RLock | None
+    _cell_size_cache: MutableSequence[int] | None
+
+    def start(self) -> None:
+        """See :py:meth:`multiprocessing.Process.start`.
+
+        Warns:
+            NoMultiProcessSyncWarning: :py:mod:`multiprocessing.synchronize` is not
+              supported on the platform.
+        """
+        global _tty_lock, _cell_size_cache, _cell_size_lock
+
+        # Ensures each lock is not acquired by another thread before changing it.
+        # The only case in which this is useless is when the owner thread is the one
+        # starting the process. In such a situation, the owner thread will be partially
+        # (may acquire the new lock in a nested call while still holding the old lock)
+        # out of sync until it has fully released the old lock.
+
+        if isinstance(_tty_lock, _thread_rlock_type):
+            (old_tty_lock := _tty_lock).acquire()
+            try:
+                self._tty_lock = _tty_lock = mp_RLock()  # type: ignore[assignment]
+            except ImportError:
+                self._tty_lock = None
+                warnings.warn(
+                    "Multi-process synchronization is not supported on this platform!\n"
+                    "Hence, if any subprocess will be writing/reading to/from the "
+                    "active terminal, it may be unsafe to use any features requiring "
+                    "terminal queries.\n"
+                    "See https://term-image.readthedocs.io/en/stable/guide/concepts"
+                    ".html#terminal-queries\n"
+                    "If any related issues occur, it's advisable to disable queries "
+                    "using `term_image.disable_queries()`.",
+                    NoMultiProcessSyncWarning,
+                )
+            finally:
+                old_tty_lock.release()
+        else:
+            self._tty_lock = _tty_lock
+
+        if isinstance(_cell_size_lock, _thread_rlock_type):
+            (old_cell_size_lock := _cell_size_lock).acquire()
+            try:
+                self._cell_size_cache = _cell_size_cache = (  # type: ignore[assignment]
+                    Array("i", _cell_size_cache)  # type: ignore[assignment]
+                )
+                _cell_size_lock = (
+                    _cell_size_cache.get_lock()  # type: ignore[attr-defined]
+                )
+            except ImportError:
+                self._cell_size_cache = None
+            finally:
+                old_cell_size_lock.release()
+        else:
+            self._cell_size_cache = _cell_size_cache
+
+        return super().start()
+
+    def run(self) -> None:
+        global _tty_lock, _cell_size_cache, _cell_size_lock
+
+        if self._tty_lock:
+            _tty_lock = self._tty_lock
+        if self._cell_size_cache:
+            _cell_size_cache = self._cell_size_cache
+            _cell_size_lock = _cell_size_cache.get_lock()  # type: ignore[attr-defined]
+
+        return super().run()
+
+
+# Non-decorator Functions
 
 
 def arg_type_error(arg: str, value: Any, got_extra: str = "") -> TypeError:
@@ -760,73 +853,15 @@ def write_tty(data: bytes) -> None:
         pass
 
 
-@no_type_check
-def _process_start_wrapper(self, *args, **kwargs):
-    global _tty_lock, _cell_size_cache, _cell_size_lock
-
-    # Ensure a lock is not acquired by another process/thread before changing it.
-    # The only case in which this is useless is when the owner thread is the
-    # one starting a process. In such a situation, the owner thread will be partially
-    # (may acquire the new lock in a nested call while still holding the old lock)
-    # out of sync until it has fully released the old lock.
-
-    with _tty_lock:
-        if isinstance(_tty_lock, _rlock_type):
-            try:
-                self._tty_lock = _tty_lock = mp_RLock()
-            except ImportError:
-                self._tty_lock = None
-                warnings.warn(
-                    "Multi-process synchronization is not supported on this platform!\n"
-                    "Hence, if any subprocess will be writing/reading to/from the "
-                    "active terminal, it may be unsafe to use any features requiring"
-                    "terminal queries.\n"
-                    "See https://term-image.readthedocs.io/en/stable/guide/concepts"
-                    ".html#terminal-queries\n"
-                    "If any related issues occur, it's advisable to disable queries "
-                    "using `term_image.disable_queries()`.\n"
-                    "Simply set an 'ignore' filter for this warning (before starting "
-                    "any subprocess) if not using any of the affected features.",
-                    TermImageUserWarning,
-                )
-        else:
-            self._tty_lock = _tty_lock
-
-    with _cell_size_lock:
-        if isinstance(_cell_size_lock, _rlock_type):
-            try:
-                self._cell_size_cache = _cell_size_cache = Array("i", _cell_size_cache)
-                _cell_size_lock = _cell_size_cache.get_lock()
-            except ImportError:
-                self._cell_size_cache = None
-        else:
-            self._cell_size_cache = _cell_size_cache
-
-    return _process_start_wrapper.__wrapped__(self, *args, **kwargs)
-
-
-@no_type_check
-def _process_run_wrapper(self, *args, **kwargs):
-    global _tty_lock, _cell_size_cache, _cell_size_lock
-
-    if self._tty_lock:
-        _tty_lock = self._tty_lock
-    if self._cell_size_cache:
-        _cell_size_cache = self._cell_size_cache
-        _cell_size_lock = _cell_size_cache.get_lock()
-
-    return _process_run_wrapper.__wrapped__(self, *args, **kwargs)
-
-
 # Internal variables
 _query_timeout = 0.1
 _queries_enabled = True
 _swap_win_size = False
 _tty_fd: int | None = None
-_tty_lock = RLock()
-_cell_size_cache = [0] * 4
-_cell_size_lock = RLock()
-_rlock_type = type(_tty_lock)
+_tty_lock: RLock = RLock()
+_cell_size_cache: MutableSequence[int] = [0] * 4
+_cell_size_lock: RLock = RLock()
+_thread_rlock_type: type[RLock] = type(_tty_lock)
 
 query_cache: dict[str, Any] = {}
 """Global cache for terminal query results.
@@ -839,11 +874,3 @@ corresponding query or the entire mapping cleared to invalidate for all queries.
    :py:func:`@cached_query <term_image._utils.cached_query>`
       Enables caching for terminal-querying functions.
 """
-
-if get_active_terminal() != -1:
-    Process.start = wraps(Process.start)(  # type: ignore[method-assign]
-        _process_start_wrapper
-    )
-    Process.run = wraps(Process.run)(  # type: ignore[method-assign]
-        _process_run_wrapper
-    )

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 __all__ = (
+    "TTYSyncProcess",
     "get_cell_size",
     "get_terminal_name_version",
     "get_terminal_size",
@@ -12,10 +13,13 @@ __all__ = (
     "read_tty_all",
     "write_tty",
     "NoActiveTerminalWarning",
+    "NoMultiProcessSyncWarning",
 )
 
 from ._utils import (
     NoActiveTerminalWarning,
+    NoMultiProcessSyncWarning,
+    TTYSyncProcess,
     get_cell_size,
     get_terminal_name_version,
     get_terminal_size,
