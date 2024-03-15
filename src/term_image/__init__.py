@@ -148,7 +148,7 @@ def get_cell_ratio() -> float:
     .. seealso:: :py:func:`set_cell_ratio`.
     """
     # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-    return _cell_ratio or truediv(*(get_cell_size() or (1, 2)))
+    return _cell_ratio or float(truediv(*(get_cell_size() or (1, 2))))
 
 
 def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
@@ -195,7 +195,7 @@ def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
             )
         elif ratio is AutoCellRatio.FIXED:
             # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-            _cell_ratio = truediv(*(get_cell_size() or (1, 2)))
+            _cell_ratio = float(truediv(*(get_cell_size() or (1, 2))))
         else:
             _cell_ratio = None
     else:

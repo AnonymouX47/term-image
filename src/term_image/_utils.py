@@ -9,9 +9,9 @@ import sys
 import warnings
 from array import array
 from collections.abc import Callable, MutableSequence
+from fractions import Fraction
 from functools import wraps
 from multiprocessing import Array, Process, Queue as mp_Queue, RLock as mp_RLock
-from operator import floordiv
 from queue import Empty, Queue
 from shutil import get_terminal_size as _get_terminal_size
 from threading import RLock
@@ -21,14 +21,13 @@ from typing_extensions import (
     Any,
     ClassVar,
     Literal,
+    NamedTuple,
     ParamSpec,
     Tuple,
     TypeVar,
     no_type_check,
     overload,
 )
-
-import term_image
 
 from . import _ctlseqs as ctlseqs
 from .exceptions import TermImageUserWarning
@@ -281,6 +280,17 @@ def unix_tty_only(func: Callable[P, T]) -> Callable[P, T | None]:
 # Non-decorator Classes
 
 
+class CellSize(NamedTuple):
+    """The dimensions of a terminal character cell (in pixels)"""
+
+    width: Fraction
+    height: Fraction
+
+
+CellSize.width.__doc__ = "The cell width"
+CellSize.height.__doc__ = "The cell height"
+
+
 class TTYSyncProcess(Process):
     """A process for :term:`active terminal` access synchronization
 
@@ -473,7 +483,7 @@ def color(
 
 
 @unix_tty_only
-def get_cell_size() -> term_image.geometry.Size | None:
+def get_cell_size() -> CellSize | None:
     """Returns the current size of a character cell in the :term:`active terminal`.
 
     Returns:
@@ -482,11 +492,7 @@ def get_cell_size() -> term_image.geometry.Size | None:
     The speed of this implementation is almost entirely dependent on the terminal; the
     method it supports and its response time if it has to be queried.
     """
-    from term_image.geometry import _Size
-
-    cell_size: tuple[int, ...]
-    text_area_size: tuple[int, ...]
-    cell_size = text_area_size = (0, 0)
+    text_area_size: tuple[int, ...] = (0, 0)
     got_text_area_size = False
     via_ioctl = False
 
@@ -500,8 +506,13 @@ def get_cell_size() -> term_image.geometry.Size | None:
     with _cell_size_lock, _cell_size_lock:
         terminal_size = get_terminal_size()
         if terminal_size == tuple(_cell_size_cache[:2]):
-            cell_size = tuple(_cell_size_cache[2:])
-            return None if 0 in cell_size else _Size(*cell_size)
+            cell_width = Fraction(*_cell_size_cache[2:4])
+            cell_height = Fraction(*_cell_size_cache[4:])
+            return (
+                CellSize(cell_width, cell_height)
+                if cell_width != 0 != cell_height
+                else None
+            )
 
         # First try ioctl
         buf = array("H", [0, 0, 0, 0])
@@ -518,14 +529,12 @@ def get_cell_size() -> term_image.geometry.Size | None:
             # The last sequence is to speed up the entire query since most (if not all)
             # terminals should support it and most terminals treat queries as FIFO
             response = query_terminal(
-                ctlseqs.CELL_SIZE_PX_b + ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
+                ctlseqs.TEXT_AREA_SIZE_PX_b + ctlseqs.DA1_b,
                 more=lambda s: not s.endswith(b"c"),
             )
             if response:
                 # XTWINOPS specifies (height, width)
-                if match := ctlseqs.CELL_SIZE_PX_re.match(response.decode()):
-                    cell_size = tuple(map(int, match.groups()))[::-1]
-                elif match := ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode()):
+                if match := ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode()):
                     got_text_area_size = True
                     text_area_size = tuple(map(int, match.groups()))[::-1]
 
@@ -539,13 +548,23 @@ def get_cell_size() -> term_image.geometry.Size | None:
         if got_text_area_size:
             if _swap_win_size:
                 text_area_size = text_area_size[::-1]
-            cell_size = tuple(map(floordiv, text_area_size, terminal_size))
+            cell_width, cell_height = map(Fraction, text_area_size, terminal_size)
+        else:
+            cell_width = cell_height = Fraction()
 
         # Cache query results only when queries are enabled.
         if via_ioctl or _queries_enabled:
-            _cell_size_cache[:] = terminal_size + cell_size
+            _cell_size_cache[:] = (
+                *terminal_size,
+                *cell_width.as_integer_ratio(),
+                *cell_height.as_integer_ratio(),
+            )
 
-        return None if 0 in cell_size else _Size(*cell_size)
+        return (
+            CellSize(cell_width, cell_height)
+            if cell_width != 0 != cell_height
+            else None
+        )
 
 
 @overload
@@ -879,7 +898,15 @@ _queries_enabled = True
 _swap_win_size = False
 _tty_fd: int | None = None
 _tty_lock: RLock = RLock()
-_cell_size_cache: MutableSequence[int] = [0] * 4
+# _cell_size_cache = [
+#     <terminal_width>,
+#     <terminal_height>,
+#     <cell_width_numerator>,
+#     <cell_width_denominator>,
+#     <cell_height_numerator>,
+#     <cell_height_denominator>,
+# ]
+_cell_size_cache: MutableSequence[int] = [0] * 6
 _cell_size_lock: RLock = RLock()
 _thread_rlock_type: type[RLock] = type(_tty_lock)
 

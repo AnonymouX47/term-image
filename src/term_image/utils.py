@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 __all__ = (
+    "CellSize",
     "TTYSyncProcess",
     "get_cell_size",
     "get_terminal_name_version",
@@ -17,6 +18,7 @@ __all__ = (
 )
 
 from ._utils import (
+    CellSize,
     NoActiveTerminalWarning,
     NoMultiProcessSyncWarning,
     TTYSyncProcess,

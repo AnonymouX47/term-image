@@ -1,7 +1,9 @@
 import os
 from contextlib import contextmanager
+from fractions import Fraction
 
 import term_image
+from term_image.utils import CellSize
 
 
 def get_cell_size():
@@ -11,7 +13,7 @@ def get_cell_size():
 def set_cell_size(size):
     global cell_size
 
-    cell_size = size
+    cell_size = size and CellSize(*map(Fraction, size))
     term_image.AutoCellRatio.is_supported = None
 
 

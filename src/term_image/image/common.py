@@ -22,7 +22,6 @@ import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from functools import lru_cache, wraps
-from math import ceil
 from operator import gt, mul
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -1896,27 +1895,21 @@ class GraphicsImage(BaseImage):
         return width, height
 
     def _get_render_size(self) -> Tuple[int, int]:
-        return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
+        return tuple(map(int, map(mul, self.rendered_size, get_cell_size() or (1, 2))))
 
     @staticmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[0])
-            if pixels is not None
-            else cols * (get_cell_size() or (1, 2))[0]
-        )
+        cell_width = (get_cell_size() or (1, 2))[0]
+        return int(cols * cell_width) if pixels is None else pixels // cell_width
 
     @staticmethod
     def _pixels_lines(
         *, pixels: Optional[int] = None, lines: Optional[int] = None
     ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[1])
-            if pixels is not None
-            else lines * (get_cell_size() or (1, 2))[1]
-        )
+        cell_height = (get_cell_size() or (1, 2))[1]
+        return int(lines * cell_height) if pixels is None else pixels // cell_height
 
 
 class TextImage(BaseImage):
