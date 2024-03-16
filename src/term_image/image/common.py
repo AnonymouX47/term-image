@@ -1937,7 +1937,7 @@ class TextImage(BaseImage):
     @staticmethod
     @lru_cache(maxsize=None)
     def _is_on_kitty() -> bool:
-        return get_terminal_name_version()[0] == "kitty"
+        return get_terminal_name_version().name == "kitty"
 
     @abstractmethod
     def _render_image(

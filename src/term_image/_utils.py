@@ -291,6 +291,17 @@ CellSize.width.__doc__ = "The cell width"
 CellSize.height.__doc__ = "The cell height"
 
 
+class NameVersion(NamedTuple):
+    """Name and version"""
+
+    name: str | None
+    version: str | None
+
+
+NameVersion.name.__doc__ = "Name"
+NameVersion.version.__doc__ = "Version"
+
+
 class TTYSyncProcess(Process):
     """A process for :term:`active terminal` access synchronization
 
@@ -624,12 +635,12 @@ def get_fg_bg_colors(
 
 
 @cached_query
-def get_terminal_name_version() -> tuple[str | None, str | None]:
-    """Returns the name and version of the :term:`active terminal`, if available.
+def get_terminal_name_version() -> NameVersion:
+    """Determines the name and version of the :term:`active terminal`.
 
     Returns:
-        A 2-tuple, ``(name, version)``. If either is not available, returns ``None``
-        in its place.
+        The name and version of the active terminal. If either cannot be determined,
+        the corresponding field is ``None``.
     """
     # The terminal's response to the queries is not read all at once
     with _tty_lock, _tty_lock:  # See the comment in `lock_tty_wrapper()`
@@ -651,7 +662,7 @@ def get_terminal_name_version() -> tuple[str | None, str | None]:
         else map(os.environ.get, ("TERM_PROGRAM", "TERM_PROGRAM_VERSION"))
     )
 
-    return (name and name.lower(), version)
+    return NameVersion(name and name.lower(), version)
 
 
 def get_terminal_size() -> os.terminal_size:

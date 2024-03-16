@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from fractions import Fraction
 
 import term_image
-from term_image.utils import CellSize
+from term_image.utils import CellSize, NameVersion
 
 
 def get_cell_size():
@@ -39,7 +39,7 @@ def get_terminal_name_version():
 def set_terminal_name_version(name: str, version: str = ""):
     global terminal_name_version
 
-    terminal_name_version = (name, version)
+    terminal_name_version = NameVersion(name, version)
 
 
 def get_fg_bg_colors(*, hex=False):
@@ -66,7 +66,7 @@ def toggle_is_on_kitty():
 
 term_image._utils.get_terminal_size = get_terminal_size
 
-terminal_name_version = ("", "")
+terminal_name_version = NameVersion("", "")
 term_image._utils.get_terminal_name_version = get_terminal_name_version
 
 cell_size = None

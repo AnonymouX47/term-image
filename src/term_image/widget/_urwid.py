@@ -102,7 +102,7 @@ class UrwidImage(urwid.Widget):
             # Since Konsole doesn't blend images placed at the same location and
             # z-index, unlike Kitty (and potentially others), `blend=True` is
             # better on Konsole as it reduces/eliminates flicker.
-            if get_terminal_name_version()[0] != "konsole":
+            if get_terminal_name_version().name != "konsole":
                 # To clear directly overlapped images when urwid redraws a line without
                 # a change in image position
                 style_args["blend"] = False
@@ -405,7 +405,7 @@ class UrwidImageCanvas(urwid.Canvas):
                 * (
                     isinstance(image, KittyImage)
                     or isinstance(image, ITerm2Image)
-                    and get_terminal_name_version()[0] == "konsole"
+                    and get_terminal_name_version().name == "konsole"
                 )
             )
             for line in self._ti_lines[trim_top : -trim_bottom or None]:
@@ -617,7 +617,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             KittyImage.forced_support
             or KittyImage.is_supported()
             or ITerm2Image.is_supported()
-            and get_terminal_name_version()[0] == "konsole"
+            and get_terminal_name_version().name == "konsole"
         ):
             return
 
@@ -659,7 +659,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                         if (
                             isinstance(widget._ti_image, KittyImage)
                             or isinstance(widget._ti_image, ITerm2Image)
-                            and get_terminal_name_version()[0] == "konsole"
+                            and get_terminal_name_version().name == "konsole"
                         ):
                             image_cviews.add((canv, row, col, *trim, cols, rows))
 
