@@ -20,6 +20,7 @@ API Reference
    :caption: Sub-sections:
 
    toplevel
+   color
    exceptions
    geometry
    image
