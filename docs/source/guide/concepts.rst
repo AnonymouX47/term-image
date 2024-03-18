@@ -101,14 +101,14 @@ rationale behind the ordering):
 * ``/dev/tty``: Finally, if all else fail, fall back to the process' controlling
   terminal, if any.
 
-The first one that is ascertained to be a terminal device is used for all
-:ref:`terminal-queries` and to retrieve the terminal (and window) size on some terminal
+The first one that is ascertained to be a PTY device is used for all
+:ref:`terminal-queries` and to retrieve the terminal size on some terminal
 emulators.
 
 .. note::
-   If none of the streams/files is a TTY device, then a
-   :py:class:`~term_image.exceptions.TermImageWarning`
-   is issued and dependent functionality is disabled.
+   If none of the streams/files is a PTY device, then a
+   :py:class:`~term_image.utils.NoActiveTerminalWarning`
+   is issued and dependent functionality are disabled (or use fallbacks).
 
 
 .. _terminal-queries:
@@ -158,7 +158,7 @@ About #2 and #3
              return super().get_available_raw_input()
 
    Also, if the :term:`active terminal` is not the controlling terminal of the process
-   using this library (e.g output is redirected to another TTY device), ensure no
+   using this library (e.g output is redirected to another PTY device), ensure no
    process that can interfere with a query (e.g a shell or REPL) is currently running
    in the active terminal. For instance, such a process can be temporarily put to sleep.
 

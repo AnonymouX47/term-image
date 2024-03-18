@@ -21,8 +21,7 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from functools import wraps
-from math import ceil
+from functools import lru_cache, wraps
 from operator import gt, mul
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -36,26 +35,25 @@ from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
 from .._ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
-from ..exceptions import (
-    InvalidSizeError,
-    RenderError,
-    StyleError,
-    TermImageError,
-    URLNotFoundError,
-)
-from ..utils import (
+from .._utils import (
     ClassInstanceMethod,
     ClassProperty,
     arg_type_error,
     arg_value_error,
     arg_value_error_msg,
     arg_value_error_range,
-    cached,
     get_cell_size,
     get_fg_bg_colors,
     get_terminal_name_version,
     get_terminal_size,
     no_redecorate,
+)
+from ..exceptions import (
+    InvalidSizeError,
+    RenderError,
+    StyleError,
+    TermImageError,
+    URLNotFoundError,
 )
 
 _ALPHA_THRESHOLD = 40 / 255  # Default alpha threshold
@@ -1497,7 +1495,7 @@ class BaseImage(metaclass=ImageMeta):
             convert_resize_img("RGBA")
             if isinstance(alpha, str):
                 if alpha == "#":
-                    alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
+                    alpha = bg.rgb_hex if (bg := get_fg_bg_colors()[1]) else "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
                 if frame_img is not img:
@@ -1513,7 +1511,9 @@ class BaseImage(metaclass=ImageMeta):
                         a = [0 if val < alpha else 255 for val in a]
                 if round_alpha:
                     bg = Image.new(
-                        "RGBA", img.size, get_fg_bg_colors(hex=True)[1] or "#000000"
+                        "RGBA",
+                        img.size,
+                        bg.rgb_hex if (bg := get_fg_bg_colors()[1]) else "#000000",
                     )
                     bg.alpha_composite(img)
                     bg.putalpha(img.getchannel("A"))
@@ -1897,27 +1897,21 @@ class GraphicsImage(BaseImage):
         return width, height
 
     def _get_render_size(self) -> Tuple[int, int]:
-        return tuple(map(mul, self.rendered_size, get_cell_size() or (1, 2)))
+        return tuple(map(int, map(mul, self.rendered_size, get_cell_size() or (1, 2))))
 
     @staticmethod
     def _pixels_cols(
         *, pixels: Optional[int] = None, cols: Optional[int] = None
     ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[0])
-            if pixels is not None
-            else cols * (get_cell_size() or (1, 2))[0]
-        )
+        cell_width = (get_cell_size() or (1, 2))[0]
+        return int(cols * cell_width) if pixels is None else pixels // cell_width
 
     @staticmethod
     def _pixels_lines(
         *, pixels: Optional[int] = None, lines: Optional[int] = None
     ) -> int:
-        return (
-            ceil(pixels // (get_cell_size() or (1, 2))[1])
-            if pixels is not None
-            else lines * (get_cell_size() or (1, 2))[1]
-        )
+        cell_height = (get_cell_size() or (1, 2))[1]
+        return int(lines * cell_height) if pixels is None else pixels // cell_height
 
 
 class TextImage(BaseImage):
@@ -1943,9 +1937,9 @@ class TextImage(BaseImage):
     _pixel_ratio = property(lambda _: get_cell_ratio() * 2)
 
     @staticmethod
-    @cached
+    @lru_cache(maxsize=None)
     def _is_on_kitty() -> bool:
-        return get_terminal_name_version()[0] == "kitty"
+        return get_terminal_name_version().name == "kitty"
 
     @abstractmethod
     def _render_image(

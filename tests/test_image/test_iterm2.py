@@ -11,6 +11,7 @@ from PIL.PngImagePlugin import PngImageFile
 from PIL.WebPImagePlugin import WebPImageFile
 
 from term_image import _ctlseqs as ctlseqs
+from term_image.color import Color
 from term_image.exceptions import RenderError, StyleError, TermImageUserWarning
 from term_image.image import iterm2
 from term_image.image.iterm2 import ANIM, LINES, WHOLE, ITerm2Image
@@ -715,7 +716,7 @@ class TestRenderLines:
 
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
-            set_fg_bg_colors(bg=bg)
+            set_fg_bg_colors(bg=bg and Color(*bg))
             pixel_bytes = bytes(bg or (0, 0, 0))
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"
@@ -725,6 +726,7 @@ class TestRenderLines:
                 assert mode == "RGB"
                 assert len(raw_image) == pixels_per_line * 3
                 assert raw_image.count(pixel_bytes) == pixels_per_line
+        set_fg_bg_colors(Color(0, 0, 0), Color(0, 0, 0))
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
@@ -966,7 +968,7 @@ class TestRenderWhole:
 
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
-            set_fg_bg_colors(bg=bg)
+            set_fg_bg_colors(bg=bg and Color(*bg))
             pixel_bytes = bytes(bg or (0, 0, 0))
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"

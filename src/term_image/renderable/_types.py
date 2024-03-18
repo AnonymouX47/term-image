@@ -40,7 +40,7 @@ from typing_extensions import (
 )
 
 from .. import geometry
-from ..utils import arg_type_error
+from .._utils import arg_type_error
 from ._exceptions import RenderableError
 
 # Type Variables, Aliases, etc =================================================
