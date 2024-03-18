@@ -1495,7 +1495,7 @@ class BaseImage(metaclass=ImageMeta):
             convert_resize_img("RGBA")
             if isinstance(alpha, str):
                 if alpha == "#":
-                    alpha = get_fg_bg_colors(hex=True)[1] or "#000000"
+                    alpha = bg.rgb_hex if (bg := get_fg_bg_colors()[1]) else "#000000"
                 bg = Image.new("RGBA", img.size, alpha)
                 bg.alpha_composite(img)
                 if frame_img is not img:
@@ -1511,7 +1511,9 @@ class BaseImage(metaclass=ImageMeta):
                         a = [0 if val < alpha else 255 for val in a]
                 if round_alpha:
                     bg = Image.new(
-                        "RGBA", img.size, get_fg_bg_colors(hex=True)[1] or "#000000"
+                        "RGBA",
+                        img.size,
+                        bg.rgb_hex if (bg := get_fg_bg_colors()[1]) else "#000000",
                     )
                     bg.alpha_composite(img)
                     bg.putalpha(img.getchannel("A"))

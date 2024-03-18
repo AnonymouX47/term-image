@@ -83,7 +83,7 @@ class BlockImage(TextImage):
             if not alpha or no_alpha:
                 r, g, b = cluster2
                 # Kitty does not render BG colors equal to the default BG color
-                if is_on_kitty and cluster2 == bg_color:
+                if is_on_kitty and cluster2 == bg_rgb:
                     r += r < 255 or -1
                 buf_write(SGR_BG_DIRECT % (r, g, b))
                 if cluster1 == cluster2:
@@ -95,7 +95,7 @@ class BlockImage(TextImage):
         buffer = io.StringIO()
         buf_write = buffer.write  # Eliminate attribute resolution cost
 
-        bg_color = get_fg_bg_colors()[1]
+        bg_rgb = (bg_color := get_fg_bg_colors()[1]) and bg_color.rgb
         is_on_kitty = self._is_on_kitty()
         if split_cells:
             blank = " \0"

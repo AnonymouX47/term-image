@@ -8,6 +8,7 @@ from zlib import decompress
 import pytest
 
 from term_image import _ctlseqs as ctlseqs
+from term_image.color import Color
 from term_image.exceptions import StyleError
 from term_image.image import kitty
 from term_image.image.kitty import LINES, WHOLE, KittyImage
@@ -324,7 +325,7 @@ class TestRenderLines:
 
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
-            set_fg_bg_colors(bg=bg)
+            set_fg_bg_colors(bg=bg and Color(*bg))
             pixel_bytes = bytes(bg or (0, 0, 0))
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"
@@ -333,7 +334,7 @@ class TestRenderLines:
                 assert ("f", "24") in control_codes
                 assert len(raw_image) == pixels_per_line * 3
                 assert raw_image.count(pixel_bytes) == pixels_per_line
-        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
+        set_fg_bg_colors(Color(0, 0, 0), Color(0, 0, 0))
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"
@@ -514,7 +515,7 @@ class TestRenderWhole:
 
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
-            set_fg_bg_colors(bg=bg)
+            set_fg_bg_colors(bg=bg and Color(*bg))
             pixel_bytes = bytes(bg or (0, 0, 0))
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"

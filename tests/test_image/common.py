@@ -9,6 +9,7 @@ from PIL import Image
 
 from term_image import set_cell_ratio
 from term_image._ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
+from term_image.color import Color
 from term_image.exceptions import StyleError
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
 
@@ -462,8 +463,8 @@ class TestRender_Text:
 
     def test_is_on_kitty(self):
         for bg, r in (((0,) * 3, 1), ((100,) * 3, 101), ((255,) * 3, 254), (None, 0)):
-            set_fg_bg_colors(bg=bg)
-            bg_hex = get_fg_bg_colors(hex=True)[1]
+            set_fg_bg_colors(bg=bg and Color(*bg))
+            bg_hex = (bg_color := get_fg_bg_colors()[1]) and bg_color.hex
             bg = bg or (0, 0, 0)
 
             assert all(
@@ -488,7 +489,7 @@ class TestRender_Text:
             )
 
             toggle_is_on_kitty()
-        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
+        set_fg_bg_colors(Color(0, 0, 0), Color(0, 0, 0))
 
     def test_split_cells(self):
         render_no_split = self.render_image(_ALPHA_THRESHOLD, split_cells=False)

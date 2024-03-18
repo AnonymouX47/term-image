@@ -18,15 +18,13 @@ from threading import RLock
 from time import monotonic
 
 from typing_extensions import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
-    Literal,
     NamedTuple,
     ParamSpec,
-    Tuple,
     TypeVar,
     no_type_check,
-    overload,
 )
 
 from . import _ctlseqs as ctlseqs
@@ -44,16 +42,15 @@ except ImportError:
 else:
     OS_IS_UNIX = True
 
+
 # Type Variables and Aliases
+
+if TYPE_CHECKING:
+    from .color import Color
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
-ColorType = Tuple[int, int, int]
-
-# Variables
-
-HEX_RGB_FMT = "#" + "%02x" * 3
 
 # Exceptions
 
@@ -578,36 +575,19 @@ def get_cell_size() -> CellSize | None:
         )
 
 
-@overload
-def get_fg_bg_colors(
-    *, hex: Literal[False]
-) -> tuple[ColorType | None, ColorType | None]:
-    ...
-
-
-@overload
-def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]:
-    ...
-
-
 @cached_query
-def get_fg_bg_colors(
-    *, hex: Literal[False, True] = False
-) -> tuple[ColorType | str | None, ColorType | str | None]:
-    """
-    get_fg_bg_colors(*, hex: Literal[False]) \
-    -> tuple[ColorType | None, ColorType | None]
-    get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]
-
-    Returns the default FG and BG colors of the :term:`active terminal`.
+def get_fg_bg_colors() -> tuple[Color | None, Color | None]:
+    """Retrieves the default foreground and background colors of the
+    :term:`active terminal`.
 
     Returns:
-        For each color,
+        A tuple ``(FG, BG)``, where each item is
 
-        * an RGB 3-tuple, if *hex* is ``False``
-        * an RGB hex string if *hex* is ``True``
-        * ``None`` if undetermined
+        * a color (with full opacity), or
+        * ``None`` if undetermined.
     """
+    from .color import Color  # Made local to prevent circular import
+
     # The terminal's response to the queries is not read all at once
     with _tty_lock, _tty_lock:  # See the comment in `lock_tty_wrapper()`
         response = query_terminal(
@@ -628,10 +608,7 @@ def get_fg_bg_colors(
             elif c == "11":
                 bg = ctlseqs.x_parse_color(spec)
 
-    return (
-        fg and (HEX_RGB_FMT % fg if hex else fg),
-        bg and (HEX_RGB_FMT % bg if hex else bg),
-    )
+    return (fg and Color(*fg), bg and Color(*bg))
 
 
 @cached_query

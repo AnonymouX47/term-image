@@ -1,6 +1,7 @@
 """BlockImage-specific tests"""
 
 from term_image._ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
+from term_image.color import Color
 from term_image.image import BlockImage
 from term_image.image.common import _ALPHA_THRESHOLD
 
@@ -52,7 +53,7 @@ class TestRender:
     def test_background_colour(self):
         # Terminal BG
         for bg in ((0,) * 3, (100,) * 3, (255,) * 3, None):
-            set_fg_bg_colors(bg=bg)
+            set_fg_bg_colors(bg=bg and Color(*bg))
             bg = bg or (0, 0, 0)
             render = self.render_image("#")
             assert render == f"{self.trans:1.1##}"
@@ -60,7 +61,7 @@ class TestRender:
                 line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
                 for line in render.splitlines()
             )
-        set_fg_bg_colors((0, 0, 0), (0, 0, 0))
+        set_fg_bg_colors(Color(0, 0, 0), Color(0, 0, 0))
         # red
         render = self.render_image("#ff0000")
         assert render == f"{self.trans:1.1#ff0000}"

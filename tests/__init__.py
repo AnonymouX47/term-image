@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from fractions import Fraction
 
 import term_image
+from term_image.color import Color
 from term_image.utils import CellSize, NameVersion
 
 
@@ -42,12 +43,8 @@ def set_terminal_name_version(name: str, version: str = ""):
     terminal_name_version = NameVersion(name, version)
 
 
-def get_fg_bg_colors(*, hex=False):
-    return (
-        tuple(rgb and "#" + "".join(f"{x:02x}" for x in rgb) for rgb in fg_bg)
-        if hex
-        else fg_bg
-    )
+def get_fg_bg_colors():
+    return fg_bg
 
 
 def set_fg_bg_colors(fg=None, bg=None):
@@ -73,7 +70,7 @@ cell_size = None
 term_image.get_cell_size = get_cell_size
 term_image._utils.get_cell_size = get_cell_size
 
-fg_bg = [(0, 0, 0), (0, 0, 0)]
+fg_bg = (Color(0, 0, 0),) * 2
 term_image._utils.get_fg_bg_colors = get_fg_bg_colors
 
 import term_image.image  # noqa: E402
