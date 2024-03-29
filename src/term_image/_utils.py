@@ -44,6 +44,7 @@ else:
 
 
 # Type Variables and Aliases
+# ======================================================================================
 
 if TYPE_CHECKING:
     from .color import Color
@@ -53,6 +54,7 @@ T = TypeVar("T")
 
 
 # Exceptions
+# ======================================================================================
 
 
 class NoActiveTerminalWarning(TermImageUserWarning):
@@ -66,6 +68,7 @@ class NoMultiProcessSyncWarning(TermImageUserWarning):
 
 
 # Decorator Classes
+# ======================================================================================
 
 
 class ClassInstanceMethod(classmethod):  # type: ignore[type-arg]
@@ -127,6 +130,7 @@ class ClassProperty(ClassPropertyBase):
 
 
 # Decorator Functions
+# ======================================================================================
 
 
 def no_redecorate(decor: Callable[P, T]) -> Callable[P, T]:
@@ -275,6 +279,7 @@ def unix_tty_only(func: Callable[P, T]) -> Callable[P, T | None]:
 
 
 # Non-decorator Classes
+# ======================================================================================
 
 
 class CellSize(NamedTuple):
@@ -409,6 +414,7 @@ class TTYSyncProcess(Process):
 
 
 # Non-decorator Functions
+# ======================================================================================
 
 
 def arg_type_error(arg: str, value: Any, got_extra: str = "") -> TypeError:
@@ -488,6 +494,53 @@ def color(
         *(bg or ()),
         text,
     ) + ctlseqs.SGR_NORMAL * end
+
+
+@lock_tty
+def get_active_terminal() -> int:
+    """Determines the :term:`active terminal`.
+
+    Returns:
+        - `-1`, on non-unix-like platforms or when there is no :term:`active terminal`,
+          OR
+        - a file descriptor for the :term:`active terminal`, with read/write access.
+
+    Warns:
+        NoActiveTerminalWarning: No :term:`active terminal`.
+    """
+    global _tty_fd
+
+    if _tty_fd is not None:
+        return _tty_fd
+
+    if not OS_IS_UNIX:
+        return (_tty_fd := -1)
+
+    _tty_fd = -1
+
+    for stream in ("out", "in", "err"):  # In order of priority
+        try:
+            # A new file descriptor is required because, at least, both read and write
+            # access to the TTY are required.
+            _tty_fd = os.open(
+                os.ttyname(getattr(sys, f"__std{stream}__").fileno()), os.O_RDWR
+            )
+            break
+        except (OSError, AttributeError):
+            pass
+    else:
+        try:
+            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
+        except OSError:
+            warnings.warn(
+                "This process does not seem to be connected to a terminal. "
+                "Hence, some features will behave differently or be disabled.\n"
+                "See https://term-image.readthedocs.io/en/stable/guide/concepts"
+                ".html#active-terminal",
+                NoActiveTerminalWarning,
+            )
+
+    return _tty_fd
 
 
 @unix_tty_only
@@ -668,53 +721,6 @@ def get_terminal_size() -> os.terminal_size:
     return size or _get_terminal_size()
 
 
-@lock_tty
-def get_active_terminal() -> int:
-    """Determines the :term:`active terminal`.
-
-    Returns:
-        - `-1`, on non-unix-like platforms or when there is no :term:`active terminal`,
-          OR
-        - a file descriptor for the :term:`active terminal`, with read/write access.
-
-    Warns:
-        NoActiveTerminalWarning: No :term:`active terminal`.
-    """
-    global _tty_fd
-
-    if _tty_fd is not None:
-        return _tty_fd
-
-    if not OS_IS_UNIX:
-        return (_tty_fd := -1)
-
-    _tty_fd = -1
-
-    for stream in ("out", "in", "err"):  # In order of priority
-        try:
-            # A new file descriptor is required because, at least, both read and write
-            # access to the TTY are required.
-            _tty_fd = os.open(
-                os.ttyname(getattr(sys, f"__std{stream}__").fileno()), os.O_RDWR
-            )
-            break
-        except (OSError, AttributeError):
-            pass
-    else:
-        try:
-            _tty_fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
-        except OSError:
-            warnings.warn(
-                "This process does not seem to be connected to a terminal. "
-                "Hence, some features will behave differently or be disabled.\n"
-                "See https://term-image.readthedocs.io/en/stable/guide/concepts"
-                ".html#active-terminal",
-                NoActiveTerminalWarning,
-            )
-
-    return _tty_fd
-
-
 @unix_tty_only
 @lock_tty
 def query_terminal(
@@ -880,7 +886,9 @@ def write_tty(data: bytes) -> None:
         pass
 
 
-# Internal variables
+# Variables
+# ======================================================================================
+
 _query_timeout = 0.1
 _queries_enabled = True
 _swap_win_size = False
