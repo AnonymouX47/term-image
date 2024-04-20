@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [d710a9e]: https://github.com/AnonymouX47/term-image/commit/d710a9e95e149868490f5d38eb3339df68716999
 
 
+## [0.6.2] - 2024-04-20
+### Changed
+- Bumped Pillow dependency upper bound to 11.0 (because of [termvisage](https://github.com/AnonymouX47/termvisage) 😁).
+
+
 ## [0.7.1] - 2024-02-10
 ### Fixed
 - Undefined references in some top-level functions ([497d9b7], [4e8b3e7]).
@@ -525,6 +530,7 @@ See the commit messages for [0.4.1] for the full logs.
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...HEAD
 [0.7.1]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.7.0
+[0.6.2]: https://github.com/AnonymouX47/term-image/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/AnonymouX47/term-image/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AnonymouX47/term-image/compare/v0.4.0...v0.5.0
