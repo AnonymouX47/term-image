@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from term_image import set_cell_ratio
-from term_image._ctlseqs import SGR_BG_DIRECT, SGR_NORMAL
+from term_image._ctlseqs import SGR_BG_DIRECT, SGR_DEFAULT
 from term_image.color import Color
 from term_image.exceptions import StyleError
 from term_image.image.common import _ALPHA_THRESHOLD, GraphicsImage, Size, TextImage
@@ -468,11 +468,11 @@ class TestRender_Text:
             bg = bg or (0, 0, 0)
 
             assert all(
-                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
+                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_DEFAULT
                 for line in self.render_image("#").splitlines()
             )
             assert all(
-                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
+                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_DEFAULT
                 for line in self.render_image(bg_hex).splitlines()
             )
 
@@ -480,11 +480,11 @@ class TestRender_Text:
             bg = (r, *bg[1:])
 
             assert all(
-                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
+                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_DEFAULT
                 for line in self.render_image("#").splitlines()
             )
             assert all(
-                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_NORMAL
+                line == SGR_BG_DIRECT % bg + " " * self.trans.width + SGR_DEFAULT
                 for line in self.render_image(bg_hex).splitlines()
             )
 
@@ -503,7 +503,7 @@ class TestRender_Text:
         for split_line, no_split_line in zip(
             render_split.splitlines(), render_no_split.splitlines()
         ):
-            cells = split_line.strip(SGR_NORMAL).split("\0")
+            cells = split_line.strip(SGR_DEFAULT).split("\0")
 
             assert "".join(split_line.split("\0")) == no_split_line
             assert len(cells) == _size

@@ -11,7 +11,7 @@ import urwid
 from .. import _ctlseqs as ctlseqs
 
 # These sequences are used during performance-critical operations that occur often
-from .._ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_NORMAL_b
+from .._ctlseqs import BEGIN_SYNCED_UPDATE, END_SYNCED_UPDATE, ESC_b, SGR_DEFAULT_b
 from .._utils import arg_type_error, get_terminal_name_version, lock_tty, write_tty
 from ..exceptions import UrwidImageError
 from ..image import BaseImage, ITerm2Image, KittyImage, Size, TextImage
@@ -340,7 +340,7 @@ class UrwidImageCanvas(urwid.Canvas):
                     ((None, "U", b" " * new_pad_right),) if new_pad_right else ()
                 )
                 color_reset = (
-                    ((None, "U", SGR_NORMAL_b),)
+                    ((None, "U", SGR_DEFAULT_b),)
                     if image_size[0] > trim_image_right > 0
                     else ()
                 )

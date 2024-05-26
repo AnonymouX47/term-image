@@ -679,9 +679,11 @@ class ITerm2Image(GraphicsImage, metaclass=ITerm2ImageMeta):
             )
         ):
             compressed_image = open(
-                img.filename
-                if self._source_type is ImageSource.PIL_IMAGE
-                else self._source,
+                (
+                    img.filename
+                    if self._source_type is ImageSource.PIL_IMAGE
+                    else self._source
+                ),
                 "rb",
             )
             frame_img = None

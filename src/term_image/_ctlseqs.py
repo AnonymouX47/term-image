@@ -75,17 +75,21 @@ CURSOR_BACKWARD_b: bytes
 
 # # Select Graphic Rendition ===========================================================
 
-SGR_NORMAL = f"{CSI}m"
-SGR_FG_DIRECT = f"{CSI}38;2;{Pm(3)}m"
-SGR_FG_DIRECT_2 = f"{CSI}38:2::{Ps}:{Ps}:{Ps}m"
-SGR_BG_DIRECT = f"{CSI}48;2;{Pm(3)}m"
-SGR_BG_DIRECT_2 = f"{CSI}48:2::{Ps}:{Ps}:{Ps}m"
+SGR = f"{CSI}{Pt}m"
 
-SGR_NORMAL_b: bytes
-SGR_FG_DIRECT_b: bytes
-SGR_FG_DIRECT_2_b: bytes
+SGR_b: bytes
+
+SGR_BG_DIRECT = SGR % f"48;2;{Pm(3)}"
+SGR_BG_DIRECT_2 = SGR % f"48:2::{Ps}:{Ps}:{Ps}"
+SGR_DEFAULT = SGR % ""
+SGR_FG_DIRECT = SGR % f"38;2;{Pm(3)}"
+SGR_FG_DIRECT_2 = SGR % f"38:2::{Ps}:{Ps}:{Ps}"
+
 SGR_BG_DIRECT_b: bytes
 SGR_BG_DIRECT_2_b: bytes
+SGR_DEFAULT_b: bytes
+SGR_FG_DIRECT_b: bytes
+SGR_FG_DIRECT_2_b: bytes
 
 # # DEC Modes ==========================================================================
 
