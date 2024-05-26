@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 
 import PIL
 
-from .._ctlseqs import SGR_BG_DIRECT, SGR_FG_DIRECT, SGR_NORMAL
+from .._ctlseqs import SGR_BG_DIRECT, SGR_DEFAULT, SGR_FG_DIRECT
 from ..utils import get_fg_bg_colors
 from .common import TextImage
 
@@ -67,14 +67,14 @@ class BlockImage(TextImage):
             if alpha:
                 no_alpha = False
                 if a_cluster1 == 0 == a_cluster2:
-                    buf_write(SGR_NORMAL)
+                    buf_write(SGR_DEFAULT)
                     buf_write(blank * n)
                 elif a_cluster1 == 0:  # up is transparent
-                    buf_write(SGR_NORMAL)
+                    buf_write(SGR_DEFAULT)
                     buf_write(SGR_FG_DIRECT % cluster2)
                     buf_write(lower_pixel * n)
                 elif a_cluster2 == 0:  # down is transparent
-                    buf_write(SGR_NORMAL)
+                    buf_write(SGR_DEFAULT)
                     buf_write(SGR_FG_DIRECT % cluster1)
                     buf_write(upper_pixel * n)
                 else:
@@ -105,7 +105,7 @@ class BlockImage(TextImage):
             blank = " "
             lower_pixel = LOWER_PIXEL
             upper_pixel = UPPER_PIXEL
-        end_of_line = SGR_NORMAL + "\n"
+        end_of_line = SGR_DEFAULT + "\n"
 
         width, height = self._get_render_size()
         frame_img = img if frame else None
@@ -170,7 +170,7 @@ class BlockImage(TextImage):
             if row_no < height:  # last line not yet rendered
                 buf_write(end_of_line)
 
-        buf_write(SGR_NORMAL)  # Reset color after last line
+        buf_write(SGR_DEFAULT)  # Reset color after last line
 
         with buffer:
             return buffer.getvalue()

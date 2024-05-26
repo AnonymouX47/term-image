@@ -35,7 +35,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from .. import get_cell_ratio
-from .._ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_NORMAL, SHOW_CURSOR
+from .._ctlseqs import CURSOR_DOWN, CURSOR_UP, HIDE_CURSOR, SGR_DEFAULT, SHOW_CURSOR
 from ..exceptions import (
     InvalidSizeError,
     RenderError,
@@ -785,7 +785,7 @@ class BaseImage(metaclass=ImageMeta):
                         raise
             finally:
                 # Reset color and show the cursor
-                print(SGR_NORMAL, SHOW_CURSOR * sys.stdout.isatty(), sep="")
+                print(SGR_DEFAULT, SHOW_CURSOR * sys.stdout.isatty(), sep="")
 
         self._renderer(
             render,

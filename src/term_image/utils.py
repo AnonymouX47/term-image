@@ -393,7 +393,7 @@ def color(
         *(fg or ()),
         *(bg or ()),
         text,
-    ) + ctlseqs.SGR_NORMAL * end
+    ) + ctlseqs.SGR_DEFAULT * end
 
 
 @unix_tty_only

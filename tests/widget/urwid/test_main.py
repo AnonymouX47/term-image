@@ -147,7 +147,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
+                    left, _, right = line.split(ctlseqs.SGR_DEFAULT)
                     assert left == " "
                     assert right == " "
 
@@ -168,7 +168,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
+                    left, _, right = line.split(ctlseqs.SGR_DEFAULT)
                     assert left == ""
                     assert right == ""
 
@@ -224,7 +224,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
+                    left, _, right = line.split(ctlseqs.SGR_DEFAULT)
                     assert left == " "
                     assert right == " "
 
@@ -243,7 +243,7 @@ class TestRender:
             for line in lines:
                 line = line.decode().rstrip("\0\0")
                 if not line.isspace():
-                    left, _, right = line.split(ctlseqs.SGR_NORMAL)
+                    left, _, right = line.split(ctlseqs.SGR_DEFAULT)
                     assert left == ""
                     assert right == ""
 
@@ -736,10 +736,10 @@ class TestCanvasTrim:
                     b"".join(line[trim_left : trim_left + cols]) for line in render
                 ]
                 canv_text = content_to_text(canv.content(trim_left, 0, cols))
-                prefix = ctlseqs.SGR_NORMAL_b * (
+                prefix = ctlseqs.SGR_DEFAULT_b * (
                     pad_left < trim_left < _size[0] - pad_right
                 )
-                suffix = ctlseqs.SGR_NORMAL_b * (
+                suffix = ctlseqs.SGR_DEFAULT_b * (
                     _size[0] - pad_left > trim_right > pad_right
                 )
 
@@ -867,10 +867,10 @@ class TestCanvasTrim:
                 canv_text = content_to_text(
                     canv.content(trim_left, trim_top, cols, rows)
                 )
-                prefix = ctlseqs.SGR_NORMAL_b * (
+                prefix = ctlseqs.SGR_DEFAULT_b * (
                     pad_left < trim_left < _size[0] - pad_right
                 )
-                suffix = ctlseqs.SGR_NORMAL_b * (
+                suffix = ctlseqs.SGR_DEFAULT_b * (
                     _size[0] - pad_left > trim_right > pad_right
                 )
 
