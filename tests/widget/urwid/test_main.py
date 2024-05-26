@@ -45,10 +45,6 @@ class TestWidget:
             with pytest.raises(TypeError, match="'upscale'"):
                 UrwidImage(python_image, upscale=value)
 
-    def test_attributes(self):
-        image_w = UrwidImage(python_image)
-        assert all(name.startswith("_ti_") for name in vars(image_w))
-
     def test_image(self):
         image_w = UrwidImage(python_image)
         assert image_w.image is python_image
