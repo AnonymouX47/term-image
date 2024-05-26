@@ -334,9 +334,11 @@ class RenderIterator:
             frame = (
                 offset
                 if whence is Seek.START
-                else renderable_data.frame_offset + offset
-                if whence is Seek.CURRENT
-                else frame_count + offset - 1
+                else (
+                    renderable_data.frame_offset + offset
+                    if whence is Seek.CURRENT
+                    else frame_count + offset - 1
+                )
             )
             if not 0 <= frame < frame_count:
                 raise arg_value_error_range(
@@ -527,10 +529,13 @@ class RenderIterator:
         self._cached = (
             False
             if indefinite
-            else cache
-            # `isinstance` is much costlier on failure and `bool` cannot be subclassed
-            if type(cache) is bool
-            else renderable.frame_count <= cache  # type: ignore[operator]
+            else (
+                cache
+                # `isinstance` is much costlier on failure and `bool` cannot be
+                # subclassed
+                if type(cache) is bool
+                else renderable.frame_count <= cache  # type: ignore[operator]
+            )
         )
 
     def _iterate(

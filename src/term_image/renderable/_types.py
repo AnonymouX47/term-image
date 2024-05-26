@@ -1160,8 +1160,7 @@ class RenderArgs(RenderArgsData):
         namespace: ArgsNamespace,
         /,
         *namespaces: ArgsNamespace,
-    ) -> RenderArgs:
-        ...
+    ) -> RenderArgs: ...
 
     @overload
     def update(
@@ -1169,8 +1168,7 @@ class RenderArgs(RenderArgsData):
         render_cls: type[Renderable],
         /,
         **fields: Any,
-    ) -> RenderArgs:
-        ...
+    ) -> RenderArgs: ...
 
     def update(
         self,

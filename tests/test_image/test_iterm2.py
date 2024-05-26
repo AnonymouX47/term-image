@@ -654,9 +654,7 @@ class TestRenderLines:
             assert fill == (
                 ctlseqs.CURSOR_FORWARD % cols
                 if term == "konsole"
-                else ctlseqs.ERASE_CHARS % cols
-                if term == "wezterm"
-                else ""
+                else ctlseqs.ERASE_CHARS % cols if term == "wezterm" else ""
             )
 
     def test_no_minimal_render_size(self):
@@ -774,9 +772,11 @@ class TestRenderLines:
                 assert decode_image(line, term=ITerm2Image._TERM)[-1] == (
                     ctlseqs.CURSOR_FORWARD % cols
                     if ITerm2Image._TERM == "konsole"
-                    else ctlseqs.ERASE_CHARS % cols
-                    if ITerm2Image._TERM == "wezterm"
-                    else ""
+                    else (
+                        ctlseqs.ERASE_CHARS % cols
+                        if ITerm2Image._TERM == "wezterm"
+                        else ""
+                    )
                 )
 
             # mix = True

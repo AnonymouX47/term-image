@@ -661,9 +661,11 @@ been initialized
         frame = (
             offset
             if whence is Seek.START
-            else self._frame + offset
-            if whence is Seek.CURRENT
-            else frame_count + offset - 1
+            else (
+                self._frame + offset
+                if whence is Seek.CURRENT
+                else frame_count + offset - 1
+            )
         )
         if not 0 <= frame < frame_count:
             raise arg_value_error_range(
@@ -771,8 +773,7 @@ been initialized
             for frame in render_iter:  # Render next frame
                 # left-over of previous frame's duration
                 sleep(
-                    max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns))
-                    / 10**9
+                    max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns)) / 10**9
                 )
 
                 # clear previous frame, if necessary
@@ -794,9 +795,7 @@ been initialized
                 duration_ms = frame.duration
 
             # left-over of last frame's duration
-            sleep(
-                max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns)) / 10**9
-            )
+            sleep(max(0, duration_ms * 10**6 - (perf_counter_ns() - start_ns)) / 10**9)
         except KeyboardInterrupt:
             pass
         finally:
@@ -1009,8 +1008,7 @@ been initialized
         finalize: bool = True,
         check_size: bool = False,
         allow_scroll: bool = False,
-    ) -> tuple[T, None]:
-        ...
+    ) -> tuple[T, None]: ...
 
     # both *render_args* and *padding*
     @overload
@@ -1024,8 +1022,7 @@ been initialized
         finalize: bool = True,
         check_size: bool = False,
         allow_scroll: bool = False,
-    ) -> tuple[T, OptionalPaddingT]:
-        ...
+    ) -> tuple[T, OptionalPaddingT]: ...
 
     # *padding*, no *render_args*
     @overload
@@ -1038,8 +1035,7 @@ been initialized
         finalize: bool = True,
         check_size: bool = False,
         allow_scroll: bool = False,
-    ) -> tuple[T, OptionalPaddingT]:
-        ...
+    ) -> tuple[T, OptionalPaddingT]: ...
 
     def _init_render_(
         self,

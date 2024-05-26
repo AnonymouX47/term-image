@@ -475,13 +475,11 @@ def get_cell_size() -> term_image.geometry.Size | None:
 @overload
 def get_fg_bg_colors(
     *, hex: Literal[False]
-) -> tuple[ColorType | None, ColorType | None]:
-    ...
+) -> tuple[ColorType | None, ColorType | None]: ...
 
 
 @overload
-def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]:
-    ...
+def get_fg_bg_colors(*, hex: Literal[True]) -> tuple[str | None, str | None]: ...
 
 
 @cached

@@ -1089,9 +1089,7 @@ class BaseImage(metaclass=ImageMeta):
     # Private Methods
 
     @classmethod
-    def _check_format_spec(
-        cls, spec: str
-    ) -> Tuple[
+    def _check_format_spec(cls, spec: str) -> Tuple[
         str | None,
         int,
         str | None,
