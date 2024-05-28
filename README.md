@@ -32,6 +32,9 @@
    <a href='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml'>
       <img src='https://github.com/AnonymouX47/term-image/actions/workflows/test.yml/badge.svg'>
    </a>
+   <a href='https://htmlpreview.github.io/?https://github.com/AnonymouX47/term-image/blob/python-coverage-comment-action-data/htmlcov/index.html'>
+      <img src='https://raw.githubusercontent.com/AnonymouX47/term-image/python-coverage-comment-action-data/badge.svg'>
+   </a>
    <a href='https://term-image.readthedocs.io'>
       <img src='https://readthedocs.org/projects/term-image/badge/?version=latest' alt='Documentation Status' />
    </a>

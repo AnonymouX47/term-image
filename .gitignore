@@ -4,6 +4,9 @@
 # i.e from "$GIT_DIR/info/exclude", "~/.config/git/ignore" or "$XDG_CONFIG_HOME/git/ignore", etc.
 # It helps to keep things simple, thanks.
 
+# Code coverage data
+.coverage
+
 # Python module cache
 __pycache__/
 
