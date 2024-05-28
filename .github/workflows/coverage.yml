@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Run tests, update coverage stats and generate PR coverage comment
+    name: Run tests and update coverage stats
     runs-on: ubuntu-latest
     permissions:
       # Gives the action the necessary permissions for publishing new
@@ -20,6 +20,11 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install everything
         run: make install
