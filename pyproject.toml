@@ -70,8 +70,10 @@ Issues = "https://github.com/AnonymouX47/term-image/issues"
 Changelog = "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md"
 Funding = "https://github.com/AnonymouX47/term-image#sponsor-this-project"
 
-[tool.setuptools.dynamic]
-version = {attr = "term_image.version_info"}
+[tool.isort]
+py_version = "auto"
+profile = "black"
+combine_as_imports = true
 
 [tool.mypy]
 strict = true
@@ -94,13 +96,11 @@ module = [
 ]
 ignore_errors = true
 
-[tool.isort]
-py_version = "auto"
-profile = "black"
-combine_as_imports = true
-
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
     "ignore:.+in a terminal:UserWarning:term_image.utils",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "term_image.version_info"}
