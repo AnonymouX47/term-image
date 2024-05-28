@@ -104,6 +104,9 @@ test-widget test-widget-urwid test-widget-urwid-main test-widget-urwid-screen \
 test test-all:
 	$(pytest) $($@)
 
+test-cov:
+	$(pytest) --cov --cov-report=term --cov-report=html $(test-all)
+
 
 # Building the Docs
 
