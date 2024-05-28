@@ -70,6 +70,22 @@ Issues = "https://github.com/AnonymouX47/term-image/issues"
 Changelog = "https://github.com/AnonymouX47/term-image/blob/main/CHANGELOG.md"
 Funding = "https://github.com/AnonymouX47/term-image#sponsor-this-project"
 
+[tool.coverage.run]
+branch = true
+source = ["src"]
+# For https://github.com/py-cov-action/python-coverage-comment-action
+relative_files = true
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@overload",
+]
+skip_covered = true
+sort = "-cover"
+
 [tool.isort]
 py_version = "auto"
 profile = "black"
