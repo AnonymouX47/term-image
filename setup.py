@@ -26,7 +26,7 @@ with open("README.md", "r") as fp:
 
 setup(
     name="term-image",
-    version="0.7.1",
+    version="0.7.2-dev",
     author="Toluwaleke Ogundipe",
     author_email="anonymoux47@gmail.com",
     url="https://github.com/AnonymouX47/term-image",
