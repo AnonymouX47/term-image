@@ -43,6 +43,8 @@ SGR_FG_RGB = f"{CSI}38;2;{Pm(3)}m"
 SGR_FG_RGB_2 = f"{CSI}38:2::{Ps}:{Ps}:{Ps}m"
 SGR_BG_RGB = f"{CSI}48;2;{Pm(3)}m"
 SGR_BG_RGB_2 = f"{CSI}48:2::{Ps}:{Ps}:{Ps}m"
+SGR_FG_INDEXED = f"{CSI}38:5:{Ps}m"
+SGR_BG_INDEXED = f"{CSI}48:5:{Ps}m"
 
 # DEC Modes
 DECSET = f"{CSI}?{Ps}h"
