@@ -1999,7 +1999,7 @@ class TextImage(BaseImage):
             if orig_img.mode == "RGBA":
                 with quantized_img:
                     quantized_img = quantized_img.convert("PA")
-                quantized_img.putalpha(img.getchannel("A"))
+                quantized_img.putalpha(orig_img.getchannel("A"))
 
             if frame_img is not orig_img:
                 self._close_image(orig_img)
