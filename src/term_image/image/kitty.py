@@ -78,7 +78,9 @@ class KittyImage(GraphicsImage):
 
     * **method** (*None | str*) → Render method override.
 
-      * ``None`` → the current effective render method of the instance is used.
+      * ``None`` → the current effective render method of the instance is used
+      * A valid render method name (as specified in the **Render Methods** section
+        above) → used instead of the current effective render method of the instance
       * *default* → ``None``
 
     * **z_index** (*int*) → The stacking order of graphics and text for

@@ -1447,15 +1447,18 @@ class BaseImage(metaclass=ImageMeta):
             frame: If ``True``, implies *img* is being used by :py:class`ImageIterator`,
               hence, *img* is not closed.
 
-        The returned image is appropriately converted, resized and composited
-        (if need be).
+        Returns:
+            A tuple containing
 
-        The pixel data are the last two items of the returned tuple ``(rgb, a)``, where:
-          * ``rgb`` is a list of ``(r, g, b)`` tuples containing the colour channels of
-            the image's pixels in a flattened row-major order where ``r``, ``g``, ``b``
-            are integers in the range [0, 255].
-          * ``a`` is a list of integers in the range [0, 255] representing the alpha
-            channel of the image's pixels in a flattened row-major order.
+            * An image appropriately converted, resized and composited (if need be) and
+              having mode ``RGB`` or ``RGBA``, depending on the mode of the source
+              image.
+            * ``rgb``, a list of ``(r, g, b)`` tuples containing the channel values of
+              the image's pixels in a flattened row-major order, where ``r``, ``g``,
+              ``b`` are integers in the range [0, 255]; OR ``None`` if *pixel_data* is
+            * ``a``, a list of integers in the range [0, 255] representing the alpha
+              channel values of the image's pixels in a flattened row-major order;
+              OR ``None`` if *pixel_data* is ``False``.
         """
 
         def convert_resize_img(mode: str):
@@ -1538,7 +1541,7 @@ class BaseImage(metaclass=ImageMeta):
     ) -> Tuple[str, List[Union[None, str, Tuple[Optional[str]]]]]:
         """Parses a style-specific format specifier.
 
-        See :py:meth:`_check_format_spec`.
+        See :py:meth:`_check_style_format_spec`.
 
         Returns:
             The *parent* portion and a list of matches for the respective fields of the
