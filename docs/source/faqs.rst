@@ -11,8 +11,8 @@ What about Windows support?
    - Drawing images and animations doesn't work completely well with Python for Windows. See :doc:`issues`.
    - If stuck on Windows and want to use all features, you could use WSL + Windows Terminal.
 
-Why are colours not properly reproduced?
-   - Some terminals support 24-bit colors but have a **256-color pallete**. This limits color reproduction.
+Why are colours not properly reproduced with :py:class:`BlockImage`'s ``DIRECT`` render method?
+   - Some terminals support direct-color control sequences but actually use a **256-color pallete**. This limits color reproduction.
 
 Why are images out of scale?
    - If :ref:`auto-cell-ratio` is supported and enabled, call
