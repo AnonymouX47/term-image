@@ -8,23 +8,28 @@ _: check test
 pip:
 	python -m pip install --upgrade pip
 
-install: install-req
+install: pip
+	python -m pip install .
+
+install-dev: pip
 	python -m pip install -e .
 
-install-all: pip
-	python -m pip install --upgrade -e . -r requirements.txt -r docs/requirements.txt
-
-install-req: pip
+req: pip
 	python -m pip install --upgrade -r requirements.txt
 
-install-req-all: pip
-	python -m pip install --upgrade -r requirements.txt -r docs/requirements.txt
-
-install-req-docs: pip
+req-doc: pip
 	python -m pip install --upgrade -r docs/requirements.txt
 
-uninstall:
-	pip uninstall -y term-image
+req-all: req req-doc
+
+dev: req install-dev
+
+dev-doc: req-doc install-dev
+
+dev-all: req-all install-dev
+
+uninstall: pip
+	python -m pip uninstall --yes term-image
 
 
 # Pre-commit Checks and Corrections

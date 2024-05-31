@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install everything
-        run: make install
+      - name: Install the package and dev dependencies
+        run: make dev
 
       - name: Run the tests and produce the .coverage file
         run: make test-cov
