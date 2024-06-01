@@ -42,6 +42,8 @@ T = TypeVar("T")
 RenderableMetaT = TypeVar("RenderableMetaT", bound="RenderableMeta")
 OptionalPaddingT = TypeVar("OptionalPaddingT", bound="Padding | None")
 
+NO_PADDING = ExactPadding()
+
 
 class RenderableMeta(ABCMeta):
     """Base metaclass of the Renderable API.
@@ -590,7 +592,7 @@ been initialized
     def render(
         self,
         render_args: RenderArgs | None = None,
-        padding: Padding = ExactPadding(),
+        padding: Padding = NO_PADDING,
     ) -> Frame:
         """:term:`Renders` the current frame.
 
@@ -764,7 +766,7 @@ been initialized
 
             # Padding has been drawn with the first frame, only the actual render is
             # needed henceforth.
-            render_iter.set_padding(ExactPadding())
+            render_iter.set_padding(NO_PADDING)
 
             # render next frame during previous frame's duration
             duration_ms = frame.duration
