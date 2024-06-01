@@ -737,13 +737,13 @@ been initialized
             False if loops == 1 else cache,
             finalize=False,
         )
-        cursor_to_bottom = cursor_down(height + pad_bottom - 1)
         cursor_to_next_render_line = f"\n{cursor_forward(pad_left)}"
         cursor_to_render_top_left = (
             f"\r{cursor_up(height - 1)}{cursor_forward(pad_left)}"
         )
         write = output.write
         flush = output.flush
+        first_frame_written = False
 
         try:
             # first frame
@@ -759,10 +759,14 @@ been initialized
                 self._handle_interrupted_draw_(render_data, render_args, output)
                 return
             else:
+                # Move the cursor to the top-left cell of the region occupied by the
+                # render output
                 write(
                     f"\r{cursor_up(height + pad_bottom - 1)}{cursor_forward(pad_left)}"
                 )
                 flush()
+
+            first_frame_written = True
 
             # Padding has been drawn with the first frame, only the actual render is
             # needed henceforth.
@@ -802,10 +806,10 @@ been initialized
             pass
         finally:
             render_iter.close()
-            # Move the cursor to the last line to prevent "overlaid" output in a
-            # terminal
-            write(cursor_to_bottom)
-            flush()
+            if first_frame_written:
+                # Move the cursor to the last line to prevent "overlaid" output
+                write(cursor_down(height + pad_bottom - 1))
+                flush()
 
     def _clear_frame_(
         self,
