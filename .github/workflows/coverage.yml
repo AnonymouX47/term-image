@@ -30,7 +30,7 @@ jobs:
         run: make dev
 
       - name: Run the tests and produce the .coverage file
-        run: make test-cov
+        run: make test-all-cov
 
       - name: Coverage comment
         id: coverage_comment

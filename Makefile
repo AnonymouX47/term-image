@@ -110,7 +110,13 @@ test test-all:
 	$(pytest) $($@)
 
 test-cov:
+	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test)
+
+test-all-cov:
 	$(pytest) --cov --cov-report=term --cov-report=html $(test-all)
+
+test-%-cov:
+	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test-$*)
 
 
 # Building the Docs
