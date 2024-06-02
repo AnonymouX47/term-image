@@ -83,8 +83,8 @@ class Color(_DummyColor):
                 raise arg_value_error_range("g", g)
             if b & ~255:
                 raise arg_value_error_range("b", b)
-            if a & ~255:
-                raise arg_value_error_range("a", a)
+            # There's no point checking since at least one is out of range
+            raise arg_value_error_range("a", a)
 
         # Using `tuple` directly instead of `super()` for performance
         return tuple.__new__(cls, (r, g, b, a))
