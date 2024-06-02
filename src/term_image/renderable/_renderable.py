@@ -33,7 +33,8 @@ from ._types import ArgsNamespace, DataNamespace, Frame, RenderArgs, RenderData
 
 try:
     import termios
-except ImportError:
+# Even if it's possible to simulate this in the tests, what's the point?
+except ImportError:  # pragma: no cover
     OS_IS_UNIX = False
 else:
     OS_IS_UNIX = True

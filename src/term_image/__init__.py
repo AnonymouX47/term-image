@@ -34,7 +34,7 @@ version_info = (0, 8, 0, "dev")
 
 # Follows https://semver.org/spec/v2.0.0.html
 __version__ = ".".join(map(str, version_info[:3]))
-if version_info[3:]:
+if version_info[3:]:  # pragma: no cover
     __version__ += "-" + ".".join(map(str, version_info[3:]))
 
 DEFAULT_QUERY_TIMEOUT: Final[float] = utils._query_timeout
