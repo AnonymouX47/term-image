@@ -8,18 +8,18 @@ build-backend = "setuptools.build_meta"
 [project]
 dynamic = ["version"]
 name = "term-image"
+description = "Display images in the terminal"
+requires-python = ">=3.8"
 dependencies = [
     "pillow>=9.1,<11",
     "requests>=2.23,<3",
     "typing_extensions>=4.8,<5",
 ]
-requires-python = ">=3.8"
 authors = [
     {name = "Toluwaleke Ogundipe", email = "anonymoux47@gmail.com"},
 ]
-description = "Display images in the terminal"
-readme = "README.md"
 license = {text = "MIT License"}
+readme = "README.md"
 keywords = [
     "image",
     "terminal",
