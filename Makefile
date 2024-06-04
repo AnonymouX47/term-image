@@ -5,31 +5,37 @@ _: check test
 
 # Development Environment Setup
 
-pip:
+pip:  # Upgrade pip
 	python -m pip install --upgrade pip
 
-install: pip
+# # [Un]Install Package
+
+install: pip  # Install package
 	python -m pip install .
 
-install-dev: pip
+install-dev: pip  # Install package in develop/editable mode
 	python -m pip install -e .
 
-req: pip
+uninstall: pip  # Uninstall package
+	python -m pip uninstall --yes term-image
+
+# # Install Dev/Doc Dependencies
+
+req: pip  # Install dev dependencies
 	python -m pip install --upgrade -r requirements.txt
 
-req-doc: pip
+req-doc: pip  # Install doc dependencies
 	python -m pip install --upgrade -r docs/requirements.txt
 
 req-all: req req-doc
+
+# # Install Dev/Doc Dependencies and Package
 
 dev: req install-dev
 
 dev-doc: req-doc install-dev
 
 dev-all: req-all install-dev
-
-uninstall: pip
-	python -m pip uninstall --yes term-image
 
 
 # Pre-commit Checks and Corrections
