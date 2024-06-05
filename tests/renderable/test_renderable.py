@@ -788,23 +788,57 @@ class TestDraw:
             assert STDOUT.getvalue().count("\n") == 3
             assert STDOUT.getvalue().endswith("\n")
 
-        def test_animate(self):
+        class TestAnimate:
+            class AnimateChar(Char):
+                def __init__(self, *args, **kwargs):
+                    self.animate_called = False
+                    self.render_called = False
+                    super().__init__(*args, **kwargs)
+
+                def _animate_(
+                    self, render_data, render_args, padding, loops, cache, output
+                ):
+                    self.animate_called = True
+
+                def _render_(self, render_data, render_args):
+                    self.render_called = True
+                    return super()._render_(render_data, render_args)
+
             with capture_stdout():
-                self.space.draw()
+                AnimateChar(1, 1).draw()
                 output = STDOUT.getvalue()
-                assert output.count("\n") == LINES - 2
 
-            with capture_stdout():
-                self.space.draw(animate=True)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_default(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw()
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
-            with capture_stdout():
-                self.space.draw(animate=False)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_true(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw(animate=True)
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
-            with capture_stdout():
-                self.anim_space.draw(animate=False)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_false(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw(animate=False)
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
+
+            @capture_stdout()
+            def test_false_with_animated(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(animate=False)
+                assert not anim_animate_char.animate_called
+                assert anim_animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
         class TestCheckSize:
             space = Space(1, 1)
@@ -1002,24 +1036,35 @@ class TestDraw:
             with pytest.raises(IncompatibleRenderArgsError):
                 char.draw(RenderArgs(Space))
 
-        def test_animate(self):
-            anim_space = Space(2, 1)
+        class TestAnimate:
+            class AnimateChar(Char):
+                def __init__(self, *args, **kwargs):
+                    self.animate_called = False
+                    self.render_called = False
+                    super().__init__(*args, **kwargs)
 
-            with capture_stdout():
-                anim_space.draw(loops=1)
-                output = STDOUT.getvalue()
-                assert output.count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
+                def _animate_(
+                    self, render_data, render_args, padding, loops, cache, output
+                ):
+                    self.animate_called = True
 
-            with capture_stdout():
-                anim_space.draw(animate=True, loops=1)
-                assert output == STDOUT.getvalue()
+                def _render_(self, render_data, render_args):
+                    self.render_called = True
+                    return super()._render_(render_data, render_args)
 
-            with capture_stdout():
-                anim_space.draw(animate=False, loops=1)
-                assert output != STDOUT.getvalue()
-                assert (
-                    STDOUT.getvalue().count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
-                )
+            @capture_stdout()
+            def test_default(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(loops=1)
+                assert anim_animate_char.animate_called
+                assert not anim_animate_char.render_called
+
+            @capture_stdout()
+            def test_true(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(animate=True, loops=1)
+                assert anim_animate_char.animate_called
+                assert not anim_animate_char.render_called
 
         class TestCheckSize:
             anim_space = Space(2, 1)
