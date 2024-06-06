@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.7.2] - 2024-06-06
 ### Added
 - indexed-color (256-color) rendering for `BlockImage` ([#109]).
   - `DIRECT` and `INDEXED` render methods.
@@ -495,6 +497,7 @@ See the commit messages for [0.4.1] for the full logs.
 
 
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...HEAD
+[0.7.2]: https://github.com/AnonymouX47/term-image/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.7.0
 [0.6.1]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.6.1
