@@ -44,6 +44,7 @@ from ..exceptions import (
     URLNotFoundError,
 )
 from ..utils import (
+    XTERM_256_PALETTE,
     ClassInstanceMethod,
     ClassProperty,
     arg_type_error,
@@ -1941,6 +1942,10 @@ class TextImage(BaseImage):
         from its subclasses.
     """
 
+    # 240 colors i.e excluding the first 16
+    _XTERM_240_PALETTE_IMAGE = Image.new("P", (1, 1))
+    _XTERM_240_PALETTE_IMAGE.putpalette(XTERM_256_PALETTE[16 * 3 :])
+
     # Pixels are represented in a 1-to-2 ratio within one character cell
     # pixel-size == width * height/2
     # pixel-ratio == width / (height/2) == 2 * (width / height) == 2 * cell-ratio
@@ -1950,6 +1955,59 @@ class TextImage(BaseImage):
     @cached
     def _is_on_kitty() -> bool:
         return get_terminal_name_version()[0] == "kitty"
+
+    def _get_render_data(
+        self,
+        img: PIL.Image.Image,
+        *args,
+        frame: bool = False,
+        indexed_color: bool = False,
+        **kwargs,
+    ) -> tuple[
+        PIL.Image.Image,
+        list[tuple[int, int, int]] | list[int] | None,
+        list[int] | None,
+    ]:
+        """
+        See :py:meth:`BaseImage._render_image` for the description of the method and
+        all other parameters not described here.
+
+        Args:
+            indexed_color: Whether to quantize the render image to a 240-color palette.
+
+        Returns:
+            The same as the overriden method if *indexed_color* is ``False``. Otherwise,
+
+            * The returned image has mode ``P`` or ``PA``, depending on the mode of the
+              source image.
+            * ``rgb`` is a list of integers in the range [0, 255], where each integer
+              is a valid index for a 256-color terminal palette.
+        """
+        if indexed_color:
+            frame_img = img if frame else None
+        img, rgb, a = super()._get_render_data(img, *args, frame=frame, **kwargs)
+
+        if indexed_color:
+            orig_img = img
+
+            img = img.copy() if img.mode == "RGB" else img.convert("RGB")
+            with img:
+                quantized_img = img.quantize(
+                    palette=__class__._XTERM_240_PALETTE_IMAGE, dither=Image.Dither.NONE
+                )
+
+            if orig_img.mode == "RGBA":
+                with quantized_img:
+                    quantized_img = quantized_img.convert("PA")
+                quantized_img.putalpha(orig_img.getchannel("A"))
+
+            if frame_img is not orig_img:
+                self._close_image(orig_img)
+
+            img = quantized_img
+            rgb = [index + 16 for index in img.getdata(0)]
+
+        return (img, rgb, a)
 
     @abstractmethod
     def _render_image(

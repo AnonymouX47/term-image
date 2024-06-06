@@ -71,7 +71,7 @@
   
   - support for the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
   - support for the [iTerm2 inline image protocol](https://iterm2.com/documentation-images.html).
-  - full Unicode support and ANSI 24-bit color support
+  - Unicode support and direct-color (truecolor) or indexed-color (256-color) support.
 
   **Plans to support a wider variety of terminal emulators are in motion** (see [Planned Features](#planned-features)).
 

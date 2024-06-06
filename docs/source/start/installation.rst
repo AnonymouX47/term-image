@@ -10,7 +10,7 @@ Requirements
   
   * support for the `Kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.
   * support for the `iTerm2 inline image protocol <https://iterm2.com/documentation-images.html>`_.
-  * full Unicode support and ANSI 24-bit color support
+  * Unicode support and direct-color (truecolor) or indexed-color (256-color) support.
 
   **Plans to support a wider variety of terminal emulators are in motion** (see :doc:`/planned`).
 
@@ -36,20 +36,22 @@ Supported Terminal Emulators
 
 Some terminals emulators that have been tested to meet the requirements for at least one render style include:
 
+- Alacritty
+- iTerm2
+- Kitty
+- Konsole
+- MinTTY (on Windows)
+- Terminal (on Mac OS)
+- Terminology
+- Termux (on Android)
+- WezTerm
+- Windows Terminal
+- XTerm
 - **libvte**-based terminal emulators such as:
 
   - Gnome Terminal
   - Terminator
   - Tilix
-
-- Kitty
-- Konsole
-- iTerm2
-- WezTerm
-- Alacritty
-- Windows Terminal
-- MinTTY (on Windows)
-- Termux (on Android)
 
 .. note::
    If you've tested ``term-image`` on any other terminal emulator that meets all
