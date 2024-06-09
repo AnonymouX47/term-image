@@ -74,6 +74,8 @@ class UrwidImage(urwid.Widget):
     # from -(2**31)
     _ti_next_z_index = 1
 
+    _terminals = ["konsole", "ghostty"]
+
     def __init__(
         self, image: BaseImage, format_spec: str = "", *, upscale: bool = False
     ) -> None:
@@ -102,7 +104,7 @@ class UrwidImage(urwid.Widget):
             # Since Konsole doesn't blend images placed at the same location and
             # z-index, unlike Kitty (and potentially others), `blend=True` is
             # better on Konsole as it reduces/eliminates flicker.
-            if get_terminal_name_version()[0] != "konsole":
+            if get_terminal_name_version()[0] not in self._terminals:
                 # To clear directly overlapped images when urwid redraws a line without
                 # a change in image position
                 style_args["blend"] = False
@@ -405,7 +407,7 @@ class UrwidImageCanvas(urwid.Canvas):
                 * (
                     isinstance(image, KittyImage)
                     or isinstance(image, ITerm2Image)
-                    and get_terminal_name_version()[0] == "konsole"
+                    and get_terminal_name_version()[0] in self._terminals
                 )
             )
             for line in self._ti_lines[trim_top : -trim_bottom or None]:
@@ -617,7 +619,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
             KittyImage.forced_support
             or KittyImage.is_supported()
             or ITerm2Image.is_supported()
-            and get_terminal_name_version()[0] == "konsole"
+            and get_terminal_name_version()[0] in self._terminals
         ):
             return
 
@@ -659,7 +661,7 @@ class UrwidImageScreen(urwid.raw_display.Screen):
                         if (
                             isinstance(widget._ti_image, KittyImage)
                             or isinstance(widget._ti_image, ITerm2Image)
-                            and get_terminal_name_version()[0] == "konsole"
+                            and get_terminal_name_version()[0] in self._terminals
                         ):
                             image_cviews.add((canv, row, col, *trim, cols, rows))
 
