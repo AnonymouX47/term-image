@@ -5,26 +5,37 @@ _: check test
 
 # Development Environment Setup
 
-pip:
+pip:  # Upgrade pip
 	python -m pip install --upgrade pip
 
-install: install-req
+# # [Un]Install Package
+
+install: pip  # Install package
+	python -m pip install .
+
+install-dev: pip  # Install package in develop/editable mode
 	python -m pip install -e .
 
-install-all: pip
-	python -m pip install --upgrade -e . -r requirements.txt -r docs/requirements.txt
+uninstall: pip  # Uninstall package
+	python -m pip uninstall --yes term-image
 
-install-req: pip
+# # Install Dev/Doc Dependencies
+
+req: pip  # Install dev dependencies
 	python -m pip install --upgrade -r requirements.txt
 
-install-req-all: pip
-	python -m pip install --upgrade -r requirements.txt -r docs/requirements.txt
-
-install-req-docs: pip
+req-doc: pip  # Install doc dependencies
 	python -m pip install --upgrade -r docs/requirements.txt
 
-uninstall:
-	pip uninstall -y term-image
+req-all: req req-doc
+
+# # Install Dev/Doc Dependencies and Package
+
+dev: req install-dev
+
+dev-doc: req-doc install-dev
+
+dev-all: req-all install-dev
 
 
 # Pre-commit Checks and Corrections
@@ -105,7 +116,13 @@ test test-all:
 	$(pytest) $($@)
 
 test-cov:
+	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test)
+
+test-all-cov:
 	$(pytest) --cov --cov-report=term --cov-report=html $(test-all)
+
+test-%-cov:
+	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test-$*)
 
 
 # Building the Docs

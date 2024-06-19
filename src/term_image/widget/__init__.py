@@ -6,7 +6,7 @@ __all__ = []
 
 try:
     import urwid
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 else:
     from ._urwid import UrwidImage, UrwidImageCanvas, UrwidImageScreen

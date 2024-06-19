@@ -25,8 +25,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: make install-req
+    - name: Install dev dependencies
+      run: make req
 
     - name: Check formatting with black
       run: make check-format

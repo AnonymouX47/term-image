@@ -26,6 +26,7 @@ Exceptions
 
 .. autoexception:: RenderIteratorError
 .. autoexception:: FinalizedIteratorError
+.. autoexception:: StopDefiniteIterationError
 
 |
 

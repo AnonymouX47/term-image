@@ -515,6 +515,10 @@ class TestRenderArgs:
         class BarArgs(ArgsNamespace, render_cls=Bar):
             bar: str = "BAR"
 
+        def test_unsupported(self):
+            assert RenderArgs(Foo) != 1
+            assert "" != RenderArgs(Foo)
+
         def test_base_class(self):
             Bar = self.Bar
 
@@ -1074,6 +1078,10 @@ class TestArgsNamespace:
             namespace.bar = "foo"
 
     class TestEq:
+        def test_unsupported(self):
+            assert FooArgs() != 1
+            assert "" != FooArgs()
+
         class TestSameRenderCls:
             class SubFooArgs(FooArgs):
                 pass

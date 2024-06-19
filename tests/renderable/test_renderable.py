@@ -638,15 +638,23 @@ class TestFrameCount:
 
 
 class TestFrameDuration:
-    @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
     class TestGet:
+        @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
         def test_non_animated(self, duration):
             space = Space(1, duration)
             with pytest.raises(NonAnimatedRenderableError):
                 space.frame_duration
 
-        def test_animated(self, duration):
-            assert Space(2, duration).frame_duration == duration
+        class TestAnimated:
+            @pytest.mark.parametrize("duration", [1, 100, FrameDuration.DYNAMIC])
+            def test_normal(self, duration):
+                assert Space(2, duration).frame_duration == duration
+
+            def test_deleted_attribute(self):
+                anim_space = Space(2, 1)
+                del anim_space._frame_duration
+                with pytest.raises(AttributeError):
+                    assert anim_space.frame_duration
 
     class TestSet:
         space = Space(1, 1)
@@ -780,23 +788,57 @@ class TestDraw:
             assert STDOUT.getvalue().count("\n") == 3
             assert STDOUT.getvalue().endswith("\n")
 
-        def test_animate(self):
+        class TestAnimate:
+            class AnimateChar(Char):
+                def __init__(self, *args, **kwargs):
+                    self.animate_called = False
+                    self.render_called = False
+                    super().__init__(*args, **kwargs)
+
+                def _animate_(
+                    self, render_data, render_args, padding, loops, cache, output
+                ):
+                    self.animate_called = True
+
+                def _render_(self, render_data, render_args):
+                    self.render_called = True
+                    return super()._render_(render_data, render_args)
+
             with capture_stdout():
-                self.space.draw()
+                AnimateChar(1, 1).draw()
                 output = STDOUT.getvalue()
-                assert output.count("\n") == LINES - 2
 
-            with capture_stdout():
-                self.space.draw(animate=True)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_default(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw()
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
-            with capture_stdout():
-                self.space.draw(animate=False)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_true(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw(animate=True)
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
-            with capture_stdout():
-                self.anim_space.draw(animate=False)
-                assert output == STDOUT.getvalue()
+            @capture_stdout()
+            def test_false(self):
+                animate_char = self.AnimateChar(1, 1)
+                animate_char.draw(animate=False)
+                assert not animate_char.animate_called
+                assert animate_char.render_called
+                assert STDOUT.getvalue() == self.output
+
+            @capture_stdout()
+            def test_false_with_animated(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(animate=False)
+                assert not anim_animate_char.animate_called
+                assert anim_animate_char.render_called
+                assert STDOUT.getvalue() == self.output
 
         class TestCheckSize:
             space = Space(1, 1)
@@ -994,24 +1036,35 @@ class TestDraw:
             with pytest.raises(IncompatibleRenderArgsError):
                 char.draw(RenderArgs(Space))
 
-        def test_animate(self):
-            anim_space = Space(2, 1)
+        class TestAnimate:
+            class AnimateChar(Char):
+                def __init__(self, *args, **kwargs):
+                    self.animate_called = False
+                    self.render_called = False
+                    super().__init__(*args, **kwargs)
 
-            with capture_stdout():
-                anim_space.draw(loops=1)
-                output = STDOUT.getvalue()
-                assert output.count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
+                def _animate_(
+                    self, render_data, render_args, padding, loops, cache, output
+                ):
+                    self.animate_called = True
 
-            with capture_stdout():
-                anim_space.draw(animate=True, loops=1)
-                assert output == STDOUT.getvalue()
+                def _render_(self, render_data, render_args):
+                    self.render_called = True
+                    return super()._render_(render_data, render_args)
 
-            with capture_stdout():
-                anim_space.draw(animate=False, loops=1)
-                assert output != STDOUT.getvalue()
-                assert (
-                    STDOUT.getvalue().count("\n") == anim_n_eol(1, LINES - 2, 1, 1) + 1
-                )
+            @capture_stdout()
+            def test_default(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(loops=1)
+                assert anim_animate_char.animate_called
+                assert not anim_animate_char.render_called
+
+            @capture_stdout()
+            def test_true(self):
+                anim_animate_char = self.AnimateChar(2, 1)
+                anim_animate_char.draw(animate=True, loops=1)
+                assert anim_animate_char.animate_called
+                assert not anim_animate_char.render_called
 
         class TestCheckSize:
             anim_space = Space(2, 1)
@@ -1091,6 +1144,7 @@ class TestDraw:
                 ):
                     self.anim_space.draw(padding=self.padding, allow_scroll=True)
 
+        # NOTE: Trying to test the non-Unix/TTY case doesn't even seem to make sense.
         @pytest.mark.skipif(not OS_IS_UNIX, reason="Not supported on non-Unix")
         class TestEchoInput:
             class AnimEchoSpace(Space):
@@ -1380,11 +1434,10 @@ class TestAnimate:
         output.seek(0)
         assert output.read() == self.expected_output
 
-    @pytest.mark.parametrize("n_frames", [2, 3, 10])
     class TestFrameCount:
         definite_args = (RenderArgs(Space), AlignedPadding(3, 3))
-        indefinite_args = (RenderArgs(IndefiniteSpace), AlignedPadding(3, 3))
 
+        @pytest.mark.parametrize("n_frames", [2, 3, 10])
         @capture_stdout()
         def test_definite(self, n_frames):
             anim_space = Space(n_frames, 1)
@@ -1394,16 +1447,30 @@ class TestAnimate:
             assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
             assert not STDOUT.getvalue().endswith("\n")
 
-        @capture_stdout()
-        def test_indefinite(self, n_frames):
-            indefinite_space = IndefiniteSpace(n_frames)
-            render_data = indefinite_space._get_render_data_(iteration=True)
-            render_data[Renderable].duration = 0
-            indefinite_space._animate_(
-                render_data, *self.indefinite_args, 1, False, STDOUT
-            )
-            assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
-            assert not STDOUT.getvalue().endswith("\n")
+        class TestIndefinite:
+            indefinite_args = (RenderArgs(IndefiniteSpace), AlignedPadding(3, 3))
+
+            @capture_stdout()
+            def test_zero_frames(self):
+                indefinite_space = IndefiniteSpace(0)
+                render_data = indefinite_space._get_render_data_(iteration=True)
+                render_data[Renderable].duration = 0
+                indefinite_space._animate_(
+                    render_data, *self.indefinite_args, 1, False, STDOUT
+                )
+                assert STDOUT.getvalue() == ""
+
+            @pytest.mark.parametrize("n_frames", [1, 2, 3, 10])
+            @capture_stdout()
+            def test_non_zero_frames(self, n_frames):
+                indefinite_space = IndefiniteSpace(n_frames)
+                render_data = indefinite_space._get_render_data_(iteration=True)
+                render_data[Renderable].duration = 0
+                indefinite_space._animate_(
+                    render_data, *self.indefinite_args, 1, False, STDOUT
+                )
+                assert STDOUT.getvalue().count("\n") == anim_n_eol(1, 3, n_frames, 1)
+                assert not STDOUT.getvalue().endswith("\n")
 
     class TestClearFrame:
         class ClearFrameChar(Char):
@@ -1536,6 +1603,55 @@ class TestAnimate:
             assert interrupted_frame_fill.interrupted_args.render_args is render_args
             assert interrupted_frame_fill.interrupted_args.output is output
             assert render_data[Renderable].frame_offset == frame_interrupted + 1
+
+    @pytest.mark.parametrize("interrupt_frame_no", [0, 1, 5, 9])
+    class TestEndOnInterrupt:
+        class InterruptSpaceBase(Space):
+            def __init__(self, interrupt_frame_no, *base_args):
+                super().__init__(*base_args)
+                self.__interrupt_frame_no = interrupt_frame_no
+                self.n_frames_rendered = -1
+
+            def _render_(self, render_data, render_args):
+                self.n_frames_rendered += 1
+                if self.n_frames_rendered == self.__interrupt_frame_no:
+                    raise KeyboardInterrupt
+                return super()._render_(render_data, render_args)
+
+        class InterruptSpace(InterruptSpaceBase, Space):
+            def __init__(self, interrupt_frame_no):
+                super().__init__(interrupt_frame_no, 10, 1)
+
+        class IndefiniteInterruptSpace(InterruptSpaceBase, IndefiniteSpace):
+            def __init__(self, interrupt_frame_no):
+                super().__init__(interrupt_frame_no, 10)
+
+        render_args = RenderArgs(Space)
+
+        @capture_stdout()
+        def test_definite(self, interrupt_frame_no):
+            interrupt_space = self.InterruptSpace(interrupt_frame_no)
+            render_data = interrupt_space._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+
+            interrupt_space._animate_(
+                render_data, self.render_args, ExactPadding(), 1, False, STDOUT
+            )
+            assert interrupt_space.n_frames_rendered == interrupt_frame_no
+            assert render_data[Renderable].frame_offset == interrupt_frame_no
+
+        @capture_stdout()
+        def test_indefinite(self, interrupt_frame_no):
+            indefinite_interrupt_space = self.IndefiniteInterruptSpace(
+                interrupt_frame_no
+            )
+            render_data = indefinite_interrupt_space._get_render_data_(iteration=True)
+            render_data[Renderable].duration = 0
+
+            indefinite_interrupt_space._animate_(
+                render_data, self.render_args, ExactPadding(), 1, False, STDOUT
+            )
+            assert indefinite_interrupt_space.n_frames_rendered == interrupt_frame_no
 
 
 class TestGetRenderData:

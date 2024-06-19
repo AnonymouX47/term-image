@@ -7,7 +7,11 @@ import pytest
 
 from term_image.geometry import Size
 from term_image.padding import AlignedPadding, ExactPadding
-from term_image.render import FinalizedIteratorError, RenderIterator
+from term_image.render import (
+    FinalizedIteratorError,
+    RenderIterator,
+    StopDefiniteIterationError,
+)
 from term_image.renderable import (
     DataNamespace,
     FrameCount,
@@ -55,6 +59,17 @@ class CacheChar(Char):
     def _render_(self, *args):
         self.n_renders += 1
         return super()._render_(*args)
+
+
+class ErrorSpace(Space):
+    def __init__(self, frame_count, frame_duration, exception):
+        super().__init__(frame_count, frame_duration)
+        self.__exception = exception
+
+    def _render_(self, render_data, render_args):
+        if render_data[Renderable].frame_offset == 1:
+            raise self.__exception
+        return super()._render_(render_data, render_args)
 
 
 class IndefiniteFrameFill(Renderable):
@@ -449,16 +464,12 @@ class TestNext:
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
 
-    def test_error(self):
-        class ErrorSpace(Space):
-            def _render_(self, render_data, render_args):
-                if render_data[Renderable].frame_offset == 1:
-                    assert False
-                return super()._render_(render_data, render_args)
-
-        render_iter = RenderIterator(ErrorSpace(2, 1))
+    # NOTE: `AttributeError` must be tested because its got a special case
+    @pytest.mark.parametrize("exception", [AttributeError, AssertionError])
+    def test_error(self, exception):
+        render_iter = RenderIterator(ErrorSpace(2, 1, exception))
         next(render_iter)
-        with pytest.raises(AssertionError):
+        with pytest.raises(exception):
             next(render_iter)
         with pytest.raises(StopIteration, match="finalized"):
             next(render_iter)
@@ -1102,7 +1113,16 @@ class TestFrameCount:
             render_iter = RenderIterator(anim_space)
             assert len(tuple(render_iter)) == 5
 
-    @pytest.mark.parametrize("n_frames", [2, 10])
+    @pytest.mark.parametrize("n_frames", [0, 1, 2, 10])
     def test_indefinite(self, n_frames):
         render_iter = RenderIterator(IndefiniteSpace(n_frames))
         assert len(tuple(render_iter)) == n_frames
+
+
+def test_stop_definite_iteration():
+    render_iter = RenderIterator(ErrorSpace(2, 1, StopIteration))
+    next(render_iter)
+    with pytest.raises(StopDefiniteIterationError):
+        next(render_iter)
+    with pytest.raises(StopIteration, match="finalized"):
+        next(render_iter)

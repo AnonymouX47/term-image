@@ -28,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.7. ([594d451])
 - Runtime argument type validation ([b790f0e] in [#100]).
 
-
 [#96]: https://github.com/AnonymouX47/term-image/pull/96
 [#97]: https://github.com/AnonymouX47/term-image/pull/97
 [#100]: https://github.com/AnonymouX47/term-image/pull/100
@@ -40,6 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [8cfebe2]: https://github.com/AnonymouX47/term-image/commit/8cfebe27b63dcdd987fc9d0c71616e76777779a9
 [b790f0e]: https://github.com/AnonymouX47/term-image/commit/b790f0e7c5cd2afd7dafa7c14797136719b9dafb
 [d710a9e]: https://github.com/AnonymouX47/term-image/commit/d710a9e95e149868490f5d38eb3339df68716999
+
+
+## [0.7.2] - 2024-06-06
+### Added
+- indexed-color (256-color) rendering for `BlockImage` ([#109]).
+  - `DIRECT` and `INDEXED` render methods.
+  - *method* style-specific render parameter and format spec field.
+
+[#109]: https://github.com/AnonymouX47/term-image/pull/109
 
 
 ## [0.6.2] - 2024-04-20
@@ -528,6 +536,7 @@ See the commit messages for [0.4.1] for the full logs.
 
 
 [Unreleased]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...HEAD
+[0.7.2]: https://github.com/AnonymouX47/term-image/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/AnonymouX47/term-image/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/AnonymouX47/term-image/compare/v0.6.0...v0.7.0
 [0.6.2]: https://github.com/AnonymouX47/term-image/compare/v0.6.1...v0.6.2
