@@ -27,8 +27,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Test package build and installation
+      - name: Test package build and installation (for non-Windows)
+        if: matrix.os != 'windows-latest'
         run: |
           make build
           pip install -I dist/*.whl
           pip install -I dist/*.tar.gz
+
+      - name: Test package build and installation (for Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          make build
+          pip install -I dist\$(Get-ChildItem -Path dist\*.whl -Name)
+          pip install -I dist\$(Get-ChildItem -Path dist\*.tar.gz -Name)
