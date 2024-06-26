@@ -9,7 +9,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  type-check:
 
     runs-on: ubuntu-latest
     strategy:

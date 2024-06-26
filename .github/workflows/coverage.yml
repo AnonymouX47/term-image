@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  coverage:
 
     name: Run tests and update coverage stats
     runs-on: ubuntu-latest

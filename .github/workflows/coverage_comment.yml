@@ -7,7 +7,7 @@ on:
       - completed
 
 jobs:
-  test:
+  coverage-comment:
 
     name: Post PR coverage comment
     runs-on: ubuntu-latest
