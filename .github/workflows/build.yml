@@ -18,15 +18,15 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Test package build and installation
-      run: |
-        make build
-        pip install -I dist/*.whl
-        pip install -I dist/*.tar.gz
+      - name: Test package build and installation
+        run: |
+          make build
+          pip install -I dist/*.whl
+          pip install -I dist/*.tar.gz

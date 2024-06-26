@@ -18,18 +18,18 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dev dependencies
-      run: make req
+      - name: Install dev dependencies
+        run: make req
 
-    - name: Check formatting with black
-      run: make check-format
+      - name: Check formatting with black
+        run: make check-format
 
-    - name: Check imports formatting with isort
-      run: make check-imports
+      - name: Check imports formatting with isort
+        run: make check-imports
