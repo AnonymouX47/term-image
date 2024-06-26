@@ -115,7 +115,7 @@ ignore_errors = true
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
-    "ignore:.+in a terminal:UserWarning:term_image.utils",
+    "ignore::term_image.utils.NoActiveTerminalWarning:",
 ]
 
 [tool.setuptools.dynamic]

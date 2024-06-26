@@ -26,9 +26,9 @@ from operator import truediv
 
 from typing_extensions import ClassVar, Final
 
-from . import utils
+from . import _utils
+from ._utils import arg_value_error_range, get_cell_size
 from .exceptions import TermImageError
-from .utils import arg_value_error_range, get_cell_size
 
 version_info = (0, 8, 0, "dev")
 
@@ -37,7 +37,7 @@ __version__ = ".".join(map(str, version_info[:3]))
 if version_info[3:]:  # pragma: no cover
     __version__ += "-" + ".".join(map(str, version_info[3:]))
 
-DEFAULT_QUERY_TIMEOUT: Final[float] = utils._query_timeout
+DEFAULT_QUERY_TIMEOUT: Final[float] = _utils._query_timeout
 """Default timeout for :ref:`terminal-queries`
 
 .. seealso:: :py:func:`set_query_timeout`.
@@ -90,7 +90,7 @@ def disable_queries() -> None:
     NOTE:
         This affects all :ref:`dependent features <queried-features>`.
     """
-    utils._queries_enabled = False
+    _utils._queries_enabled = False
 
 
 def disable_win_size_swap() -> None:
@@ -104,10 +104,10 @@ def disable_win_size_swap() -> None:
         This affects :ref:`auto-cell-ratio` computation and size computations for
         :ref:`graphics-based`.
     """
-    if utils._swap_win_size:
-        utils._swap_win_size = False
-        with utils._cell_size_lock:
-            utils._cell_size_cache[:] = (0,) * 4
+    if _utils._swap_win_size:
+        _utils._swap_win_size = False
+        with _utils._cell_size_lock:
+            _utils._cell_size_cache[:] = (0,) * 4
 
 
 def enable_queries() -> None:
@@ -118,12 +118,11 @@ def enable_queries() -> None:
     NOTE:
         This affects all :ref:`dependent features <queried-features>`.
     """
-    if not utils._queries_enabled:
-        utils._queries_enabled = True
-        getattr(utils.get_fg_bg_colors, "_invalidate_cache")()
-        getattr(utils.get_terminal_name_version, "_invalidate_cache")()
-        with utils._cell_size_lock:
-            utils._cell_size_cache[:] = (0,) * 4
+    if not _utils._queries_enabled:
+        _utils._queries_enabled = True
+        _utils.query_cache.clear()
+        with _utils._cell_size_lock:
+            _utils._cell_size_cache[:] = (0,) * 4
 
 
 def enable_win_size_swap() -> None:
@@ -137,10 +136,10 @@ def enable_win_size_swap() -> None:
         This affects :ref:`auto-cell-ratio` computation and size computations for
         :ref:`graphics-based`.
     """
-    if not utils._swap_win_size:
-        utils._swap_win_size = True
-        with utils._cell_size_lock:
-            utils._cell_size_cache[:] = (0,) * 4
+    if not _utils._swap_win_size:
+        _utils._swap_win_size = True
+        with _utils._cell_size_lock:
+            _utils._cell_size_cache[:] = (0,) * 4
 
 
 def get_cell_ratio() -> float:
@@ -149,7 +148,7 @@ def get_cell_ratio() -> float:
     .. seealso:: :py:func:`set_cell_ratio`.
     """
     # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-    return _cell_ratio or truediv(*(get_cell_size() or (1, 2)))
+    return _cell_ratio or float(truediv(*(get_cell_size() or (1, 2))))
 
 
 def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
@@ -196,7 +195,7 @@ def set_cell_ratio(ratio: float | AutoCellRatio) -> None:
             )
         elif ratio is AutoCellRatio.FIXED:
             # `(1, 2)` is a fallback in case the terminal doesn't respond in time
-            _cell_ratio = truediv(*(get_cell_size() or (1, 2)))
+            _cell_ratio = float(truediv(*(get_cell_size() or (1, 2))))
         else:
             _cell_ratio = None
     else:
@@ -217,7 +216,7 @@ def set_query_timeout(timeout: float) -> None:
     if timeout <= 0.0:
         raise arg_value_error_range("timeout", timeout)
 
-    utils._query_timeout = timeout
+    _utils._query_timeout = timeout
 
 
 _cell_ratio: float | None = 0.5

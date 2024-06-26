@@ -10,6 +10,12 @@ from collections.abc import Generator
 
 from typing_extensions import Any, Self
 
+from .._utils import (
+    arg_value_error,
+    arg_value_error_msg,
+    arg_value_error_range,
+    get_terminal_size,
+)
 from ..exceptions import TermImageError
 from ..geometry import Size, _Size
 from ..padding import AlignedPadding, ExactPadding, Padding
@@ -22,12 +28,6 @@ from ..renderable import (
     RenderArgs,
     RenderData,
     Seek,
-)
-from ..utils import (
-    arg_value_error,
-    arg_value_error_msg,
-    arg_value_error_range,
-    get_terminal_size,
 )
 
 # Variables ====================================================================

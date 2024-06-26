@@ -8,7 +8,7 @@ __all__ = ("RawSize", "Size")
 
 from typing_extensions import NamedTuple, Self
 
-from .utils import arg_value_error_range
+from ._utils import arg_value_error_range
 
 
 class RawSize(NamedTuple):

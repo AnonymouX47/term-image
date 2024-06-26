@@ -1,7 +1,10 @@
 import os
 from contextlib import contextmanager
+from fractions import Fraction
 
 import term_image
+from term_image.color import Color
+from term_image.utils import CellSize, NameVersion
 
 
 def get_cell_size():
@@ -11,7 +14,7 @@ def get_cell_size():
 def set_cell_size(size):
     global cell_size
 
-    cell_size = size
+    cell_size = size and CellSize(*map(Fraction, size))
     term_image.AutoCellRatio.is_supported = None
 
 
@@ -37,15 +40,11 @@ def get_terminal_name_version():
 def set_terminal_name_version(name: str, version: str = ""):
     global terminal_name_version
 
-    terminal_name_version = (name, version)
+    terminal_name_version = NameVersion(name, version)
 
 
-def get_fg_bg_colors(*, hex=False):
-    return (
-        tuple(rgb and "#" + "".join(f"{x:02x}" for x in rgb) for rgb in fg_bg)
-        if hex
-        else fg_bg
-    )
+def get_fg_bg_colors():
+    return fg_bg
 
 
 def set_fg_bg_colors(fg=None, bg=None):
@@ -62,17 +61,17 @@ def toggle_is_on_kitty():
     is_on_kitty = not is_on_kitty
 
 
-term_image.utils.get_terminal_size = get_terminal_size
+term_image._utils.get_terminal_size = get_terminal_size
 
-terminal_name_version = ("", "")
-term_image.utils.get_terminal_name_version = get_terminal_name_version
+terminal_name_version = NameVersion("", "")
+term_image._utils.get_terminal_name_version = get_terminal_name_version
 
 cell_size = None
 term_image.get_cell_size = get_cell_size
-term_image.utils.get_cell_size = get_cell_size
+term_image._utils.get_cell_size = get_cell_size
 
-fg_bg = [(0, 0, 0), (0, 0, 0)]
-term_image.utils.get_fg_bg_colors = get_fg_bg_colors
+fg_bg = (Color(0, 0, 0),) * 2
+term_image._utils.get_fg_bg_colors = get_fg_bg_colors
 
 import term_image.image  # noqa: E402
 

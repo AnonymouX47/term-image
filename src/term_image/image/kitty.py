@@ -21,7 +21,7 @@ from .._ctlseqs import (
     KITTY_DELETE_CURSOR,
     KITTY_TRANSMISSION,
 )
-from ..utils import (
+from .._utils import (
     arg_type_error,
     arg_value_error_msg,
     arg_value_error_range,
@@ -299,7 +299,7 @@ class KittyImage(GraphicsImage):
             cls._supported = False
 
             # The graphics query for support detection messes up iTerm2's window title
-            if get_terminal_name_version()[0] == "iterm2":
+            if get_terminal_name_version().name == "iterm2":
                 return False
 
             # Kitty graphics query + terminal attribute query
