@@ -2,7 +2,7 @@ name: coverage comment
 
 on:
   workflow_run:
-    workflows: ["Code Coverage"]
+    workflows: ["coverage"]
     types:
       - completed
 
