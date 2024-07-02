@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/term_image/__init__.py: 60%</title>
+    <title>Coverage for src/term_image/__init__.py: 99%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
     <link rel="stylesheet" href="style_cb_8e611ae1.css" type="text/css">
     <script src="coverage_html_cb_6fb7b396.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src/term_image/__init__.py</b>:
-            <span class="pc_cov">60%</span>
+            <span class="pc_cov">99%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -56,8 +56,8 @@
         </aside>
         <h2>
             <span class="text">59 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">41<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">18<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">59<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">2<span class="text"> excluded</span></button>
             <button type="button" class="par run show_par button_toggle_par" value="par" data-shortcut="p" title="Toggle lines partially run">1<span class="text"> partial</span></button>
         </h2>
@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_b9ffcb677bff1953__ctlseqs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.5.4">coverage.py v7.5.4</a>,
-            created at 2024-06-26 02:54 +0000
+            created at 2024-07-02 08:36 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -174,7 +174,7 @@
     <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t"><span class="str">    NOTE:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t"><span class="str">        This affects all :ref:`dependent features &lt;queried-features>`.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span> <span class="op">=</span> <span class="key">False</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span> <span class="op">=</span> <span class="key">False</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t"><span class="key">def</span> <span class="nam">disable_win_size_swap</span><span class="op">(</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -188,10 +188,10 @@
     <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="str">        This affects :ref:`auto-cell-ratio` computation and size computations for</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t"><span class="str">        :ref:`graphics-based`.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">    <span class="key">if</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span> <span class="op">=</span> <span class="key">False</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">    <span class="key">if</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span> <span class="op">=</span> <span class="key">False</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t"><span class="key">def</span> <span class="nam">enable_queries</span><span class="op">(</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -202,12 +202,12 @@
     <p class="pln"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t"><span class="str">    NOTE:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t"><span class="str">        This affects all :ref:`dependent features &lt;queried-features>`.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t">        <span class="nam">getattr</span><span class="op">(</span><span class="nam">utils</span><span class="op">.</span><span class="nam">get_fg_bg_colors</span><span class="op">,</span> <span class="str">"_invalidate_cache"</span><span class="op">)</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">        <span class="nam">getattr</span><span class="op">(</span><span class="nam">utils</span><span class="op">.</span><span class="nam">get_terminal_name_version</span><span class="op">,</span> <span class="str">"_invalidate_cache"</span><span class="op">)</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_queries_enabled</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t">        <span class="nam">getattr</span><span class="op">(</span><span class="nam">utils</span><span class="op">.</span><span class="nam">get_fg_bg_colors</span><span class="op">,</span> <span class="str">"_invalidate_cache"</span><span class="op">)</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">        <span class="nam">getattr</span><span class="op">(</span><span class="nam">utils</span><span class="op">.</span><span class="nam">get_terminal_name_version</span><span class="op">,</span> <span class="str">"_invalidate_cache"</span><span class="op">)</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t127" href="#t127">127</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t128" href="#t128">128</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t129" href="#t129">129</a></span><span class="t"><span class="key">def</span> <span class="nam">enable_win_size_swap</span><span class="op">(</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -221,10 +221,10 @@
     <p class="pln"><span class="n"><a id="t137" href="#t137">137</a></span><span class="t"><span class="str">        This affects :ref:`auto-cell-ratio` computation and size computations for</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t138" href="#t138">138</a></span><span class="t"><span class="str">        :ref:`graphics-based`.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">        <span class="nam">utils</span><span class="op">.</span><span class="nam">_swap_win_size</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">        <span class="key">with</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_lock</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">            <span class="nam">utils</span><span class="op">.</span><span class="nam">_cell_size_cache</span><span class="op">[</span><span class="op">:</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op">)</span> <span class="op">*</span> <span class="num">4</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t"><span class="key">def</span> <span class="nam">get_cell_ratio</span><span class="op">(</span><span class="op">)</span> <span class="op">-></span> <span class="nam">float</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -298,10 +298,10 @@
     <p class="pln"><span class="n"><a id="t214" href="#t214">214</a></span><span class="t"><span class="str">    Raises:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t215" href="#t215">215</a></span><span class="t"><span class="str">        ValueError: *timeout* is less than or equal to zero.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t216" href="#t216">216</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t217" href="#t217">217</a></span><span class="t">    <span class="key">if</span> <span class="nam">timeout</span> <span class="op">&lt;=</span> <span class="num">0.0</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t218" href="#t218">218</a></span><span class="t">        <span class="key">raise</span> <span class="nam">arg_value_error_range</span><span class="op">(</span><span class="str">"timeout"</span><span class="op">,</span> <span class="nam">timeout</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t217" href="#t217">217</a></span><span class="t">    <span class="key">if</span> <span class="nam">timeout</span> <span class="op">&lt;=</span> <span class="num">0.0</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t218" href="#t218">218</a></span><span class="t">        <span class="key">raise</span> <span class="nam">arg_value_error_range</span><span class="op">(</span><span class="str">"timeout"</span><span class="op">,</span> <span class="nam">timeout</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t219" href="#t219">219</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t220" href="#t220">220</a></span><span class="t">    <span class="nam">utils</span><span class="op">.</span><span class="nam">_query_timeout</span> <span class="op">=</span> <span class="nam">timeout</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t220" href="#t220">220</a></span><span class="t">    <span class="nam">utils</span><span class="op">.</span><span class="nam">_query_timeout</span> <span class="op">=</span> <span class="nam">timeout</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t221" href="#t221">221</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t222" href="#t222">222</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t223" href="#t223">223</a></span><span class="t"><span class="nam">_cell_ratio</span><span class="op">:</span> <span class="nam">float</span> <span class="op">|</span> <span class="key">None</span> <span class="op">=</span> <span class="num">0.5</span>&nbsp;</span><span class="r"></span></p>
@@ -315,7 +315,7 @@
             <a class="nav" href="z_b9ffcb677bff1953__ctlseqs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.5.4">coverage.py v7.5.4</a>,
-            created at 2024-06-26 02:54 +0000
+            created at 2024-07-02 08:36 +0000
         </p>
     </div>
 </footer>
