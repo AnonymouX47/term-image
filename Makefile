@@ -75,7 +75,7 @@ pytest := pytest -v -r a
 
 ## Filepath variables
 
-test-top := tests/test_top_level.py
+test-top-level := tests/test_top_level.py
 test-color := tests/test_color.py
 test-geometry := tests/test_geometry.py
 test-padding := tests/test_padding.py
@@ -99,12 +99,12 @@ test-graphics := $(test-kitty) $(test-iterm2)
 test-image := $(test-base) $(test-text) $(test-graphics) $(test-others)
 test-widget-urwid := $(test-widget-urwid-main) $(test-widget-urwid-screen)
 test-widget := $(test-widget-urwid)
-test := $(test-top) $(test-color) $(test-geometry) $(test-padding) $(test-renderable) $(test-render) $(test-image) $(test-iterator) $(test-widget)
+test := $(test-top-level) $(test-color) $(test-geometry) $(test-padding) $(test-renderable) $(test-render) $(test-image) $(test-iterator) $(test-widget)
 test-all := $(test) $(test-url)
 
 ## Targets
 
-test-top \
+test-top-level \
 test-color \
 test-geometry \
 test-padding \

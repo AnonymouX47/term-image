@@ -2,7 +2,17 @@ from operator import truediv
 
 import pytest
 
-from term_image import AutoCellRatio, get_cell_ratio, set_cell_ratio
+from term_image import (
+    AutoCellRatio,
+    disable_queries,
+    disable_win_size_swap,
+    enable_queries,
+    enable_win_size_swap,
+    get_cell_ratio,
+    set_cell_ratio,
+    set_query_timeout,
+    utils,
+)
 from term_image.exceptions import TermImageError
 from term_image.geometry import Size
 
@@ -59,3 +69,52 @@ class TestCellRatio:
             # Back to normal when cell size can be determined
             set_cell_size(Size(5, 5))
             assert get_cell_ratio() == 5 / 5 == get_cell_ratio()
+
+
+def test_disable_queries():
+    utils._queries_enabled = True
+
+    disable_queries()
+    assert not utils._queries_enabled
+
+
+@pytest.mark.parametrize("was_enabled", [True, False])
+def test_disable_win_size_swap(was_enabled):
+    utils._swap_win_size = was_enabled
+    utils._cell_size_cache[:] = (1, 2, 3, 4)
+
+    disable_win_size_swap()
+    assert not utils._swap_win_size
+    assert utils._cell_size_cache == [0, 0, 0, 0] if was_enabled else [1, 2, 3, 4]
+
+
+@pytest.mark.parametrize("was_enabled", [True, False])
+def test_enable_queries(was_enabled):
+    utils._queries_enabled = was_enabled
+    utils._cell_size_cache[:] = (1, 2, 3, 4)
+
+    enable_queries()
+    assert utils._queries_enabled
+    assert utils._cell_size_cache == [1, 2, 3, 4] if was_enabled else [0, 0, 0, 0]
+
+
+@pytest.mark.parametrize("was_enabled", [True, False])
+def test_enable_win_size_swap(was_enabled):
+    utils._swap_win_size = was_enabled
+    utils._cell_size_cache[:] = (1, 2, 3, 4)
+
+    enable_win_size_swap()
+    assert utils._swap_win_size
+    assert utils._cell_size_cache == [1, 2, 3, 4] if was_enabled else [0, 0, 0, 0]
+
+
+class TestSetQueryTimeout:
+    @pytest.mark.parametrize("timeout", [-1.0, -0.1, 0.0])
+    def test_invalid(self, timeout):
+        with pytest.raises(ValueError):
+            set_query_timeout(timeout)
+
+    @pytest.mark.parametrize("timeout", [0.1, 0.5, 1.0, 10.0])
+    def test_valid(self, timeout):
+        set_query_timeout(timeout)
+        assert utils._query_timeout == timeout

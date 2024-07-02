@@ -66,6 +66,7 @@ term_image.utils.get_terminal_size = get_terminal_size
 
 terminal_name_version = ("", "")
 term_image.utils.get_terminal_name_version = get_terminal_name_version
+term_image.utils.get_terminal_name_version._invalidate_cache = lambda: None
 
 cell_size = None
 term_image.get_cell_size = get_cell_size
@@ -73,6 +74,7 @@ term_image.utils.get_cell_size = get_cell_size
 
 fg_bg = [(0, 0, 0), (0, 0, 0)]
 term_image.utils.get_fg_bg_colors = get_fg_bg_colors
+term_image.utils.get_fg_bg_colors._invalidate_cache = lambda: None
 
 import term_image.image  # noqa: E402
 
