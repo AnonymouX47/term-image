@@ -1,4 +1,4 @@
-furo==2024.5.6
+furo==2024.8.6
 sphinx==7.3.7;python_version>="3.9"
 sphinx==7.1.2;python_version<"3.9"
 sphinx-toolbox==3.5.0
