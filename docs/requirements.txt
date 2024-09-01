@@ -3,4 +3,4 @@ sphinx==7.3.7;python_version>="3.9"
 sphinx==7.1.2;python_version<"3.9"
 sphinx-toolbox==3.5.0
 sphinxcontrib-prettyspecialmethods==0.1.0
-urwid==2.6.12
+urwid==2.6.15
