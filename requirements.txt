@@ -5,7 +5,7 @@ flake8==5.0.4;python_version<"3.8.1"
 isort[colors]==5.13.2
 mypy==1.11.2
 pillow==10.3.0
-pytest==8.2.1
+pytest==8.3.2
 pytest-cov==5.0.0
 requests==2.32.2
 typing_extensions==4.12.2
