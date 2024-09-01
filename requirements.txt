@@ -7,6 +7,6 @@ mypy==1.11.2
 pillow==10.4.0
 pytest==8.3.2
 pytest-cov==5.0.0
-requests==2.32.2
+requests==2.32.3
 typing_extensions==4.12.2
 urwid==2.6.15
