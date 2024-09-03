@@ -70,6 +70,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
     "requests": ("https://requests.readthedocs.io/en/stable/", None),
+    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
     "urwid": ("https://urwid.org", None),
 }
 
