@@ -37,6 +37,14 @@ extensions = [
     "sphinxcontrib.prettyspecialmethods",
 ]
 
+# -- Warnings ----------------------------------------------------------------
+suppress_warnings = [
+    # `autosummary` issues a plethora of this warning.
+    # See https://github.com/sphinx-doc/sphinx/issues/12589.
+    # NOTE: Check back later.
+    "autosummary.import_cycle",
+]
+
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
 html_logo = "resources/logo.png"
