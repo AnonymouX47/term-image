@@ -37,6 +37,14 @@ extensions = [
     "sphinxcontrib.prettyspecialmethods",
 ]
 
+# -- Warnings ----------------------------------------------------------------
+suppress_warnings = [
+    # `autosummary` issues a plethora of this warning.
+    # See https://github.com/sphinx-doc/sphinx/issues/12589.
+    # NOTE: Check back later.
+    "autosummary.import_cycle",
+]
+
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
 html_logo = "resources/logo.png"
@@ -62,6 +70,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
     "requests": ("https://requests.readthedocs.io/en/stable/", None),
+    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
     "urwid": ("https://urwid.org", None),
 }
 

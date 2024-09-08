@@ -923,7 +923,7 @@ class RenderArgs(RenderArgsData):
                 or cls._interned.get(init_render_args.render_cls) is init_render_args
             ):
                 try:
-                    return cls._interned[render_cls]  # type: ignore[return-value]
+                    return cls._interned[render_cls]
                 except KeyError:
                     pass
 

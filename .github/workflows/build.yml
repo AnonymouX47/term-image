@@ -11,22 +11,32 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
+    runs-on: ${{ matrix.os }}
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Test package build and installation
-      run: |
-        make build
-        pip install -I dist/*.whl
-        pip install -I dist/*.tar.gz
+      - name: Test package build and installation (for non-Windows)
+        if: matrix.os != 'windows-latest'
+        run: |
+          make build
+          pip install -I dist/*.whl
+          pip install -I dist/*.tar.gz
+
+      - name: Test package build and installation (for Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          make build
+          pip install -I dist\$(Get-ChildItem -Path dist\*.whl -Name)
+          pip install -I dist\$(Get-ChildItem -Path dist\*.tar.gz -Name)

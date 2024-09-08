@@ -7,7 +7,8 @@ on:
       - completed
 
 jobs:
-  test:
+  coverage-comment:
+
     name: Post PR coverage comment
     runs-on: ubuntu-latest
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
@@ -22,6 +23,7 @@ jobs:
       # workflow that launched this workflow, and download the related
       # artifact that contains the comment to be published
       actions: read
+
     steps:
       # DO NOT run actions/checkout here, for security reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

@@ -64,6 +64,7 @@ def toggle_is_on_kitty():
 term_image._utils.get_terminal_size = get_terminal_size
 
 terminal_name_version = NameVersion("", "")
+get_terminal_name_version._invalidate_cache = lambda: None
 term_image._utils.get_terminal_name_version = get_terminal_name_version
 
 cell_size = None
@@ -71,6 +72,7 @@ term_image.get_cell_size = get_cell_size
 term_image._utils.get_cell_size = get_cell_size
 
 fg_bg = (Color(0, 0, 0),) * 2
+get_fg_bg_colors._invalidate_cache = lambda: None
 term_image._utils.get_fg_bg_colors = get_fg_bg_colors
 
 import term_image.image  # noqa: E402
