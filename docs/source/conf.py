@@ -68,9 +68,9 @@ autodoc_inherit_docstrings = False
 # # -- sphinx-intersphinx ----------------------------------------------
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
-    "requests": ("https://requests.readthedocs.io/en/stable/", None),
-    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
+    "pillow": ("https://pillow.readthedocs.io/en/stable", None),
+    "requests": ("https://requests.readthedocs.io/en/stable", None),
+    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable", None),
     "urwid": ("https://urwid.org", None),
 }
 
@@ -135,13 +135,6 @@ def autodocssumm_grouper(app, what, name, obj, section, parent):
             return "Special Attributes"
 
 
-# # -- Setup Function ------------------------------------------------------------------
-
-
-def setup(app):
-    app.connect("autodocsumm-grouper", autodocssumm_grouper)
-
-
 # -- Extras -----------------------------------------------------------
 
 # The properties defined by the metaclass' would be invoked instead of returning the
@@ -182,3 +175,9 @@ prettyspecialmethods.show_special_methods = skip_undoc_special_methods
 
 # Fixes some weird `AttributeError` when building on `ReadTheDocs`
 CollapseNode.label = None
+
+# -- Setup Function --------------------------------------------------------------------
+
+
+def setup(app):
+    app.connect("autodocsumm-grouper", autodocssumm_grouper)
