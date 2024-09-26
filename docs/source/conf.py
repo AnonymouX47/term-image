@@ -3,6 +3,7 @@
 # For the full list of configuration options, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from sphinx.ext.autodoc import DecoratorDocumenter, FunctionDocumenter
 from sphinx_toolbox.collapse import CollapseNode
 from sphinxcontrib import prettyspecialmethods
 
@@ -29,6 +30,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.decorators",
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
     "sphinx_toolbox.more_autosummary",
@@ -143,6 +145,19 @@ for meta in (ImageMeta, ITerm2ImageMeta):
     for attr, value in tuple(vars(meta).items()):
         if isinstance(value, utils.ClassPropertyBase):
             delattr(meta, attr)
+
+# # -- autodecorator -------------------------------------------------------------
+
+
+@classmethod
+def can_document_member(cls, member, *args, **kwargs):
+    return hasattr(member, "_no_redecorate_wrapped_") and (
+        super(DecoratorDocumenter, cls).can_document_member(member, *args, **kwargs)
+    )
+
+
+DecoratorDocumenter.priority = FunctionDocumenter.priority + 5
+DecoratorDocumenter.can_document_member = can_document_member
 
 # # -- prettyspecialmethods ------------------------------------------------------
 
