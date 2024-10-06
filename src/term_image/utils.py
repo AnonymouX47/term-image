@@ -449,22 +449,19 @@ def get_cell_size() -> term_image.geometry.Size | None:
                 more=lambda s: not s.endswith(b"c"),
             )
             if response:
-                cell_size_match = ctlseqs.CELL_SIZE_PX_re.match(response.decode())
-                if not cell_size_match:
-                    text_area_size_match = ctlseqs.TEXT_AREA_SIZE_PX_re.match(
-                        response.decode()
-                    )
-            # XTWINOPS specifies (height, width)
-            if cell_size_match:
-                cell_size = tuple(map(int, cell_size_match.groups()))[::-1]
-            elif text_area_size_match:
-                text_area_size = tuple(map(int, text_area_size_match.groups()))[::-1]
+                # XTWINOPS specifies (height, width)
+                if match := ctlseqs.CELL_SIZE_PX_re.match(response.decode()):
+                    cell_size = tuple(map(int, match.groups()))[::-1]
+                elif match := ctlseqs.TEXT_AREA_SIZE_PX_re.match(response.decode()):
+                    got_text_area_size = True
+                    text_area_size = tuple(map(int, match.groups()))[::-1]
 
-                # Termux seems to respond with (height / 2, width), though the values
-                # are incorrect as they change with different zoom levels but still
-                # always give a reasonable (almost always the same) cell size and ratio.
-                if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
-                    text_area_size = (text_area_size[0], text_area_size[1] * 2)
+                    # Termux seems to respond with (height / 2, width), though the
+                    # values are incorrect as they change with different zoom levels
+                    # but still always give a reasonable (almost always the same)
+                    # cell size and ratio.
+                    if os.environ.get("SHELL", "").startswith("/data/data/com.termux/"):
+                        text_area_size = (text_area_size[0], text_area_size[1] * 2)
 
         if got_text_area_size:
             if _swap_win_size:
