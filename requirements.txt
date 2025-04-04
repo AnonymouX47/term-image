@@ -3,7 +3,7 @@ black==25.1.0
 flake8==7.2.0
 isort[colors]==6.0.1
 mypy==1.15.0
-pillow==10.4.0
+pillow==11.1.0
 pytest==8.3.5
 pytest-cov==6.1.0
 requests==2.32.3
