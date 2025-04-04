@@ -187,7 +187,7 @@ def cached(func: Callable[P, T]) -> Callable[P, T]:
         with lock:
             cache.clear()
 
-    cache: dict[tuple[P.args, tuple[tuple[str, Any], ...]], T] = {}
+    cache: dict[tuple[Any, tuple[tuple[str, Any], ...]], T] = {}
     lock = RLock()
     setattr(cached_wrapper, "_invalidate_cache", invalidate)
 
