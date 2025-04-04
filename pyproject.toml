@@ -92,9 +92,11 @@ profile = "black"
 combine_as_imports = true
 
 [tool.mypy]
-strict = true
-show_column_numbers = true
+files = ["src/term_image"]
 implicit_reexport = false
+show_column_numbers = true
+strict = true
+warn_unused_configs = true
 
 [[tool.mypy.overrides]]
 module = [

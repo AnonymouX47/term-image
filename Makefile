@@ -52,7 +52,7 @@ lint:
 	flake8 $(py_files) && echo
 
 type:
-	mypy src/term_image && echo
+	mypy && echo
 
 check-format:
 	black --check --diff --color $(py_files) && echo
