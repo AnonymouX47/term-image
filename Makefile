@@ -71,8 +71,6 @@ imports:
 
 # Tests
 
-pytest := pytest -v -r a
-
 ## Filepath variables
 
 test-top-level := tests/test_top_level.py
@@ -113,16 +111,16 @@ test-render test-render-iterator \
 test-image test-base test-text test-graphics test-block test-kitty test-iterm2 test-url test-others test-iterator \
 test-widget test-widget-urwid test-widget-urwid-main test-widget-urwid-screen \
 test test-all:
-	$(pytest) $($@)
+	pytest $($@)
 
 test-cov:
-	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test)
+	pytest --cov --cov-append --cov-report=term --cov-report=html $(test)
 
 test-all-cov:
-	$(pytest) --cov --cov-report=term --cov-report=html $(test-all)
+	pytest --cov --cov-report=term --cov-report=html $(test-all)
 
 test-%-cov:
-	$(pytest) --cov --cov-append --cov-report=term --cov-report=html $(test-$*)
+	pytest --cov --cov-append --cov-report=term --cov-report=html $(test-$*)
 
 
 # Building the Docs

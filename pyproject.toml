@@ -115,6 +115,7 @@ module = [
 ignore_errors = true
 
 [tool.pytest.ini_options]
+addopts = "-v -r a"
 filterwarnings = [
     "error",
     "ignore:.+in a terminal:UserWarning:term_image.utils",
