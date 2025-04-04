@@ -4,7 +4,7 @@ flake8==7.2.0
 isort[colors]==6.0.1
 mypy==1.15.0
 pillow==10.4.0
-pytest==8.3.3
+pytest==8.3.5
 pytest-cov==5.0.0
 requests==2.32.3
 typing_extensions==4.13.1
