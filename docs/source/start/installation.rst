@@ -5,7 +5,7 @@ Requirements
 ------------
 
 * Operating System: Unix / Linux / MacOS X / Windows (limited support, see the :doc:`/faqs`)
-* `Python <https://www.python.org/>`_ >= 3.8
+* `Python <https://www.python.org/>`_ >= 3.9
 * A terminal emulator with **any** of the following:
   
   * support for the `Kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.

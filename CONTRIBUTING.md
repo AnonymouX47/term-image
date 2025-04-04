@@ -228,7 +228,7 @@ For a more detailed explanation with examples see the guide at https://cbea.ms/g
 
 ### Requirements
 
-- [Python](https://www.python.org/) >= 3.8
+- [Python](https://www.python.org/) >= 3.9
 - [Pip](https://pip.pypa.io/en/stable/installation/)
 - A new virtual environment
   - This is to ensure all contributors can always be on the same page as far as dependency versions are concerned.

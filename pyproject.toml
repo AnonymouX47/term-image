@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 dynamic = ["version"]
 name = "term-image"
 description = "Display images in the terminal"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "pillow>=9.1,<11",
     "requests>=2.23,<3",
@@ -47,7 +47,6 @@ classifiers = [
     "Operating System :: Android",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
