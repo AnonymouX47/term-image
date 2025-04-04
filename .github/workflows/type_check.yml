@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies and lint with a variety of Python versions
+# This workflow will install Python dependencies and type-check across a variety of platforms and Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: type check
@@ -15,18 +15,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform: ["linux", "darwin"]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.12
 
       - name: Install dev dependencies
         run: make req
 
       - name: Type-check with mypy
-        run: make type
+        run: mypy --platform ${{ matrix.platform }} --python-version ${{ matrix.python-version }}
