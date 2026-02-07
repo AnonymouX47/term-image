@@ -1489,7 +1489,7 @@ class BaseImage(metaclass=ImageMeta):
         if alpha is None or img.mode in {"1", "L", "RGB", "HSV", "CMYK"}:
             convert_resize_img("RGB")
             if pixel_data:
-                rgb = list(img.getdata())
+                rgb = list(img.get_flattened_data())
                 a = [255] * mul(*size)
         else:
             convert_resize_img("RGBA")
@@ -1505,7 +1505,7 @@ class BaseImage(metaclass=ImageMeta):
                     a = [255] * mul(*size)
             else:
                 if pixel_data:
-                    a = list(img.getdata(3))
+                    a = list(img.get_flattened_data(3))
                     if round_alpha:
                         alpha = round(alpha * 255)
                         a = [0 if val < alpha else 255 for val in a]
@@ -1520,7 +1520,7 @@ class BaseImage(metaclass=ImageMeta):
                     img = bg
 
             if pixel_data:
-                rgb = list((img if img.mode == "RGB" else img.convert("RGB")).getdata())
+                rgb = list((img if img.mode == "RGB" else img.convert("RGB")).get_flattened_data())
 
         return (img, *(pixel_data and (rgb, a) or (None, None)))
 
