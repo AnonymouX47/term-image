@@ -327,8 +327,9 @@ class KittyImage(GraphicsImage):
                             cls._TERM, cls._TERM_VERSION = name, version
                             cls._KITTY_VERSION = version_tuple
                             cls._supported = True
-                # Konsole is good as long as it responds to the graphics query
-                elif name == "konsole":
+                # Konsole and Ghostty are good as long as they respond to the
+                # graphics query
+                elif name in ("konsole", "ghostty"):
                     cls._TERM, cls._TERM_VERSION = name, version or ""
                     cls._supported = True
 
